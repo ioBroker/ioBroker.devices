@@ -46,7 +46,9 @@
         ],
         "keywords": [
             "ioBroker",
-            "template",
+            "devices",
+            "material",
+            "iot",
             "Smart Home",
             "home automation"
         ],
@@ -55,45 +57,20 @@
         "main": "main.js",
         "icon": "devices.png",
         "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/GermanBluefox/ioBroker.devices/master/admin/devices.png",
-        "readme": "https://github.com/GermanBluefox/ioBroker.devices/blob/master/README.md",
+        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
+        "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
         "loglevel": "info",
-        "restartAdapters": [
-            "vis"
-        ],
-        "localLink": "%web_protocol%://%ip%:%web_port%/vis/edit.html",
         "onlyWWW": true,
         "noConfig": true,
         "singleton": true,
         "type": "general",
-        "mode": "once",
-        "dependencies": [
-            "vis"
-        ]
+        "mode": "none",
+        "adminTab": {
+            "singleton": true,
+            "name": "Scripts"
+        }
     },
     "native": {},
     "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.connection",
-            "type": "state",
-            "common": {
-                "role": "indicator.connected",
-                "name": "If connected to device or service",
-                "type": "boolean",
-                "read": true,
-                "write": false,
-                "def": false
-            },
-            "native": {}
-        }
-    ]
+    "instanceObjects": []
 }
