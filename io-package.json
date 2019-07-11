@@ -1,0 +1,99 @@
+{
+    "common": {
+        "name": "devices",
+        "version": "0.0.1",
+        "news": {
+            "0.0.1": {
+                "en": "initial release",
+                "de": "Erstveröffentlichung",
+                "ru": "Начальная версия",
+                "pt": "lançamento inicial",
+                "nl": "Eerste uitgave",
+                "fr": "Première version",
+                "it": "Versione iniziale",
+                "es": "Versión inicial",
+                "pl": "Pierwsze wydanie",
+                "zh-cn": "首次出版"
+            }
+        },
+        "title": "Manage devices",
+        "titleLang": {
+            "en": "Manage devices",
+            "de": "Geräte verwalten",
+            "ru": "Управление устройствами",
+            "pt": "Gerenciar dispositivos",
+            "nl": "Beheer apparaten",
+            "fr": "Gérer les appareils",
+            "it": "Gestisci i dispositivi",
+            "es": "Administrar dispositivos",
+            "pl": "Zarządzaj urządzeniami",
+            "zh-cn": "管理设备"
+        },
+        "desc": {
+            "en": "Manage and create devices for using it in other adapters like material, iot,...",
+            "de": "Verwalten und erstellen Sie Geräte für die Verwendung in anderen Adaptern wie Material, iot, ...",
+            "ru": "Управляйте и создавайте устройства для использования в других адаптерах, таких как material, iot, ...",
+            "pt": "Gerenciar e criar dispositivos para usá-lo em outros adaptadores como material, iot, ...",
+            "nl": "Beheer en maak apparaten voor gebruik in andere adapters zoals materiaal, iot, ...",
+            "fr": "Gérez et créez des périphériques pour l’utiliser dans d’autres adaptateurs, tels que Material, Iot, ...",
+            "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
+            "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
+            "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
+            "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
+        },
+        "authors": [
+            "bluefox <dogafox@gmail.com>"
+        ],
+        "keywords": [
+            "ioBroker",
+            "template",
+            "Smart Home",
+            "home automation"
+        ],
+        "license": "MIT",
+        "platform": "Javascript/Node.js",
+        "main": "main.js",
+        "icon": "devices.png",
+        "enabled": true,
+        "extIcon": "https://raw.githubusercontent.com/GermanBluefox/ioBroker.devices/master/admin/devices.png",
+        "readme": "https://github.com/GermanBluefox/ioBroker.devices/blob/master/README.md",
+        "loglevel": "info",
+        "restartAdapters": [
+            "vis"
+        ],
+        "localLink": "%web_protocol%://%ip%:%web_port%/vis/edit.html",
+        "onlyWWW": true,
+        "noConfig": true,
+        "singleton": true,
+        "type": "general",
+        "mode": "once",
+        "dependencies": [
+            "vis"
+        ]
+    },
+    "native": {},
+    "objects": [],
+    "instanceObjects": [
+        {
+            "_id": "info",
+            "type": "channel",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info.connection",
+            "type": "state",
+            "common": {
+                "role": "indicator.connected",
+                "name": "If connected to device or service",
+                "type": "boolean",
+                "read": true,
+                "write": false,
+                "def": false
+            },
+            "native": {}
+        }
+    ]
+}
