@@ -1,12 +1,12 @@
 {
   "name": "iobroker.devices",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Manage and create devices for using it in other adapters like material, iot,...",
   "author": {
     "name": "bluefox",
     "email": "dogafox@gmail.com"
   },
-  "homepage": "https://github.com/GermanBluefox/ioBroker.devices",
+  "homepage": "https://github.com/ioBroker/ioBroker.devices",
   "license": "MIT",
   "keywords": [
     "ioBroker",
@@ -16,21 +16,17 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/GermanBluefox/ioBroker.devices"
+    "url": "https://github.com/ioBroker/ioBroker.devices"
   },
   "dependencies": {
   },
   "devDependencies": {
-    "@types/gulp": "^4.0.6",
-    "axios": "^0.19.0",
-    "eslint": "^6.0.1",
-    "gulp": "^4.0.2",
-    "tslint": "^5.18.0"
+    "gulp": "^4.0.2"
   },
-  "main": "widgets/devices.html",
+  "main": "admin/tab.html",
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/GermanBluefox/ioBroker.devices/issues"
+    "url": "https://github.com/ioBroker/ioBroker.devices/issues"
   },
   "readmeFilename": "README.md"
 }
