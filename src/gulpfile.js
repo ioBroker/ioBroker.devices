@@ -97,14 +97,14 @@ gulp.task('copy', () => {
         .pipe(gulp.dest('../admin/'));
 });
 
-gulp.task('renameIndex', gulp.series('copyAdmin', function (done) {
+gulp.task('renameIndex', gulp.series('copy', function (done) {
     if (fs.existsSync(__dirname + '/../admin/index.html')) {
         fs.renameSync(__dirname + '/admin/index.html', __dirname + '/admin/index_m.html')
     }
     done();
 }));
 
-gulp.task('renameTab', gulp.series('copyAdmin', function (done) {
+gulp.task('renameTab', gulp.series('copy', function (done) {
     if (fs.existsSync(__dirname + '/../admin/index.html')) {
         fs.renameSync(__dirname + '/../admin/index.html', __dirname + '/../admin/tab.html')
     }

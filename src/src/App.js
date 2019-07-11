@@ -1,4 +1,11 @@
 import React from 'react';
+import {withStyles} from '@material-ui/core/styles';
+import AppBar from '@material-ui/core/AppBar';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import Loader from '@iobroker/adapter-react/Components/Loader'
+import I18n from './i18n';
+
 import logo from './logo.svg';
 import './App.css';
 
