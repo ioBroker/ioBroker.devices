@@ -13,17 +13,20 @@ const styles = theme => ({
     root: {},
     tabContent: {
         padding: 10,
-        height: 'calc(100% - 64px - 48px - 20px)',
+        height: 'calc(100% - 40px - 20px)',
         overflow: 'auto'
     },
     tabContentIFrame: {
         padding: 10,
-        height: 'calc(100% - 64px - 48px - 20px - 38px)',
+        height: 'calc(100% - 40px - 20px - 38px)',
         overflow: 'auto'
     }
 });
 
 class App extends GenericApp {
+    constructor(props) {
+        super(props, {bottomButtons: false, adapterName: 'devices'});
+    }
     getSelectedTab() {
         const tab = this.state.selectedTab;
         if (!tab || tab === 'list') {

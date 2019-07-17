@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 bluefox <dogafox@gmail.com>
+ * Copyright 2018-2019 bluefox <dogafox@gmail.com>
  *
  * Licensed under the Creative Commons Attribution-NonCommercial License, Version 4.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import {TiLightbulb as Icon} from 'react-icons/ti'
 
 import SmartGeneric from './SmartGeneric';
-import Theme from '../theme';
-import Dialog from '../Dialogs/SmartDialogSlider';
+import Theme from '@iobroker/adapter-react/Theme';
 import I18n from '../i18n';
 
 class SmartDimmer extends SmartGeneric {
@@ -57,9 +56,7 @@ class SmartDimmer extends SmartGeneric {
             }
             this.min = parseFloat(this.min);
 
-            this.props.tile.setState({
-                isPointer: true
-            });
+            this.props.tile.setState({isPointer: true});
         }
 
         this.key = 'smart-dimmer-' + this.id + '-';
@@ -212,16 +209,6 @@ class SmartDimmer extends SmartGeneric {
     render() {
         return this.wrapContent([
             this.getStandardContent(this.id, true),
-            this.state.showDialog ?
-                <Dialog key={this.key + 'dialog'}
-                    windowWidth={this.props.windowWidth}
-                    startValue={this.realValueToPercent()}
-                    onValueChange={this.setValue.bind(this)}
-                    startToggleValue={this.onActualId ? this.state[this.onActualId] : false}
-                    onToggle={this.onId && this.onToggleValue.bind(this)}
-                    onClose={this.onDialogClose.bind(this)}
-                    type={Dialog.types.dimmer}
-                /> : null
         ]);
     }
 }

@@ -1,23 +1,14 @@
 /**
- * Copyright 2018 bluefox <dogafox@gmail.com>
+ * Copyright 2018-2019 bluefox <dogafox@gmail.com>
  *
- * Licensed under the Creative Commons Attribution-NonCommercial License, Version 4.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * MIT License
  *
- * https://creativecommons.org/licenses/by-nc/4.0/legalcode.txt
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  **/
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import Utils from '../Utils';
+import Utils from '@iobroker/adapter-react/Components/Utils';
 import I18n from '../i18n';
-import Theme from '../theme';
+import Theme from '@iobroker/adapter-react/Theme';
 
 import {MdVisibility as IconCheck} from 'react-icons/md';
 import {MdRemove as IconRemoved} from 'react-icons/md';
@@ -26,20 +17,18 @@ import {MdArrowUpward as IconDirectionUp} from 'react-icons/md';
 import {MdArrowDownward as IconDirectionDown} from 'react-icons/md';
 import {MdSwapVert as IconDirection} from 'react-icons/md';
 
-import Dialog from '../Dialogs/SmartDialogSettings';
+const styles = {
+    type: {
+        position: 'absolute',
+        top: 1,
+        left: 16,
+        fontSize: 10,
+        color: '#000',
+        fontStyle:' italic',
+    },
+};
 
 class SmartGeneric extends Component {
-    static propTypes = {
-        objects:            PropTypes.object.isRequired,
-        states:             PropTypes.object.isRequired,
-        tile:               PropTypes.object.isRequired,
-        channelInfo:        PropTypes.object.isRequired,
-        ignoreIndicators:   PropTypes.array,
-        enumNames:          PropTypes.array,
-        windowWidth:        PropTypes.number,
-        user:               PropTypes.string
-    };
-
     constructor(props, noSubscribe) {
         super(props);
         this.channelInfo = this.props.channelInfo;
@@ -149,6 +138,12 @@ class SmartGeneric extends Component {
             }
         }
 
+        if (this.constructor.name === 'SmartGeneric') {
+            let state = this.channelInfo.states.find(state => state.id && state.required);
+            this.id = state ? state.id : '';
+            this.componentReady();
+        }
+
         // will be done in componentReady
         // this.state = stateRx;
     }
@@ -168,28 +163,16 @@ class SmartGeneric extends Component {
         }
 
         if (this.settingsId) {
-            if (this.props.objects[this.settingsId] && this.props.objects[this.settingsId].type === 'instance') {
-                this.stateRx.settings = {
-                    enabled: true,
-                    name: this.props.objects[this.settingsId].common.name + '.' + this.instanceNumber
-                }
-            } else {
-                this.stateRx.settings = Utils.getSettings(
-                    this.props.objects[this.settingsId],
-                    {
-                        user: this.props.user,
-                        language: I18n.getLanguage(),
-                        name: this.getObjectNameCh()
-                    },
-                    this.defaultEnabling
-                );
-            }
             if (this.stateRx.settings.background) {
                 this.props.tile.setBackgroundImage(this.stateRx.settings.background || '', true);
             }
         }
 
         this.stateRx.nameStyle = {fontSize: SmartGeneric.getNameFontSize(this.stateRx.settings.name)};
+
+        if (this.stateRx.settings.enabled === undefined) {
+            this.stateRx.settings.enabled = true;
+        }
 
         this.props.tile.setVisibility(this.stateRx.settings.enabled);
 
@@ -459,8 +442,8 @@ class SmartGeneric extends Component {
             this.setState({editMode: nextProps.editMode});
             //this.props.tile.setVisibility(nextProps.editMode || this.state.settings.enabled);
         }
-        if (JSON.stringify(nextProps.ignoreIndicators) !== JSON.stringify(this.state.ignoreIndicators)) {
-            this.setState({ignoreIndicators: nextProps.ignoreIndicators});
+        if (JSON.stringify(nextProps.ignoreIndicators || []) !== JSON.stringify(this.state.ignoreIndicators)) {
+            this.setState({ignoreIndicators: nextProps.ignoreIndicators || []});
         }
     }
 
@@ -699,7 +682,7 @@ class SmartGeneric extends Component {
     wrapContent(content) {
         if (this.state.editMode) {
             return [
-                (<div key={this.key + 'type'} style={{display: 'none'}}>{this.channelInfo.type}</div>),
+                (<div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>),
                 (<div key={this.key + 'wrapper'}>
                     {this.state.settings.enabled ?
                         [(<div onClick={this.toggleEnabled.bind(this)} key={this.key + 'icon-check'} style={Theme.tile.editMode.checkIcon} className="edit-buttons">
@@ -716,7 +699,7 @@ class SmartGeneric extends Component {
                     }
                     {content}
                 </div>),
-                this.state.showSettings ? (
+                /*this.state.showSettings ? (
                     <Dialog key={this.key + 'settings'}
                          windowWidth={this.props.windowWidth}
                          name={this.state.settings.name}
@@ -726,10 +709,11 @@ class SmartGeneric extends Component {
                          settingsId={this.settingsId}
                          onSave={this.saveDialogSettings.bind(this)}
                          onClose={this.onSettingsClose.bind(this)}
-                />): null];
+
+                />): null*/];
         } else if (this.state.settings.enabled) {
             return [
-                (<div key={this.key + 'type'} style={{display: 'none'}}>{this.channelInfo.type}</div>),
+                (<div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>),
                 (<div key={this.key + 'wrapper'} >
                     {this.showCorner ? (<div key={this.key + 'corner'} onMouseDown={this.onLongClick.bind(this)} className="corner" style={Theme.tile.tileCorner}/>) : null}
                     {this.getIndicators()}
@@ -749,10 +733,22 @@ class SmartGeneric extends Component {
         if (!this.state.editMode && !this.state.settings.enabled) {
             return null;
         } else {
-            return this.wrapContent(this.settings.name || this.getObjectNameCh());
+            return this.wrapContent(this.state.settings.name || this.getObjectNameCh());
         }
     }
 }
 
-export default SmartGeneric;
+SmartGeneric.propTypes = {
+    objects:            PropTypes.object.isRequired,
+    states:             PropTypes.object.isRequired,
+    tile:               PropTypes.object.isRequired,
+    channelInfo:        PropTypes.object.isRequired,
+    editMode:           PropTypes.bool,
+    ignoreIndicators:   PropTypes.array,
+    enumNames:          PropTypes.array,
+    windowWidth:        PropTypes.number,
+    user:               PropTypes.string,
+    onCollectIds:       PropTypes.func.isRequired,
+};
 
+export default SmartGeneric;
