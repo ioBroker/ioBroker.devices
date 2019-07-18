@@ -74,6 +74,9 @@ class SmartTile extends Component {
     }
 
     onClick(e) {
+        if (this.props.onClick) {
+            this.props.onClick(e);
+        } else
         if (this.handlers.onClick && !this.props.editMode) {
             this.handlers.onClick(e);
         }
@@ -152,7 +155,7 @@ class SmartTile extends Component {
     }
 
     wrapContent(content) {
-        let style = {cursor: this.state.isPointer ? 'pointer' : 'inherit'};
+        let style = {cursor: this.state.isPointer || this.props.onClick ? 'pointer' : 'inherit'};
         if (!this.props.editMode && !this.state.visible && this.channelInfo) {
             style.display = 'none';
         }
@@ -308,6 +311,7 @@ SmartTile.propTypes = {
     editMode:           PropTypes.bool.isRequired,
     windowWidth:        PropTypes.number,
     onVisibilityControl: PropTypes.func,
+    onClick:            PropTypes.func,
     onDelete:           PropTypes.func,
     onSaveSettings:     PropTypes.func,
     onCollectIds:       PropTypes.func,

@@ -41,6 +41,7 @@ import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import SmartDetector from '../Devices/SmartDetector';
 import SmartTile from '../Devices/SmartTile';
+import DialogEdit from '../Dialogs/DialogEditDevice';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -216,9 +217,7 @@ class ListDevices extends Component {
         }
 
         this.state = {
-            editedSmartName: '',
-            editId: '',
-            editObjectName: '',
+            editIndex: null,
             deleteId: '',
 
             showSelectId: false,
@@ -432,12 +431,19 @@ class ListDevices extends Component {
         }
     }
 
+    onEdit(editIndex, e) {
+        e && e.preventDefault();
+        e && e.stopPropagation();
+        this.setState({editIndex});
+    }
+
     renderDevice(index) {
         return (<SmartTile
                 key={'device' + index}
                 objects={this.objects}
                 states={this.states}
                 channelInfo={this.state.devices[index]}
+                onClick={e => this.onEdit(index, e)}
                 editMode={false}
                 enumNames={this.enumIDs}
                 onCollectIds={(elem, ids, isMount) => this.onCollectIds(elem, ids, isMount)}
@@ -452,6 +458,17 @@ class ListDevices extends Component {
             result.push(this.renderDevice(i));
         }
         return (<div key="listDevices" className={this.props.classes.columnDiv}>{result}</div>);
+    }
+
+    renderEditDialog() {
+        if (this.state.editIndex === null) return null;
+        return (<DialogEdit
+            channelInfo={this.state.devices[this.state.editIndex]}
+            objects={this.objects}
+            states={this.states}
+            socket={this.props.socket}
+            onClose={() => this.setState({editIndex: null})}
+        />);
     }
 
     render() {
@@ -475,6 +492,7 @@ class ListDevices extends Component {
                 {this.renderDevices()}
                 {this.renderMessage()}
                 {this.getSelectIdDialog()}
+                {this.renderEditDialog()}
             </div>
         );
     }

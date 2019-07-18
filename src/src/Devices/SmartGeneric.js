@@ -57,7 +57,7 @@ class SmartGeneric extends Component {
         if (typeof noSubscribe !== 'boolean' || !noSubscribe) {
             if (this.channelInfo.states) {
                 let ids = [];
-                this.channelInfo.states.forEach(function (state) {
+                this.channelInfo.states.forEach(state => {
                     if (!state.id) return;
 
                     if (state.id.startsWith('system.adapter.')) {
@@ -75,7 +75,7 @@ class SmartGeneric extends Component {
 
                         ids.push(state.id);
                     }
-                }.bind(this));
+                });
 
                 if (ids.length) {
                     this.subscribes = ids;
