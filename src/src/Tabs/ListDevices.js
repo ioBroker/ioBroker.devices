@@ -1,26 +1,15 @@
 import React, {Component} from 'react';
 import {withStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Utils from '@iobroker/adapter-react/Components/Utils'
 import Fab from '@material-ui/core/Fab';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Input from '@material-ui/core/Input';
-import Badge from '@material-ui/core/Badge';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import FormControl from '@material-ui/core/FormControl';
 
-import {MdEdit as IconEdit} from 'react-icons/md';
 import {MdAdd as IconAdd} from 'react-icons/md';
 import {MdRefresh as IconRefresh} from 'react-icons/md';
 import {MdClear as IconClear} from 'react-icons/md';
-import {MdDelete as IconDelete} from 'react-icons/md';
-import {MdFormatAlignJustify as IconExpand} from 'react-icons/md';
-import {MdDragHandle as IconCollapse} from 'react-icons/md';
 
 import {FaPowerOff as IconOn} from 'react-icons/fa';
 import {FaThermometerHalf as IconTemperature} from 'react-icons/fa';
@@ -33,10 +22,6 @@ import {FaLockOpen as IconLock} from 'react-icons/fa';
 import {FaThermometer as IconThermometer} from 'react-icons/fa';
 
 import I18n from '../i18n';
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
-import Dialog from "@material-ui/core/Dialog";
 import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import SmartDetector from '../Devices/SmartDetector';
@@ -247,6 +232,7 @@ class ListDevices extends Component {
         this.onUpdateBound = this.onUpdate.bind(this);
 
         this.detector = new SmartDetector();
+        this.patterns = this.detector.getPatterns();
         this.detectDevices();
     }
 
@@ -466,6 +452,7 @@ class ListDevices extends Component {
             channelInfo={this.state.devices[this.state.editIndex]}
             objects={this.objects}
             states={this.states}
+            patterns={this.patterns}
             socket={this.props.socket}
             onClose={() => this.setState({editIndex: null})}
         />);

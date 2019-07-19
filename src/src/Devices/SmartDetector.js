@@ -38,6 +38,10 @@ class IOBChannelDetector {
         this.detector = new ChannelDetector.ChannelDetector();
     }
 
+    getPatterns() {
+        return this.detector.getPatterns();
+    }
+
     detect(options) {
         if (!options._keysOptional) {
             if (this.objects !== options.objects) {
