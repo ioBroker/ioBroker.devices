@@ -67,9 +67,10 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose();
     };
 
-    renderType() {
+    renderHeader() {
         return (<div className={this.props.classes.header}>{this.props.channelInfo.type}</div>);
     }
+
     renderVariable(item) {
         let props = [item.type || 'any'];
         let pattern = this.pattern.states.find(state => state.name === item.name);
@@ -138,7 +139,7 @@ class DialogEditDevice extends React.Component {
                              id="edit-device-dialog-title">{I18n.t('Edit device')}</DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-description">
-                        {this.renderType()}
+                        {this.renderHeader()}
                         {this.renderContent()}
                     </DialogContentText>
                 </DialogContent>
