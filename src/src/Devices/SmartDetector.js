@@ -12,7 +12,6 @@ import {MdBatteryAlert as IconLowbat} from 'react-icons/md';
 import {MdError as IconError} from 'react-icons/md';
 import ChannelDetector from 'iobroker.type-detector';
 
-
 const COLORS = {
     working:   '#808080',
     unreach:   'orange',

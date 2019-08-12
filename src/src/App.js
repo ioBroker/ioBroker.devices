@@ -4,7 +4,7 @@ import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Loader from '@iobroker/adapter-react/Components/Loader'
-import I18n from './i18n';
+import I18n from '@iobroker/adapter-react/i18n';
 
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import TabDevices from './Tabs/ListDevices';
@@ -25,7 +25,22 @@ const styles = theme => ({
 
 class App extends GenericApp {
     constructor(props) {
-        super(props, {bottomButtons: false, adapterName: 'devices'});
+        const extendedProps = {...props};
+        extendedProps.bottomButtons = false;
+        extendedProps.adapterName = 'devices';
+        extendedProps.translations = {
+            'en': require('./i18n/en'),
+            'de': require('./i18n/de'),
+            'ru': require('./i18n/ru'),
+            'pt': require('./i18n/pt'),
+            'nl': require('./i18n/nl'),
+            'fr': require('./i18n/fr'),
+            'it': require('./i18n/it'),
+            'es': require('./i18n/es'),
+            'pl': require('./i18n/pl'),
+            'zh-cn': require('./i18n/zh-cn'),
+        };
+        super(extendedProps);
     }
     getSelectedTab() {
         const tab = this.state.selectedTab;

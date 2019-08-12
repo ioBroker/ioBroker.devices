@@ -8,7 +8,7 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import Paper from '@material-ui/core/Paper';
 
-import I18n from '../i18n';
+import I18n from '@iobroker/adapter-react/i18n';
 import Theme from '@iobroker/adapter-react/Theme';
 import {Types} from 'iobroker.type-detector';
 import Utils from '@iobroker/adapter-react/Components/Utils';

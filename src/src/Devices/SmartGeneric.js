@@ -7,7 +7,7 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import I18n from '../i18n';
+import I18n from '@iobroker/adapter-react/i18n';
 import Theme from '@iobroker/adapter-react/Theme';
 
 import {MdVisibility as IconCheck} from 'react-icons/md';

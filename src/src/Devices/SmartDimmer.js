@@ -20,7 +20,7 @@ import {TiLightbulb as Icon} from 'react-icons/ti'
 
 import SmartGeneric from './SmartGeneric';
 import Theme from '@iobroker/adapter-react/Theme';
-import I18n from '../i18n';
+import I18n from '@iobroker/adapter-react/i18n';
 
 class SmartDimmer extends SmartGeneric {
     constructor(props) {

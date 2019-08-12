@@ -21,12 +21,13 @@ import {FaLightbulb as IconBulb} from 'react-icons/fa';
 import {FaLockOpen as IconLock} from 'react-icons/fa';
 import {FaThermometer as IconThermometer} from 'react-icons/fa';
 
-import I18n from '../i18n';
+import I18n from '@iobroker/adapter-react/i18n';
 import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import SmartDetector from '../Devices/SmartDetector';
 import SmartTile from '../Devices/SmartTile';
 import DialogEdit from '../Dialogs/DialogEditDevice';
+import DialogNew from '../Dialogs/DialogNewDevice';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -205,7 +206,7 @@ class ListDevices extends Component {
             editIndex: null,
             deleteId: '',
 
-            showSelectId: false,
+            showAddDialog: false,
             showConfirmation: '',
             changed: [],
             devices: [],
@@ -458,6 +459,15 @@ class ListDevices extends Component {
         />);
     }
 
+    renderAddDialof() {
+        if (!this.state.showAddDialog) return null;
+        return (<DialogNew
+            theme={this.props.theme}
+            objects={this.objects}
+            onClose={() => this.setState({showAddDialog: false})}
+        />);
+    }
+
     render() {
         if (this.state.loading) {
             return (<CircularProgress  key="alexaProgress" />);
@@ -465,7 +475,7 @@ class ListDevices extends Component {
 
         return (
             <div key="list" className={this.props.classes.tab}>
-                <Fab size="small" color="secondary" aria-label="Add" className={this.props.classes.button} onClick={() => this.setState({showSelectId: true})}><IconAdd /></Fab>
+                <Fab size="small" color="secondary" aria-label="Add" className={this.props.classes.button} onClick={() => this.setState({showAddDialog: true})}><IconAdd /></Fab>
                 <Fab size="small" color="primary" aria-label="Refresh" className={this.props.classes.button}
                       onClick={() => this.browse(true)} disabled={this.state.browse}>{this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh/>)}</Fab>
 
@@ -491,6 +501,7 @@ ListDevices.propTypes = {
     onLoad: PropTypes.func,
     onChange: PropTypes.func,
     socket: PropTypes.object.isRequired,
+    theme: PropTypes.string,
 };
 
 export default withStyles(styles)(ListDevices);
