@@ -14,7 +14,10 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
+import {MdEdit as IconEdit} from 'react-icons/md';
+import Fab from '@material-ui/core/Fab';
 
+import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 
 const styles = theme => ({
@@ -30,6 +33,8 @@ const styles = theme => ({
         width: '100%',
         borderTop: '1px dashed #cacaca',
         display: 'block',
+        paddingTop: 5,
+        paddingBottom: 5,
     },
     oidName: {
         width: 100,
@@ -39,7 +44,7 @@ const styles = theme => ({
         display: 'inline-block',
         marginTop: 0,
         marginBottom: 0,
-        width: 'calc(100% - 120px)',
+        width: 'calc(100% - 150px)',
     },
     divOids: {
         display: 'inline-block',
@@ -61,8 +66,58 @@ const styles = theme => ({
 class DialogEditDevice extends React.Component {
     constructor(props) {
         super(props);
-        this.pattern = this.props.patterns[Object.keys(this.props.patterns).find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
+        const ids = {};
+        let channel;
+
+        this.props.channelInfo.states.forEach(state => {
+            if (state.id) {
+                const obj = this.props.objects[state.id];
+                if (obj && obj.common && obj.common.alias) {
+                    ids[state.name] = obj.common.alias.id || '';
+                }
+                if (!channel) {
+                    const parts = state.id.split('.');
+                    parts.pop();
+                    channel = parts.join('.');
+                }
+            }
+        });
+
+        this.channelId = channel;
+
+        this.state = {
+            ids,
+            func: '',
+            room: '',
+            selectIdFor: '',
+        };
+
+        this.pattern = this.props.patterns[Object.keys(this.props.patterns)
+            .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
     }
+
+    renderSelectDialog() {
+        if (!this.state.selectIdFor) {
+            return null;
+        }
+        return (<DialogSelectID
+            connection={this.props.socket}
+            title={I18n.t('Select for ') + this.state.selectIdFor}
+            selected={this.state.ids[this.state.selectIdFor] || this.findRealDevice()}
+            statesOnly={true}
+            onOk={id => {
+                const ids = JSON.parse(JSON.stringify(this.state.ids));
+                ids[this.state.selectIdFor] = id;
+                this.setState({selectIdFor: '', ids})
+            }}
+            onClose={() => this.setState({selectIdFor: ''})}
+        />);
+    }
+
+    handleClose() {
+        this.props.onClose && this.props.onClose();
+    }
+
     handleOk() {
         this.props.onClose && this.props.onClose();
     };
@@ -71,12 +126,28 @@ class DialogEditDevice extends React.Component {
         return (<div className={this.props.classes.header}>{this.props.channelInfo.type}</div>);
     }
 
+    findRealDevice() {
+        let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
+        if (realParent) {
+            realParent = this.state.ids[realParent];
+            const parts = realParent.split('.');
+            parts.pop();
+            realParent = parts.join('.');
+        }
+        return realParent || '';
+    }
+
     renderVariable(item) {
         let props = [item.type || 'any'];
         let pattern = this.pattern.states.find(state => state.name === item.name);
         if (item.write) props.push('write');
         if (item.read) props.push('read');
-        if (pattern.role) props.push('role=' + pattern.role.toString());
+		if (pattern.defaultRole) {
+			props.push('role=' + pattern.defaultRole);
+		} else {
+			if (pattern.role) props.push('role=' + pattern.role.toString());
+		}
+        
         if (pattern.enums) {
             const type = this.props.channelInfo.type;
             if (type === 'dimmer' || type === 'light') {
@@ -89,19 +160,28 @@ class DialogEditDevice extends React.Component {
                 props.push('enum ' + this.props.channelInfo.type);
             }
         }
+        const alias = this.channelId.startsWith('alias.');
+        const name = item.name;
 
         return [
-            (<div className={this.props.classes.divOidField}>
-                <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + item.name}</div>
+            (<div className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
+                <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
                 <TextField
-                    key={item.name}
+                    key={name}
                     fullWidth
-                    //label={(item.required ? '*' : '') + item.name}
-                    value={item.id || ''}
+                    disabled={!alias}
+                    label={item.id || (this.channelId + '.' + name)}
+                    value={alias ? this.state.ids[name] || '' : item.id || ''}
                     className={this.props.classes.oidField}
+                    onChange={e => {
+                        const ids = JSON.parse(JSON.stringify(this.state.ids));
+                        ids[name] = e.target.value;
+                        this.setState({ids});
+                    }}
                     helperText={props.join(', ')}
                     margin="normal"
                 />
+                {alias ? (<Fab size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.margin}><IconEdit /></Fab>) : null}
             </div>)];
     }
 
@@ -126,7 +206,7 @@ class DialogEditDevice extends React.Component {
     }
 
     render() {
-        return (<Dialog
+        return [(<Dialog
                 open={true}
                 maxWidth="l"
                 fullWidth={true}
@@ -136,7 +216,7 @@ class DialogEditDevice extends React.Component {
             >
                 <DialogTitle className={this.props.classes.titleBackground}
                              classes={{root: this.props.classes.titleColor}}
-                             id="edit-device-dialog-title">{I18n.t('Edit device')}</DialogTitle>
+                             id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-description">
                         {this.renderHeader()}
@@ -145,8 +225,11 @@ class DialogEditDevice extends React.Component {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                    <Button onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
                 </DialogActions>
-            </Dialog>);
+            </Dialog>),
+            this.renderSelectDialog()
+        ];
     }
 }
 

@@ -62,6 +62,14 @@ const actionsMapping = {
     getLockState: {color: colorRead, icon: IconLock, desc: 'Read lock state'},
 };
 
+const TYPES_MAPPING = {
+    button: 'boolean',
+    value: 'number',
+    level: 'number',
+    indicator: 'boolean',
+    action: 'boolean'
+};
+
 const styles = theme => ({
     tab: {
         width: '100%',
@@ -266,8 +274,19 @@ class ListDevices extends Component {
                 for (let i = 0; i < keys.length; i++) {
                     if (keys[i] < 'alias.') continue;
                     if (keys[i] > 'alias.\u9999') break;
-                    if (this.objects[keys[i]] && this.objects[keys[i]].type === 'device' && idsInEnums.indexOf(keys[i]) === -1) {
-                         idsInEnums.push(keys[i]);
+                    if (this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
+                        if (this.objects[keys[i]].type === 'device') {
+                            idsInEnums.push(keys[i]);
+                        } else if (this.objects[keys[i]].type === 'channel') {
+                            const parts = keys[i].split('.');
+                            parts.pop();
+
+                            const parentId = parts.join('.');
+                            // if parent was not yet included
+                            if (!this.objects[parentId] || idsInEnums.indexOf(parentId) === -1) {
+                                idsInEnums.push(keys[i]);
+                            }
+                        }
                     }
                 }
 
@@ -366,7 +385,7 @@ class ListDevices extends Component {
      *
      * @param {object} elem React visual element
      * @param {array} ids string or array of strings with IDs that must be subscribed or un-subscribed
-     * @param {boolean} isMount true if subscribe and false if un-sibscribe
+     * @param {boolean} isMount true if subscribe and false if un-subscribe
      */
     onCollectIds(elem, ids, isMount) {
         if (typeof ids !== 'object') {
@@ -459,12 +478,78 @@ class ListDevices extends Component {
         />);
     }
 
-    renderAddDialof() {
+    createDevice(options) {
+        const patterns = this.detector.getPatterns();
+        let states = Object.keys(patterns).find(t => patterns[t].type === options.type);
+        if (!states) {
+            return this.setState({message: I18n.t('Unknown type!') + options.type});
+        }
+        states = patterns[states].states;
+        const obj = {
+            _id: options.id,
+            common: {
+                name: options.name,
+                role: options.type,
+            },
+            native: {},
+            type: 'channel'
+        };
+        this.objects[obj._id] = obj;
+        // create channel
+        this.props.socket.setObject(options.id, obj).then(() => {
+            const promises = [];
+
+            states.forEach(state => {
+                if (state.required && state.defaultRole) {
+                    const common = {
+                        name: state.name,
+                        role: state.defaultRole,
+                        type: state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultType.split('.')[0]] || 'state',
+                        read: state.read === undefined ? true : state.read,
+                        write: state.write === undefined ? false : state.write,
+                        alias: {
+                            id: ''
+                        }
+                    };
+                    if (state.min) {
+                        common.min = 0;
+                    }
+                    if (state.max) {
+                        common.min = 100;
+                    }
+                    if (state.unit) {
+                        common.unit = state.unit;
+                    }
+                    const obj = {
+                        _id: options.id + '.' + state.name,
+                        common,
+                        native: {},
+                        type: 'state'
+                    };
+                    this.objects[obj._id] = obj;
+                    promises.push(this.props.socket.setObject(options.id + '.' + state.name, obj));
+                }
+            });
+
+            Promise.all(promises)
+                .then(() => {
+                    const devices = JSON.parse(JSON.stringify(this.state.devices));
+                    const result = this.detector.detect({id: options.id, objects: this.objects});
+                    result && result.forEach(device => devices.push(device));
+                    this.setState({devices, editIndex: devices.length - 1});
+                });
+        });
+    }
+
+    renderAddDialog() {
         if (!this.state.showAddDialog) return null;
         return (<DialogNew
             theme={this.props.theme}
             objects={this.objects}
-            onClose={() => this.setState({showAddDialog: false})}
+            onClose={options => {
+                this.setState({showAddDialog: false});
+                options && this.createDevice(options);
+            }}
         />);
     }
 
@@ -490,6 +575,7 @@ class ListDevices extends Component {
                 {this.renderMessage()}
                 {this.getSelectIdDialog()}
                 {this.renderEditDialog()}
+                {this.renderAddDialog()}
             </div>
         );
     }

@@ -36,7 +36,7 @@ class SmartSwitch extends SmartGeneric {
                 case Types.light:
                     this.iconOn = IconLight;
                     this.iconOff = IconLight;
-                    this.colorOn = Theme.palette.lampOn;
+                    this.colorOn = Theme.colors[this.props.theme || 'light'].lampOn;
                     this.colorOff = 'inherit';
                     this.style = {};
                     break;
@@ -50,9 +50,9 @@ class SmartSwitch extends SmartGeneric {
                         this.iconOn = IconSwitch;
                         this.iconOff = IconSwitch;
                     }
-                    this.colorOn = Theme.palette.lampOn;
+                    this.colorOn = Theme.colors[this.props.theme || 'light'].lampOn;
                     this.colorOff = 'inherit';
-                    this.backOn = Theme.palette.lampOn;
+                    this.backOn = Theme.colors[this.props.theme || 'light'].lampOn;
                     this.backOff = 'gray';
                     this.style = {left: '1rem'};
                     break;

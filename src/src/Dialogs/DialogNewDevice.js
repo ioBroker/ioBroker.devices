@@ -14,8 +14,16 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
+import InputLabel from '@material-ui/core/InputLabel';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormHelperText from '@material-ui/core/FormHelperText';
 
+
+import {Types} from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
+import {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
 
 const styles = theme => ({
@@ -28,30 +36,54 @@ const styles = theme => ({
         color: '#000',
     },
     treeDiv: {
-        width: '50%',
+        width: 'calc(50% - 22px)',
         display: 'inline-block',
+        padding: 10,
+        verticalAlign: 'top',
     },
     nameDiv: {
         width: '50%',
         display: 'inline-block',
+        verticalAlign: 'top',
     },
     viewDiv: {
         width: '50%',
         display: 'inline-block',
     },
+    type: {
+        marginTop: 10
+    }
 });
+
+const SUPPORTED_TYPES = [
+    Types.light,
+    Types.dimmer,
+    Types.socket,
+];
 
 class DialogNewDevice extends React.Component {
     constructor(props) {
         super(props);
+        let i = 1;
+
+        this.prefix = 'alias.0';
+
+        while (this.props.objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
+            i++;
+        }
+
         this.state = {
-            root: ''
+            root: this.prefix,
+            name: I18n.t('Device') + ' ' + i,
+            notUnique: false,
+            type: window.localStorage.getItem('Devices.newType') || SUPPORTED_TYPES[0]
         };
 
         // filter aliases
         const ids = Object.keys(this.props.objects).filter(id => id.startsWith('alias.'));
+
         this.ids = {
-            'alias.0': {
+            [this.prefix]: {
                 common: {
                     name: I18n.t('Root'),
                     nondeletable: true
@@ -62,14 +94,28 @@ class DialogNewDevice extends React.Component {
         ids.forEach(id => this.ids[id] = this.props.objects[id]);
     }
 
+    generateId() {
+        return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
+    }
+
     handleOk() {
-        this.props.onClose && this.props.onClose();
-    };
+        // check if name is unique
+        this.props.onClose && this.props.onClose({
+            id: this.generateId(),
+            type: this.state.type,
+            name: this.state.name,
+        });
+    }
+
+    handleCancel() {
+        // check if name is unique
+        this.props.onClose && this.props.onClose(null);
+    }
 
     render() {
         return (<Dialog
             open={true}
-            maxWidth="l"
+            maxWidth="md"
             fullWidth={true}
             onClose={() => this.handleOk()}
             aria-labelledby="alert-dialog-title"
@@ -77,30 +123,46 @@ class DialogNewDevice extends React.Component {
         >
             <DialogTitle className={this.props.classes.titleBackground}
                          classes={{root: this.props.classes.titleColor}}
-                         id="edit-device-dialog-title">{I18n.t('Create new device')}</DialogTitle>
+                         id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b></DialogTitle>
             <DialogContent>
                 <DialogContentText id="alert-dialog-description">
                     <div className={this.props.classes.treeDiv}>
                         <TreeView
-                            ids={this.ids}
+                            objects={this.ids}
                             selected={this.state.root}
                             onSelect={id => this.setState({root: id})}
-                            root="alias.0"
+                            root={this.prefix}
                         />
                     </div>
                     <form className={this.props.classes.nameDiv} noValidate autoComplete="off">
                         <TextField
                             label={I18n.t('Device name')}
+                            error={!!this.props.objects[this.generateId()]}
                             className={this.props.classes.name}
                             value={this.state.name}
                             onChange={e => this.setState({name: e.target.value})}
                             margin="normal"
                         />
+                        <br/>
+                        <FormControl className={this.props.classes.type}>
+                            <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
+                            <Select
+                                value={this.state.type}
+                                onChange={e => {
+                                    localStorage.setItem('Devices.newType', e.target.value);
+                                    this.setState({type: e.target.value});
+                                }}
+                            >
+                                {SUPPORTED_TYPES.map(type => (<MenuItem value={type}>{I18n.t('Type_' + type)}</MenuItem>))}
+                            </Select>
+                            {/*<FormHelperText>Some important helper text</FormHelperText>*/}
+                        </FormControl>
                     </form>
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button onClick={() => this.handleOk()} disabled={!!this.props.objects[this.generateId()]} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button onClick={() => this.handleCancel()}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>);
     }

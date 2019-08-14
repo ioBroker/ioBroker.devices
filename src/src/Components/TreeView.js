@@ -45,7 +45,7 @@ const styles = theme => ({
         width: 37,
         height: 37
     },
-    selected: Theme.colors.selected,
+    selected: Theme.colors[theme.palette.type].selected,
     folder: {
         background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
         cursor: 'pointer',
@@ -180,7 +180,7 @@ class TreeView extends React.Component {
         }
 
         this.state = {
-            listItems: prepareList(props.scripts || {}),
+            listItems: prepareList(props.objects || {}),
             expanded: expanded,
             theme: this.props.theme,
             selected: this.props.selected || null,
@@ -192,7 +192,8 @@ class TreeView extends React.Component {
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
         };
-        Theme.menu.depthOffset = Theme.menu.depthOffset || 20;
+
+        this.theme = this.props.theme || 'light';
 
         const newExp = this.ensureSelectedIsVisible();
         if (newExp) {
@@ -280,6 +281,11 @@ class TreeView extends React.Component {
         }
     }
 
+    onClick(item, e) {
+        this.setState({selected: item.id});
+        this.props.onSelect && this.props.onSelect(item.id);
+    }
+
     renderOneItem(items, item) {
         let childrenFiltered = (this.state.searchText || this.state.typeFilter) && items.filter(i => i.parent === item.id ? !this.isFilteredOut(i) : false);
         let children = items.filter(i => i.parent === item.id);
@@ -292,7 +298,7 @@ class TreeView extends React.Component {
             return;
         }
 
-        const depthPx = item.depth * Theme.menu.depthOffset;
+        const depthPx = item.depth * Theme.treeView.depthOffset;
 
         let title = item.title;
 
@@ -312,7 +318,7 @@ class TreeView extends React.Component {
             cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'inherit',
             opacity: item.filteredPartly ? 0.5 : 1,
             width: `calc(100% - ${depthPx}px)`
-        }, item.id === this.state.selected ? Theme.colors.selected : {});
+        }, item.id === this.state.selected ? Theme.colors[this.theme].selected : {});
 
         let isExpanded = false;
         if (children && children.length) {
@@ -364,7 +370,7 @@ class TreeView extends React.Component {
 }
 
 TreeView.propTypes = {
-    ids: PropTypes.object,
+    objects: PropTypes.object,
     onSelect: PropTypes.func,
     selected: PropTypes.string,
     theme: PropTypes.string,

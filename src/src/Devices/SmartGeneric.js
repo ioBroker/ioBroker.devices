@@ -744,6 +744,7 @@ SmartGeneric.propTypes = {
     tile:               PropTypes.object.isRequired,
     channelInfo:        PropTypes.object.isRequired,
     editMode:           PropTypes.bool,
+    theme:              PropTypes.string,
     ignoreIndicators:   PropTypes.array,
     enumNames:          PropTypes.array,
     windowWidth:        PropTypes.number,

@@ -305,6 +305,7 @@ class SmartTile extends Component {
         }
     }
 }
+
 SmartTile.propTypes = {
     objects:            PropTypes.object.isRequired,
     states:             PropTypes.object.isRequired,
