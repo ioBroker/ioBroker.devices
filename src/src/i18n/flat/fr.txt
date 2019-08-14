@@ -1,0 +1,56 @@
+
+Décrémenter la température de couleur
+Pourcentage de décrémentation
+Décrémenter la température cible
+Dispositifs
+Filtre
+Obtenir la température réelle
+Obtenir la température cible
+Incrément de température de couleur
+Pourcentage d'incrément
+Augmenter la température cible
+De
+Sur
+État verrouillé
+Définir la couleur
+Régler la température de couleur
+Définir l'état de verrouillage
+Définir le pourcentage
+Définir la température cible
+Éteindre
+Allumer
+vivant
+stores
+bouton
+caméra
+Température de couleur
+variateur
+porte
+alarme incendie
+alarme d'inondation
+porte
+HUE light
+humidité
+image
+Info
+exemple
+lumière
+emplacement
+fermer à clé
+médias
+mouvement
+Lumière RVB
+Lumière unique RVB
+curseur
+prise
+Température
+thermostat
+url
+soupape
+le volume
+groupe de volume
+Attention
+météo actuelle
+prévisions météorologiques
+la fenêtre
+inclinaison de la fenêtre

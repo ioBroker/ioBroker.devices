@@ -14,6 +14,7 @@
  * limitations under the License.
  **/
 import React from 'react';
+import PropTypes from 'prop-types';
 import CircularProgress from '@material-ui/core/CircularProgress';
 
 import {TiLightbulb as Icon} from 'react-icons/ti'
@@ -184,7 +185,7 @@ class SmartDimmer extends SmartGeneric {
             }
         }
         return (
-            <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, this.state[this.actualId] !== this.min ? {color: Theme.palette.lampOn} : {})} className="tile-icon">
+            <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, this.state[this.actualId] !== this.min ? {color: Theme.colors[this.theme].lampOn} : {})} className="tile-icon">
                 {customIcon}
                 {this.state.executing ? <CircularProgress style={{position: 'absolute', top: 0, left: 0}} size={Theme.tile.tileIcon.width}/> : null}
             </div>
@@ -212,6 +213,13 @@ class SmartDimmer extends SmartGeneric {
         ]);
     }
 }
+
+SmartDimmer.propTypes = {
+    objects:            PropTypes.object.isRequired,
+    tile:               PropTypes.object.isRequired,
+    states:             PropTypes.object.isRequired,
+    onControl:          PropTypes.func
+};
 
 export default SmartDimmer;
 

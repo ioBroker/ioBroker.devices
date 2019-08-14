@@ -1,0 +1,56 @@
+
+Ridurre la temperatura del colore
+Percentuale di decremento
+Ridurre la temperatura target
+dispositivi
+Filtro
+Ottieni la temperatura effettiva
+Ottieni la temperatura target
+Aumenta la temperatura del colore
+Percentuale di incremento
+Aumentare la temperatura target
+via
+Sopra
+Leggi lo stato di blocco
+Imposta il colore
+Imposta la temperatura del colore
+Imposta lo stato di blocco
+Imposta percentuale
+Imposta la temperatura target
+Spegni
+Accendere
+vivo
+persiane
+pulsante
+telecamera
+Temperatura di colore
+oscuratore
+porta
+allarme antincendio
+allarme di inondazione
+cancello
+HUE light
+umidità
+Immagine
+Informazioni
+esempio
+luce
+Posizione
+serratura
+media
+movimento
+Luce RGB
+Luce RGB singola
+cursore
+presa di corrente
+temperatura
+termostato
+url
+valvola
+volume
+gruppo di volumi
+avvertimento
+Meteo attuale
+previsioni del tempo
+finestra
+inclinazione della finestra

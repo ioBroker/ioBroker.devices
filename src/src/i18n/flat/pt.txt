@@ -1,0 +1,56 @@
+
+Temperatura de cor decrescente
+Percentual de decréscimo
+Temperatura alvo de descida
+Devices
+Filtro
+Obter temperatura real
+Obter temperatura alvo
+Incremento da temperatura de cor
+Percentual de incremento
+Temperatura alvo de incremento
+Fora
+Em
+Estado de bloqueio de leitura
+Definir cor
+Definir temperatura de cor
+Definir estado de bloqueio
+Definir porcentagem
+Definir temperatura alvo
+Desligar
+Ligar
+vivo
+persianas
+botão
+Câmera
+Temperatura de cor
+obscuro
+porta
+alarme de incêndio
+alarme de inundação
+portão
+Luz HUE
+umidade
+imagem
+info
+instância
+leve
+localização
+trancar
+meios de comunicação
+movimento
+Luz RGB
+Luz única RGB
+controle deslizante
+soquete
+temperatura
+termostato
+url
+válvula
+volume
+grupo de volumes
+Aviso
+clima atual
+previsão do tempo
+janela
+inclinação da janela

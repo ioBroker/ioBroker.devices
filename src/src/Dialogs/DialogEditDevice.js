@@ -35,6 +35,7 @@ const styles = theme => ({
         display: 'block',
         paddingTop: 5,
         paddingBottom: 5,
+        height: 69,
     },
     oidName: {
         width: 100,
@@ -60,6 +61,10 @@ const styles = theme => ({
         display: 'inline-block',
         width: 'calc(50% - 55px)',
         verticalAlign: 'top',
+    },
+    divDialogContent: {
+        fontSize: '1rem',
+        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
     }
 });
 
@@ -84,11 +89,18 @@ class DialogEditDevice extends React.Component {
         });
 
         this.channelId = channel;
+        let name = '';
+        const channelObj = this.props.objects[this.channelId];
+
+        if (channelObj && channelObj.common) {
+            name = channelObj.common.name || '';
+        }
 
         this.state = {
             ids,
             func: '',
             room: '',
+            name,
             selectIdFor: '',
         };
 
@@ -119,11 +131,18 @@ class DialogEditDevice extends React.Component {
     }
 
     handleOk() {
-        this.props.onClose && this.props.onClose();
+        this.props.onClose && this.props.onClose({
+            room: this.state.room,
+            func: this.state.func,
+            ids:  this.state.ids,
+            name: this.state.name
+        });
     };
 
     renderHeader() {
-        return (<div className={this.props.classes.header}>{this.props.channelInfo.type}</div>);
+        return (<div className={this.props.classes.header}>
+            {this.props.channelInfo.type}
+        </div>);
     }
 
     findRealDevice() {
@@ -163,8 +182,8 @@ class DialogEditDevice extends React.Component {
         const alias = this.channelId.startsWith('alias.');
         const name = item.name;
 
-        return [
-            (<div className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
+        return (
+            <div className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
                 <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
                 <TextField
                     key={name}
@@ -181,14 +200,31 @@ class DialogEditDevice extends React.Component {
                     helperText={props.join(', ')}
                     margin="normal"
                 />
-                {alias ? (<Fab size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.margin}><IconEdit /></Fab>) : null}
-            </div>)];
+                {alias ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.margin}><IconEdit /></Fab>) : null}
+            </div>);
     }
 
     renderVariables() {
-        return (<div className={this.props.classes.divOids}>{
-            this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))
-        }</div>);
+        return (<div className={this.props.classes.divOids}>
+            <div className={this.props.classes.divOidField}>
+                <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
+                <TextField
+                    key="_name"
+                    fullWidth
+                    value={this.state.name}
+                    className={this.props.classes.oidField}
+                    onChange={e => this.setState({name: e.target.value})}
+                    margin="normal"
+                />
+            </div>
+            <div className={this.props.classes.divOidField}>
+                <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
+            </div>
+            <div className={this.props.classes.divOidField}>
+                <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
+            </div>
+            {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
+        </div>);
     }
 
     renderIndicators() {
@@ -218,14 +254,14 @@ class DialogEditDevice extends React.Component {
                              classes={{root: this.props.classes.titleColor}}
                              id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
                 <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
+                    <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
                         {this.renderContent()}
-                    </DialogContentText>
+                    </div>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                    <Button onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
+                    <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                    <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
                 </DialogActions>
             </Dialog>),
             this.renderSelectDialog()

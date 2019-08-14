@@ -28,6 +28,7 @@ import SmartDetector from '../Devices/SmartDetector';
 import SmartTile from '../Devices/SmartTile';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
+import SmartGeneric from "../Devices/SmartGeneric";
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -219,12 +220,13 @@ class ListDevices extends Component {
             changed: [],
             devices: [],
             message: '',
-            filter: '',
             loading: true,
             browse: false,
             expanded: [],
             lastChanged: ''
         };
+
+        this.filter = window.localStorage.getItem('Devices.filter') || '';
 
         this.timerChanged = null;
         this.browseTimer = null;
@@ -444,6 +446,17 @@ class ListDevices extends Component {
     }
 
     renderDevice(index) {
+        if (this.filter) {
+            const stateId = this.state.devices[index] && this.state.devices[index].states.find(state => state.id).id;
+            if (stateId.toLowerCase().indexOf(this.filter) === -1) {
+                const name = SmartGeneric.getObjectName(this.objects, stateId, null, null, this.enumIDs);
+                if (name.toLowerCase().indexOf(this.filter) === -1) {
+                    return null;
+                }
+            }
+
+        }
+
         return (<SmartTile
                 key={'device' + index}
                 objects={this.objects}
@@ -457,10 +470,8 @@ class ListDevices extends Component {
     }
 
     renderDevices() {
-        const filter = this.state.filter.toLowerCase();
         const result = [];
         for (let i = 0; i < this.state.devices.length; i++) {
-            // if (this.state.filter && this.state.devices[i].friendlyName.toLowerCase().indexOf(filter) === -1) continue;
             result.push(this.renderDevice(i));
         }
         return (<div key="listDevices" className={this.props.classes.columnDiv}>{result}</div>);
@@ -474,7 +485,91 @@ class ListDevices extends Component {
             states={this.states}
             patterns={this.patterns}
             socket={this.props.socket}
-            onClose={() => this.setState({editIndex: null})}
+            onClose={data => {
+                const promises = [];
+                if (data) {
+                    const channelInfo = this.state.devices[this.state.editIndex];
+
+                    const id = channelInfo.states.find(state => state.id).id;
+                    const parts = id.split('.');
+                    parts.pop();
+                    const channelId = parts.join('.');
+
+                    if (this.objects[channelId] && this.objects[channelId].common && this.objects[channelId].common.name !== data.name) {
+                        // update channel
+                        promises.push(
+                            this.props.socket.getObject(channelId)
+                                .then(obj => {
+                                    obj = obj || {};
+                                    obj.common = obj.common || {};
+                                    obj.common.name = data.name;
+                                    obj.common.role = channelInfo.type;
+                                    obj.type = 'channel';
+                                    this.objects[channelId] = obj;
+
+                                    return this.props.socket.setObject(obj._id, obj);
+                                }));
+                    }
+
+                    channelInfo.states.forEach(state => {
+                        const obj = this.objects[state.id];
+                        if (state.id && obj && obj.common && obj.common.alias) {
+                            if (data.ids[state.name] !== obj.common.alias.id) {
+                                // update alias ID
+                                if (!state.required && !data.ids[state.name]) {
+                                    // delete state
+                                    delete this.objects[state.id];
+                                    promises.push(this.props.socket.delObject(state.id));
+                                } else {
+                                    // update state
+                                    promises.push(
+                                        this.props.socket.getObject(state.id)
+                                            .then(obj => {
+                                                this.objects[obj._id] = obj;
+                                                obj.common = obj.common || {};
+                                                obj.common.alias = obj.common.alias || {};
+                                                obj.common.alias.id = data.ids[state.name];
+                                                return this.props.socket.setObject(obj._id, obj);
+                                            }));
+                                }
+                            } // else nothing changed
+                        } else if (data.ids[state.name]) {
+                            state.id = state.id || (channelId + '.' + state.name);
+
+                            // Object not yet exists or invalid
+                            promises.push(
+                                this.props.socket.getObject(state.id)
+                                    .catch(err => null)
+                                    .then(obj => {
+                                        obj = obj || {};
+                                        obj._id = state.id;
+                                        obj.native = obj.native || {};
+                                        obj.type = 'state';
+                                        obj.common = obj.common || {};
+                                        const common = obj.common;
+                                        common.alias = common.alias || {};
+                                        common.alias.id = data.ids[state.name];
+                                        common.name = common.name || state.name;
+                                        common.role = state.defaultRole;
+                                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultType.split('.')[0]] || 'state';
+                                        if (state.min) {
+                                            common.min = 0;
+                                        }
+                                        if (state.max) {
+                                            common.min = 100;
+                                        }
+                                        if (state.unit) {
+                                            common.unit = state.unit;
+                                        }
+                                        this.objects[obj._id] = obj;
+                                        return this.props.socket.setObject(obj._id, obj);
+                                    }));
+                        }
+                    });
+                }
+                Promise.all(promises)
+                    .then(() => this.setState({editIndex: null}));
+            }}
         />);
     }
 
@@ -553,6 +648,16 @@ class ListDevices extends Component {
         />);
     }
 
+    setFilter(value) {
+        this.filter = value.toLowerCase();
+        this.filterTimer && clearTimeout(this.filterTimer);
+        this.filterTimer = setTimeout(() => {
+            this.filterTimer = null;
+            window.localStorage.setItem('Devices.filter', this.filter);
+            this.forceUpdate();
+        }, 400);
+    }
+
     render() {
         if (this.state.loading) {
             return (<CircularProgress  key="alexaProgress" />);
@@ -566,11 +671,11 @@ class ListDevices extends Component {
 
                 <Input
                     placeholder={I18n.t('Filter')}
-                    className={this.state.filter}
-                    value={this.state.filter}
-                    onChange={e => this.setState({filter: e.target.value})}
+                    className={this.props.classes.filter}
+                    defaultValue={this.filter}
+                    onChange={e => this.setFilter(e.target.value)}
                 />
-                <IconButton aria-label="Clear" className={this.props.classes.button} onClick={() => this.setState({filter: ''})}><IconClear fontSize="large" /></IconButton>
+                <IconButton aria-label="Clear" className={this.props.classes.button} onClick={() => this.setFilter('')}><IconClear fontSize="large" /></IconButton>
                 {this.renderDevices()}
                 {this.renderMessage()}
                 {this.getSelectIdDialog()}

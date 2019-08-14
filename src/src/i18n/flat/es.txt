@@ -1,0 +1,56 @@
+
+Disminuya la temperatura de color
+Porcentaje de disminución
+Disminuya la temperatura objetivo
+Dispositivos
+Filtrar
+Obtener temperatura actual
+Obtener temperatura objetivo
+Incremento de temperatura de color
+Porcentaje de incremento
+Incremento de temperatura objetivo
+Apagado
+En
+Leer estado de bloqueo
+Establecer color
+Establecer temperatura de color
+Establecer estado de bloqueo
+Establecer porcentaje
+Establecer temperatura objetivo
+Apagar
+Encender
+viva
+persianas
+botón
+cámara
+Temperatura del color
+regulador de intensidad
+puerta
+alarma de incendios
+alarma de inundación
+portón
+Luz HUE
+humedad
+imagen
+informacion
+ejemplo
+ligero
+ubicación
+bloquear
+medios de comunicación
+movimiento
+Luz RGB
+Luz RGB individual
+control deslizante
+enchufe
+temperatura
+termostato
+url
+válvula
+volumen
+grupo de volumen
+advertencia
+clima actual
+pronóstico del tiempo
+ventana
+inclinación de la ventana

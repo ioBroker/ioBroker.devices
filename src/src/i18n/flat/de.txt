@@ -1,0 +1,56 @@
+
+Farbtemperatur verringern
+Prozentsatz verringern
+Solltemperatur verringern
+Geräte
+Filter
+Aktuelle Temperatur abrufen
+Solltemperatur abrufen
+Farbtemperatur erhöhen
+Prozentsatz erhöhen
+Solltemperatur erhöhen
+aus
+Auf
+Sperrstatus lesen
+Farbe einstellen
+Farbtemperatur einstellen
+Sperrstatus setzen
+Prozent einstellen
+Solltemperatur einstellen
+Aus
+An
+am Leben
+Jalousie
+Taste
+Kamera
+Farbtemperatur
+Dimmer
+Tür
+Feueralarm
+Hochwasseralarm
+Tor
+HUE-Licht
+Feuchtigkeit
+Bild
+Info
+Instanz
+Licht
+Standort
+Schloss
+Medien
+Bewegung
+RGB-Licht
+RGB-Licht single
+Schieberegler
+Steckdose
+Temperatur
+Thermostat
+URL
+Ventil
+Lautstärke
+Lautstärke-Gruppe
+Warnung
+Aktuelle Wetterlage
+Wettervorhersage
+Fenster
+Fensterkippung

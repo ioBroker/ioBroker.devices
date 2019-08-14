@@ -1,0 +1,56 @@
+
+Verlaging kleurtemperatuur
+Verlagingspercentage
+Doeltemperatuur verlagen
+apparaten
+Filter
+Krijg de werkelijke temperatuur
+Krijg doeltemperatuur
+Verhoog de kleurtemperatuur
+Verhogen percentage
+Verhoog de doeltemperatuur
+Uit
+Op
+Lees vergrendelde status
+Kleur instellen
+Stel de kleurtemperatuur in
+Stel de vergrendelingsstatus in
+Percentage instellen
+Stel de doeltemperatuur in
+Uitschakelen
+Aanzetten
+levend
+blinds
+knop
+camera
+Kleurtemperatuur
+dimmer
+deur-
+brandalarm
+overstromingsalarm
+poort
+HUE licht
+vochtigheid
+beeld
+info
+aanleg
+licht
+plaats
+slot
+media
+beweging
+RGB-licht
+RGB-licht enkel
+schuif
+stopcontact
+temperatuur-
+thermostaat
+url
+klep
+volume
+volumegroep
+waarschuwing
+huidig weer
+weervoorspelling
+venster
+venster kantelen

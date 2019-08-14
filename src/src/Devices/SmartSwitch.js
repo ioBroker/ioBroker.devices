@@ -16,6 +16,7 @@ import {Types} from 'iobroker.type-detector';
 import Theme from '@iobroker/adapter-react/Theme';
 import I18n from '@iobroker/adapter-react/i18n';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import PropTypes from 'prop-types';
 
 class SmartSwitch extends SmartGeneric {
     constructor(props) {
@@ -36,7 +37,7 @@ class SmartSwitch extends SmartGeneric {
                 case Types.light:
                     this.iconOn = IconLight;
                     this.iconOff = IconLight;
-                    this.colorOn = Theme.colors[this.props.theme || 'light'].lampOn;
+                    this.colorOn = Theme.colors[this.theme].lampOn;
                     this.colorOff = 'inherit';
                     this.style = {};
                     break;
@@ -50,9 +51,9 @@ class SmartSwitch extends SmartGeneric {
                         this.iconOn = IconSwitch;
                         this.iconOff = IconSwitch;
                     }
-                    this.colorOn = Theme.colors[this.props.theme || 'light'].lampOn;
+                    this.colorOn = Theme.colors[this.theme].lampOn;
                     this.colorOff = 'inherit';
-                    this.backOn = Theme.colors[this.props.theme || 'light'].lampOn;
+                    this.backOn = Theme.colors[this.theme].lampOn;
                     this.backOff = 'gray';
                     this.style = {left: '1rem'};
                     break;
@@ -136,6 +137,12 @@ class SmartSwitch extends SmartGeneric {
         return this.wrapContent(this.getStandardContent(this.actualId));
     }
 }
+
+SmartSwitch.propTypes = {
+    objects:            PropTypes.object.isRequired,
+    tile:               PropTypes.object.isRequired,
+    onControl:          PropTypes.func
+};
 
 export default SmartSwitch;
 

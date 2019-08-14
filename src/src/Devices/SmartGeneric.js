@@ -39,6 +39,7 @@ class SmartGeneric extends Component {
         this.width = Theme.tile.width;
         this.height = Theme.tile.height;
         this.doubleState = false; // has on/off or only info
+        this.theme = this.props.theme || 'light';
 
         this.showCorner = false; // set it to true to show the corner
         this.stateRx = {

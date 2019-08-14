@@ -1,0 +1,56 @@
+
+Decrement color temperature
+Decrement percentage
+Decrement target temperature
+Devices
+Filter
+Get actual temperature
+Get target temperature
+Increment color temperature
+Increment percentage
+Increment target temperature
+Off
+On
+Read lock state
+Set color
+Set color temperature
+Set lock state
+Set percentage
+Set target temperature
+Turn off
+Turn on
+alive
+blinds
+button
+camera
+Color temperature
+dimmer
+door
+fire alarm
+flood alarm
+gate
+HUE light
+humidity
+image
+info
+instance
+light
+location
+lock
+media
+motion
+RGB light
+RGB light single
+slider
+socket
+temperature
+thermostat
+URL
+valve
+volume
+volume group
+warning
+current weather
+weather forecast
+window
+window tilt

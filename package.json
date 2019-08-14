@@ -18,8 +18,7 @@
     "type": "git",
     "url": "https://github.com/ioBroker/ioBroker.devices"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "gulp": "^4.0.2"
   },

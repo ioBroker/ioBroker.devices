@@ -1,0 +1,56 @@
+
+Zmniejszenie temperatury barwowej
+Procent zmniejszenia
+Zmniejszenie docelowej temperatury
+Pomysłowość
+Filtr
+Uzyskaj rzeczywistą temperaturę
+Uzyskaj docelową temperaturę
+Zwiększ temperaturę barwową
+Procent przyrostu
+Przyrostowa temperatura docelowa
+Poza
+Na
+Odczyt stanu blokady
+Ustaw kolor
+Ustaw temperaturę barwową
+Ustaw stan blokady
+Ustaw procent
+Ustaw temperaturę docelową
+Wyłączyć
+Włączyć
+żywy
+Żaluzje
+przycisk
+aparat fotograficzny
+Temperatura koloru
+opornik
+drzwi
+alarm przeciwpożarowy
+alarm przeciwpowodziowy
+brama
+Światło HUE
+wilgotność
+obraz
+informacje
+instancja
+światło
+Lokalizacja
+zamek
+głoska bezdźwięczna
+ruch
+Światło RGB
+Światło pojedyncze RGB
+suwak
+gniazdo elektryczne
+temperatura
+termostat
+adres URL
+zawór
+Tom
+grupa woluminów
+ostrzeżenie
+obecna pogoda
+Prognoza pogody
+okno
+uchylenie okna
