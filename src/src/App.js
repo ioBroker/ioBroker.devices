@@ -42,6 +42,12 @@ class App extends GenericApp {
         };
         super(extendedProps);
     }
+
+    onHashChanged() {
+        const location = GenericApp.getLocation();
+
+    }
+
     getSelectedTab() {
         const tab = this.state.selectedTab;
         if (!tab || tab === 'list') {

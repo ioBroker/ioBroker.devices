@@ -28,7 +28,8 @@ import SmartDetector from '../Devices/SmartDetector';
 import SmartTile from '../Devices/SmartTile';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
-import SmartGeneric from "../Devices/SmartGeneric";
+import SmartGeneric from '../Devices/SmartGeneric';
+import Router from '@iobroker/adapter-react/Components/Router';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -210,12 +211,14 @@ class ListDevices extends Component {
             Object.keys(actionsMapping).forEach(a => actionsMapping[a].desc = I18n.t(actionsMapping[a].desc));
             actionsMapping.translated = true;
         }
+        const location = Router.getLocation();
+
 
         this.state = {
-            editIndex: null,
+            editIndex: location.dialog === 'edit' ? location.id : null,
             deleteId: '',
 
-            showAddDialog: false,
+            showAddDialog: location.dialog === 'add',
             showConfirmation: '',
             changed: [],
             devices: [],
@@ -442,6 +445,7 @@ class ListDevices extends Component {
     onEdit(editIndex, e) {
         e && e.preventDefault();
         e && e.stopPropagation();
+        Router.doNavigate('list', 'edit', editIndex.toString());
         this.setState({editIndex});
     }
 
@@ -484,6 +488,7 @@ class ListDevices extends Component {
             objects={this.objects}
             states={this.states}
             patterns={this.patterns}
+            enumIDs={this.enumIDs}
             socket={this.props.socket}
             onClose={data => {
                 const promises = [];
@@ -510,6 +515,80 @@ class ListDevices extends Component {
                                     return this.props.socket.setObject(obj._id, obj);
                                 }));
                     }
+
+                    this.enumIDs.forEach(id => {
+                        const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
+                        // if this channel is in enum
+                        if (id.startsWith('enum.functions.')) {
+                            if (data.functions.indexOf(id) !== -1) {
+                                if (members.indexOf(channelId) === -1) {
+                                    promises.push(
+                                        this.props.socket.getObject(id)
+                                            .then(obj => {
+                                                this.objects[obj._id] = obj;
+                                                obj.common = obj.common || {};
+                                                obj.common.members = obj.common.members || [];
+                                                obj.common.members.push(channelId);
+                                                obj.common.members.sort();
+                                                return this.props.socket.setObject(obj._id, obj);
+                                            }));
+                                }
+                            } else {
+                                if (members.indexOf(channelId) !== -1) {
+                                    promises.push(
+                                        this.props.socket.getObject(id)
+                                            .then(obj => {
+                                                this.objects[obj._id] = obj;
+                                                obj.common = obj.common || {};
+                                                obj.common.members = obj.common.members || [];
+                                                const pos = obj.common.members.indexOf(channelId);
+                                                if (pos !== -1) {
+                                                    obj.common.members.splice(pos, 1);
+                                                    obj.common.members.push(channelId);
+                                                    obj.common.members.sort();
+                                                    return this.props.socket.setObject(obj._id, obj);
+                                                }
+                                                return Promise.resolve();
+                                            }));
+                                }
+                            }
+                        }
+
+                        if (id.startsWith('enum.rooms.')) {
+                            if (data.rooms.indexOf(id) !== -1) {
+                                if (members.indexOf(channelId) === -1) {
+                                    promises.push(
+                                        this.props.socket.getObject(id)
+                                            .then(obj => {
+                                                this.objects[obj._id] = obj;
+                                                obj.common = obj.common || {};
+                                                obj.common.members = obj.common.members || [];
+                                                obj.common.members.push(channelId);
+                                                obj.common.members.sort();
+                                                return this.props.socket.setObject(obj._id, obj);
+                                            }));
+                                }
+                            } else {
+                                if (members.indexOf(channelId) !== -1) {
+                                    promises.push(
+                                        this.props.socket.getObject(id)
+                                            .then(obj => {
+                                                this.objects[obj._id] = obj;
+                                                obj.common = obj.common || {};
+                                                obj.common.members = obj.common.members || [];
+                                                const pos = obj.common.members.indexOf(channelId);
+                                                if (pos !== -1) {
+                                                    obj.common.members.splice(pos, 1);
+                                                    obj.common.members.push(channelId);
+                                                    obj.common.members.sort();
+                                                    return this.props.socket.setObject(obj._id, obj);
+                                                }
+                                                return Promise.resolve();
+                                            }));
+                                }
+                            }
+                        }
+                    });
 
                     channelInfo.states.forEach(state => {
                         const obj = this.objects[state.id];
@@ -569,6 +648,8 @@ class ListDevices extends Component {
                 }
                 Promise.all(promises)
                     .then(() => this.setState({editIndex: null}));
+
+                Router.doNavigate(null, '', '');
             }}
         />);
     }
@@ -631,6 +712,7 @@ class ListDevices extends Component {
                     const devices = JSON.parse(JSON.stringify(this.state.devices));
                     const result = this.detector.detect({id: options.id, objects: this.objects});
                     result && result.forEach(device => devices.push(device));
+                    Router.doNavigate('list', 'edit', devices.length - 1);
                     this.setState({devices, editIndex: devices.length - 1});
                 });
         });
