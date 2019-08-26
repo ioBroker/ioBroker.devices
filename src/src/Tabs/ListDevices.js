@@ -10,6 +10,7 @@ import Input from '@material-ui/core/Input';
 import {MdAdd as IconAdd} from 'react-icons/md';
 import {MdRefresh as IconRefresh} from 'react-icons/md';
 import {MdClear as IconClear} from 'react-icons/md';
+import {MdStar as IconStar} from 'react-icons/md';
 
 import {FaPowerOff as IconOn} from 'react-icons/fa';
 import {FaThermometerHalf as IconTemperature} from 'react-icons/fa';
@@ -226,7 +227,8 @@ class ListDevices extends Component {
             loading: true,
             browse: false,
             expanded: [],
-            lastChanged: ''
+            lastChanged: '',
+            onlyAliases: window.localStorage.getItem('Devices.onlyAliases') === 'true'
         };
 
         this.filter = window.localStorage.getItem('Devices.filter') || '';
@@ -458,7 +460,12 @@ class ListDevices extends Component {
                     return null;
                 }
             }
-
+        }
+        if (this.state.onlyAliases) {
+            const stateId = this.state.devices[index].states.find(state => state.id).id;
+            if (!stateId.startsWith('alias.')) {
+                return null;
+            }
         }
 
         return (<SmartTile
@@ -593,7 +600,9 @@ class ListDevices extends Component {
                     channelInfo.states.forEach(state => {
                         const obj = this.objects[state.id];
                         if (state.id && obj && obj.common && obj.common.alias) {
-                            if (data.ids[state.name] !== obj.common.alias.id) {
+                            if (data.ids[state.name] !== obj.common.alias.id ||
+                                obj.common.alias.read  !== data.fx[state.name].read ||
+                                obj.common.alias.write !== data.fx[state.name].write) {
                                 // update alias ID
                                 if (!state.required && !data.ids[state.name]) {
                                     // delete state
@@ -607,6 +616,17 @@ class ListDevices extends Component {
                                                 this.objects[obj._id] = obj;
                                                 obj.common = obj.common || {};
                                                 obj.common.alias = obj.common.alias || {};
+                                                obj.common.alias.id = data.ids[state.name];
+                                                if (!data.fx[state.name].read) {
+                                                    delete obj.common.alias.read;
+                                                } else {
+                                                    obj.common.alias.read = data.fx[state.name].read;
+                                                }
+                                                if (!data.fx[state.name].write) {
+                                                    delete obj.common.alias.write;
+                                                } else {
+                                                    obj.common.alias.write = data.fx[state.name].write;
+                                                }
                                                 obj.common.alias.id = data.ids[state.name];
                                                 return this.props.socket.setObject(obj._id, obj);
                                             }));
@@ -630,7 +650,15 @@ class ListDevices extends Component {
                                         common.alias.id = data.ids[state.name];
                                         common.name = common.name || state.name;
                                         common.role = state.defaultRole;
+                                        if (data.fx[state.name].read) {
+                                            obj.common.alias.read = data.fx[state.name].read;
+                                        }
+                                        if (data.fx[state.name].write) {
+                                            obj.common.alias.write = data.fx[state.name].write;
+                                        }
+
                                         common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultType.split('.')[0]] || 'state';
+
                                         if (state.min) {
                                             common.min = 0;
                                         }
@@ -646,6 +674,7 @@ class ListDevices extends Component {
                         }
                     });
                 }
+
                 Promise.all(promises)
                     .then(() => this.setState({editIndex: null}));
 
@@ -750,6 +779,14 @@ class ListDevices extends Component {
                 <Fab size="small" color="secondary" aria-label="Add" className={this.props.classes.button} onClick={() => this.setState({showAddDialog: true})}><IconAdd /></Fab>
                 <Fab size="small" color="primary" aria-label="Refresh" className={this.props.classes.button}
                       onClick={() => this.browse(true)} disabled={this.state.browse}>{this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh/>)}</Fab>
+                <Fab size="small" aria-label="Filter aliases"
+                     title={I18n.t('Show only aliases')}
+                     style={this.state.onlyAliases ? {background: 'orange'} : {}}
+                     className={this.props.classes.button}
+                     onClick={() => {
+                         window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
+                         this.setState({onlyAliases: !this.state.onlyAliases});
+                     }}><IconStar/></Fab>
 
                 <Input
                     placeholder={I18n.t('Filter')}

@@ -51,7 +51,7 @@ const styles = theme => ({
         display: 'inline-block',
         marginTop: 0,
         marginBottom: 0,
-        width: 'calc(100% - 150px)',
+        width: 'calc(100% - 185px)',
     },
     divOids: {
         display: 'inline-block',
@@ -73,7 +73,7 @@ const styles = theme => ({
         fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
     },
     buttonPen: {
-        color: '#ffffff'
+        color: '#ffffff',
     },
     headerButtons: {
         textAlign: 'right'
@@ -81,7 +81,20 @@ const styles = theme => ({
     enumIcon: {
         width: 24,
         height: 24
-    }
+    },
+    funcDivEdit: {
+        width: '100%'
+    },
+    funcEditName: {
+        display: 'inline-block',
+        width: 85
+    },
+    funcEdit: {
+        display: 'inline-block',
+        marginTop: 0,
+        marginBottom: 0,
+        width: 'calc(100% - 85px)',
+    },
 });
 
 class DialogEditDevice extends React.Component {
@@ -90,27 +103,28 @@ class DialogEditDevice extends React.Component {
         const ids = {};
         let channel;
 
-
-        const functions = this.props.enumIDs.filter(id => {
-            if (!id.startsWith('enum.functions.')) {
-                return false;
-            }
-            const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
-        });
-        const rooms = this.props.enumIDs.filter(id => {
-            if (!id.startsWith('enum.rooms.')) {
-                return false;
-            }
-            const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
-        });
+        this.fx = {};
 
         this.props.channelInfo.states.forEach(state => {
             if (state.id) {
                 const obj = this.props.objects[state.id];
                 if (obj && obj.common && obj.common.alias) {
                     ids[state.name] = obj.common.alias.id || '';
+                    this.fx[state.name] = {
+                        read:  obj.common.alias.read  || '',
+                        write: obj.common.alias.write || '',
+                    };
+                } else {
+                    this.fx[state.name] = {read: '', write: ''};
+                }
+
+                if (state.defaultRole && state.defaultRole.startsWith('button')) {
+                    delete this.fx[state.name].read;
+                }
+                if (!state.write ||
+                    (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
+                ) {
+                    delete this.fx[state.name].write;
                 }
                 if (!channel) {
                     const parts = state.id.split('.');
@@ -128,12 +142,29 @@ class DialogEditDevice extends React.Component {
             name = channelObj.common.name || '';
         }
 
+        const functions = this.props.enumIDs.filter(id => {
+            if (!id.startsWith('enum.functions.')) {
+                return false;
+            }
+            const obj = this.props.objects[id];
+            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
+        });
+
+        const rooms = this.props.enumIDs.filter(id => {
+            if (!id.startsWith('enum.rooms.')) {
+                return false;
+            }
+            const obj = this.props.objects[id];
+            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
+        });
+
         this.state = {
             ids,
             functions,
             rooms,
             name,
             selectIdFor: '',
+            editFxFor: '',
             nameOpened: window.localStorage.getItem('Devices.nameOpened') === 'true'
         };
 
@@ -168,7 +199,8 @@ class DialogEditDevice extends React.Component {
             rooms: this.state.rooms,
             functions: this.state.functions,
             ids:  this.state.ids,
-            name: this.state.name
+            name: this.state.name,
+            fx: this.fx,
         });
     };
 
@@ -224,6 +256,66 @@ class DialogEditDevice extends React.Component {
         </Select>);
     }
 
+    renderEditFxDialog() {
+        if (!this.state.editFxFor) {
+            return null;
+        }
+        const fx = this.fx[this.state.editFxFor];
+
+        this.fxRead = fx.read;
+        this.fxWrite = fx.write;
+
+        return (<Dialog
+            open={true}
+            maxWidth="sm"
+            onClose={() => this.handleOk()}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            <DialogTitle className={this.props.classes.titleBackground}
+                         classes={{root: this.props.classes.titleColor}}
+                         id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
+            <DialogContent>
+                <div className={this.props.classes.divDialogContent}>
+                    {fx.read !== undefined ? (<div className={this.props.classes.funcDivEdit}>
+                        <div className={this.props.classes.funcEditName} style={{fontWeight: 'bold'}}>{I18n.t('Read')}</div>
+                        <TextField
+                            fullWidth
+                            defaultValue={this.fxRead}
+                            className={this.props.classes.funcEdit}
+                            onChange={e => this.fxRead = e.target.value}
+                            helperText={I18n.t('JS function like') + ' "val / 5 + 21"'}
+                            margin="normal"
+                        />
+                    </div>) : null}
+                    {fx.write !== undefined ? (<div className={this.props.classes.funcDivEdit}>
+                        <div className={this.props.classes.funcEditName} style={{fontWeight: 'bold'}}>{I18n.t('Write')}</div>
+                        <TextField
+                            fullWidth
+                            defaultValue={this.fxWrite}
+                            helperText={I18n.t('JS function like') + ' "(val - 21) * 5"'}
+                            className={this.props.classes.funcEdit}
+                            onChange={e => this.fxWrite = e.target.value}
+                            margin="normal"
+                        />
+                    </div>) : null}
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button href="" onClick={() => {
+                    this.setState({editFxFor: ''});
+                    if (this.fx[this.state.editFxFor].read !== undefined) {
+                        this.fx[this.state.editFxFor].read = this.fxRead;
+                    }
+                    if (this.fx[this.state.editFxFor].write !== undefined) {
+                        this.fx[this.state.editFxFor].write = this.fxWrite;
+                    }
+                }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button href="" onClick={() => this.setState({editFxFor: ''})}>{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>);
+    }
+
     renderVariable(item) {
         let props = [item.type || 'any'];
         let pattern = this.pattern.states.find(state => state.name === item.name);
@@ -269,6 +361,7 @@ class DialogEditDevice extends React.Component {
                     margin="normal"
                 />
                 {alias ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
+                {alias && this.state.ids[name] ? (<Fab href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
             </div>);
     }
 
@@ -337,7 +430,8 @@ class DialogEditDevice extends React.Component {
                     <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
                 </DialogActions>
             </Dialog>),
-            this.renderSelectDialog()
+            this.renderSelectDialog(),
+            this.renderEditFxDialog()
         ];
     }
 }
