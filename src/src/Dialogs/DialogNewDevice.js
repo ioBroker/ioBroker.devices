@@ -66,7 +66,7 @@ class DialogNewDevice extends React.Component {
         super(props);
         let i = 1;
 
-        this.prefix = 'alias.0';
+        this.prefix = this.props.prefix || 'alias.0';
 
         while (this.props.objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
             i++;
@@ -79,8 +79,11 @@ class DialogNewDevice extends React.Component {
             type: window.localStorage.getItem('Devices.newType') || SUPPORTED_TYPES[0]
         };
 
+
+        const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
+
         // filter aliases
-        const ids = Object.keys(this.props.objects).filter(id => id.startsWith('alias.'));
+        const ids = Object.keys(this.props.objects).filter(id => id.startsWith(prefix));
 
         this.ids = {
             [this.prefix]: {
@@ -104,6 +107,7 @@ class DialogNewDevice extends React.Component {
             id: this.generateId(),
             type: this.state.type,
             name: this.state.name,
+            prefix: this.prefix
         });
     }
 
