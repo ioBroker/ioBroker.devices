@@ -318,7 +318,8 @@ class DialogEditDevice extends React.Component {
 
     renderVariable(item) {
         let props = [item.type || 'any'];
-        let pattern = this.pattern.states.find(state => state.name === item.name);
+        const dName = item.name.replace(/\d+$/, '%d');
+        let pattern = this.pattern.states.find(state => state.name === item.name || state.name === dName);
         if (item.write) props.push('write');
         if (item.read) props.push('read');
 		if (pattern.defaultRole) {
@@ -326,7 +327,7 @@ class DialogEditDevice extends React.Component {
 		} else {
 			if (pattern.role) props.push('role=' + pattern.role.toString());
 		}
-        
+
         if (pattern.enums) {
             const type = this.props.channelInfo.type;
             if (type === 'dimmer' || type === 'light') {
