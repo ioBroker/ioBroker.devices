@@ -15,11 +15,6 @@ const styles = theme => ({
         padding: 10,
         height: 'calc(100% - 40px - 20px)',
         overflow: 'auto'
-    },
-    tabContentIFrame: {
-        padding: 10,
-        height: 'calc(100% - 40px - 20px - 38px)',
-        overflow: 'auto'
     }
 });
 
@@ -68,7 +63,7 @@ class App extends GenericApp {
                         <Tab label={I18n.t('Devices')} data-name="list"/>
                     </Tabs>
                 </AppBar>
-                <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
+                <div className={this.props.classes.tabContent}>
                     {(this.state.selectedTab === 'list' || !this.state.selectedTab) && (<TabDevices
                         key="options"
                         common={this.common}

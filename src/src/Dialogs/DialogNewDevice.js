@@ -83,7 +83,12 @@ class DialogNewDevice extends React.Component {
         const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
 
         // filter aliases
-        const ids = Object.keys(this.props.objects).filter(id => id.startsWith(prefix));
+        const ids = Object.keys(this.props.objects).filter(id =>
+            id.startsWith(prefix) &&
+            this.props.objects[id] &&
+            this.props.objects[id].common &&
+            (this.props.objects[id].type === 'channel' || this.props.objects[id].type === 'devices')
+        );
 
         this.ids = {
             [this.prefix]: {
