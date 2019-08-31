@@ -67,7 +67,7 @@
         "mode": "none",
         "adminTab": {
             "singleton": true,
-            "name": "Scripts"
+            "name": "Devices"
         }
     },
     "native": {},

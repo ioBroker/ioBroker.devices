@@ -101,8 +101,6 @@ class DialogEditDevice extends React.Component {
     constructor(props) {
         super(props);
         const ids = {};
-        let channel;
-
         this.fx = {};
 
         this.props.channelInfo.states.forEach(state => {
@@ -126,20 +124,15 @@ class DialogEditDevice extends React.Component {
                 ) {
                     delete this.fx[state.name].write;
                 }
-                if (!channel) {
-                    const parts = state.id.split('.');
-                    parts.pop();
-                    channel = parts.join('.');
-                }
             }
         });
 
-        this.channelId = channel;
+        this.channelId = this.props.channelInfo.channelId;
         let name = '';
         const channelObj = this.props.objects[this.channelId];
 
         if (channelObj && channelObj.common) {
-            name = channelObj.common.name || '';
+            name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
         }
 
         const functions = this.props.enumIDs.filter(id => {
@@ -317,6 +310,9 @@ class DialogEditDevice extends React.Component {
     }
 
     renderVariable(item) {
+        if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
+            return null;
+        }
         let props = [item.type || 'any'];
         const dName = item.name.replace(/\d+$/, '%d');
         let pattern = this.pattern.states.find(state => state.name === item.name || state.name === dName);

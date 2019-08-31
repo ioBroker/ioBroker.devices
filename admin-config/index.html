@@ -1,0 +1,39 @@
+<html>
+
+<head>
+<!-- these 4 files always have to be included -->
+<link rel="stylesheet" type="text/css" href="../../lib/css/themes/jquery-ui/redmond/jquery-ui.min.css"/>
+<script type="text/javascript" src="../../lib/js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+<script type="text/javascript" src="../../lib/js/jquery-ui-1.10.3.full.min.js"></script>
+
+<!-- these two file always have to be included -->
+<link rel="stylesheet" type="text/css" href="../../css/adapter.css"/>
+<script type="text/javascript" src="../../js/translate.js"></script>
+<script type="text/javascript" src="../../js/adapter-settings.js"></script>
+
+<!-- you have to define 2 functions in the global scope: -->
+<script type="text/javascript">
+
+    // the function loadSettings has to exist ...
+    function load(settings, onChange) {
+        onChange(false);
+    }
+
+    function save(callback) {
+        callback({});
+    }
+</script>
+</head>
+<body>
+<!-- you have to put your config page in a div with id adapter-container -->
+<div id="adapter-container">
+
+    <table><tr>
+        <td><img src="devices.png" style="width: 64px"/></td>
+        <td style="padding-top: 20px;padding-left: 10px"><h3 class="translate">No settings for Devices</h3></td>
+    </tr></table>
+
+</div>
+</body>
+</html>
