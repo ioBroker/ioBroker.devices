@@ -19,6 +19,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Fab from '@material-ui/core/Fab';
 
 import {MdEdit as IconEdit} from 'react-icons/md';
+import {MdFunctions as IconFunction} from 'react-icons/md';
 import {MdKeyboardArrowUp as IconUp} from 'react-icons/md';
 
 import {MdKeyboardArrowDown as IconDown} from 'react-icons/md';
@@ -124,6 +125,8 @@ class DialogEditDevice extends React.Component {
                 ) {
                     delete this.fx[state.name].write;
                 }
+            } else {
+                this.fx[state.name] = {read: '', write: ''};
             }
         });
 
@@ -358,7 +361,7 @@ class DialogEditDevice extends React.Component {
                     margin="normal"
                 />
                 {alias ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
-                {alias && this.state.ids[name] ? (<Fab href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
+                {alias && this.state.ids[name] ? (<Fab href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
             </div>);
     }
 
@@ -386,6 +389,11 @@ class DialogEditDevice extends React.Component {
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
                     {this.renderSelectEnum('rooms')}
                </div>): null}
+            {this.state.nameOpened ?
+                (<div className={this.props.classes.divOidField}>
+                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
+                    {this.renderSelectEnum('rooms')}
+                </div>): null}
             {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
         </div>);
     }

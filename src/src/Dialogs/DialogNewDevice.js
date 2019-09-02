@@ -61,6 +61,24 @@ const SUPPORTED_TYPES = [
     Types.socket,
 ];
 
+function getParentId(id) {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(0, pos);
+    } else {
+        return '';
+    }
+}
+
+function getLastPart(id) {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(pos + 1);
+    } else {
+        return id;
+    }
+}
+
 class DialogNewDevice extends React.Component {
     constructor(props) {
         super(props);
@@ -83,23 +101,38 @@ class DialogNewDevice extends React.Component {
         const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
 
         // filter aliases
-        const ids = Object.keys(this.props.objects).filter(id =>
-            id.startsWith(prefix) &&
-            this.props.objects[id] &&
-            this.props.objects[id].common &&
-            (this.props.objects[id].type === 'channel' || this.props.objects[id].type === 'devices')
-        );
+        const ids = [];
 
-        this.ids = {
-            [this.prefix]: {
-                common: {
-                    name: I18n.t('Root'),
-                    nondeletable: true
-                },
-                type: 'folder'
+        Object.keys(this.props.objects).filter(id => {
+            if (id.startsWith(prefix) &&
+                this.props.objects[id] &&
+                this.props.objects[id].common &&
+                (this.props.objects[id].type === 'channel' || this.props.objects[id].type === 'devices')) {
+                // getParentId
+                const parentId = getParentId(id);
+                if (parentId && !ids.includes(parentId)) {
+                    ids.push(parentId);
+                }
             }
+        });
+
+        this.ids = {};
+
+        ids.forEach(id => this.ids[id] = {
+            common: {
+                name: getLastPart(id),
+                nondeletable: true
+            },
+            type: 'folder'
+        });
+
+        this.ids[this.prefix] = {
+            common: {
+                name: I18n.t('Root'),
+                nondeletable: true
+            },
+            type: 'folder'
         };
-        ids.forEach(id => this.ids[id] = this.props.objects[id]);
     }
 
     generateId() {

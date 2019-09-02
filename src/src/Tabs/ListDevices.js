@@ -26,6 +26,7 @@ import {MdClear as IconClear} from 'react-icons/md';
 import {MdStar as IconStar} from 'react-icons/md';
 import {MdArrowForward as IconCollapsed} from 'react-icons/md';
 import {MdArrowDownward as IconExpanded} from 'react-icons/md';
+import {MdDelete as IconDelete} from 'react-icons/md';
 
 import {FaPowerOff as IconOn} from 'react-icons/fa';
 import {FaThermometerHalf as IconTemperature} from 'react-icons/fa';
@@ -43,6 +44,7 @@ import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
+import DialogConfirm from '../Dialogs/DialogConfirm';
 import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
@@ -228,6 +230,7 @@ const styles = theme => ({
     },
     tableLine: {
         cursor: 'pointer',
+        height: 50,
         '&:hover': {
             background: theme.palette.secondary.main,
             color: '#ffffff !important'
@@ -235,6 +238,13 @@ const styles = theme => ({
     },
     headerCell: {
         fontWeight: 'bold'
+    },
+    deleteCellHeader: {
+        width: 40,
+    },
+    deleteCell: {
+        width: 40,
+        padding: 0,
     },
     tableGroup: {
         background: theme.palette.secondary.main,
@@ -276,6 +286,7 @@ class ListDevices extends Component {
 
         this.state = {
             editIndex: location.dialog === 'edit' ? location.id : null,
+            deleteIndex: null,
             deleteId: '',
 
             showAddDialog: '',
@@ -374,50 +385,55 @@ class ListDevices extends Component {
                 const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
                 // find channelID for every device
-                devices.forEach(device => {
-                    const stateId = device.states.find(state => state.id).id;
-                    let statesCount = device.states.filter(state => state.id).length;
-                    const pos = stateId.lastIndexOf('.');
-                    let channelId = stateId;
-                    if (pos !== -1 && (statesCount > 1 || channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.'))) {
-                        channelId = stateId.substring(0, pos);
-                        if (!this.objects[channelId] ||
-                            !this.objects[channelId].common ||
-                            (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')) {
-                            channelId = stateId;
-                        }
-                    }
-                    device.usedStates = device.states.filter(state => state.id).length;
-                    device.mainStateId = stateId;
-                    device.channelId = channelId;
-
-                    const functions = funcEnums.filter(id => {
-                        const obj = this.objects[id];
-                        return obj &&
-                            obj.common &&
-                            obj.common.members &&
-                            (obj.common.members.indexOf(device.channelId) !== -1 ||
-                             obj.common.members.indexOf(device.mainStateId) !== -1);
-                    });
-
-                    const rooms = roomsEnums.filter(id => {
-                        const obj = this.objects[id];
-                        return obj &&
-                            obj.common &&
-                            obj.common.members &&
-                            (obj.common.members.indexOf(device.channelId) !== -1 ||
-                             obj.common.members.indexOf(device.mainStateId) !== -1);
-                    });
-
-                    device.functions = functions;
-                    device.functionsNames = functions.map(id => Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})).join(', ');
-                    device.rooms = rooms;
-                    device.roomsNames = rooms.map(id => Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})).join(', ');
-                    device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
-                });
+                devices.forEach(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
 
                 this.setState({devices, loading: false, browse: false});
             });
+    }
+
+    updateEnumsForOneDevice(device, funcEnums, roomsEnums) {
+        funcEnums = funcEnums || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
+        roomsEnums = roomsEnums || this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
+
+        const stateId = device.states.find(state => state.id).id;
+        let statesCount = device.states.filter(state => state.id).length;
+        const pos = stateId.lastIndexOf('.');
+        let channelId = stateId;
+        if (pos !== -1 && (statesCount > 1 || channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.'))) {
+            channelId = stateId.substring(0, pos);
+            if (!this.objects[channelId] ||
+                !this.objects[channelId].common ||
+                (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')) {
+                channelId = stateId;
+            }
+        }
+        device.usedStates = device.states.filter(state => state.id).length;
+        device.mainStateId = stateId;
+        device.channelId = channelId;
+
+        const functions = funcEnums.filter(id => {
+            const obj = this.objects[id];
+            return obj &&
+                obj.common &&
+                obj.common.members &&
+                (obj.common.members.indexOf(device.channelId) !== -1 ||
+                    obj.common.members.indexOf(device.mainStateId) !== -1);
+        });
+
+        const rooms = roomsEnums.filter(id => {
+            const obj = this.objects[id];
+            return obj &&
+                obj.common &&
+                obj.common.members &&
+                (obj.common.members.indexOf(device.channelId) !== -1 ||
+                    obj.common.members.indexOf(device.mainStateId) !== -1);
+        });
+
+        device.functions = functions;
+        device.functionsNames = functions.map(id => Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})).join(', ');
+        device.rooms = rooms;
+        device.roomsNames = rooms.map(id => Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})).join(', ');
+        device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
     }
 
     addChanged(id, cb) {
@@ -587,13 +603,17 @@ class ListDevices extends Component {
         return (<TableRow
             key={key}
             onClick={e => this.onEdit(index, e)}
-            className={this.props.classes.tableLine} padding="none">
+            className={this.props.classes.tableLine} padding="default">
             <TableCell>{device.name}</TableCell>
             <TableCell>{device.channelId}</TableCell>
             {this.state.orderBy !== 'functions' ? (<TableCell>{device.functionsNames}</TableCell>) : null}
             {this.state.orderBy !== 'rooms' ? (<TableCell>{device.roomsNames}</TableCell>) : null}
             {this.state.orderBy !== 'types' ? (<TableCell>{device.type}</TableCell>) : null}
             <TableCell>{device.usedStates}</TableCell>
+            <TableCell className={this.props.classes.deleteCell}>{device.channelId.startsWith('alias.') || device.channelId.startsWith('linkeddevices.') ? (<Fab size="small" aria-label="Delete" title={I18n.t('Delete device with all states')} onClick={e => {
+                e.stopPropagation();
+                this.setState({deleteIndex: index});
+            }}><IconDelete /></Fab>) : null}</TableCell>
         </TableRow>);
 
         /*return (<SmartTile
@@ -638,6 +658,7 @@ class ListDevices extends Component {
                             {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
                             {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
                             <TableCell/>
+                            <TableCell className={this.props.classes.deleteCellHeader}/>
                         </TableRow>));
 
                         if (isExpanded) {
@@ -671,6 +692,7 @@ class ListDevices extends Component {
                     {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
                     {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
                     <TableCell/>
+                    <TableCell className={this.props.classes.deleteCellHeader}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -705,6 +727,7 @@ class ListDevices extends Component {
                     {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
                     {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
                     <TableCell/>
+                    <TableCell className={this.props.classes.deleteCellHeader}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -734,6 +757,7 @@ class ListDevices extends Component {
                         {this.state.orderBy !== 'rooms' ? (<TableCell className={this.props.classes.headerCell}>Room</TableCell>) : null}
                         {this.state.orderBy !== 'types' ? (<TableCell className={this.props.classes.headerCell}>Type</TableCell>) : null}
                         <TableCell className={this.props.classes.headerCell}>States</TableCell>
+                        <TableCell className={this.props.classes.headerCell + ' ' + this.props.classes.deleteCellHeader}/>
                     </TableRow>
                 </TableHead>
                 <TableBody>{result}</TableBody>
@@ -772,6 +796,13 @@ class ListDevices extends Component {
 
     renderEditDialog() {
         if (this.state.editIndex === null) return null;
+
+        if (!this.state.devices[this.state.editIndex]) {
+            window.alert('Device not found');
+            Router.doNavigate(null, '', '');
+            return this.setState({editIndex: null});
+        }
+
         return (<DialogEdit
             channelInfo={this.state.devices[this.state.editIndex]}
             objects={this.objects}
@@ -782,8 +813,8 @@ class ListDevices extends Component {
             onClose={data => {
                 const promises = [];
                 if (data) {
-                    const channelInfo = this.state.devices[this.state.editIndex];
-                    const channelId = channelInfo.channelId;
+                    const device = this.state.devices[this.state.editIndex];
+                    const channelId = device.channelId;
                     const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, {language: I18n.getLanguage()});
 
                     if (this.objects[channelId] && this.objects[channelId].common && oldName !== data.name) {
@@ -797,7 +828,7 @@ class ListDevices extends Component {
                                         obj.common.name = {[I18n.getLanguage()]: obj.common.name || ''};
                                     }
                                     obj.common.name[I18n.getLanguage()] = data.name;
-                                    obj.common.role = channelInfo.type;
+                                    obj.common.role = device.type;
                                     obj.type = 'channel';
                                     this.objects[channelId] = obj;
 
@@ -879,7 +910,7 @@ class ListDevices extends Component {
                         }
                     });
 
-                    channelInfo.states.forEach(state => {
+                    device.states.forEach(state => {
                         const obj = this.objects[state.id];
                         if (state.id && obj && obj.common && obj.common.alias) {
                             if (data.ids[state.name] !== obj.common.alias.id ||
@@ -939,7 +970,7 @@ class ListDevices extends Component {
                                             obj.common.alias.write = data.fx[state.name].write;
                                         }
 
-                                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultType.split('.')[0]] || 'state';
+                                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
 
                                         if (state.min) {
                                             common.min = 0;
@@ -957,12 +988,83 @@ class ListDevices extends Component {
                     });
                 }
 
+                const somethingChanged = !!promises.length;
+
                 Promise.all(promises)
-                    .then(() => this.setState({editIndex: null}));
+                    .then(() => {
+                        if (somethingChanged) {
+                            const devices = JSON.parse(JSON.stringify(this.state.devices));
+                            // update enums, name
+                            this.updateEnumsForOneDevice(devices[this.state.editIndex]);
+                            this.setState({editIndex: null, devices});
+                        } else {
+                            this.setState({editIndex: null});
+                        }
+                    });
 
                 Router.doNavigate(null, '', '');
             }}
         />);
+    }
+
+    deleteDevice(index, cb) {
+        // remove each state from all enums
+        // delete each state
+        // remove channel from all enums
+        // delete channel
+        const device = this.state.devices[index];
+        if (!device) return cb && cb();
+        const promises = [];
+        this.enumIDs.forEach(enumId => {
+            if (this.objects[enumId] && this.objects[enumId].common && this.objects[enumId].common.members) {
+                if (device.states.find(state => state.id && this.objects[enumId].common.members.includes(state.id)) ||
+                    this.objects[enumId].common.members.includes(device.channelId)
+                ) {
+                    promises.push(this.props.socket.getObject(enumId)
+                        .catch(err => null)
+                        .then(obj => {
+                            if (!obj || !obj.common || !obj.common.members) return;
+
+                            const members = [];
+                            obj.common.members.forEach(sid => {
+                                if (!device.states.find(state => state.id === sid) && sid !== device.channelId) {
+                                    members.push(sid);
+                                }
+                            });
+                            if (JSON.stringify(members) !== JSON.stringify(obj.common.members)) {
+                                obj.common.members = members;
+                                this.objects[obj._id] = obj;
+                                return this.props.socket.setObject(obj._id, obj);
+                            }
+                        }));
+                }
+            }
+        });
+
+        device.states.forEach(state => {
+            if (state.id) {
+                const id = state.id;
+                promises.push(this.props.socket.delObject(id)
+                    .catch(err => null)
+                    .then(() => {
+                        delete this.objects[id];
+                        console.log(`${id} deleted`);
+                    }));
+            }
+        });
+        device.channelId && device.channelId !== device.mainStateId && promises.push(this.props.socket.delObject(device.channelId)
+            .catch(err => null)
+            .then(() => {
+                delete this.objects[device.channelId];
+                console.log(`${device.channelId} deleted`);
+            }));
+
+        Promise.all(promises)
+            .then(() => {
+                let devices = JSON.parse(JSON.stringify(this.state.devices));
+                devices.splice(index, 1);
+                this.setState({devices}, cb);
+            });
     }
 
     createDevice(options) {
@@ -992,7 +1094,7 @@ class ListDevices extends Component {
                     const common = {
                         name: state.name,
                         role: state.defaultRole,
-                        type: state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultType.split('.')[0]] || 'state',
+                        type: state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state',
                         read: state.read === undefined ? true : state.read,
                         write: state.write === undefined ? false : state.write,
                         alias: {
@@ -1023,7 +1125,11 @@ class ListDevices extends Component {
                 .then(() => {
                     const devices = JSON.parse(JSON.stringify(this.state.devices));
                     const result = this.detector.detect({id: options.id, objects: this.objects});
-                    result && result.forEach(device => devices.push(device));
+
+                    result && result.forEach(device => {
+                        this.updateEnumsForOneDevice(device);
+                        devices.push(device);
+                    });
                     Router.doNavigate('list', 'edit', devices.length - 1);
                     this.setState({devices, editIndex: devices.length - 1});
                 });
@@ -1040,6 +1146,19 @@ class ListDevices extends Component {
                 this.setState({showAddDialog: ''});
                 options && this.createDevice(options);
             }}
+        />);
+    }
+
+    renderDeleteDialog() {
+        if (this.state.deleteIndex === null) return;
+        return (<DialogConfirm
+            title={I18n.t('Please confirm...')}
+            text={I18n.t('Device and all states will be deleted. Are you sure?')}
+            onClose={result => {
+                const index = this.state.deleteIndex;
+                this.setState({deleteIndex: null}, () =>
+                    result && this.deleteDevice(index))}
+            }
         />);
     }
 
@@ -1098,6 +1217,7 @@ class ListDevices extends Component {
                 {this.getSelectIdDialog()}
                 {this.renderEditDialog()}
                 {this.renderAddDialog()}
+                {this.renderDeleteDialog()}
             </div>
         );
     }
