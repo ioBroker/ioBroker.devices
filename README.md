@@ -17,7 +17,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 
 ## Changelog
 
-### 0.1.1 (2019-08-31)
+### 0.1.2 (2019-09-04)
 * (bluefox) work in progress
 
 ### 0.1.0 (2019-08-31)

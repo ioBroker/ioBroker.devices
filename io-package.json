@@ -1,9 +1,9 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.1.1",
+        "version": "0.1.2",
         "news": {
-            "0.1.1": {
+            "0.1.2": {
                 "en": "initial release",
                 "de": "Erstveröffentlichung",
                 "ru": "Начальная версия",
@@ -60,7 +60,6 @@
         "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
         "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
         "loglevel": "info",
-        "onlyWWW": true,
         "noConfig": true,
         "singleton": true,
         "type": "general",
