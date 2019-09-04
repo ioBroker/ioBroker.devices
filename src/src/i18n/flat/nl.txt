@@ -1,25 +1,35 @@
-
+Maak een nieuw apparaat met aliassen
+Maak een nieuw apparaat met LinkedDevices
 Verlaging kleurtemperatuur
 Verlagingspercentage
 Doeltemperatuur verlagen
 apparaten
+Naam en andere eigenschappen bewerken
+Bewerk staten
 Filter
+functies
 Krijg de werkelijke temperatuur
 Krijg doeltemperatuur
+IDs
 Verhoog de kleurtemperatuur
 Verhogen percentage
 Verhoog de doeltemperatuur
+namen
 Uit
 Op
 Lees vergrendelde status
+kamers
 Kleur instellen
 Stel de kleurtemperatuur in
 Stel de vergrendelingsstatus in
 Percentage instellen
 Stel de doeltemperatuur in
+Toon alleen aliassen
 Uitschakelen
 Aanzetten
+Types
 levend
+Geen groep
 blinds
 knop
 camera

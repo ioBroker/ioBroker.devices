@@ -1,25 +1,35 @@
-
+Create new device with Aliases
+Create new device with LinkedDevices
 Decrement color temperature
 Decrement percentage
 Decrement target temperature
 Devices
+Edit name and other properties
+Edit states
 Filter
+Functions
 Get actual temperature
 Get target temperature
+IDs
 Increment color temperature
 Increment percentage
 Increment target temperature
+Names
 Off
 On
 Read lock state
+Rooms
 Set color
 Set color temperature
 Set lock state
 Set percentage
 Set target temperature
+Show only aliases
 Turn off
 Turn on
+Types
 alive
+no_group
 type-blind
 type-button
 type-camera

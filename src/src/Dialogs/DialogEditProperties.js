@@ -100,9 +100,8 @@ class DialogEditProperties extends React.Component {
     constructor(props) {
         super(props);
 
-        this.channelId = this.props.channelInfo.channelId;
         let name = '';
-        const channelObj = this.props.objects[this.channelId];
+        const channelObj = this.props.objects[this.props.channelId];
 
         if (channelObj && channelObj.common) {
             name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
@@ -113,7 +112,7 @@ class DialogEditProperties extends React.Component {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
+            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.props.channelId) !== -1;
         });
 
         const rooms = this.props.enumIDs.filter(id => {
@@ -121,19 +120,16 @@ class DialogEditProperties extends React.Component {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
+            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.props.channelId) !== -1;
         });
 
         this.state = {
-            color: this.props.objects[this.channelId] && this.props.objects[this.channelId].common && this.props.objects[this.channelId].common.color,
-            icon: this.props.objects[this.channelId] && this.props.objects[this.channelId].common && this.props.objects[this.channelId].common.icon,
+            color: this.props.objects[this.props.channelId] && this.props.objects[this.props.channelId].common && this.props.objects[this.props.channelId].common.color,
+            icon: this.props.objects[this.props.channelId] && this.props.objects[this.props.channelId].common && this.props.objects[this.props.channelId].common.icon,
             functions,
             rooms,
             name,
         };
-
-        this.pattern = this.props.patterns[Object.keys(this.props.patterns)
-            .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
     }
 
     handleClose() {
@@ -153,7 +149,7 @@ class DialogEditProperties extends React.Component {
     renderHeader() {
         const classes = this.props.classes;
         return (<div className={classes.header}>
-            {this.props.channelInfo.type}
+            {this.props.type}
         </div>);
     }
 
@@ -195,11 +191,10 @@ class DialogEditProperties extends React.Component {
     }
 
     handleIcon(file) {
-        let newValue = {values: JSON.parse(JSON.stringify(this.state.values))};
-        // this.click = Date.now();
-        newValue = typeof file === 'object' ? file.data : file;
+        const newValue = typeof file === 'object' ? file.data : file;
+
         //newValue.changed = this.isChanged(name, newValue.values[name]);
-        //this.setState(newValue);
+        this.setState({icon: newValue});
     }
 
     renderVariables() {
@@ -271,7 +266,7 @@ class DialogEditProperties extends React.Component {
             >
                 <DialogTitle className={this.props.classes.titleBackground}
                              classes={{root: this.props.classes.titleColor}}
-                             id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
+                             id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.props.channelId}</b></DialogTitle>
                 <DialogContent>
                     <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
@@ -289,8 +284,8 @@ class DialogEditProperties extends React.Component {
 
 DialogEditProperties.propTypes = {
     onClose: PropTypes.func,
-    patterns: PropTypes.object,
-    channelInfo: PropTypes.object,
+    type: PropTypes.string,
+    channelId: PropTypes.string,
     objects: PropTypes.object,
     enumIDs: PropTypes.object,
     socket: PropTypes.object

@@ -238,6 +238,21 @@ const styles = theme => ({
             color: '#ffffff !important'
         }
     },
+    tableIcon: {
+        width: 40,
+        lineHeight: '40px',
+        marginRight: 5,
+        display: 'inline-block',
+        background: '#e0e0e0',
+        borderRadius: 3,
+        '& img': {
+            height: 32,
+            width: 32,
+            marginLeft: 4,
+            lineHeight: '40px',
+            verticalAlign: 'middle',
+        }
+    },
     headerCell: {
         fontWeight: 'bold'
     },
@@ -598,20 +613,15 @@ class ListDevices extends Component {
     renderDevice(key, index, device) {
         device = device || this.state.devices[index];
 
-        /*if (this.filter &&
-            device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
-            device.name.toLowerCase().indexOf(this.filter) === -1) {
-            return null;
-        }
+        const icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]);
+        const background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
+        const color = Utils.isUseBright(background, this.props.theme === 'dark') ? '#FFF' : '#000';
 
-        if (this.state.onlyAliases && !device.channelId.startsWith('alias.')) {
-            return null;
-        }*/
-//onClick={e => this.onEdit(index, e)}
         return (<TableRow
             key={key}
             className={this.props.classes.tableLine} padding="default">
-            <TableCell>
+            <TableCell style={{background, color}}>
+                <div className={this.props.classes.tableIcon}>{icon ? <img src={icon} alt="icon"/> : ' '}</div>
                 <div style={{lineHeight: '40px', display: 'inline-block'}}>{device.name}</div>
                 <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEdit /></Fab>
             </TableCell>
@@ -621,7 +631,7 @@ class ListDevices extends Component {
             {this.state.orderBy !== 'types' ? (<TableCell>{device.type}</TableCell>) : null}
             <TableCell>{device.usedStates}</TableCell>
             <TableCell className={this.props.classes.buttonsCell}>
-                <Fab size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEdit(index, e)}><IconEdit /></Fab>
+                <Fab size="small" aria-label="Edit" title={I18n.t('Edit states')} onClick={e => this.onEdit(index, e)}><IconEdit /></Fab>
                 {device.channelId.startsWith('alias.') || device.channelId.startsWith('linkeddevices.') ?
                     (<Fab size="small" style={{marginLeft: 5}} aria-label="Delete" title={I18n.t('Delete device with all states')} onClick={e => {
                         e.stopPropagation();
@@ -1044,7 +1054,8 @@ class ListDevices extends Component {
         }
 
         return (<DialogEditProperties
-            channelInfo={this.state.devices[this.state.editPropIndex]}
+            channelId={this.state.devices[this.state.editPropIndex].channelId}
+            type={this.state.devices[this.state.editPropIndex].type}
             objects={this.objects}
             patterns={this.patterns}
             enumIDs={this.enumIDs}

@@ -1,25 +1,35 @@
-
+Créer un nouvel appareil avec des alias
+Créer un nouveau périphérique avec LinkedDevices
 Décrémenter la température de couleur
 Pourcentage de décrémentation
 Décrémenter la température cible
 Dispositifs
+Editer le nom et autres propriétés
+Editer les états
 Filtre
+Les fonctions
 Obtenir la température réelle
 Obtenir la température cible
+Identifiants
 Incrément de température de couleur
 Pourcentage d'incrément
 Augmenter la température cible
+Des noms
 De
 Sur
 État verrouillé
+Pièces
 Définir la couleur
 Régler la température de couleur
 Définir l'état de verrouillage
 Définir le pourcentage
 Définir la température cible
+Afficher uniquement les alias
 Éteindre
 Allumer
+Les types
 vivant
+Pas de groupe
 stores
 bouton
 caméra

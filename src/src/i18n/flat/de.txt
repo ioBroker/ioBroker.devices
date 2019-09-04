@@ -1,25 +1,35 @@
-
+Erstellen Sie ein neues Gerät mit Aliases
+Erstellen Sie ein neues Gerät mit LinkedDevices
 Farbtemperatur verringern
 Prozentsatz verringern
 Solltemperatur verringern
 Geräte
+Den Namen und andere Eigenschaften bearbeiten
+Zustände bearbeiten
 Filter
+Funktionen
 Aktuelle Temperatur abrufen
 Solltemperatur abrufen
+IDs
 Farbtemperatur erhöhen
 Prozentsatz erhöhen
 Solltemperatur erhöhen
+Namen
 aus
 Auf
 Sperrstatus lesen
+Räume
 Farbe einstellen
 Farbtemperatur einstellen
 Sperrstatus setzen
 Prozent einstellen
 Solltemperatur einstellen
+Nur Aliase anzeigen
 Aus
 An
+Typen
 am Leben
+Keine Gruppe
 Jalousie
 Taste
 Kamera

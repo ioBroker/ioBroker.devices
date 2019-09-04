@@ -1,25 +1,35 @@
-
+Utwórz nowe urządzenie za pomocą aliasów
+Utwórz nowe urządzenie za pomocą LinkedDevices
 Zmniejszenie temperatury barwowej
 Procent zmniejszenia
 Zmniejszenie docelowej temperatury
 Pomysłowość
+Edytuj nazwę i inne właściwości
+Edytuj stany
 Filtr
+Funkcje
 Uzyskaj rzeczywistą temperaturę
 Uzyskaj docelową temperaturę
+ID
 Zwiększ temperaturę barwową
 Procent przyrostu
 Przyrostowa temperatura docelowa
+Nazwy
 Poza
 Na
 Odczyt stanu blokady
+Pokoje
 Ustaw kolor
 Ustaw temperaturę barwową
 Ustaw stan blokady
 Ustaw procent
 Ustaw temperaturę docelową
+Pokaż tylko aliasy
 Wyłączyć
 Włączyć
+Rodzaje
 żywy
+Brak grupy
 Żaluzje
 przycisk
 aparat fotograficzny

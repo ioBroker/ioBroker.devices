@@ -1,25 +1,35 @@
-
+Crie um novo dispositivo com aliases
+Crie um novo dispositivo com o LinkedDevices
 Temperatura de cor decrescente
 Percentual de decréscimo
 Temperatura alvo de descida
 Devices
+Editar nome e outras propriedades
+Editar estados
 Filtro
+Funções
 Obter temperatura real
 Obter temperatura alvo
+IDs
 Incremento da temperatura de cor
 Percentual de incremento
 Temperatura alvo de incremento
+Nomes
 Fora
 Em
 Estado de bloqueio de leitura
+quartos
 Definir cor
 Definir temperatura de cor
 Definir estado de bloqueio
 Definir porcentagem
 Definir temperatura alvo
+Mostrar apenas aliases
 Desligar
 Ligar
+Tipos
 vivo
+Nenhum grupo
 persianas
 botão
 Câmera
