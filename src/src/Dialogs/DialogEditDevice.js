@@ -11,7 +11,6 @@ import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
@@ -53,6 +52,11 @@ const styles = theme => ({
         marginTop: 0,
         marginBottom: 0,
         width: 'calc(100% - 185px)',
+    },
+    colorButton: {
+        '&>div': {
+            width: '100%'
+        }
     },
     divOids: {
         display: 'inline-block',
@@ -138,30 +142,11 @@ class DialogEditDevice extends React.Component {
             name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
         }
 
-        const functions = this.props.enumIDs.filter(id => {
-            if (!id.startsWith('enum.functions.')) {
-                return false;
-            }
-            const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
-        });
-
-        const rooms = this.props.enumIDs.filter(id => {
-            if (!id.startsWith('enum.rooms.')) {
-                return false;
-            }
-            const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.channelId) !== -1;
-        });
-
         this.state = {
             ids,
-            functions,
-            rooms,
             name,
             selectIdFor: '',
             editFxFor: '',
-            nameOpened: window.localStorage.getItem('Devices.nameOpened') === 'true'
         };
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
@@ -192,10 +177,7 @@ class DialogEditDevice extends React.Component {
 
     handleOk() {
         this.props.onClose && this.props.onClose({
-            rooms: this.state.rooms,
-            functions: this.state.functions,
             ids:  this.state.ids,
-            name: this.state.name,
             fx: this.fx,
         });
     };
@@ -203,15 +185,9 @@ class DialogEditDevice extends React.Component {
     renderHeader() {
         const classes = this.props.classes;
         return (<div className={classes.header}>
-            <div className={classes.divOids + ' ' + classes.headerButtons}>
-                <Fab href="" size="small" title={I18n.t('Hide/Show enums')} onClick={() => {
-                    this.setState({nameOpened: !this.state.nameOpened});
-                    window.localStorage.setItem('Devices.nameOpened', this.state.nameOpened ? 'false' : 'true')
-                }} className={classes.buttonPen}>{this.state.nameOpened ? (<IconUp />): (<IconDown />)}</Fab>
-            </div>
+            <div className={classes.divOids + ' ' + classes.headerButtons}/>
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
-            <div className={classes.divIndicators}></div>
-
+            <div className={classes.divIndicators}/>
         </div>);
     }
 
@@ -367,33 +343,6 @@ class DialogEditDevice extends React.Component {
 
     renderVariables() {
         return (<div className={this.props.classes.divOids}>
-            {this.state.nameOpened ?
-                (<div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
-                    <TextField
-                        key="_name"
-                        fullWidth
-                        value={this.state.name}
-                        className={this.props.classes.oidField}
-                        onChange={e => this.setState({name: e.target.value})}
-                        margin="normal"
-                    />
-                </div>) : null}
-            {this.state.nameOpened ?
-                (<div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
-                    {this.renderSelectEnum('functions')}
-                </div>) : null}
-            {this.state.nameOpened ?
-                (<div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
-                    {this.renderSelectEnum('rooms')}
-               </div>): null}
-            {this.state.nameOpened ?
-                (<div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
-                    {this.renderSelectEnum('rooms')}
-                </div>): null}
             {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
         </div>);
     }
