@@ -373,8 +373,9 @@ class ListDevices extends Component {
                 const keys = Object.keys(this.objects).sort();
                 for (let i = 0; i < keys.length; i++) {
                     if (keys[i] < 'alias.') continue;
-                    if (keys[i] > 'alias.\u9999') break;
-                    if (this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
+                    if (keys[i] > 'linkeddevices.\u9999') break;
+
+                    if ((keys[i].startsWith('alias.') || keys[i].startsWith('linkeddevices.')) && this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
                         if (this.objects[keys[i]].type === 'device') {
                             idsInEnums.push(keys[i]);
                         } else if (this.objects[keys[i]].type === 'channel') {
