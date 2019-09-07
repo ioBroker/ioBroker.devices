@@ -19,9 +19,7 @@ import Fab from '@material-ui/core/Fab';
 
 import {MdEdit as IconEdit} from 'react-icons/md';
 import {MdFunctions as IconFunction} from 'react-icons/md';
-import {MdKeyboardArrowUp as IconUp} from 'react-icons/md';
 
-import {MdKeyboardArrowDown as IconDown} from 'react-icons/md';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';

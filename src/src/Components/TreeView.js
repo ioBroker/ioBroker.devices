@@ -10,16 +10,8 @@ import {withStyles} from '@material-ui/core/styles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import ListItemText from '@material-ui/core/ListItemText';
 import IconButton from '@material-ui/core/IconButton';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 
 import {FaFolderOpen as IconFolderOpened} from 'react-icons/fa';
@@ -28,14 +20,8 @@ import {TiLightbulb as IconTypeLight} from 'react-icons/ti'
 import {TiLightbulb as IconTypeDimmer} from 'react-icons/ti'
 import {TiLightbulb as IconTypeSwitch} from 'react-icons/ti'
 import {FaQuestion as IconTypeGeneric} from 'react-icons/fa'
-import {MdUnfoldMore as IconExpandAll} from 'react-icons/md';
-import {MdUnfoldLess as IconCollapseAll} from 'react-icons/md';
-import {MdDelete as IconDelete} from 'react-icons/md';
 import {MdExpandMore as IconCollapse} from 'react-icons/md';
 import {MdKeyboardArrowRight as IconExpand} from 'react-icons/md';
-import {MdClose as IconClear} from 'react-icons/md';
-import {MdCreateNewFolder as IconAddFolder} from 'react-icons/md';
-import {MdSearch as IconFind} from 'react-icons/md';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import Theme from '@iobroker/adapter-react/Theme';
@@ -130,6 +116,8 @@ const prepareList = (data, root) => {
     do {
         modified = false;
         // check if all parents exists
+
+        // eslint-disable-next-line no-loop-func
         result.forEach(item => {
             if (item.parent) {
                 const parent = result.find(it => it.id === item.parent);

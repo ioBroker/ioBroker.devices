@@ -24,11 +24,12 @@ import {MdAdd as IconAdd} from 'react-icons/md';
 import {MdRefresh as IconRefresh} from 'react-icons/md';
 import {MdClear as IconClear} from 'react-icons/md';
 import {MdStar as IconStar} from 'react-icons/md';
-import {MdArrowForward as IconCollapsed} from 'react-icons/md';
-import {MdArrowDownward as IconExpanded} from 'react-icons/md';
 import {MdDelete as IconDelete} from 'react-icons/md';
 import {MdModeEdit as IconEdit} from 'react-icons/md';
 
+import {FaRegFolder as IconCollapsed} from 'react-icons/fa';
+import {FaRegFolderOpen as IconExpanded} from 'react-icons/fa';
+import {FaICursor as IconEditName} from 'react-icons/fa';
 import {FaPowerOff as IconOn} from 'react-icons/fa';
 import {FaThermometerHalf as IconTemperature} from 'react-icons/fa';
 import {FaLongArrowAltUp as IconUp} from 'react-icons/fa';
@@ -41,7 +42,6 @@ import {FaThermometer as IconThermometer} from 'react-icons/fa';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
-import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
@@ -49,7 +49,43 @@ import DialogConfirm from '@iobroker/adapter-react/Dialogs/Confirm';
 import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import DialogEditProperties from "../Dialogs/DialogEditProperties";
+import DialogEditProperties from '../Dialogs/DialogEditProperties';
+import {Types} from 'iobroker.type-detector';
+
+import TypeIconBlinds from '../icons/Jalousie';
+import TypeIconButton from '../icons/PushButton';
+import {GoDeviceCameraVideo as TypeIconCamera} from 'react-icons/go';
+import {FaExternalLinkSquareAlt as TypeIconURL} from 'react-icons/fa';
+import {FaImage as TypeIconImage} from 'react-icons/fa';
+import {FaRegLightbulb as TypeIconDimmer} from 'react-icons/fa';
+import TypeIconDoor from '../icons/DoorOpened';
+import TypeIconFireAlarm from '../icons/FireOn';
+import TypeIconFloodAlarm from '../icons/FloodOn';
+import TypeIconGate from '../icons/Gate';
+import TypeIconHumidity from '../icons/Humidity';
+import {FaInfoCircle as TypeIconInfo} from 'react-icons/fa';
+import {FaLightbulb as TypeIconLight} from 'react-icons/fa';
+import {FaLock as TypeIconLock} from 'react-icons/fa';
+import {FaStreetView as TypeIconLocation} from 'react-icons/fa';
+import {FaStepForward as TypeIconMedia} from 'react-icons/fa';
+import TypeIconMotion from '../icons/MotionOn';
+
+import TypeIconRGB from '../icons/RGB';
+import {MdFormatColorFill as TypeIconCT} from 'react-icons/md';
+import TypeIconRGBSingle from '../icons/RGB';
+import {MdFormatColorFill as TypeIconHUE} from 'react-icons/md';
+
+import {FaSlidersH as TypeIconSlider} from 'react-icons/fa';
+import TypeIconSocket from '../icons/Socket';
+import TypeIconTemperature from '../icons/Thermometer';
+import TypeIconThermostat from '../icons/Thermostat';
+import TypeIconValve from '../icons/HeatValve';
+import {FaVolumeDown as TypeIconVolume} from 'react-icons/fa';
+import {FaVolumeUp as TypeIconVolumeGroup} from 'react-icons/fa';
+import TypeIconWindow from '../icons/WindowOpened';
+import TypeIconWindowTilt from '../icons/WindowTilted';
+import {WiCloudy as TypeIconWeather} from 'react-icons/wi';
+import {MdWarning as TypeIconWarning} from 'react-icons/md';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -88,6 +124,15 @@ const TYPES_MAPPING = {
     indicator: 'boolean',
     action: 'boolean'
 };
+
+const WIDTHS = [
+    1100,
+    920,
+    800,
+    710,
+    600,
+    500
+];
 
 const styles = theme => ({
     tab: {
@@ -240,28 +285,49 @@ const styles = theme => ({
     },
     tableIcon: {
         width: 40,
-        lineHeight: '40px',
-        marginRight: 5,
+        height: 40,
         display: 'inline-block',
+        padding: 2,
         background: '#e0e0e0',
         borderRadius: 3,
         '& img': {
             height: 32,
             width: 32,
             marginLeft: 4,
-            lineHeight: '40px',
             verticalAlign: 'middle',
         }
     },
+    tableNameCell: {
+        whiteSpace: 'nowrap',
+        width: 150,
+        textOverflow: 'ellipsis',
+    },
+    tableIdCell: {
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
+        maxWidth: 150,
+    },
     headerCell: {
         fontWeight: 'bold'
+    },
+    tableExpandIconCell: {
+        padding: 0,
+        width: 40,
+    },
+    tableIconCell: {
+        padding: 0,
+        width: 40
+    },
+    tableEditButtonCell: {
+        padding: 0,
+        width: 40,
     },
     buttonsCellHeader: {
         width: 90,
     },
     buttonsCell: {
         width: 90,
-        padding: 0,
+        padding: '0 !important',
     },
     tableGroup: {
         background: theme.palette.secondary.main,
@@ -276,6 +342,12 @@ const styles = theme => ({
     },
     tableExpandIcon: {
         marginRight: 5,
+        marginLeft: 10,
+        marginTop: 6,
+        color: '#FFF',
+        width: 20,
+        height: 20,
+        cursor: 'pointer',
     },
     tableGroupIcon: {
         height: 20,
@@ -283,6 +355,42 @@ const styles = theme => ({
         color: '#ffffff'
     }
 });
+
+const typesIcons = {
+    [Types.blind]: TypeIconBlinds,
+    [Types.button]: TypeIconButton,
+    [Types.camera]: TypeIconCamera,
+    [Types.url]: TypeIconURL,
+    [Types.image]: TypeIconImage,
+    [Types.dimmer]: TypeIconDimmer,
+    [Types.door]: TypeIconDoor,
+    [Types.fireAlarm]: TypeIconFireAlarm,
+    [Types.floodAlarm]: TypeIconFloodAlarm,
+    [Types.gate]: TypeIconGate,
+    [Types.humidity]: TypeIconHumidity,
+    [Types.info]: TypeIconInfo,
+    [Types.light]: TypeIconLight,
+    [Types.lock]: TypeIconLock,
+    [Types.location]: TypeIconLocation,
+    [Types.media]: TypeIconMedia,
+    [Types.motion]: TypeIconMotion,
+    [Types.rgb]: TypeIconRGB,
+    [Types.ct]: TypeIconCT,
+    [Types.rgbSingle]: TypeIconRGBSingle,
+    [Types.hue]: TypeIconHUE,
+    [Types.slider]: TypeIconSlider,
+    [Types.socket]: TypeIconSocket,
+    [Types.temperature]: TypeIconTemperature,
+    [Types.thermostat]: TypeIconThermostat,
+    [Types.valve]: TypeIconValve,
+    [Types.volume]: TypeIconVolume,
+    [Types.volumeGroup]: TypeIconVolumeGroup,
+    [Types.window]: TypeIconWindow,
+    [Types.windowTilt]: TypeIconWindowTilt,
+    [Types.weatherCurrent]: TypeIconWeather,
+    [Types.weatherForecast]: TypeIconWeather,
+    [Types.warning]: TypeIconWarning,
+};
 
 class ListDevices extends Component {
     constructor(props) {
@@ -307,6 +415,7 @@ class ListDevices extends Component {
             deleteIndex: null,
             deleteId: '',
 
+            windowWidth: window.innerWidth,
             showAddDialog: '',
             showConfirmation: '',
             changed: [],
@@ -346,6 +455,24 @@ class ListDevices extends Component {
 
                 this.detectDevices();
             });
+
+        this.onReiseBound = this.onResize.bind(this);
+    }
+
+    componentDidMount() {
+        window.addEventListener('resize', this.onReiseBound);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('resize', this.onReiseBound);
+    }
+
+    onResize() {
+        this.resizeTimer && clearTimeout(this.resizeTimer);
+        this.resizeTimer = setTimeout(() => {
+            this.resizeTimer = null;
+            this.setState({windowWidth: window.innerWidth});
+        }, 300);
     }
 
     detectDevices() {
@@ -453,6 +580,17 @@ class ListDevices extends Component {
         device.rooms = rooms;
         device.roomsNames = rooms.map(id => Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})).join(', ');
         device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
+
+        device.icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]);
+        if (!device.icon) {
+            const parts = device.channelId.split('.');
+            parts.pop();
+            const deviceId = parts.join('.');
+
+            if (this.objects[deviceId] && (this.objects[deviceId].type === 'channel' || this.objects[deviceId].type === 'device')) {
+                device.icon = Utils.getObjectIcon(deviceId, this.objects[deviceId]);
+            }
+        }
     }
 
     addChanged(id, cb) {
@@ -478,49 +616,6 @@ class ListDevices extends Component {
     renderMessage() {
         if (this.state.message) {
             return (<MessageDialog text={this.state.message} onClose={() => this.setState({message: ''})}/>);
-        } else {
-            return null;
-        }
-    }
-
-    getSelectIdDialog() {
-        if (this.state.showSelectId) {
-            return (<DialogSelectID
-                key="dialogSelectID1"
-                prefix={'../..'}
-                connection={this.props.socket}
-                selected={''}
-                statesOnly={true}
-                onClose={() => this.setState({showSelectId: false})}
-                onOk={(selected, name) => {
-                    this.setState({showSelectId: false});
-
-                    this.props.socket.getObject(selected)
-                        .then(obj => {
-                            if (obj) {
-                                const name = Utils.getObjectNameFromObj(obj, null, {language: I18n.getLanguage()});
-                                Utils.updateSmartName(obj, (name || I18n.t('Device name')).replace(/[-_.]+/g, ' '), undefined, undefined, this.props.adapterName + '.' + this.props.instance, this.props.native.noCommon);
-                                this.addChanged(obj._id);
-                                this.waitForUpdateID = obj._id;
-
-                                if (this.state.lastChanged !== obj._id) {
-                                    this.setState({lastChanged: obj._id});
-                                    this.timerChanged && clearTimeout(this.timerChanged);
-                                    this.timerChanged = setTimeout(() => {
-                                        this.setState({lastChanged: ''});
-                                        this.timerChanged = null;
-                                    }, 30000);
-                                }
-
-                                this.props.socket.setObject(obj._id, obj)
-                                    .then(() => this.informInstance(obj._id))
-                                    .catch(err => this.setState({message: err}));
-                            } else {
-                                this.setState({message: I18n.t('Invalid ID')});
-                            }
-                        });
-                }}
-            />);
         } else {
             return null;
         }
@@ -595,12 +690,14 @@ class ListDevices extends Component {
         Router.doNavigate('list', 'edit', editIndex.toString());
         this.setState({editIndex});
     }
+
     onEditProps(editPropIndex, e) {
         e && e.preventDefault();
         e && e.stopPropagation();
         Router.doNavigate('list', 'props', editPropIndex.toString());
         this.setState({editPropIndex});
     }
+
     isFilteredOut(device) {
         if (this.filter &&
             device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
@@ -608,30 +705,36 @@ class ListDevices extends Component {
             return true;
         }
 
-        return this.state.onlyAliases && !device.channelId.startsWith('alias.');
+        return this.state.onlyAliases && !device.channelId.startsWith('alias.') && !device.channelId.startsWith('linkeddevices.');
     }
 
     renderDevice(key, index, device) {
         device = device || this.state.devices[index];
 
-        const icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]);
+        const classes = this.props.classes;
         const background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
         const color = Utils.isUseBright(background, this.props.theme === 'dark') ? '#FFF' : '#000';
 
+        let j = 0;
+        const Icon = device.icon ? null : typesIcons[device.type] || null;
+
         return (<TableRow
             key={key}
-            className={this.props.classes.tableLine} padding="default">
-            <TableCell style={{background, color}}>
-                <div className={this.props.classes.tableIcon}>{icon ? <img src={icon} alt="icon"/> : ' '}</div>
-                <div style={{lineHeight: '40px', display: 'inline-block'}}>{device.name}</div>
-                <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEdit /></Fab>
+            className={classes.tableLine} padding="default" style={{background, color}}>
+            <TableCell className={classes.tableExpandIconCell}/>
+            <TableCell className={classes.tableIconCell}>
+                <div className={classes.tableIcon}>{device.icon ? <img src={device.icon} alt=""/> : Icon && (<Icon style={{marginTop: 4, marginLeft: 4, width: 32, height: 32, color: '#FFF'}}/>)}</div>
             </TableCell>
-            <TableCell>{device.channelId}</TableCell>
-            {this.state.orderBy !== 'functions' ? (<TableCell>{device.functionsNames}</TableCell>) : null}
-            {this.state.orderBy !== 'rooms' ? (<TableCell>{device.roomsNames}</TableCell>) : null}
-            {this.state.orderBy !== 'types' ? (<TableCell>{device.type}</TableCell>) : null}
-            <TableCell>{device.usedStates}</TableCell>
-            <TableCell className={this.props.classes.buttonsCell}>
+            <TableCell className={classes.tableNameCell}>{device.name}</TableCell>
+            <TableCell>
+                <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEditName /></Fab>
+            </TableCell>
+            {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.tableIdCell}>{device.channelId}</TableCell>) : null}
+            {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.functionsNames}</TableCell>) : null}
+            {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.roomsNames}</TableCell>) : null}
+            {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.type}</TableCell>) : null}
+            {this.state.windowWidth >= WIDTHS[0] ? (<TableCell>{device.usedStates}</TableCell>) : null}
+            <TableCell className={classes.buttonsCell}>
                 <Fab size="small" aria-label="Edit" title={I18n.t('Edit states')} onClick={e => this.onEdit(index, e)}><IconEdit /></Fab>
                 {device.channelId.startsWith('alias.') || device.channelId.startsWith('linkeddevices.') ?
                     (<Fab size="small" style={{marginLeft: 5}} aria-label="Delete" title={I18n.t('Delete device with all states')} onClick={e => {
@@ -641,21 +744,12 @@ class ListDevices extends Component {
                     null}
             </TableCell>
         </TableRow>);
-
-        /*return (<SmartTile
-                key={'device' + index}
-                objects={this.objects}
-                states={this.states}
-                channelInfo={device}
-                onClick={e => this.onEdit(index, e)}
-                editMode={false}
-                enumNames={this.enumIDs}
-                onCollectIds={(elem, ids, isMount) => this.onCollectIds(elem, ids, isMount)}
-            />);*/
     }
 
     renderDevices() {
         const result = [];
+        const classes = this.props.classes;
+
         if (this.state.orderBy === 'functions' || this.state.orderBy === 'rooms') {
             const enums = [];
             for (let i = 0; i < this.enumIDs.length; i++) {
@@ -668,24 +762,26 @@ class ListDevices extends Component {
                         const isExpanded = this.state.expanded.indexOf(id) !== -1;
                         const icon = Utils.getObjectIcon(id, this.objects[id]);
 
+                        let j = 0;
                         // add group
-                        result.push((<TableRow
-                            key={id}
-                            className={this.props.classes.tableGroup}
-                            onClick={() => this.onToggle(id)}
-                            padding="none">
-                            <TableCell className={this.props.classes.tableGroupCell}>
-                                {isExpanded ? ((<IconExpanded className={this.props.classes.tableExpandIcon}/>)) : ((<IconCollapsed className={this.props.classes.tableExpandIcon}/>))}
-                                {icon ? (<img src={icon} alt="" className={this.props.classes.tableGroupIcon}/>) : null}
-                                {Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})}
-                            </TableCell>
-                            <TableCell/>
-                            {this.state.orderBy !== 'functions' ? (<TableCell/>) : null}
-                            {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
-                            {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
-                            <TableCell/>
-                            <TableCell className={this.props.classes.buttonsCellHeader}/>
-                        </TableRow>));
+                        result.push(
+                            (<TableRow
+                                key={id}
+                                className={classes.tableGroup}
+                                onClick={() => this.onToggle(id)}
+                                padding="none">
+                                <TableCell className={classes.tableExpandIconCell}>{isExpanded ? ((<IconExpanded className={classes.tableExpandIcon}/>)) : ((<IconCollapsed className={classes.tableExpandIcon}/>))}</TableCell>
+                                <TableCell className={classes.tableIconCell}>{icon ? (<img src={icon} alt="" className={classes.tableGroupIcon}/>) : null}</TableCell>
+                                <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})}</TableCell>
+                                <TableCell/>
+                                {this.state.windowWidth >= WIDTHS[4] ? (<TableCell/>) : null}
+                                {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                                {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                                {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                                {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
+                                <TableCell className={classes.buttonsCellHeader}/>
+                            </TableRow>)
+                        );
 
                         if (isExpanded) {
                             const devices = [];
@@ -701,24 +797,24 @@ class ListDevices extends Component {
 
             // No group
             if (this.state.devices.find(device => !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].indexOf(id) !== -1))) {
-
+                let j = 0;
                 const isExpanded = this.state.expanded.indexOf('no_group') !== -1;
                 // add group
                 result.push((<TableRow
                     key="no_group"
-                    className={this.props.classes.tableGroup}
+                    className={classes.tableGroup}
                     onClick={() => this.onToggle('no_group')}
                     padding="none">
-                    <TableCell className={this.props.classes.tableGroupCell}>
-                        {isExpanded ? ((<IconExpanded className={this.props.classes.tableExpandIcon}/>)) : ((<IconCollapsed className={this.props.classes.tableExpandIcon}/>))}
-                        {I18n.t('no_group')}
-                    </TableCell>
+                    <TableCell className={classes.tableExpandIconCell}>{isExpanded ? ((<IconExpanded className={classes.tableExpandIcon}/>)) : ((<IconCollapsed className={classes.tableExpandIcon}/>))}</TableCell>
+                    <TableCell className={classes.tableIconCell}/>
+                    <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('no_group')}</TableCell>
                     <TableCell/>
-                    {this.state.orderBy !== 'functions' ? (<TableCell/>) : null}
-                    {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
-                    {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
-                    <TableCell/>
-                    <TableCell className={this.props.classes.buttonsCellHeader}/>
+                    {this.state.windowWidth >= WIDTHS[4] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
+                    <TableCell className={classes.buttonsCellHeader}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -729,7 +825,6 @@ class ListDevices extends Component {
                     result.push(devices);
                 }
             }
-
         } else
         if (this.state.orderBy === 'types') {
             const types = [];
@@ -738,22 +833,24 @@ class ListDevices extends Component {
 
             types.forEach(type => {
                 const isExpanded = this.state.expanded.indexOf(type) !== -1;
+                let j = 0;
+                const Icon = typesIcons[type];
                 // add group
                 result.push((<TableRow
                     key={type}
-                    className={this.props.classes.tableGroup}
+                    className={classes.tableGroup}
                     onClick={() => this.onToggle(type)}
                     padding="default">
-                    <TableCell className={this.props.classes.tableGroupCell}>
-                        {isExpanded ? ((<IconExpanded className={this.props.classes.tableExpandIcon}/>)) : ((<IconCollapsed className={this.props.classes.tableExpandIcon}/>))}
-                        {I18n.t('type-' + type)}
-                        </TableCell>
+                    <TableCell className={classes.tableExpandIconCell}>{isExpanded ? ((<IconExpanded className={classes.tableExpandIcon}/>)) : ((<IconCollapsed className={classes.tableExpandIcon}/>))}</TableCell>
+                    <TableCell className={classes.tableIconCell}><Icon style={{marginTop: 4, width: 32, height: 32, color: '#FFF'}}/></TableCell>
+                    <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('type-' + type)}</TableCell>
                     <TableCell/>
-                    {this.state.orderBy !== 'functions' ? (<TableCell/>) : null}
-                    {this.state.orderBy !== 'rooms' ? (<TableCell/>) : null}
-                    {this.state.orderBy !== 'types' ? (<TableCell/>) : null}
-                    <TableCell/>
-                    <TableCell className={this.props.classes.buttonsCellHeader}/>
+                    {this.state.windowWidth >= WIDTHS[4] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
+                    {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
+                    <TableCell className={classes.buttonsCellHeader}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -773,24 +870,29 @@ class ListDevices extends Component {
             }
         }
 
-        return (<Paper className={this.props.classes.paperTable}>
-            <Table className={this.props.classes.table} size="small">
+        let j = 0;
+
+        return (<Paper className={classes.paperTable}>
+            <Table className={classes.table} size="small">
                 <TableHead>
                     <TableRow>
-                        <TableCell className={this.props.classes.headerCell}>Name</TableCell>
-                        <TableCell className={this.props.classes.headerCell}>ID</TableCell>
-                        {this.state.orderBy !== 'functions' ? (<TableCell className={this.props.classes.headerCell}>Function</TableCell>) : null}
-                        {this.state.orderBy !== 'rooms' ? (<TableCell className={this.props.classes.headerCell}>Room</TableCell>) : null}
-                        {this.state.orderBy !== 'types' ? (<TableCell className={this.props.classes.headerCell}>Type</TableCell>) : null}
-                        <TableCell className={this.props.classes.headerCell}>States</TableCell>
-                        <TableCell className={this.props.classes.headerCell + ' ' + this.props.classes.buttonsCellHeader}/>
+                        <TableCell className={classes.tableExpandIconCell}/>
+                        <TableCell className={classes.tableIconCell}/>
+                        <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>Name</TableCell>
+                        <TableCell/>
+                        {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>ID</TableCell>) : null}
+                        {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Function</TableCell>) : null}
+                        {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Room</TableCell>) : null}
+                        {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Type</TableCell>) : null}
+                        {this.state.windowWidth >= WIDTHS[0] ? (<TableCell className={classes.headerCell}>States</TableCell>) : null}
+                        <TableCell className={classes.headerCell + ' ' + classes.buttonsCellHeader}/>
                     </TableRow>
                 </TableHead>
                 <TableBody>{result}</TableBody>
             </Table>
         </Paper>);
 
-        //return (<div key="listDevices" className={this.props.classes.columnDiv}>{result}</div>);
+        //return (<div key="listDevices" className={classes.columnDiv}>{result}</div>);
     }
 
     onExpand(group) {
@@ -1362,23 +1464,24 @@ class ListDevices extends Component {
         if (this.state.loading) {
             return (<CircularProgress  key="alexaProgress" />);
         }
+        const classes = this.props.classes;
 
         return (
-            <div key="list" className={this.props.classes.tab}>
-                <Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with Aliases')} className={this.props.classes.button} onClick={() => this.setState({showAddDialog: 'alias.0'})}><IconAdd /></Fab>
-                {this.state.linkeddevices ? (<Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with LinkedDevices')} className={this.props.classes.button + ' ' + this.props.classes.buttonLinkedDevices} onClick={() => this.setState({showAddDialog: this.state.linkeddevices})}><IconAdd /></Fab>) : null}
-                <Fab size="small" color="primary" aria-label="Refresh" className={this.props.classes.button}
+            <div key="list" className={classes.tab}>
+                <Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with Aliases')} className={classes.button} onClick={() => this.setState({showAddDialog: 'alias.0'})}><IconAdd /></Fab>
+                {this.state.linkeddevices ? (<Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with LinkedDevices')} className={classes.button + ' ' + classes.buttonLinkedDevices} onClick={() => this.setState({showAddDialog: this.state.linkeddevices})}><IconAdd /></Fab>) : null}
+                <Fab size="small" color="primary" aria-label="Refresh" className={classes.button}
                       onClick={() => this.detectDevices()} disabled={this.state.browse}>{this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh/>)}</Fab>
                 <Fab size="small" aria-label="Filter aliases"
                      title={I18n.t('Show only aliases')}
                      style={this.state.onlyAliases ? {background: 'orange'} : {}}
-                     className={this.props.classes.button}
+                     className={classes.button}
                      onClick={() => {
                          window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
                          this.setState({onlyAliases: !this.state.onlyAliases});
                      }}><IconStar/></Fab>
                 <Select
-                    className={this.props.classes.orderSelector}
+                    className={classes.orderSelector}
                     value={this.state.orderBy}
                     onChange={e => {
                         this.setState({orderBy: e.target.value});
@@ -1393,14 +1496,13 @@ class ListDevices extends Component {
                 </Select>
                 <Input
                     placeholder={I18n.t('Filter')}
-                    className={this.props.classes.filter}
+                    className={classes.filter}
                     defaultValue={this.filter}
                     onChange={e => this.setFilter(e.target.value)}
                 />
-                <IconButton aria-label="Clear" className={this.props.classes.button} onClick={() => this.setFilter('')}><IconClear fontSize="large" /></IconButton>
+                <IconButton aria-label="Clear" className={classes.button} onClick={() => this.setFilter('')}><IconClear fontSize="large" /></IconButton>
                 {this.renderDevices()}
                 {this.renderMessage()}
-                {this.getSelectIdDialog()}
                 {this.renderEditDialog()}
                 {this.renderEditPropDialog()}
                 {this.renderAddDialog()}

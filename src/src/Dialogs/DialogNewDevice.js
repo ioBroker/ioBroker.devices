@@ -18,7 +18,6 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
-import FormHelperText from '@material-ui/core/FormHelperText';
 
 
 import {Types} from 'iobroker.type-detector';
@@ -103,7 +102,7 @@ class DialogNewDevice extends React.Component {
         // filter aliases
         const ids = [];
 
-        Object.keys(this.props.objects).filter(id => {
+        Object.keys(this.props.objects).forEach(id => {
             if (id.startsWith(prefix) &&
                 this.props.objects[id] &&
                 this.props.objects[id].common &&

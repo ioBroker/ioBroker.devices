@@ -2,8 +2,8 @@ import React from "react";
 
 const Socket = props => (
   <svg
-    width={365.445}
-    height={365.445}
+    width={32}
+    height={32}
     viewBox="0 0 365.445 365.445"
     {...props}
   >
