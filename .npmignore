@@ -4,6 +4,9 @@ node_modules/
 nbproject/
 .vs*/
 Thumbs.db
+src/
+admin-config/
+.github/
 
 test/
 travis/
