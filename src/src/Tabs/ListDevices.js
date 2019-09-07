@@ -877,7 +877,7 @@ class ListDevices extends Component {
                         const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
                         // if this channel is in enum
                         if (id.startsWith('enum.functions.')) {
-                            if (data.functions.indexOf(id) !== -1) {
+                            if (data.functions && data.functions.indexOf(id) !== -1) {
                                 if (members.indexOf(channelId) === -1) {
                                     promises.push(
                                         this.props.socket.getObject(id)
@@ -912,7 +912,7 @@ class ListDevices extends Component {
                         }
 
                         if (id.startsWith('enum.rooms.')) {
-                            if (data.rooms.indexOf(id) !== -1) {
+                            if (data.rooms && data.rooms.indexOf(id) !== -1) {
                                 if (members.indexOf(channelId) === -1) {
                                     promises.push(
                                         this.props.socket.getObject(id)
@@ -1102,7 +1102,7 @@ class ListDevices extends Component {
                         const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
                         // if this channel is in enum
                         if (id.startsWith('enum.functions.')) {
-                            if (data.functions.indexOf(id) !== -1) {
+                            if (data.functions && data.functions.indexOf(id) !== -1) {
                                 if (members.indexOf(channelId) === -1) {
                                     promises.push(
                                         this.props.socket.getObject(id)
@@ -1137,7 +1137,7 @@ class ListDevices extends Component {
                         }
 
                         if (id.startsWith('enum.rooms.')) {
-                            if (data.rooms.indexOf(id) !== -1) {
+                            if (data.rooms && data.rooms.indexOf(id) !== -1) {
                                 if (members.indexOf(channelId) === -1) {
                                     promises.push(
                                         this.props.socket.getObject(id)
