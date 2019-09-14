@@ -24,6 +24,7 @@ import {MdAdd as IconAdd} from 'react-icons/md';
 import {MdRefresh as IconRefresh} from 'react-icons/md';
 import {MdClear as IconClear} from 'react-icons/md';
 import {MdStar as IconStar} from 'react-icons/md';
+import {FaInfoCircle as IconInfo} from 'react-icons/fa';
 import {MdDelete as IconDelete} from 'react-icons/md';
 import {MdModeEdit as IconEdit} from 'react-icons/md';
 
@@ -133,6 +134,9 @@ const WIDTHS = [
     600,
     500
 ];
+
+const ALIAS = 'alias.';
+const LINKEDDEVICES = 'linkeddevices.';
 
 const styles = theme => ({
     tab: {
@@ -428,6 +432,7 @@ class ListDevices extends Component {
             lastChanged: '',
             linkeddevices: '',
             onlyAliases: window.localStorage.getItem('Devices.onlyAliases') === 'true',
+            hideInfo: window.localStorage.getItem('Devices.hideInfo') === 'true',
         };
 
         this.filter = window.localStorage.getItem('Devices.filter') || '';
@@ -449,6 +454,7 @@ class ListDevices extends Component {
         this.props.socket.getAdapterInstances('linkeddevices')
             .catch(e => [])
             .then(list => {
+                // always take the first one
                 if (list && list.length && list[0] && list[0]._id) {
                     this.setState({linkeddevices: list[0]._id.replace('system.adapter.', '') || ''})
                 }
@@ -499,10 +505,10 @@ class ListDevices extends Component {
                 // List all devices in aliases
                 const keys = Object.keys(this.objects).sort();
                 for (let i = 0; i < keys.length; i++) {
-                    if (keys[i] < 'alias.') continue;
-                    if (keys[i] > 'linkeddevices.\u9999') break;
+                    if (keys[i] < ALIAS) continue;
+                    if (keys[i] > LINKEDDEVICES + '\u9999') break;
 
-                    if ((keys[i].startsWith('alias.') || keys[i].startsWith('linkeddevices.')) && this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
+                    if ((keys[i].startsWith(ALIAS) || keys[i].startsWith(LINKEDDEVICES)) && this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
                         if (this.objects[keys[i]].type === 'device') {
                             idsInEnums.push(keys[i]);
                         } else if (this.objects[keys[i]].type === 'channel') {
@@ -545,7 +551,7 @@ class ListDevices extends Component {
         let statesCount = device.states.filter(state => state.id).length;
         const pos = stateId.lastIndexOf('.');
         let channelId = stateId;
-        if (pos !== -1 && (statesCount > 1 || channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.'))) {
+        if (pos !== -1 && (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))) {
             channelId = stateId.substring(0, pos);
             if (!this.objects[channelId] ||
                 !this.objects[channelId].common ||
@@ -705,7 +711,11 @@ class ListDevices extends Component {
             return true;
         }
 
-        return this.state.onlyAliases && !device.channelId.startsWith('alias.') && !device.channelId.startsWith('linkeddevices.');
+        if (this.state.hideInfo && device.type === Types.info) {
+            return true;
+        }
+
+        return this.state.onlyAliases && !device.channelId.startsWith(ALIAS) && !device.channelId.startsWith(LINKEDDEVICES);
     }
 
     renderDevice(key, index, device) {
@@ -736,7 +746,7 @@ class ListDevices extends Component {
             {this.state.windowWidth >= WIDTHS[0] ? (<TableCell>{device.usedStates}</TableCell>) : null}
             <TableCell className={classes.buttonsCell}>
                 <Fab size="small" aria-label="Edit" title={I18n.t('Edit states')} onClick={e => this.onEdit(index, e)}><IconEdit /></Fab>
-                {device.channelId.startsWith('alias.') || device.channelId.startsWith('linkeddevices.') ?
+                {device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES) ?
                     (<Fab size="small" style={{marginLeft: 5}} aria-label="Delete" title={I18n.t('Delete device with all states')} onClick={e => {
                         e.stopPropagation();
                         this.setState({deleteIndex: index});
@@ -943,189 +953,154 @@ class ListDevices extends Component {
                 if (data) {
                     const device = this.state.devices[this.state.editIndex];
                     const channelId = device.channelId;
-                    const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, {language: I18n.getLanguage()});
 
-                    if (this.objects[channelId] && this.objects[channelId].common &&
-                        (oldName !== data.name ||
-                         (this.objects[channelId].common.color || '') !== data.color ||
-                         (this.objects[channelId].common.icon  || '') !== data.icon)
-                    ) {
-                        // update channel
-                        promises.push(
-                            this.props.socket.getObject(channelId)
-                                .then(obj => {
-                                    obj = obj || {};
-                                    obj.common = obj.common || {};
-                                    if (typeof obj.common.name !== 'object') {
-                                        obj.common.name = {[I18n.getLanguage()]: obj.common.name || ''};
+                    if (channelId.startsWith(ALIAS)) {
+                        device.states.forEach(state => {
+                            const obj = this.objects[state.id];
+                            if (state.id && obj && obj.common && obj.common.alias) {
+                                if (data.ids[state.name] !== obj.common.alias.id ||
+                                    obj.common.alias.read  !== data.fx[state.name].read ||
+                                    obj.common.alias.write !== data.fx[state.name].write) {
+                                    // update alias ID
+                                    if (!state.required && !data.ids[state.name]) {
+                                        // delete state
+                                        delete this.objects[state.id];
+                                        promises.push(this.props.socket.delObject(state.id));
+                                    } else {
+                                        // update state
+                                        promises.push(
+                                            this.props.socket.getObject(state.id)
+                                                .then(obj => {
+                                                    this.objects[obj._id] = obj;
+                                                    obj.common = obj.common || {};
+                                                    obj.common.alias = obj.common.alias || {};
+                                                    obj.common.alias.id = data.ids[state.name];
+                                                    if (!data.fx[state.name].read) {
+                                                        delete obj.common.alias.read;
+                                                    } else {
+                                                        obj.common.alias.read = data.fx[state.name].read;
+                                                    }
+                                                    if (!data.fx[state.name].write) {
+                                                        delete obj.common.alias.write;
+                                                    } else {
+                                                        obj.common.alias.write = data.fx[state.name].write;
+                                                    }
+                                                    return this.props.socket.setObject(obj._id, obj);
+                                                }));
                                     }
-                                    obj.common.name[I18n.getLanguage()] = data.name;
-                                    obj.common.role = device.type;
-                                    obj.common.color = data.color;
-                                    if (!data.color) {
-                                        delete obj.common.color;
-                                    }
-                                    obj.common.icon = data.icon;
-                                    if (!data.icon) {
-                                        delete obj.common.icon;
-                                    }
-                                    obj.type = obj.type || 'channel';
-                                    this.objects[channelId] = obj;
+                                } // else nothing changed
+                            } else if (data.ids[state.name]) {
+                                state.id = state.id || (channelId + '.' + state.name);
 
-                                    return this.props.socket.setObject(obj._id, obj);
-                                }));
+                                // Object not yet exists or invalid
+                                promises.push(
+                                    this.props.socket.getObject(state.id)
+                                        .catch(err => null)
+                                        .then(obj => {
+                                            obj = obj || {};
+                                            obj._id = state.id;
+                                            obj.native = obj.native || {};
+                                            obj.type = 'state';
+                                            obj.common = obj.common || {};
+                                            const common = obj.common;
+                                            common.alias = common.alias || {};
+                                            common.alias.id = data.ids[state.name];
+                                            common.name = common.name || state.name;
+                                            common.role = state.defaultRole;
+                                            if (data.fx[state.name].read) {
+                                                obj.common.alias.read = data.fx[state.name].read;
+                                            }
+                                            if (data.fx[state.name].write) {
+                                                obj.common.alias.write = data.fx[state.name].write;
+                                            }
+
+                                            common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
+
+                                            if (state.min) {
+                                                common.min = 0;
+                                            }
+                                            if (state.max) {
+                                                common.min = 100;
+                                            }
+                                            if (state.unit) {
+                                                common.unit = state.unit;
+                                            }
+                                            this.objects[obj._id] = obj;
+                                            return this.props.socket.setObject(obj._id, obj);
+                                        }));
+                            }
+                        });
+                    } else if (channelId.startsWith(LINKEDDEVICES)) {
+                        device.states.forEach(state => {
+                            const obj = this.objects[state.id];
+                            let attrs;
+                            if (state.id && obj && obj.common && obj.common.custom && (attrs = Object.keys(obj.common.custom).filter(id => id.startsWith(LINKEDDEVICES))).length) {
+                                const attr = attrs[0];
+                                if (data.ids[state.name] !== obj.common.custom[attr].parentId ||
+                                    !obj.common.custom[attr].enabled ||
+                                    !obj.common.custom[attr].isLinked) {
+                                    // update alias ID
+                                    if (!state.required && !data.ids[state.name]) {
+                                        // delete state
+                                        delete this.objects[state.id];
+                                        promises.push(this.props.socket.delObject(state.id));
+                                    } else {
+                                        // update state
+                                        promises.push(
+                                            this.props.socket.getObject(state.id)
+                                                .then(obj => {
+                                                    this.objects[obj._id] = obj;
+                                                    obj.common = obj.common || {};
+                                                    obj.common.custom = obj.common.custom || {};
+                                                    obj.common.custom[attr] = obj.common.custom[attr] || {};
+                                                    obj.common.custom[attr].parentId = data.ids[state.name];
+                                                    obj.common.custom[attr].enabled = true;
+                                                    obj.common.custom[attr].isLinked = true;
+                                                    return this.props.socket.setObject(obj._id, obj);
+                                                }));
+                                    }
+                                } // else nothing changed
+                            } else if (data.ids[state.name]) {
+                                state.id = state.id || (channelId + '.' + state.name);
+
+                                // Object not yet exists or invalid
+                                promises.push(
+                                    this.props.socket.getObject(state.id)
+                                        .catch(err => null)
+                                        .then(obj => {
+                                            obj = obj || {};
+                                            obj._id = state.id;
+                                            obj.native = obj.native || {};
+                                            obj.type = 'state';
+                                            obj.common = obj.common || {};
+                                            const common = obj.common;
+                                            const attr = this.state.linkeddevices;
+                                            common.custom = common.custom || {};
+                                            common.custom[attr] = common.custom[attr] || {};
+                                            common.custom[attr].parentId = data.ids[state.name];
+                                            common.custom[attr].enabled = true;
+                                            common.custom[attr].isLinked = true;
+                                            common.custom[attr].parentType = 'mixed';
+
+                                            common.name = common.name || state.name;
+                                            common.role = state.defaultRole;
+                                            common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
+
+                                            if (state.min) {
+                                                common.min = 0;
+                                            }
+                                            if (state.max) {
+                                                common.min = 100;
+                                            }
+                                            if (state.unit) {
+                                                common.unit = state.unit;
+                                            }
+                                            this.objects[obj._id] = obj;
+                                            return this.props.socket.setObject(obj._id, obj);
+                                        }));
+                            }
+                        });
                     }
-
-                    this.enumIDs.forEach(id => {
-                        const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
-                        // if this channel is in enum
-                        if (id.startsWith('enum.functions.')) {
-                            if (data.functions && data.functions.indexOf(id) !== -1) {
-                                if (members.indexOf(channelId) === -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                obj.common.members.push(channelId);
-                                                obj.common.members.sort();
-                                                return this.props.socket.setObject(obj._id, obj);
-                                            }));
-                                }
-                            } else {
-                                if (members.indexOf(channelId) !== -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                const pos = obj.common.members.indexOf(channelId);
-                                                if (pos !== -1) {
-                                                    obj.common.members.splice(pos, 1);
-                                                    obj.common.members.push(channelId);
-                                                    obj.common.members.sort();
-                                                    return this.props.socket.setObject(obj._id, obj);
-                                                }
-                                                return Promise.resolve();
-                                            }));
-                                }
-                            }
-                        }
-
-                        if (id.startsWith('enum.rooms.')) {
-                            if (data.rooms && data.rooms.indexOf(id) !== -1) {
-                                if (members.indexOf(channelId) === -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                obj.common.members.push(channelId);
-                                                obj.common.members.sort();
-                                                return this.props.socket.setObject(obj._id, obj);
-                                            }));
-                                }
-                            } else {
-                                if (members.indexOf(channelId) !== -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                const pos = obj.common.members.indexOf(channelId);
-                                                if (pos !== -1) {
-                                                    obj.common.members.splice(pos, 1);
-                                                    obj.common.members.push(channelId);
-                                                    obj.common.members.sort();
-                                                    return this.props.socket.setObject(obj._id, obj);
-                                                }
-                                                return Promise.resolve();
-                                            }));
-                                }
-                            }
-                        }
-                    });
-
-                    device.states.forEach(state => {
-                        const obj = this.objects[state.id];
-                        if (state.id && obj && obj.common && obj.common.alias) {
-                            if (data.ids[state.name] !== obj.common.alias.id ||
-                                obj.common.alias.read  !== data.fx[state.name].read ||
-                                obj.common.alias.write !== data.fx[state.name].write) {
-                                // update alias ID
-                                if (!state.required && !data.ids[state.name]) {
-                                    // delete state
-                                    delete this.objects[state.id];
-                                    promises.push(this.props.socket.delObject(state.id));
-                                } else {
-                                    // update state
-                                    promises.push(
-                                        this.props.socket.getObject(state.id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.alias = obj.common.alias || {};
-                                                obj.common.alias.id = data.ids[state.name];
-                                                if (!data.fx[state.name].read) {
-                                                    delete obj.common.alias.read;
-                                                } else {
-                                                    obj.common.alias.read = data.fx[state.name].read;
-                                                }
-                                                if (!data.fx[state.name].write) {
-                                                    delete obj.common.alias.write;
-                                                } else {
-                                                    obj.common.alias.write = data.fx[state.name].write;
-                                                }
-                                                obj.common.alias.id = data.ids[state.name];
-                                                return this.props.socket.setObject(obj._id, obj);
-                                            }));
-                                }
-                            } // else nothing changed
-                        } else if (data.ids[state.name]) {
-                            state.id = state.id || (channelId + '.' + state.name);
-
-                            // Object not yet exists or invalid
-                            promises.push(
-                                this.props.socket.getObject(state.id)
-                                    .catch(err => null)
-                                    .then(obj => {
-                                        obj = obj || {};
-                                        obj._id = state.id;
-                                        obj.native = obj.native || {};
-                                        obj.type = 'state';
-                                        obj.common = obj.common || {};
-                                        const common = obj.common;
-                                        common.alias = common.alias || {};
-                                        common.alias.id = data.ids[state.name];
-                                        common.name = common.name || state.name;
-                                        common.role = state.defaultRole;
-                                        if (data.fx[state.name].read) {
-                                            obj.common.alias.read = data.fx[state.name].read;
-                                        }
-                                        if (data.fx[state.name].write) {
-                                            obj.common.alias.write = data.fx[state.name].write;
-                                        }
-
-                                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
-
-                                        if (state.min) {
-                                            common.min = 0;
-                                        }
-                                        if (state.max) {
-                                            common.min = 100;
-                                        }
-                                        if (state.unit) {
-                                            common.unit = state.unit;
-                                        }
-                                        this.objects[obj._id] = obj;
-                                        return this.props.socket.setObject(obj._id, obj);
-                                    }));
-                        }
-                    });
                 }
 
                 const somethingChanged = !!promises.length;
@@ -1373,6 +1348,7 @@ class ListDevices extends Component {
         };
 
         this.objects[obj._id] = obj;
+
         // create channel
         this.props.socket.setObject(options.id, obj).then(() => {
             const promises = [];
@@ -1409,6 +1385,37 @@ class ListDevices extends Component {
                 }
             });
 
+            // add channel to function
+            if (options.functions && this.objects[options.functions]) {
+                promises.push(this.props.socket.getObject(options.functions)
+                    .then(obj => {
+                        if (obj && obj.common) {
+                            obj.common.members = obj.common.members || [];
+                            if (!obj.common.members.includes(options.id)) {
+                                obj.common.members.push(options.id);
+                                obj.common.members.sort();
+                                this.objects[obj._id] = obj;
+                                return this.props.socket.setObject(obj._id, obj);
+                            }
+                        }
+                    }));
+            }
+            // add channel to room
+            if (options.rooms && this.objects[options.rooms]) {
+                promises.push(this.props.socket.getObject(options.rooms)
+                    .then(obj => {
+                        if (obj && obj.common) {
+                            obj.common.members = obj.common.members || [];
+                            if (!obj.common.members.includes(options.id)) {
+                                obj.common.members.push(options.id);
+                                obj.common.members.sort();
+                                this.objects[obj._id] = obj;
+                                return this.props.socket.setObject(obj._id, obj);
+                            }
+                        }
+                    }));
+            }
+
             Promise.all(promises)
                 .then(() => {
                     const devices = JSON.parse(JSON.stringify(this.state.devices));
@@ -1429,6 +1436,7 @@ class ListDevices extends Component {
         return (<DialogNew
             theme={this.props.theme}
             objects={this.objects}
+            enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
             onClose={options => {
                 this.setState({showAddDialog: ''});
@@ -1468,7 +1476,7 @@ class ListDevices extends Component {
 
         return (
             <div key="list" className={classes.tab}>
-                <Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with Aliases')} className={classes.button} onClick={() => this.setState({showAddDialog: 'alias.0'})}><IconAdd /></Fab>
+                <Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with Aliases')} className={classes.button} onClick={() => this.setState({showAddDialog: ALIAS + '0'})}><IconAdd /></Fab>
                 {this.state.linkeddevices ? (<Fab size="small" color="secondary" aria-label="Add" title={I18n.t('Create new device with LinkedDevices')} className={classes.button + ' ' + classes.buttonLinkedDevices} onClick={() => this.setState({showAddDialog: this.state.linkeddevices})}><IconAdd /></Fab>) : null}
                 <Fab size="small" color="primary" aria-label="Refresh" className={classes.button}
                       onClick={() => this.detectDevices()} disabled={this.state.browse}>{this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh/>)}</Fab>
@@ -1480,6 +1488,14 @@ class ListDevices extends Component {
                          window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
                          this.setState({onlyAliases: !this.state.onlyAliases});
                      }}><IconStar/></Fab>
+                <Fab size="small" aria-label="No info"
+                     title={I18n.t('Hide info devices')}
+                     style={this.state.hideInfo ? {background: '#FF8080'} : {}}
+                     className={classes.button}
+                     onClick={() => {
+                         window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
+                         this.setState({hideInfo: !this.state.hideInfo});
+                     }}><IconInfo/></Fab>
                 <Select
                     className={classes.orderSelector}
                     value={this.state.orderBy}

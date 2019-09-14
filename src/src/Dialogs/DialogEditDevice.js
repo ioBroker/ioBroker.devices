@@ -118,6 +118,12 @@ class DialogEditDevice extends React.Component {
                 } else {
                     this.fx[state.name] = {read: '', write: ''};
                 }
+                if (obj && obj.common && obj.common.custom) {
+                    const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
+                    if (attr && attr.length && obj.common.custom[attr] && obj.common.custom[attr].parentId) {
+                        ids[state.name] = obj.common.custom[attr].parentId;
+                    }
+                }
 
                 if (state.defaultRole && state.defaultRole.startsWith('button')) {
                     delete this.fx[state.name].read;
@@ -314,17 +320,18 @@ class DialogEditDevice extends React.Component {
             }
         }
         const alias = this.channelId.startsWith('alias.');
+        const linkeddevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
 
         return (
-            <div className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
+            <div key={name} className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
                 <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
                 <TextField
                     key={name}
                     fullWidth
-                    disabled={!alias}
+                    disabled={!alias && !linkeddevices}
                     label={item.id || (this.channelId + '.' + name)}
-                    value={alias ? this.state.ids[name] || '' : item.id || ''}
+                    value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
                     className={this.props.classes.oidField}
                     onChange={e => {
                         const ids = JSON.parse(JSON.stringify(this.state.ids));
@@ -334,19 +341,19 @@ class DialogEditDevice extends React.Component {
                     helperText={props.join(', ')}
                     margin="normal"
                 />
-                {alias ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
+                {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
                 {alias && this.state.ids[name] ? (<Fab href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
             </div>);
     }
 
     renderVariables() {
-        return (<div className={this.props.classes.divOids}>
+        return (<div key="vars" className={this.props.classes.divOids}>
             {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
         </div>);
     }
 
     renderIndicators() {
-        return (<div className={this.props.classes.divIndicators}>{
+        return (<div key="indicators" className={this.props.classes.divIndicators}>{
             this.props.channelInfo.states.filter(item => item.indicator).map(item => this.renderVariable(item))
         }</div>);
     }
@@ -354,7 +361,7 @@ class DialogEditDevice extends React.Component {
     renderContent() {
         return [
             this.renderVariables(),
-            (<div className={this.props.classes.divDevice}/>),
+            (<div key="device" className={this.props.classes.divDevice}/>),
             this.renderIndicators()
         ];
     }
@@ -362,7 +369,7 @@ class DialogEditDevice extends React.Component {
     render() {
         return [(<Dialog
                 open={true}
-                maxWidth="l"
+                maxWidth="xl"
                 fullWidth={true}
                 onClose={() => this.handleOk()}
                 aria-labelledby="alert-dialog-title"
@@ -393,7 +400,7 @@ DialogEditDevice.propTypes = {
     patterns: PropTypes.object,
     channelInfo: PropTypes.object,
     objects: PropTypes.object,
-    enumIDs: PropTypes.object,
+    enumIDs: PropTypes.array,
     states: PropTypes.object,
     socket: PropTypes.object
 };

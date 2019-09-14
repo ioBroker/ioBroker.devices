@@ -343,7 +343,7 @@ class TreeView extends React.Component {
         const result = [];
         items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
 
-        return (<List dense={true} disablePadding={true}>{result}</List>);
+        return (<List key="list" dense={true} disablePadding={true}>{result}</List>);
     }
 
     renderTree() {

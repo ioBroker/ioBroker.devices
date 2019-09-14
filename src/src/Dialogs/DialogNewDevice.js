@@ -11,7 +11,6 @@ import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import FormControl from '@material-ui/core/FormControl';
@@ -19,10 +18,9 @@ import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 
-
 import {Types} from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
-import {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
+import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
 
 const styles = theme => ({
@@ -51,13 +49,14 @@ const styles = theme => ({
     },
     type: {
         marginTop: 10
+    },
+    input: {
+        width: 200
     }
 });
 
-const SUPPORTED_TYPES = [
-    Types.light,
-    Types.dimmer,
-    Types.socket,
+const UNSUPPORTED_TYPES = [
+
 ];
 
 function getParentId(id) {
@@ -93,7 +92,9 @@ class DialogNewDevice extends React.Component {
             root: this.prefix,
             name: I18n.t('Device') + ' ' + i,
             notUnique: false,
-            type: window.localStorage.getItem('Devices.newType') || SUPPORTED_TYPES[0]
+            functions: window.localStorage.getItem('Devices.new.functions') || '',
+            rooms: window.localStorage.getItem('Devices.new.rooms') || '',
+            type: window.localStorage.getItem('Devices.newType') || 'light',
         };
 
 
@@ -134,6 +135,35 @@ class DialogNewDevice extends React.Component {
         };
     }
 
+    renderSelectEnum(name, title) {
+        const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
+        const language = I18n.getLanguage();
+        const objs = enums.map(id => {
+            return {
+                name: Utils.getObjectName(this.props.objects, id, {language}),
+                icon: Utils.getObjectIcon(id, this.props.objects[id]),
+                id: id
+            }
+        });
+
+        return (<FormControl className={this.props.classes.type + ' ' + this.props.classes.input}>
+            <InputLabel>{title}</InputLabel>
+                <Select
+                className={this.props.classes.oidField}
+                value={this.state[name]}
+                onChange={e => {
+                    localStorage.setItem('Devices.new.' + name, e.target.value);
+                    this.setState({[name]: e.target.value});
+                }}
+            >
+                    {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                        {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
+                        {obj.name}
+                    </MenuItem>))}
+                </Select>
+        </FormControl>);
+    }
+
     generateId() {
         return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
@@ -144,6 +174,8 @@ class DialogNewDevice extends React.Component {
             id: this.generateId(),
             type: this.state.type,
             name: this.state.name,
+            functions: this.state.functions,
+            rooms: this.state.rooms,
             prefix: this.prefix
         });
     }
@@ -154,6 +186,7 @@ class DialogNewDevice extends React.Component {
     }
 
     render() {
+        const classes = this.props.classes;
         return (<Dialog
             open={true}
             maxWidth="md"
@@ -162,44 +195,46 @@ class DialogNewDevice extends React.Component {
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
-            <DialogTitle className={this.props.classes.titleBackground}
-                         classes={{root: this.props.classes.titleColor}}
+            <DialogTitle className={classes.titleBackground}
+                         classes={{root: classes.titleColor}}
                          id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b></DialogTitle>
             <DialogContent>
-                <DialogContentText id="alert-dialog-description">
-                    <div className={this.props.classes.treeDiv}>
-                        <TreeView
-                            objects={this.ids}
-                            selected={this.state.root}
-                            onSelect={id => this.setState({root: id})}
-                            root={this.prefix}
-                        />
-                    </div>
-                    <form className={this.props.classes.nameDiv} noValidate autoComplete="off">
-                        <TextField
-                            label={I18n.t('Device name')}
-                            error={!!this.props.objects[this.generateId()]}
-                            className={this.props.classes.name}
-                            value={this.state.name}
-                            onChange={e => this.setState({name: e.target.value})}
-                            margin="normal"
-                        />
-                        <br/>
-                        <FormControl className={this.props.classes.type}>
-                            <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
-                            <Select
-                                value={this.state.type}
-                                onChange={e => {
-                                    localStorage.setItem('Devices.newType', e.target.value);
-                                    this.setState({type: e.target.value});
-                                }}
-                            >
-                                {SUPPORTED_TYPES.map(type => (<MenuItem value={type}>{I18n.t('Type_' + type)}</MenuItem>))}
-                            </Select>
-                            {/*<FormHelperText>Some important helper text</FormHelperText>*/}
-                        </FormControl>
-                    </form>
-                </DialogContentText>
+                <div className={classes.treeDiv}>
+                    <TreeView
+                        objects={this.ids}
+                        selected={this.state.root}
+                        onSelect={id => this.setState({root: id})}
+                        root={this.prefix}
+                    />
+                </div>
+                <form className={classes.nameDiv} noValidate autoComplete="off">
+                    <TextField
+                        label={I18n.t('Device name')}
+                        error={!!this.props.objects[this.generateId()]}
+                        className={classes.name + ' ' + classes.input}
+                        value={this.state.name}
+                        onChange={e => this.setState({name: e.target.value})}
+                        margin="normal"
+                    />
+                    <br/>
+                    <FormControl className={classes.type + ' ' + classes.input}>
+                        <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
+                        <Select
+                            value={this.state.type}
+                            onChange={e => {
+                                localStorage.setItem('Devices.newType', e.target.value);
+                                this.setState({type: e.target.value});
+                            }}
+                        >
+                            {Object.keys(Types).filter(id => !UNSUPPORTED_TYPES.includes(id)).map(typeId => (<MenuItem key={Types[typeId]} value={Types[typeId]}>{I18n.t('Type_' + Types[typeId])}</MenuItem>))}
+                        </Select>
+                        {/*<FormHelperText>Some important helper text</FormHelperText>*/}
+                    </FormControl>
+                    <br/>
+                    {this.renderSelectEnum('functions', I18n.t('Function'))}
+                    <br/>
+                    {this.renderSelectEnum('rooms', I18n.t('Room'))}
+                </form>
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => this.handleOk()} disabled={!!this.props.objects[this.generateId()]} color="primary" autoFocus>{I18n.t('Ok')}</Button>
@@ -213,6 +248,7 @@ DialogNewDevice.propTypes = {
     onClose: PropTypes.func,
     objects: PropTypes.object,
     theme: PropTypes.string,
+    enumIDs: PropTypes.array,
     socket: PropTypes.object
 };
 

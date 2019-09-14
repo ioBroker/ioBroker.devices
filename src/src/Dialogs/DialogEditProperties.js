@@ -287,7 +287,7 @@ DialogEditProperties.propTypes = {
     type: PropTypes.string,
     channelId: PropTypes.string,
     objects: PropTypes.object,
-    enumIDs: PropTypes.object,
+    enumIDs: PropTypes.array,
     socket: PropTypes.object
 };
 

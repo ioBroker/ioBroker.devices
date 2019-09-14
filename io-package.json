@@ -1,9 +1,9 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.1.4",
+        "version": "0.1.6",
         "news": {
-            "0.1.4": {
+            "0.1.6": {
                 "en": "initial release",
                 "de": "Erstveröffentlichung",
                 "ru": "Начальная версия",
