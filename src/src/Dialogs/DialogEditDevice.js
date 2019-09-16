@@ -163,6 +163,7 @@ class DialogEditDevice extends React.Component {
         }
         return (<DialogSelectID
             connection={this.props.socket}
+            dialogName="devicesEdit"
             title={I18n.t('Select for ') + this.state.selectIdFor}
             selected={this.state.ids[this.state.selectIdFor] || this.findRealDevice()}
             statesOnly={true}

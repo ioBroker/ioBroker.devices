@@ -431,6 +431,7 @@ class ListDevices extends Component {
             orderBy: window.localStorage.getItem('Devices.orderBy') || 'IDs',
             lastChanged: '',
             linkeddevices: '',
+            iot: '',
             onlyAliases: window.localStorage.getItem('Devices.onlyAliases') === 'true',
             hideInfo: window.localStorage.getItem('Devices.hideInfo') === 'true',
         };
@@ -453,11 +454,24 @@ class ListDevices extends Component {
         // read if linkeddevices installed
         this.props.socket.getAdapterInstances('linkeddevices')
             .catch(e => [])
-            .then(list => {
-                // always take the first one
-                if (list && list.length && list[0] && list[0]._id) {
-                    this.setState({linkeddevices: list[0]._id.replace('system.adapter.', '') || ''})
-                }
+            .then(linkeddevices => {
+                // read if iot installed
+                this.props.socket.getAdapterInstances('iot')
+                    .catch(e => [])
+                    .then(iot => {
+                        const newState = {};
+                        let changed = false;
+                        // always take the first one
+                        if (linkeddevices && linkeddevices.length && linkeddevices[0] && linkeddevices[0]._id) {
+                            newState.linkeddevices = linkeddevices[0]._id.replace('system.adapter.', '') || '';
+                            changed = true;
+                        }
+                        if (iot && iot.length && iot[0] && iot[0]._id) {
+                            newState.iot = iot[0]._id.replace('system.adapter.', '') || '';
+                            changed = true;
+                        }
+                        changed && this.setState(newState);
+                    });
 
                 this.detectDevices();
             });
