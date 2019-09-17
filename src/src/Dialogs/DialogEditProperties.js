@@ -15,7 +15,9 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
+
 import ImageSelector from '../Components/ImageSelector';
+import TypeIcon from '../Components/TypeIcon';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
@@ -24,6 +26,7 @@ const styles = theme => ({
     header: {
         width: '100%',
         fontSize: 16,
+        fontWeight: 'bold',
         textTransform: 'capitalize',
         textAlign: 'center',
         paddingBottom: 20,
@@ -94,6 +97,13 @@ const styles = theme => ({
         marginBottom: 0,
         width: 'calc(100% - 85px)',
     },
+    tableIconImg: {
+        marginTop: 4,
+        marginLeft: 4,
+        width: 32,
+        height: 32,
+        color: '#888'
+    },
 });
 
 class DialogEditProperties extends React.Component {
@@ -149,6 +159,7 @@ class DialogEditProperties extends React.Component {
     renderHeader() {
         const classes = this.props.classes;
         return (<div className={classes.header}>
+            <TypeIcon type={this.props.type} className={classes.tableIconImg}/>
             {this.props.type}
         </div>);
     }
@@ -197,7 +208,7 @@ class DialogEditProperties extends React.Component {
         this.setState({icon: newValue});
     }
 
-    renderVariables() {
+    renderProperties() {
         return (<div className={this.props.classes.divOids}>
                 <div className={this.props.classes.divOidField}>
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
@@ -241,6 +252,7 @@ class DialogEditProperties extends React.Component {
                 <ImageSelector
                     maxSize={15000}
                     icons={true}
+                    aspect={1}
                     height={64}
                     accept={'image/jpeg, image/png, image/gif, image/svg+xml'}
                     label={I18n.t('Icon')}
@@ -270,7 +282,7 @@ class DialogEditProperties extends React.Component {
                 <DialogContent>
                     <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
-                        {this.renderVariables()}
+                        {this.renderProperties()}
                     </div>
                 </DialogContent>
                 <DialogActions>

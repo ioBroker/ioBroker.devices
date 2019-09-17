@@ -4,18 +4,18 @@
   "private": true,
   "dependencies": {
     "@iobroker/adapter-react": "^0.2.13",
-    "@material-ui/core": "^4.2.0",
-    "del": "^5.0.0",
+    "@material-ui/core": "^4.4.2",
+    "del": "^5.1.0",
     "gulp": "^4.0.2",
-    "iobroker.type-detector": "^0.1.2",
+    "iobroker.type-detector": "^0.1.8",
     "react-input-color": "^2.0.26",
     "react-color": "^2.17.3",
     "react-dropzone": "^10.1.8",
-    "react-image-crop": "^8.2.2",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6",
+    "react-image-crop": "^8.3.0",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
     "react-icons": "^3.7.0",
-    "react-scripts": "3.0.1"
+    "react-scripts": "^3.1.1"
   },
   "scripts": {
     "start": "react-scripts start",

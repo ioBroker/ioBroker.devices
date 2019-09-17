@@ -51,42 +51,8 @@ import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditProperties from '../Dialogs/DialogEditProperties';
+import TypeIcon from '../Components/TypeIcon';
 import {Types} from 'iobroker.type-detector';
-
-import TypeIconBlinds from '../icons/Jalousie';
-import TypeIconButton from '../icons/PushButton';
-import {GoDeviceCameraVideo as TypeIconCamera} from 'react-icons/go';
-import {FaExternalLinkSquareAlt as TypeIconURL} from 'react-icons/fa';
-import {FaImage as TypeIconImage} from 'react-icons/fa';
-import {FaRegLightbulb as TypeIconDimmer} from 'react-icons/fa';
-import TypeIconDoor from '../icons/DoorOpened';
-import TypeIconFireAlarm from '../icons/FireOn';
-import TypeIconFloodAlarm from '../icons/FloodOn';
-import TypeIconGate from '../icons/Gate';
-import TypeIconHumidity from '../icons/Humidity';
-import {FaInfoCircle as TypeIconInfo} from 'react-icons/fa';
-import {FaLightbulb as TypeIconLight} from 'react-icons/fa';
-import {FaLock as TypeIconLock} from 'react-icons/fa';
-import {FaStreetView as TypeIconLocation} from 'react-icons/fa';
-import {FaStepForward as TypeIconMedia} from 'react-icons/fa';
-import TypeIconMotion from '../icons/MotionOn';
-
-import TypeIconRGB from '../icons/RGB';
-import {MdFormatColorFill as TypeIconCT} from 'react-icons/md';
-import TypeIconRGBSingle from '../icons/RGB';
-import {MdFormatColorFill as TypeIconHUE} from 'react-icons/md';
-
-import {FaSlidersH as TypeIconSlider} from 'react-icons/fa';
-import TypeIconSocket from '../icons/Socket';
-import TypeIconTemperature from '../icons/Thermometer';
-import TypeIconThermostat from '../icons/Thermostat';
-import TypeIconValve from '../icons/HeatValve';
-import {FaVolumeDown as TypeIconVolume} from 'react-icons/fa';
-import {FaVolumeUp as TypeIconVolumeGroup} from 'react-icons/fa';
-import TypeIconWindow from '../icons/WindowOpened';
-import TypeIconWindowTilt from '../icons/WindowTilted';
-import {WiCloudy as TypeIconWeather} from 'react-icons/wi';
-import {MdWarning as TypeIconWarning} from 'react-icons/md';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -287,6 +253,13 @@ const styles = theme => ({
             color: '#ffffff !important'
         }
     },
+    tableIconImg: {
+        marginTop: 4,
+        marginLeft: 4,
+        width: 32,
+        height: 32,
+        color: '#FFF'
+    },
     tableIcon: {
         width: 40,
         height: 40,
@@ -295,9 +268,6 @@ const styles = theme => ({
         background: '#e0e0e0',
         borderRadius: 3,
         '& img': {
-            height: 32,
-            width: 32,
-            marginLeft: 4,
             verticalAlign: 'middle',
         }
     },
@@ -359,42 +329,6 @@ const styles = theme => ({
         color: '#ffffff'
     }
 });
-
-const typesIcons = {
-    [Types.blind]: TypeIconBlinds,
-    [Types.button]: TypeIconButton,
-    [Types.camera]: TypeIconCamera,
-    [Types.url]: TypeIconURL,
-    [Types.image]: TypeIconImage,
-    [Types.dimmer]: TypeIconDimmer,
-    [Types.door]: TypeIconDoor,
-    [Types.fireAlarm]: TypeIconFireAlarm,
-    [Types.floodAlarm]: TypeIconFloodAlarm,
-    [Types.gate]: TypeIconGate,
-    [Types.humidity]: TypeIconHumidity,
-    [Types.info]: TypeIconInfo,
-    [Types.light]: TypeIconLight,
-    [Types.lock]: TypeIconLock,
-    [Types.location]: TypeIconLocation,
-    [Types.media]: TypeIconMedia,
-    [Types.motion]: TypeIconMotion,
-    [Types.rgb]: TypeIconRGB,
-    [Types.ct]: TypeIconCT,
-    [Types.rgbSingle]: TypeIconRGBSingle,
-    [Types.hue]: TypeIconHUE,
-    [Types.slider]: TypeIconSlider,
-    [Types.socket]: TypeIconSocket,
-    [Types.temperature]: TypeIconTemperature,
-    [Types.thermostat]: TypeIconThermostat,
-    [Types.valve]: TypeIconValve,
-    [Types.volume]: TypeIconVolume,
-    [Types.volumeGroup]: TypeIconVolumeGroup,
-    [Types.window]: TypeIconWindow,
-    [Types.windowTilt]: TypeIconWindowTilt,
-    [Types.weatherCurrent]: TypeIconWeather,
-    [Types.weatherForecast]: TypeIconWeather,
-    [Types.warning]: TypeIconWarning,
-};
 
 class ListDevices extends Component {
     constructor(props) {
@@ -740,14 +674,13 @@ class ListDevices extends Component {
         const color = Utils.isUseBright(background, this.props.theme === 'dark') ? '#FFF' : '#000';
 
         let j = 0;
-        const Icon = device.icon ? null : typesIcons[device.type] || null;
 
         return (<TableRow
             key={key}
             className={classes.tableLine} padding="default" style={{background, color}}>
             <TableCell className={classes.tableExpandIconCell}/>
             <TableCell className={classes.tableIconCell}>
-                <div className={classes.tableIcon}>{device.icon ? <img src={device.icon} alt=""/> : Icon && (<Icon style={{marginTop: 4, marginLeft: 4, width: 32, height: 32, color: '#FFF'}}/>)}</div>
+                <div className={classes.tableIcon}><TypeIcon src={device.icon} className={classes.tableIconImg} type={device.type}/></div>
             </TableCell>
             <TableCell className={classes.tableNameCell}>{device.name}</TableCell>
             <TableCell>
@@ -858,7 +791,6 @@ class ListDevices extends Component {
             types.forEach(type => {
                 const isExpanded = this.state.expanded.indexOf(type) !== -1;
                 let j = 0;
-                const Icon = typesIcons[type];
                 // add group
                 result.push((<TableRow
                     key={type}
@@ -866,7 +798,7 @@ class ListDevices extends Component {
                     onClick={() => this.onToggle(type)}
                     padding="default">
                     <TableCell className={classes.tableExpandIconCell}>{isExpanded ? ((<IconExpanded className={classes.tableExpandIcon}/>)) : ((<IconCollapsed className={classes.tableExpandIcon}/>))}</TableCell>
-                    <TableCell className={classes.tableIconCell}><Icon style={{marginTop: 4, width: 32, height: 32, color: '#FFF'}}/></TableCell>
+                    <TableCell className={classes.tableIconCell}><TypeIcon className={classes.tableIconImg} type={type}/></TableCell>
                     <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('type-' + type)}</TableCell>
                     <TableCell/>
                     {this.state.windowWidth >= WIDTHS[4] ? (<TableCell/>) : null}
