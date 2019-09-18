@@ -1,24 +1,36 @@
+Annulla
+Crea un nuovo dispositivo
 Crea un nuovo dispositivo con gli alias
 Crea un nuovo dispositivo con LinkedDevices
 Ridurre la temperatura del colore
 Percentuale di decremento
 Ridurre la temperatura target
+Elimina dispositivo con tutti gli stati
+Dispositivo
+Nome del dispositivo
+Tipo di dispositivo
 dispositivi
+Modifica dispositivo
 Modifica nome e altre proprietà
 Modifica stati
 Filtro
+Funzione
 funzioni
 Ottieni la temperatura effettiva
 Ottieni la temperatura target
+Nascondi i dispositivi informativi
 ID
 Aumenta la temperatura del colore
 Percentuale di incremento
 Aumentare la temperatura target
 nomi
 via
+Ok
 Sopra
 Leggi lo stato di blocco
+Camera
 Camere
+Radice
 Imposta il colore
 Imposta la temperatura del colore
 Imposta lo stato di blocco

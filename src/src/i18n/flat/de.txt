@@ -1,24 +1,36 @@
+Abbrechen
+Neues Gerät erstellen
 Erstellen Sie ein neues Gerät mit Aliases
 Erstellen Sie ein neues Gerät mit LinkedDevices
 Farbtemperatur verringern
 Prozentsatz verringern
 Solltemperatur verringern
+Gerät mit allen Status löschen
+Gerät
+Gerätename
+Gerätetyp
 Geräte
+Gerät bearbeiten
 Den Namen und andere Eigenschaften bearbeiten
 Zustände bearbeiten
 Filter
+Funktion
 Funktionen
 Aktuelle Temperatur abrufen
 Solltemperatur abrufen
+Info-Geräte ausblenden
 IDs
 Farbtemperatur erhöhen
 Prozentsatz erhöhen
 Solltemperatur erhöhen
 Namen
 aus
+Ok
 Auf
 Sperrstatus lesen
+Zimmer
 Räume
+Root
 Farbe einstellen
 Farbtemperatur einstellen
 Sperrstatus setzen

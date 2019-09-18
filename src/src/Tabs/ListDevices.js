@@ -77,10 +77,10 @@ const actionsMapping = {
     incrementColorTemperature: {color: colorOn, icon: IconUp, desc: 'Increment color temperature'},
     decrementColorTemperature: {color: colorOff, icon: IconDown, desc: 'Decrement color temperature'},
 
-    getTargetTemperature: {color: colorRead, icon: IconThermometer, desc: 'Get target temperature'},
+    getTargetTemperature:  {color: colorRead, icon: IconThermometer, desc: 'Get target temperature'},
     getTemperatureReading: {color: colorRead, icon: IconThermometer, desc: 'Get actual temperature'},
 
-    setLockState: {color: colorSet, icon: IconLock, desc: 'Set lock state'},
+    setLockState: {color: colorSet,  icon: IconLock, desc: 'Set lock state'},
     getLockState: {color: colorRead, icon: IconLock, desc: 'Read lock state'},
 };
 

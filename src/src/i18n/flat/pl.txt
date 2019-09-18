@@ -1,24 +1,36 @@
+anulować
+Utwórz nowe urządzenie
 Utwórz nowe urządzenie za pomocą aliasów
 Utwórz nowe urządzenie za pomocą LinkedDevices
 Zmniejszenie temperatury barwowej
 Procent zmniejszenia
 Zmniejszenie docelowej temperatury
+Usuń urządzenie ze wszystkimi stanami
+Urządzenie
+Nazwa urządzenia
+Rodzaj urządzenia
 Pomysłowość
+Edytuj urządzenie
 Edytuj nazwę i inne właściwości
 Edytuj stany
 Filtr
+Funkcjonować
 Funkcje
 Uzyskaj rzeczywistą temperaturę
 Uzyskaj docelową temperaturę
+Ukryj urządzenia informacyjne
 ID
 Zwiększ temperaturę barwową
 Procent przyrostu
 Przyrostowa temperatura docelowa
 Nazwy
 Poza
+Dobrze
 Na
 Odczyt stanu blokady
+Pokój
 Pokoje
+Korzeń
 Ustaw kolor
 Ustaw temperaturę barwową
 Ustaw stan blokady

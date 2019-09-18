@@ -22,6 +22,7 @@ import {Types} from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
+import IconType from '../Components/IconType';
 
 const styles = theme => ({
     header: {
@@ -52,11 +53,16 @@ const styles = theme => ({
     },
     input: {
         width: 200
+    },
+    icon: {
+        display: 'inline-block',
+        marginTop: 15,
+        marginLeft: 5,
     }
 });
 
 const UNSUPPORTED_TYPES = [
-
+    Types.unknown
 ];
 
 function getParentId(id) {
@@ -96,7 +102,6 @@ class DialogNewDevice extends React.Component {
             rooms: window.localStorage.getItem('Devices.new.rooms') || '',
             type: window.localStorage.getItem('Devices.newType') || 'light',
         };
-
 
         const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
 
@@ -185,6 +190,23 @@ class DialogNewDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
+    showDeviceIcon() {
+        return (
+            <div className={this.props.classes.icon}>
+                <IconType type={this.state.type} style={{color: this.props.theme === 'dark' ? '#FFFFFF' : '#000'}}/>
+            </div>
+        );
+    }
+
+    showEnumIcon(name) {
+        const obj = this.props.objects[this.state[name]];
+        if (obj && obj.common && obj.common.icon) {
+            return (<img className={this.props.classes.icon} src={obj.icon} alt=""/>);
+        } else {
+            return null;
+        }
+    }
+
     render() {
         const classes = this.props.classes;
         return (<Dialog
@@ -226,14 +248,16 @@ class DialogNewDevice extends React.Component {
                                 this.setState({type: e.target.value});
                             }}
                         >
-                            {Object.keys(Types).filter(id => !UNSUPPORTED_TYPES.includes(id)).map(typeId => (<MenuItem key={Types[typeId]} value={Types[typeId]}>{I18n.t('Type_' + Types[typeId])}</MenuItem>))}
+                            {Object.keys(Types).filter(id => !UNSUPPORTED_TYPES.includes(id)).map(typeId => (<MenuItem key={Types[typeId]} value={Types[typeId]}>{I18n.t('type-' + Types[typeId])}</MenuItem>))}
                         </Select>
-                        {/*<FormHelperText>Some important helper text</FormHelperText>*/}
                     </FormControl>
+                    {this.showDeviceIcon()}
                     <br/>
                     {this.renderSelectEnum('functions', I18n.t('Function'))}
+                    {this.showEnumIcon('functions')}
                     <br/>
                     {this.renderSelectEnum('rooms', I18n.t('Room'))}
+                    {this.showEnumIcon('rooms')}
                 </form>
             </DialogContent>
             <DialogActions>

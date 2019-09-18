@@ -1,24 +1,36 @@
+Cancel
+Create new device
 Create new device with Aliases
 Create new device with LinkedDevices
 Decrement color temperature
 Decrement percentage
 Decrement target temperature
+Delete device with all states
+Device
+Device name
+Device type
 Devices
+Edit device
 Edit name and other properties
 Edit states
 Filter
+Function
 Functions
 Get actual temperature
 Get target temperature
+Hide info devices
 IDs
 Increment color temperature
 Increment percentage
 Increment target temperature
 Names
 Off
+Ok
 On
 Read lock state
+Room
 Rooms
+Root
 Set color
 Set color temperature
 Set lock state

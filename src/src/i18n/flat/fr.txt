@@ -1,24 +1,36 @@
+Annuler
+Créer un nouveau périphérique
 Créer un nouvel appareil avec des alias
 Créer un nouveau périphérique avec LinkedDevices
 Décrémenter la température de couleur
 Pourcentage de décrémentation
 Décrémenter la température cible
+Supprimer le périphérique avec tous les états
+Dispositif
+Nom de l'appareil
+Type d'appareil
 Dispositifs
+Editer l'appareil
 Editer le nom et autres propriétés
 Editer les états
 Filtre
+Une fonction
 Les fonctions
 Obtenir la température réelle
 Obtenir la température cible
+Masquer les dispositifs d'information
 Identifiants
 Incrément de température de couleur
 Pourcentage d'incrément
 Augmenter la température cible
 Des noms
 De
+D'accord
 Sur
 État verrouillé
+Pièce
 Pièces
+Racine
 Définir la couleur
 Régler la température de couleur
 Définir l'état de verrouillage

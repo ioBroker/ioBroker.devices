@@ -1,24 +1,36 @@
+Cancelar
+Crear nuevo dispositivo
 Crear nuevo dispositivo con alias
 Crea un nuevo dispositivo con LinkedDevices
 Disminuya la temperatura de color
 Porcentaje de disminución
 Disminuya la temperatura objetivo
+Eliminar dispositivo con todos los estados
+Dispositivo
+Nombre del dispositivo
+Tipo de dispositivo
 Dispositivos
+Editar dispositivo
 Editar nombre y otras propiedades
 Editar estados
 Filtrar
+Función
 Las funciones
 Obtener temperatura actual
 Obtener temperatura objetivo
+Ocultar dispositivos de información
 IDs
 Incremento de temperatura de color
 Porcentaje de incremento
 Incremento de temperatura objetivo
 Nombres
 Apagado
+Okay
 En
 Leer estado de bloqueo
+Habitación
 Habitaciones
+Raíz
 Establecer color
 Establecer temperatura de color
 Establecer estado de bloqueo

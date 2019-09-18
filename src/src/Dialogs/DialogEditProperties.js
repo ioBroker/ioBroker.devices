@@ -15,7 +15,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
-
+import Switch from '@material-ui/core/Switch';
 import ImageSelector from '../Components/ImageSelector';
 import TypeIcon from '../Components/TypeIcon';
 
@@ -133,12 +133,19 @@ class DialogEditProperties extends React.Component {
             return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.props.channelId) !== -1;
         });
 
+        // ;common.custom[adapter.namespace].smartName
+        let smartName = channelObj && channelObj.common && channelObj.common.custom && channelObj.common.custom['iot.0']  && channelObj.common.custom['iot.0'].smartName;
+        if (smartName === null || smartName === undefined) {
+            smartName = '';
+        }
+
         this.state = {
-            color: this.props.objects[this.props.channelId] && this.props.objects[this.props.channelId].common && this.props.objects[this.props.channelId].common.color,
-            icon: this.props.objects[this.props.channelId] && this.props.objects[this.props.channelId].common && this.props.objects[this.props.channelId].common.icon,
+            color: channelObj && channelObj.common && channelObj.common.color,
+            icon: channelObj && channelObj.common && channelObj.common.icon,
             functions,
             rooms,
             name,
+            smartName,
         };
     }
 
@@ -201,6 +208,15 @@ class DialogEditProperties extends React.Component {
         </Select>);
     }
 
+    showEnumIcon(name) {
+        const obj = this.props.objects[this.state[name]];
+        if (obj && obj.common && obj.common.icon) {
+            return (<img className={this.props.classes.icon} src={obj.icon} alt=""/>);
+        } else {
+            return null;
+        }
+    }
+
     handleIcon(file) {
         const newValue = typeof file === 'object' ? file.data : file;
 
@@ -209,7 +225,8 @@ class DialogEditProperties extends React.Component {
     }
 
     renderProperties() {
-        return (<div className={this.props.classes.divOids}>
+        return (
+            <div className={this.props.classes.divOids}>
                 <div className={this.props.classes.divOidField}>
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
                     <TextField
@@ -222,12 +239,34 @@ class DialogEditProperties extends React.Component {
                     />
                 </div>
                 <div className={this.props.classes.divOidField}>
+                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Disable smart')}</div>
+                    <Switch
+                        checked={this.state.smartName === false}
+                        onChange={e => this.setState({smartName: e.target.checked ? false : ''})}
+                        inputProps={{ 'aria-label': 'secondary checkbox' }}
+                    />
+                </div>
+                {this.state.smartName !== false ? (<div className={this.props.classes.divOidField}>
+                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Smart name')}</div>
+                    <TextField
+                        key="_smartName"
+                        fullWidth
+                        value={this.state.smartName}
+                        className={this.props.classes.oidField}
+                        helperText={I18n.t('optional')}
+                        onChange={e => this.setState({smartName: e.target.value})}
+                        margin="normal"
+                    />
+                </div>) : null}
+                <div className={this.props.classes.divOidField}>
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
                     {this.renderSelectEnum('functions')}
+                    {this.showEnumIcon('functions')}
                 </div>
                 <div className={this.props.classes.divOidField}>
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
                     {this.renderSelectEnum('rooms')}
+                    {this.showEnumIcon('rooms')}
                </div>
                <div className={this.props.classes.divOidField}>
                     <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
@@ -263,7 +302,8 @@ class DialogEditProperties extends React.Component {
                     textRejected={I18n.t('Some files will be rejected')}
                     textWaiting={I18n.t('Drop some files here or click...')}
                 />
-        </div>);
+            </div>
+        );
     }
 
     render() {
