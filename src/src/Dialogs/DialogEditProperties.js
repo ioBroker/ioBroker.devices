@@ -18,6 +18,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Switch from '@material-ui/core/Switch';
 import ImageSelector from '../Components/ImageSelector';
 import TypeIcon from '../Components/TypeIcon';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
@@ -51,6 +52,7 @@ const styles = theme => ({
         width: 'calc(100% - 185px)',
     },
     colorButton: {
+        marginLeft: 5,
         '&>div': {
             width: '100%'
         }
@@ -104,6 +106,17 @@ const styles = theme => ({
         height: 32,
         color: '#888'
     },
+    disableSwitch: {
+        '& .Mui-checked .MuiSwitch-thumb': {
+            background: '#ffb3ce'
+        }
+    },
+    disableSwitchLabel: {
+        '& .MuiFormControlLabel-label': {
+            fontSize: '0.75rem',
+            opacity: 0.6,
+        }
+    }
 });
 
 class DialogEditProperties extends React.Component {
@@ -134,10 +147,7 @@ class DialogEditProperties extends React.Component {
         });
 
         // ;common.custom[adapter.namespace].smartName
-        let smartName = channelObj && channelObj.common && channelObj.common.custom && channelObj.common.custom['iot.0']  && channelObj.common.custom['iot.0'].smartName;
-        if (smartName === null || smartName === undefined) {
-            smartName = '';
-        }
+        let smartName = this.getSmartName(channelObj);
 
         this.state = {
             color: channelObj && channelObj.common && channelObj.common.color,
@@ -160,6 +170,7 @@ class DialogEditProperties extends React.Component {
             name: this.state.name,
             icon: this.state.icon,
             color: this.state.color,
+            smartName: this.state.smartName,
         });
     };
 
@@ -208,6 +219,28 @@ class DialogEditProperties extends React.Component {
         </Select>);
     }
 
+    getSmartName(obj, language) {
+        language = language || I18n.getLanguage();
+        let smartName;
+        if (obj &&
+            obj.common &&
+            obj.common.custom) {
+            if (this.props.iotNoCommon) {
+                const iot = this.props.iot || 'iot.0';
+                if (obj.common.custom[iot] && obj.common.custom[iot].smartName) {
+                    smartName = obj.common.custom[iot].smartName;
+                }
+            } else {
+                smartName = obj.common.smartName;
+            }
+        }
+
+        if (smartName && typeof smartName === 'object') {
+            smartName = smartName[language] || smartName.en || '';
+        }
+        return smartName || '';
+    }
+
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
@@ -225,51 +258,60 @@ class DialogEditProperties extends React.Component {
     }
 
     renderProperties() {
+        const classes = this.props.classes;
         return (
-            <div className={this.props.classes.divOids}>
-                <div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
+            <div className={classes.divOids}>
+                <div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
                     <TextField
                         key="_name"
                         fullWidth
                         value={this.state.name}
-                        className={this.props.classes.oidField}
+                        className={classes.oidField}
                         onChange={e => this.setState({name: e.target.value})}
                         margin="normal"
                     />
                 </div>
-                <div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Disable smart')}</div>
-                    <Switch
-                        checked={this.state.smartName === false}
-                        onChange={e => this.setState({smartName: e.target.checked ? false : ''})}
-                        inputProps={{ 'aria-label': 'secondary checkbox' }}
+                <div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Disable smart')}</div>
+                    <FormControlLabel
+                        className={classes.disableSwitchLabel}
+                        control={
+                            <Switch
+                                className={classes.disableSwitch}
+                                checked={this.state.smartName === false}
+                                color="secondary"
+                                onChange={e => this.setState({smartName: e.target.checked ? false : ''})}
+                            />
+                        }
+                        label={I18n.t('Hide this name from smart assistance')}
                     />
                 </div>
-                {this.state.smartName !== false ? (<div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Smart name')}</div>
+                {this.state.smartName !== false ? (<div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Smart name')}</div>
                     <TextField
                         key="_smartName"
                         fullWidth
+                        placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~\/\\]/g, ' ')}
                         value={this.state.smartName}
-                        className={this.props.classes.oidField}
-                        helperText={I18n.t('optional')}
-                        onChange={e => this.setState({smartName: e.target.value})}
+                        className={classes.oidField}
+                        helperText={I18n.t('This name will use be in smart assistance. (optional)')}
+                        onChange={e => this.setState({smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~\/\\]/g, ' ')})}
                         margin="normal"
                     />
                 </div>) : null}
-                <div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
+                <div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
                     {this.renderSelectEnum('functions')}
                     {this.showEnumIcon('functions')}
                 </div>
-                <div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
+                <div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
                     {this.renderSelectEnum('rooms')}
                     {this.showEnumIcon('rooms')}
                </div>
-               <div className={this.props.classes.divOidField}>
-                    <div className={this.props.classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
+               <div className={classes.divOidField}>
+                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
                     <TextField
                         key="_color"
                         fullWidth
@@ -283,7 +325,7 @@ class DialogEditProperties extends React.Component {
                         type="color"
                         style={{width: 40, marginTop: 16}}
                         value={this.state.color}
-                        className={this.props.classes.oidField + ' ' + this.props.classes.colorButton}
+                        className={classes.oidField + ' ' + classes.colorButton}
                         onChange={e => this.setState({color: e.target.value})}
                         margin="normal"
                     />
@@ -337,6 +379,8 @@ class DialogEditProperties extends React.Component {
 DialogEditProperties.propTypes = {
     onClose: PropTypes.func,
     type: PropTypes.string,
+    iot: PropTypes.string,
+    iotNoCommon: PropTypes.bool,
     channelId: PropTypes.string,
     objects: PropTypes.object,
     enumIDs: PropTypes.array,

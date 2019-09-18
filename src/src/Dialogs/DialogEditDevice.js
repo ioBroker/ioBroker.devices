@@ -19,6 +19,7 @@ import Fab from '@material-ui/core/Fab';
 
 import {MdEdit as IconEdit} from 'react-icons/md';
 import {MdFunctions as IconFunction} from 'react-icons/md';
+import {MdOpenInNew as IconExtended} from 'react-icons/md';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
@@ -58,8 +59,8 @@ const styles = theme => ({
     },
     divOids: {
         display: 'inline-block',
-        width: 'calc(50% - 55px)',
         verticalAlign: 'top',
+        width: '100%',
     },
     divDevice: {
         display: 'inline-block',
@@ -68,8 +69,10 @@ const styles = theme => ({
     },
     divIndicators: {
         display: 'inline-block',
-        width: 'calc(50% - 55px)',
         verticalAlign: 'top',
+    },
+    divExtended: {
+        width: 'calc(50% - 55px)',
     },
     divDialogContent: {
         fontSize: '1rem',
@@ -149,6 +152,7 @@ class DialogEditDevice extends React.Component {
         this.state = {
             ids,
             name,
+            extended: window.localStorage.getItem('Devices.editExtended') === 'true',
             selectIdFor: '',
             editFxFor: '',
         };
@@ -190,9 +194,14 @@ class DialogEditDevice extends React.Component {
     renderHeader() {
         const classes = this.props.classes;
         return (<div className={classes.header}>
-            <div className={classes.divOids + ' ' + classes.headerButtons}/>
+            <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
-            <div className={classes.divIndicators}/>
+            <div className={classes.divIndicators + ' ' + classes.divExtended}>
+                <Fab style={{float: 'right'}} size="small" onClick={() => {
+                    window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
+                    this.setState({extended: !this.state.extended});
+                }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>
+            </div>
         </div>);
     }
 
@@ -348,13 +357,16 @@ class DialogEditDevice extends React.Component {
     }
 
     renderVariables() {
-        return (<div key="vars" className={this.props.classes.divOids}>
+        return (<div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : '')}>
             {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
         </div>);
     }
 
     renderIndicators() {
-        return (<div key="indicators" className={this.props.classes.divIndicators}>{
+        if (!this.state.extended) {
+            return null;
+        }
+        return (<div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
             this.props.channelInfo.states.filter(item => item.indicator).map(item => this.renderVariable(item))
         }</div>);
     }
@@ -370,7 +382,7 @@ class DialogEditDevice extends React.Component {
     render() {
         return [(<Dialog
                 open={true}
-                maxWidth="xl"
+                maxWidth={this.state.extended ? 'xl' : 'sm'}
                 fullWidth={true}
                 onClose={() => this.handleOk()}
                 aria-labelledby="alert-dialog-title"

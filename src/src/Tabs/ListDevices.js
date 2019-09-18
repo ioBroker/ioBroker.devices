@@ -276,6 +276,10 @@ const styles = theme => ({
         width: 150,
         textOverflow: 'ellipsis',
     },
+    tableSmartName: {
+        fontSize: 10,
+        opacity: 0.8,
+    },
     tableIdCell: {
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
@@ -366,6 +370,7 @@ class ListDevices extends Component {
             lastChanged: '',
             linkeddevices: '',
             iot: '',
+            iotNoCommon: false,
             onlyAliases: window.localStorage.getItem('Devices.onlyAliases') === 'true',
             hideInfo: window.localStorage.getItem('Devices.hideInfo') === 'true',
         };
@@ -401,6 +406,7 @@ class ListDevices extends Component {
                             changed = true;
                         }
                         if (iot && iot.length && iot[0] && iot[0]._id) {
+                            newState.iotNoCommon = iot[0].native && iot[0].native.noCommon;
                             newState.iot = iot[0]._id.replace('system.adapter.', '') || '';
                             changed = true;
                         }
@@ -675,6 +681,8 @@ class ListDevices extends Component {
 
         let j = 0;
 
+        const smartName = this.getSmartName(this.objects[device.channelId]);
+
         return (<TableRow
             key={key}
             className={classes.tableLine} padding="default" style={{background, color}}>
@@ -682,7 +690,7 @@ class ListDevices extends Component {
             <TableCell className={classes.tableIconCell}>
                 <div className={classes.tableIcon}><TypeIcon src={device.icon} className={classes.tableIconImg} type={device.type}/></div>
             </TableCell>
-            <TableCell className={classes.tableNameCell}>{device.name}</TableCell>
+            <TableCell className={classes.tableNameCell}>{device.name}{smartName !== '' ? (<div className={classes.tableSmartName}>{smartName || I18n.t('disabled')}</div>) : null}</TableCell>
             <TableCell>
                 <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEditName /></Fab>
             </TableCell>
@@ -876,6 +884,56 @@ class ListDevices extends Component {
         } else {
             this.onCollapse(group);
         }
+    }
+
+    setSmartName(obj, newSmartName, language) {
+        // set smartName
+        language = language || I18n.getLanguage();
+        if (newSmartName || newSmartName === false) {
+            if (this.state.iotNoCommon) {
+                const iot = this.state.iot || 'iot.0';
+                obj.common.custom = obj.common.custom || {};
+                obj.common.custom[iot] = obj.common.custom[iot] || {};
+                obj.common.custom[iot].smartName = obj.common.custom[iot].smartName || {};
+                obj.common.custom[iot].smartName[language] = newSmartName;
+            } else {
+                obj.common.smartName = obj.common.smartName || {};
+                obj.common.smartName[language] = newSmartName;
+            }
+        } else {
+            if (this.state.iotNoCommon) {
+                const iot = this.state.iot || 'iot.0';
+                if (obj.common.custom && obj.common.custom[iot]) {
+                    obj.common.custom[iot].smartName[language] = '';
+                }
+            } else {
+                if (obj.common.smartName) {
+                    obj.common.smartName[language] = '';
+                }
+            }
+        }
+    }
+
+    getSmartName(obj, language) {
+        language = language || I18n.getLanguage();
+        let smartName;
+        if (obj &&
+            obj.common &&
+            obj.common.custom) {
+            if (this.state.iotNoCommon) {
+                const iot = this.state.iot || 'iot.0';
+                if (obj.common.custom[iot] && obj.common.custom[iot].smartName) {
+                    smartName = obj.common.custom[iot].smartName;
+                }
+            } else {
+                smartName = obj.common.smartName;
+            }
+        }
+
+        if (smartName && typeof smartName === 'object') {
+            smartName = smartName[language] || smartName.en || '';
+        }
+        return smartName || '';
     }
 
     renderEditDialog() {
@@ -1080,6 +1138,8 @@ class ListDevices extends Component {
         return (<DialogEditProperties
             channelId={this.state.devices[this.state.editPropIndex].channelId}
             type={this.state.devices[this.state.editPropIndex].type}
+            iot={this.state.iot}
+            iotNoCommon={this.state.iotNoCommon}
             objects={this.objects}
             patterns={this.patterns}
             enumIDs={this.enumIDs}
@@ -1087,12 +1147,16 @@ class ListDevices extends Component {
             onClose={data => {
                 const promises = [];
                 if (data) {
+                    const language = I18n.getLanguage();
                     const device = this.state.devices[this.state.editPropIndex];
                     const channelId = device.channelId;
-                    const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, {language: I18n.getLanguage()});
+                    const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, {language});
+
+                    let oldSmartName = this.getSmartName(this.objects[channelId], language);
 
                     if (this.objects[channelId] && this.objects[channelId].common &&
                         (oldName !== data.name ||
+                            oldSmartName !== data.smartName ||
                             (this.objects[channelId].common.color || '') !== data.color ||
                             (this.objects[channelId].common.icon  || '') !== data.icon)
                     ) {
@@ -1103,9 +1167,9 @@ class ListDevices extends Component {
                                     obj = obj || {};
                                     obj.common = obj.common || {};
                                     if (typeof obj.common.name !== 'object') {
-                                        obj.common.name = {[I18n.getLanguage()]: obj.common.name || ''};
+                                        obj.common.name = {[language]: obj.common.name || ''};
                                     }
-                                    obj.common.name[I18n.getLanguage()] = data.name;
+                                    obj.common.name[language] = data.name;
                                     obj.common.role = device.type;
                                     obj.common.color = data.color;
                                     if (!data.color) {
@@ -1117,6 +1181,8 @@ class ListDevices extends Component {
                                     }
                                     obj.type = obj.type || 'channel';
                                     this.objects[channelId] = obj;
+
+                                    this.setSmartName(obj, data.smartName, language);
 
                                     return this.props.socket.setObject(obj._id, obj);
                                 }));
