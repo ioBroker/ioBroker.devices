@@ -15,6 +15,13 @@ Windows: [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/ioBroke
 
 Manage and create devices for using it in other adapters like material, iot,...
 
+## ToDo
+- add icons for all states of channels
+- add descriptions for states
+- show errors for google/alisa/alexa
+- clone existing device into linkeddevices/alias/javascript
+- detect if js-controller 2.0 installed
+
 ## Changelog
 
 ### 0.1.7 (2019-09-15)
