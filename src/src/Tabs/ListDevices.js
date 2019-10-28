@@ -672,6 +672,10 @@ class ListDevices extends Component {
         return this.state.onlyAliases && !device.channelId.startsWith(ALIAS) && !device.channelId.startsWith(LINKEDDEVICES);
     }
 
+    copyDevice(device, newId, cb) {
+
+    }
+
     renderDevice(key, index, device) {
         device = device || this.state.devices[index];
 
