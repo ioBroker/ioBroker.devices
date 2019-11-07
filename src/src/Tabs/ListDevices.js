@@ -672,10 +672,6 @@ class ListDevices extends Component {
         return this.state.onlyAliases && !device.channelId.startsWith(ALIAS) && !device.channelId.startsWith(LINKEDDEVICES);
     }
 
-    copyDevice(device, newId, cb) {
-
-    }
-
     renderDevice(key, index, device) {
         device = device || this.state.devices[index];
 
@@ -956,7 +952,7 @@ class ListDevices extends Component {
             patterns={this.patterns}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
-            onClose={data => {
+            onClose={(data, refresh) => {
                 const promises = [];
                 if (data) {
                     const device = this.state.devices[this.state.editIndex];
@@ -1038,7 +1034,8 @@ class ListDevices extends Component {
                                         }));
                             }
                         });
-                    } else if (channelId.startsWith(LINKEDDEVICES)) {
+                    } else
+                    if (channelId.startsWith(LINKEDDEVICES)) {
                         device.states.forEach(state => {
                             const obj = this.objects[state.id];
                             let attrs;
@@ -1119,9 +1116,9 @@ class ListDevices extends Component {
                             const devices = JSON.parse(JSON.stringify(this.state.devices));
                             // update enums, name
                             this.updateEnumsForOneDevice(devices[this.state.editIndex]);
-                            this.setState({editIndex: null, devices});
+                            this.setState({editIndex: null, devices}, () => refresh && this.detectDevices());
                         } else {
-                            this.setState({editIndex: null});
+                            this.setState({editIndex: null}, () => refresh && this.detectDevices());
                         }
                     });
 

@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@iobroker/adapter-react": "^0.2.18",
-    "@material-ui/core": "^4.5.1",
+    "@material-ui/core": "^4.6.0",
     "del": "^5.1.0",
     "gulp": "^4.0.2",
     "iobroker.type-detector": "^0.1.8",

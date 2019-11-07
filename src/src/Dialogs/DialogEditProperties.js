@@ -292,11 +292,11 @@ class DialogEditProperties extends React.Component {
                     <TextField
                         key="_smartName"
                         fullWidth
-                        placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~\/\\]/g, ' ')}
+                        placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
                         value={this.state.smartName}
                         className={classes.oidField}
                         helperText={I18n.t('This name will use be in smart assistance. (optional)')}
-                        onChange={e => this.setState({smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~\/\\]/g, ' ')})}
+                        onChange={e => this.setState({smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')})}
                         margin="normal"
                     />
                 </div>) : null}

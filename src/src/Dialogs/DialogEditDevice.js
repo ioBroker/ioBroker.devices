@@ -20,6 +20,7 @@ import Fab from '@material-ui/core/Fab';
 import {MdEdit as IconEdit} from 'react-icons/md';
 import {MdFunctions as IconFunction} from 'react-icons/md';
 import {MdOpenInNew as IconExtended} from 'react-icons/md';
+import {MdContentCopy as IconCopy} from 'react-icons/md';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
@@ -101,7 +102,19 @@ const styles = theme => ({
         marginBottom: 0,
         width: 'calc(100% - 85px)',
     },
+    idEditName: {
+        display: 'inline-block',
+        width: 200
+    },
+    idEdit: {
+        width: 'calc(100% - 200px)',
+        display: 'inline-block',
+        marginTop: 0,
+        marginBottom: 0,
+    }
 });
+
+const FORBIDDEN_CHARS = /[\]\[*,;'"`<>\\?]/g;
 
 class DialogEditDevice extends React.Component {
     constructor(props) {
@@ -155,6 +168,9 @@ class DialogEditDevice extends React.Component {
             extended: window.localStorage.getItem('Devices.editExtended') === 'true',
             selectIdFor: '',
             editFxFor: '',
+            newChannelId: '',
+            newChannelError: false,
+            showCopyDialog: false,
         };
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
@@ -166,6 +182,7 @@ class DialogEditDevice extends React.Component {
             return null;
         }
         return (<DialogSelectID
+            key="selectDialog"
             connection={this.props.socket}
             dialogName="devicesEdit"
             title={I18n.t('Select for ') + this.state.selectIdFor}
@@ -181,26 +198,103 @@ class DialogEditDevice extends React.Component {
     }
 
     handleClose() {
-        this.props.onClose && this.props.onClose();
+        this.props.onClose && this.props.onClose(null);
     }
 
-    handleOk() {
+    handleOk(isRefresh) {
         this.props.onClose && this.props.onClose({
-            ids:  this.state.ids,
-            fx: this.fx,
-        });
+            ids: this.state.ids,
+            fx:  this.fx,
+        }, isRefresh);
     };
+
+    addToEnum(enumId, id) {
+        this.props.socket.getObject(enumId)
+            .then(obj => {
+                if (obj && obj.common) {
+                    obj.common.members = obj.common.members || [];
+
+                    if (!obj.common.members.includes(id)) {
+                        obj.common.members.push(id);
+                        obj.common.members.sort();
+                        this.props.objects[enumId] = obj;
+                        return this.props.socket.setObject(enumId, obj);
+                    }
+                }
+            });
+    }
+
+    processTasks(tasks, cb) {
+        if (!tasks || !tasks.length) {
+            cb && cb();
+        } else {
+            const task = tasks.shift();
+            let promises = [];
+
+            if (task.enums) {
+                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
+            }
+            this.props.objects[task.id] = task.obj;
+            promises.push(this.props.socket.setObject(task.id, task.obj));
+
+            Promise.all(promises).then(() => setTimeout(() =>
+                this.processTasks(tasks, cb), 0));
+        }
+    }
+
+    onCopyDevice(newChannelId, cb) {
+        // if this is device not from linkeddevice or from alias
+        const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
+
+        const channelObj = this.props.objects[this.channelId];
+        const tasks = [];
+        tasks.push({
+            id: newChannelId,
+            obj: {
+                common: {
+                    name: channelObj.common.name,
+                    color: channelObj.common.color,
+                    desc: channelObj.common.desc,
+                    role: channelObj.common.role,
+                    icon: channelObj.common.icon,
+                },
+                type: 'channel'
+            },
+            enums: this.props.channelInfo.rooms.concat(this.props.channelInfo.functions)
+        });
+
+        this.props.channelInfo.states.forEach(state => {
+            if (!state.id) {
+                return;
+            }
+            const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
+            obj._id = newChannelId + '.' + state.name;
+
+            obj.native = {};
+            if (!isAlias) {
+                obj.common.alias = {id: state.id};
+            }
+            tasks.push({id: obj._id, obj});
+        });
+
+        this.processTasks(tasks, cb);
+    }
 
     renderHeader() {
         const classes = this.props.classes;
+        const indicatorsFound = this.props.channelInfo.states.some(item => item.indicator);
+
         return (<div className={classes.header}>
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
                 <Fab style={{float: 'right'}} size="small" onClick={() => {
+                    this.setState({showCopyDialog: true, newChannelId: ''});
+                }}><IconCopy /></Fab>
+                {indicatorsFound ? (<Fab style={{float: 'right'}} size="small" onClick={() => {
                     window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
                     this.setState({extended: !this.state.extended});
-                }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>
+                }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>) : null}
             </div>
         </div>);
     }
@@ -248,13 +342,14 @@ class DialogEditDevice extends React.Component {
         }
         const fx = this.fx[this.state.editFxFor];
 
-        this.fxRead = fx.read;
+        this.fxRead  = fx.read;
         this.fxWrite = fx.write;
 
         return (<Dialog
             open={true}
+            key="editFxDialog"
             maxWidth="sm"
-            onClose={() => this.handleOk()}
+            onClose={() => this.setState({editFxFor: ''})}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
@@ -298,6 +393,51 @@ class DialogEditDevice extends React.Component {
                     }
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button href="" onClick={() => this.setState({editFxFor: ''})}>{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>);
+    }
+
+    renderCopyDialog() {
+        if (!this.state.showCopyDialog) {
+            return;
+        }
+
+        const ALIAS_PREFIX = 'alias.0.';
+
+        return (<Dialog
+            key="copyDialog"
+            open={true}
+            maxWidth="sm"
+            fullWidth={true}
+            onClose={() => this.setState({showCopyDialog: false})}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            <DialogTitle className={this.props.classes.titleBackground}
+                         classes={{root: this.props.classes.titleColor}}
+                         id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
+            <DialogContent>
+                <div className={this.props.classes.divDialogContent}>
+                    <div className={this.props.classes.idEditName} style={{fontWeight: 'bold'}}>{I18n.t('New device ID')} - {ALIAS_PREFIX}</div>
+                    <TextField
+                        fullWidth
+                        placeholder={I18n.t('...')}
+                        error={this.state.newChannelError}
+                        value={this.state.newChannelId}
+                        className={this.props.classes.idEdit}
+                        onChange={e => this.setState({newChannelId: e.target.value.replace(FORBIDDEN_CHARS, '_'), newChannelError: !!this.props.objects[ALIAS_PREFIX + e.target.value.replace(FORBIDDEN_CHARS, '_')]})}
+                        margin="normal"
+                    />
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button href="" disabled={this.state.newChannelError} onClick={() => {
+                    this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
+                        this.setState({showCopyDialog: false, newChannelId: ''}, () =>
+                            this.handleOk(true)));
+
+                }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button href="" onClick={() => this.setState({showCopyDialog: false})}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>);
     }
@@ -381,6 +521,7 @@ class DialogEditDevice extends React.Component {
 
     render() {
         return [(<Dialog
+                key="editDialog"
                 open={true}
                 maxWidth={this.state.extended ? 'xl' : 'sm'}
                 fullWidth={true}
@@ -403,7 +544,8 @@ class DialogEditDevice extends React.Component {
                 </DialogActions>
             </Dialog>),
             this.renderSelectDialog(),
-            this.renderEditFxDialog()
+            this.renderEditFxDialog(),
+            this.renderCopyDialog(),
         ];
     }
 }
