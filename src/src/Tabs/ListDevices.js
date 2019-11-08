@@ -123,7 +123,8 @@ const styles = theme => ({
         minWidth: 300
     },
     filter: {
-        margin: 0
+        margin: 0,
+        //color: theme.palette.type === 'light' ? 'black' : 'grey',
     },
     button: {
         marginRight: 20
@@ -239,6 +240,7 @@ const styles = theme => ({
     },
     orderSelector: {
         marginRight: 10,
+        //color: theme.palette.secondary.main,
     },
     paperTable: {
         width: '100%',
@@ -939,7 +941,9 @@ class ListDevices extends Component {
     }
 
     renderEditDialog() {
-        if (this.state.editIndex === null) return null;
+        if (this.state.editIndex === null) {
+            return null;
+        }
 
         if (!this.state.devices[this.state.editIndex]) {
             window.alert('Device not found');

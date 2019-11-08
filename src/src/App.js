@@ -14,7 +14,8 @@ const styles = theme => ({
     tabContent: {
         padding: 10,
         height: 'calc(100% - 40px - 20px)',
-        overflow: 'auto'
+        overflow: 'auto',
+        background: theme.palette.type === 'light' ? 'white': 'gray',
     }
 });
 
