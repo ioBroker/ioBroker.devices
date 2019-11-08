@@ -103,6 +103,7 @@ const WIDTHS = [
 
 const ALIAS = 'alias.';
 const LINKEDDEVICES = 'linkeddevices.';
+const IS_CHROME = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 
 const styles = theme => ({
     tab: {
@@ -244,6 +245,7 @@ const styles = theme => ({
         height: 'calc(100% - 50px)',
         overflowX: 'hidden',
         overflowY: 'auto',
+        marginTop: 5,
     },
     tableLine: {
         //cursor: 'pointer',
@@ -273,7 +275,7 @@ const styles = theme => ({
     },
     tableNameCell: {
         whiteSpace: 'nowrap',
-        width: 150,
+        width: IS_CHROME ? undefined : 150,
         textOverflow: 'ellipsis',
     },
     tableSmartName: {
@@ -304,7 +306,7 @@ const styles = theme => ({
         width: 90,
     },
     buttonsCell: {
-        width: 90,
+        width: IS_CHROME ? undefined : 90,
         padding: '0 !important',
     },
     tableGroup: {
@@ -744,7 +746,7 @@ class ListDevices extends Component {
                                 {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                                 {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                                 {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
-                                <TableCell className={classes.buttonsCellHeader}/>
+                                <TableCell className={classes.buttonsCell}/>
                             </TableRow>)
                         );
 
@@ -779,7 +781,7 @@ class ListDevices extends Component {
                     {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                     {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                     {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
-                    <TableCell className={classes.buttonsCellHeader}/>
+                    <TableCell className={classes.buttonsCell}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -814,7 +816,7 @@ class ListDevices extends Component {
                     {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                     {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell/>) : null}
                     {this.state.windowWidth >= WIDTHS[0] ? (<TableCell/>) : null}
-                    <TableCell className={classes.buttonsCellHeader}/>
+                    <TableCell className={classes.buttonsCell}/>
                 </TableRow>));
 
                 if (isExpanded) {
@@ -1112,14 +1114,16 @@ class ListDevices extends Component {
 
                 Promise.all(promises)
                     .then(() => {
+                        // update expert mode if was changed
+                        const newState = {editIndex: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true'};
                         if (somethingChanged) {
                             const devices = JSON.parse(JSON.stringify(this.state.devices));
                             // update enums, name
                             this.updateEnumsForOneDevice(devices[this.state.editIndex]);
-                            this.setState({editIndex: null, devices}, () => refresh && this.detectDevices());
-                        } else {
-                            this.setState({editIndex: null}, () => refresh && this.detectDevices());
+                            newState.devices = devices;
                         }
+
+                        this.setState(newState, () => refresh && this.detectDevices());
                     });
 
                 Router.doNavigate(null, '', '');

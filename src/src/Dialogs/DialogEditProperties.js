@@ -63,6 +63,7 @@ const styles = theme => ({
         verticalAlign: 'top',
     },
     divDevice: {
+        color: theme.palette.type === 'light' ? 'black' : 'white',
         display: 'inline-block',
         width: 100,
         verticalAlign: 'top',

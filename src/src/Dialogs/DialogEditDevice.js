@@ -21,6 +21,7 @@ import {MdEdit as IconEdit} from 'react-icons/md';
 import {MdFunctions as IconFunction} from 'react-icons/md';
 import {MdOpenInNew as IconExtended} from 'react-icons/md';
 import {MdContentCopy as IconCopy} from 'react-icons/md';
+import IconExpert from '../icons/RepairExpert';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
@@ -64,9 +65,11 @@ const styles = theme => ({
         width: '100%',
     },
     divDevice: {
+        color: theme.palette.type === 'light' ? 'black' : 'white',
         display: 'inline-block',
         width: 100,
         verticalAlign: 'top',
+        fontWeight: 'bold',
     },
     divIndicators: {
         display: 'inline-block',
@@ -84,6 +87,10 @@ const styles = theme => ({
     },
     headerButtons: {
         textAlign: 'right'
+    },
+    headerButton: {
+        float: 'right',
+        marginLeft: 3,
     },
     enumIcon: {
         width: 24,
@@ -166,6 +173,7 @@ class DialogEditDevice extends React.Component {
             ids,
             name,
             extended: window.localStorage.getItem('Devices.editExtended') === 'true',
+            expertMode: window.localStorage.getItem('Devices.expertMode') === 'true',
             selectIdFor: '',
             editFxFor: '',
             newChannelId: '',
@@ -288,10 +296,14 @@ class DialogEditDevice extends React.Component {
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
-                <Fab style={{float: 'right'}} size="small" onClick={() => {
+                <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : ''} size="small" onClick={() => {
+                    window.localStorage.setItem('Devices.expertMode', this.state.expertMode ? 'false' : 'true');
+                    this.setState({expertMode: !this.state.expertMode});
+                }}><IconExpert style={{width: 22, height: 22, paddingLeft: 2}}/></Fab>
+                <Fab title={I18n.t('Copy device into aliases')} className={classes.headerButton} size="small" onClick={() => {
                     this.setState({showCopyDialog: true, newChannelId: ''});
                 }}><IconCopy /></Fab>
-                {indicatorsFound ? (<Fab style={{float: 'right'}} size="small" onClick={() => {
+                {indicatorsFound ? (<Fab title={I18n.t('Show hide indicators')} className={classes.headerButton} size="small" onClick={() => {
                     window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
                     this.setState({extended: !this.state.extended});
                 }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>) : null}
@@ -422,6 +434,7 @@ class DialogEditDevice extends React.Component {
                     <TextField
                         fullWidth
                         placeholder={I18n.t('...')}
+                        label={ALIAS_PREFIX + this.state.newChannelId}
                         error={this.state.newChannelError}
                         value={this.state.newChannelId}
                         className={this.props.classes.idEdit}
@@ -454,7 +467,7 @@ class DialogEditDevice extends React.Component {
 		if (pattern.defaultRole) {
 			props.push('role=' + pattern.defaultRole);
 		} else {
-			if (pattern.role) props.push('role=' + pattern.role.toString());
+			pattern.role && props.push('role=' + pattern.role.toString());
 		}
 
         if (pattern.enums) {
@@ -480,19 +493,20 @@ class DialogEditDevice extends React.Component {
                     key={name}
                     fullWidth
                     disabled={!alias && !linkeddevices}
-                    label={item.id || (this.channelId + '.' + name)}
+                    label={this.state.expertMode ? item.id || (this.channelId + '.' + name) : ''}
                     value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
                     className={this.props.classes.oidField}
+                    style={{paddingTop: this.state.expertMode ? undefined: 8}}
                     onChange={e => {
                         const ids = JSON.parse(JSON.stringify(this.state.ids));
                         ids[name] = e.target.value;
                         this.setState({ids});
                     }}
-                    helperText={props.join(', ')}
+                    helperText={this.state.expertMode ? props.join(', ') : ''}
                     margin="normal"
                 />
-                {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
-                {alias && this.state.ids[name] ? (<Fab href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
+                {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" title={I18n.t('Select ID')} onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
+                {this.state.expertMode && alias && this.state.ids[name] ? (<Fab title={I18n.t('Edit convert functions')}  href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
             </div>);
     }
 
