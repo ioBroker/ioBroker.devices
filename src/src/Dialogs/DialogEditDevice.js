@@ -121,7 +121,7 @@ const styles = theme => ({
     }
 });
 
-const FORBIDDEN_CHARS = /[\]\[*,;'"`<>\\?]/g;
+const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
 class DialogEditDevice extends React.Component {
     constructor(props) {
