@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.1.7",
+        "version": "0.1.8",
         "news": {
+            "0.1.8": {
+                "en": "Allowed the clone of devices",
+                "de": "Erlaubt das Klonen von Geräten",
+                "ru": "Разрешен клон устройств",
+                "pt": "Permitido o clone de dispositivos",
+                "nl": "Toegestaan met het klonen van apparaten",
+                "fr": "Permis le clone de périphériques",
+                "it": "Consentito il clone dei dispositivi",
+                "es": "Permitido el clon de dispositivos",
+                "pl": "Dozwolony klon urządzeń",
+                "zh-cn": "允许克隆设备"
+            },
             "0.1.7": {
                 "en": "initial release",
                 "de": "Erstveröffentlichung",
