@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.1.8",
+        "version": "0.2.0",
         "news": {
+            "0.2.0": {
+                "en": "Backend was removed",
+                "de": "Backend wurde entfernt",
+                "ru": "Бэкэнд был удален",
+                "pt": "O back-end foi removido",
+                "nl": "Backend is verwijderd",
+                "fr": "Le backend a été supprimé",
+                "it": "Il backend è stato rimosso",
+                "es": "Backend fue eliminado",
+                "pl": "Backend został usunięty",
+                "zh-cn": "后端已删除"
+            },
             "0.1.8": {
                 "en": "Allowed the clone of devices",
                 "de": "Erlaubt das Klonen von Geräten",
@@ -85,6 +97,7 @@
         "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
         "loglevel": "info",
         "noConfig": true,
+        "onlyWWW": true,
         "singleton": true,
         "type": "general",
         "mode": "none",
