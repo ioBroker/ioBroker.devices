@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "news": {
+            "0.3.0": {
+                "en": "compatibility with Admin >4.0.0 added",
+                "de": "Kompatibilität mit Admin > 4.0.0 hinzugefügt",
+                "ru": "добавлена совместимость с Admin > 4.0.0",
+                "pt": "compatibilidade com Admin > 4.0.0 adicionada",
+                "nl": "compatibiliteit met Admin > 4.0.0 toegevoegd",
+                "fr": "compatibilité avec Admin > 4.0.0 ajoutée",
+                "it": "compatibilità con Admin > 4.0.0 aggiunto",
+                "es": "compatibilidad con Admin > 4.0.0 agregado",
+                "pl": "dodano kompatybilność z Admin > 4.0.0",
+                "zh-cn": "与Admin > 4.0.0的兼容性已添加"
+            },
             "0.2.0": {
                 "en": "Backend was removed",
                 "de": "Backend wurde entfernt",
@@ -104,7 +116,12 @@
         "adminTab": {
             "singleton": true,
             "name": "Devices"
-        }
+        },
+        "dependencies": [
+            {
+                "admin": ">=4.0.1"
+            }
+        ]
     },
     "native": {},
     "objects": [],
