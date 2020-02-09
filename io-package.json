@@ -1,9 +1,9 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.0",
+        "version": "0.3.1",
         "news": {
-            "0.3.0": {
+            "0.3.1": {
                 "en": "compatibility with Admin >4.0.0 added",
                 "de": "Kompatibilität mit Admin > 4.0.0 hinzugefügt",
                 "ru": "добавлена совместимость с Admin > 4.0.0",
