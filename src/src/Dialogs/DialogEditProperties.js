@@ -166,14 +166,14 @@ class DialogEditProperties extends React.Component {
 
     handleOk() {
         this.props.onClose && this.props.onClose({
-            rooms: this.state.rooms,
+            rooms:     this.state.rooms,
             functions: this.state.functions,
-            name: this.state.name,
-            icon: this.state.icon,
-            color: this.state.color,
+            name:      this.state.name,
+            icon:      this.state.icon,
+            color:     this.state.color,
             smartName: this.state.smartName,
         });
-    };
+    }
 
     renderHeader() {
         const classes = this.props.classes;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2020 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -19,6 +19,7 @@ import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
+import ButtonBase from '@material-ui/core/ButtonBase';
 
 import {MdAdd as IconAdd} from 'react-icons/md';
 import {MdRefresh as IconRefresh} from 'react-icons/md';
@@ -51,6 +52,7 @@ import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditProperties from '../Dialogs/DialogEditProperties';
+import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import {Types} from 'iobroker.type-detector';
 
@@ -335,7 +337,22 @@ const styles = theme => ({
         height: 20,
         marginRight: 5,
         color: '#ffffff'
-    }
+    },
+
+    enumsEdit: {
+        minHeight: 20,
+        minWidth: 100,
+        textAlign: 'left',
+        justifyContent: 'left',
+        padding: 3,
+        '&:hover, &$focusVisible': {
+            zIndex: 1,
+            opacity: 0.7,
+            borderRadius: 3,
+            background: 'gray'
+        },
+    },
+    enumsEditFocusVisible: {},
 });
 
 class ListDevices extends Component {
@@ -360,6 +377,7 @@ class ListDevices extends Component {
             editPropIndex: location.dialog === 'props' ? location.id : null,
             deleteIndex: null,
             deleteId: '',
+            editEnum: null,
 
             windowWidth: window.innerWidth,
             showAddDialog: '',
@@ -502,7 +520,7 @@ class ListDevices extends Component {
     }
 
     updateEnumsForOneDevice(device, funcEnums, roomsEnums) {
-        funcEnums = funcEnums || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
+        funcEnums  = funcEnums  || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums = roomsEnums || this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
         const stateId = device.states.find(state => state.id).id;
@@ -676,7 +694,20 @@ class ListDevices extends Component {
         return this.state.onlyAliases && !device.channelId.startsWith(ALIAS) && !device.channelId.startsWith(LINKEDDEVICES);
     }
 
-    renderDevice(key, index, device) {
+    onEditEnum(values, enums, index) {
+        this.setState({editEnum: {values, enums, index}});
+    }
+
+    renderEnumCell(names, values, enums, index) {
+        return (<ButtonBase
+            focusRipple
+            onClick={() => this.onEditEnum(values, enums, index)}
+            className={this.props.classes.enumsEdit}
+            focusVisibleClassName={this.props.classes.enumsEditFocusVisible}
+        >{names}</ButtonBase>);
+    }
+
+    renderDevice(key, index, device, funcEnums, roomsEnums) {
         device = device || this.state.devices[index];
 
         const classes = this.props.classes;
@@ -699,8 +730,8 @@ class ListDevices extends Component {
                 <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEditName /></Fab>
             </TableCell>
             {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.tableIdCell}>{device.channelId}</TableCell>) : null}
-            {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.functionsNames}</TableCell>) : null}
-            {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.roomsNames}</TableCell>) : null}
+            {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell>) : null}
+            {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.type}</TableCell>) : null}
             {this.state.windowWidth >= WIDTHS[0] ? (<TableCell>{device.usedStates}</TableCell>) : null}
             <TableCell className={classes.buttonsCell}>
@@ -718,6 +749,8 @@ class ListDevices extends Component {
     renderDevices() {
         const result = [];
         const classes = this.props.classes;
+        const funcEnums  = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
+        const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
         if (this.state.orderBy === 'functions' || this.state.orderBy === 'rooms') {
             const enums = [];
@@ -727,8 +760,8 @@ class ListDevices extends Component {
                     enums.push(id);
 
                     // find any device for this function
-                    if (this.state.devices.find(device => !this.isFilteredOut(device) && device[this.state.orderBy].indexOf(id) !== -1)) {
-                        const isExpanded = this.state.expanded.indexOf(id) !== -1;
+                    if (this.state.devices.find(device => !this.isFilteredOut(device) && device[this.state.orderBy].indcludes(id))) {
+                        const isExpanded = this.state.expanded.includes(id);
                         const icon = Utils.getObjectIcon(id, this.objects[id]);
 
                         let j = 0;
@@ -739,7 +772,7 @@ class ListDevices extends Component {
                                 className={classes.tableGroup}
                                 onClick={() => this.onToggle(id)}
                                 padding="none">
-                                <TableCell className={classes.tableExpandIconCell}>{isExpanded ? ((<IconExpanded className={classes.tableExpandIcon}/>)) : ((<IconCollapsed className={classes.tableExpandIcon}/>))}</TableCell>
+                                <TableCell className={classes.tableExpandIconCell}>{isExpanded ? (<IconExpanded className={classes.tableExpandIcon}/>) : (<IconCollapsed className={classes.tableExpandIcon}/>)}</TableCell>
                                 <TableCell className={classes.tableIconCell}>{icon ? (<img src={icon} alt="" className={classes.tableGroupIcon}/>) : null}</TableCell>
                                 <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{Utils.getObjectNameFromObj(this.objects[id], null, {language: I18n.getLanguage()})}</TableCell>
                                 <TableCell/>
@@ -756,7 +789,7 @@ class ListDevices extends Component {
                             const devices = [];
 
                             this.state.devices.forEach((device, i) =>
-                                device[this.state.orderBy].indexOf(id) !== -1 && !this.isFilteredOut(device) && devices.push(this.renderDevice(id + '_' + i, i, device)));
+                                device[this.state.orderBy].indexOf(id) !== -1 && !this.isFilteredOut(device) && devices.push(this.renderDevice(id + '_' + i, i, device, funcEnums, roomsEnums)));
 
                             result.push(devices);
                         }
@@ -789,7 +822,7 @@ class ListDevices extends Component {
                 if (isExpanded) {
                     const devices = [];
                     this.state.devices.forEach((device, i) =>
-                        !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].indexOf(id) !== -1) && devices.push(this.renderDevice('no_group_' + i, i, device)));
+                        !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].indexOf(id) !== -1) && devices.push(this.renderDevice('no_group_' + i, i, device, funcEnums, roomsEnums)));
 
                     result.push(devices);
                 }
@@ -825,7 +858,7 @@ class ListDevices extends Component {
                     // find all devices for this type
                     const devices = [];
                     this.state.devices.forEach((device, i) =>
-                        !this.isFilteredOut(device) && device.type === type && devices.push(this.renderDevice('type_' + i, i, device)));
+                        !this.isFilteredOut(device) && device.type === type && devices.push(this.renderDevice('type_' + i, i, device, funcEnums, roomsEnums)));
 
                     result.push(devices);
                 }
@@ -833,7 +866,7 @@ class ListDevices extends Component {
         } else {
             for (let i = 0; i < this.state.devices.length; i++) {
                 if (!this.isFilteredOut(this.state.devices[i])) {
-                    result.push(this.renderDevice('dev_' + i, i, this.state.devices[i]));
+                    result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
                 }
             }
         }
@@ -1135,6 +1168,83 @@ class ListDevices extends Component {
         />);
     }
 
+    setEnumsOfDevice(channelId, functions, rooms, promises) {
+        promises = promises || [];
+        this.enumIDs.forEach(id => {
+            const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
+            // if this channel is in enum
+            if (id.startsWith('enum.functions.') && functions) {
+                if (functions.indexOf(id) !== -1) {
+                    if (members.indexOf(channelId) === -1) {
+                        promises.push(
+                            this.props.socket.getObject(id)
+                                .then(obj => {
+                                    this.objects[obj._id] = obj;
+                                    obj.common = obj.common || {};
+                                    obj.common.members = obj.common.members || [];
+                                    obj.common.members.push(channelId);
+                                    obj.common.members.sort();
+                                    return this.props.socket.setObject(obj._id, obj);
+                                }));
+                    }
+                } else {
+                    if (members.indexOf(channelId) !== -1) {
+                        promises.push(
+                            this.props.socket.getObject(id)
+                                .then(obj => {
+                                    this.objects[obj._id] = obj;
+                                    obj.common = obj.common || {};
+                                    obj.common.members = obj.common.members || [];
+                                    const pos = obj.common.members.indexOf(channelId);
+                                    if (pos !== -1) {
+                                        obj.common.members.splice(pos, 1);
+                                        obj.common.members.sort();
+                                        return this.props.socket.setObject(obj._id, obj);
+                                    }
+                                    return Promise.resolve();
+                                }));
+                    }
+                }
+            }
+
+            if (id.startsWith('enum.rooms.') && rooms) {
+                if (rooms.indexOf(id) !== -1) {
+                    if (members.indexOf(channelId) === -1) {
+                        promises.push(
+                            this.props.socket.getObject(id)
+                                .then(obj => {
+                                    this.objects[obj._id] = obj;
+                                    obj.common = obj.common || {};
+                                    obj.common.members = obj.common.members || [];
+                                    obj.common.members.push(channelId);
+                                    obj.common.members.sort();
+                                    return this.props.socket.setObject(obj._id, obj);
+                                }));
+                    }
+                } else {
+                    if (members.indexOf(channelId) !== -1) {
+                        promises.push(
+                            this.props.socket.getObject(id)
+                                .then(obj => {
+                                    this.objects[obj._id] = obj;
+                                    obj.common = obj.common || {};
+                                    obj.common.members = obj.common.members || [];
+                                    const pos = obj.common.members.indexOf(channelId);
+                                    if (pos !== -1) {
+                                        obj.common.members.splice(pos, 1);
+                                        obj.common.members.sort();
+                                        return this.props.socket.setObject(obj._id, obj);
+                                    }
+                                    return Promise.resolve();
+                                }));
+                    }
+                }
+            }
+        });
+
+        return promises;
+    }
+
     renderEditPropDialog() {
         if (this.state.editPropIndex === null) return null;
 
@@ -1197,79 +1307,7 @@ class ListDevices extends Component {
                                 }));
                     }
 
-                    this.enumIDs.forEach(id => {
-                        const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
-                        // if this channel is in enum
-                        if (id.startsWith('enum.functions.')) {
-                            if (data.functions && data.functions.indexOf(id) !== -1) {
-                                if (members.indexOf(channelId) === -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                obj.common.members.push(channelId);
-                                                obj.common.members.sort();
-                                                return this.props.socket.setObject(obj._id, obj);
-                                            }));
-                                }
-                            } else {
-                                if (members.indexOf(channelId) !== -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                const pos = obj.common.members.indexOf(channelId);
-                                                if (pos !== -1) {
-                                                    obj.common.members.splice(pos, 1);
-                                                    obj.common.members.push(channelId);
-                                                    obj.common.members.sort();
-                                                    return this.props.socket.setObject(obj._id, obj);
-                                                }
-                                                return Promise.resolve();
-                                            }));
-                                }
-                            }
-                        }
-
-                        if (id.startsWith('enum.rooms.')) {
-                            if (data.rooms && data.rooms.indexOf(id) !== -1) {
-                                if (members.indexOf(channelId) === -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                obj.common.members.push(channelId);
-                                                obj.common.members.sort();
-                                                return this.props.socket.setObject(obj._id, obj);
-                                            }));
-                                }
-                            } else {
-                                if (members.indexOf(channelId) !== -1) {
-                                    promises.push(
-                                        this.props.socket.getObject(id)
-                                            .then(obj => {
-                                                this.objects[obj._id] = obj;
-                                                obj.common = obj.common || {};
-                                                obj.common.members = obj.common.members || [];
-                                                const pos = obj.common.members.indexOf(channelId);
-                                                if (pos !== -1) {
-                                                    obj.common.members.splice(pos, 1);
-                                                    obj.common.members.push(channelId);
-                                                    obj.common.members.sort();
-                                                    return this.props.socket.setObject(obj._id, obj);
-                                                }
-                                                return Promise.resolve();
-                                            }));
-                                }
-                            }
-                        }
-                    });
+                    this.setEnumsOfDevice(channelId, data.functions, data.rooms, promises);
                 }
 
                 const somethingChanged = !!promises.length;
@@ -1479,6 +1517,36 @@ class ListDevices extends Component {
         />);
     }
 
+    renderEditEnumDialog() {
+        if (!this.state.editEnum) {
+            return;
+        }
+        return (<DialogEditEnums
+                    objects={this.objects}
+                    values={this.state.editEnum.values}
+                    enumIDs={this.state.editEnum.enums}
+                    deviceName={this.state.devices[this.state.editEnum.index].name}
+                    onClose={values => {
+                        if (values && JSON.stringify(values) !== JSON.stringify(this.state.editEnum.values)) {
+                            let promises = [];
+                            if (this.state.editEnum.enums[0] && this.state.editEnum.enums[0].startsWith('enum.functions.')) {
+                                promises = this.setEnumsOfDevice(this.state.devices[this.state.editEnum.index].channelId, values);
+                            } else {
+                                promises = this.setEnumsOfDevice(this.state.devices[this.state.editEnum.index].channelId, undefined, values);
+                            }
+                            return Promise.all(promises).then(() => {
+                                const devices = JSON.parse(JSON.stringify(this.state.devices));
+                                // update enums, name
+                                this.updateEnumsForOneDevice(devices[this.state.editEnum.index]);
+                                this.setState({editEnum: null, devices});
+                            });
+                        } else {
+                            this.setState({editEnum : null});
+                        }
+                    }}
+        />);
+    }
+
     setFilter(value) {
         this.filter = value.toLowerCase();
         this.filterTimer && clearTimeout(this.filterTimer);
@@ -1544,6 +1612,7 @@ class ListDevices extends Component {
                 {this.renderEditPropDialog()}
                 {this.renderAddDialog()}
                 {this.renderDeleteDialog()}
+                {this.renderEditEnumDialog()}
             </div>
         );
     }
