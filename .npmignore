@@ -1,29 +1,10 @@
-.git
-.idea
-node_modules/
-nbproject/
-.vs*/
-Thumbs.db
-src/
-admin-config/
-.github/
-
-test/
-travis/
-.travis.yml
-appveyor.yml
-.travis.yaml
-appveyor.yaml
-
-tslint.json
-.eslintrc.json
-
-# npm package files
-iobroker.*.tgz
-package-lock.json
-
-# i18n intermediate files
-admin/i18n
-
-# maintenance scripts
-maintenance/**
+*
+!/admin/
+!/admin/*
+!/admin/*/*.*
+!/package.json
+!/io-package.json
+!/README.md
+!/img/*/*.*
+!/img/*
+!/LICENSE
