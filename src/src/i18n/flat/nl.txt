@@ -1,3 +1,4 @@
+Nieuwe map toevoegen aan "%s"
 annuleren
 Maak een nieuw apparaat
 Maak een nieuw apparaat met aliassen
@@ -14,6 +15,7 @@ Apparaat bewerken
 Naam en andere eigenschappen bewerken
 Bewerk staten
 Filter
+Naam van de map
 Functie
 functies
 Krijg de werkelijke temperatuur
@@ -24,6 +26,7 @@ Verhoog de kleurtemperatuur
 Verhogen percentage
 Verhoog de doeltemperatuur
 namen
+OK
 Uit
 OK
 Op

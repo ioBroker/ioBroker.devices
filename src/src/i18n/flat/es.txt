@@ -1,3 +1,4 @@
+Agregar nueva carpeta a "%s"
 Cancelar
 Crear nuevo dispositivo
 Crear nuevo dispositivo con alias
@@ -14,6 +15,7 @@ Editar dispositivo
 Editar nombre y otras propiedades
 Editar estados
 Filtrar
+Nombre de la carpeta
 Función
 Las funciones
 Obtener temperatura actual
@@ -24,6 +26,7 @@ Incremento de temperatura de color
 Porcentaje de incremento
 Incremento de temperatura objetivo
 Nombres
+Okay
 Apagado
 Okay
 En

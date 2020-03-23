@@ -1478,7 +1478,7 @@ class ListDevices extends Component {
             Promise.all(promises)
                 .then(() => {
                     const devices = JSON.parse(JSON.stringify(this.state.devices));
-                    const result = this.detector.detect({id: options.id, objects: this.objects});
+                    const result = this.detector.detect({id: options.id, objects: this.objects, forceRebuildKeys: true});
 
                     result && result.forEach(device => {
                         this.updateEnumsForOneDevice(device);
@@ -1495,6 +1495,7 @@ class ListDevices extends Component {
         return (<DialogNew
             theme={this.props.theme}
             objects={this.objects}
+            socket={this.props.socket}
             enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
             onClose={options => {

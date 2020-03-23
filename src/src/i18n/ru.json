@@ -1,4 +1,5 @@
 {
+  "Add new folder to \"%s\"": "Добавить новую папку в \"%s\"",
   "Cancel": "Отмена",
   "Create new device": "Создать новое устройство",
   "Create new device with Aliases": "Создать новое устройство с псевдонимами",
@@ -15,6 +16,7 @@
   "Edit name and other properties": "Изменить имя и другие свойства",
   "Edit states": "Изменить состояния",
   "Filter": "Фильтр",
+  "Folder name": "Имя папки",
   "Function": "функция",
   "Functions": "функции",
   "Get actual temperature": "Получить фактическую температуру",
@@ -25,6 +27,7 @@
   "Increment percentage": "Уменьшение процента",
   "Increment target temperature": "Повышение температуры",
   "Names": "имена",
+  "OK": "Ok",
   "Off": "от",
   "Ok": "Ok",
   "On": "На",

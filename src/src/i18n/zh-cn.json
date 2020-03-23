@@ -1,4 +1,5 @@
 {
+  "Add new folder to \"%s\"": "将新文件夹添加到“%s”",
   "Cancel": "取消",
   "Create new device": "创建新设备",
   "Create new device with Aliases": "使用别名创建新设备",
@@ -15,6 +16,7 @@
   "Edit name and other properties": "编辑名称和其他属性",
   "Edit states": "编辑状态",
   "Filter": "过滤",
+  "Folder name": "文件夹名称",
   "Function": "功能",
   "Functions": "功能",
   "Get actual temperature": "获得实际温度",
@@ -25,6 +27,7 @@
   "Increment percentage": "增量百分比",
   "Increment target temperature": "增加目标温度",
   "Names": "名称",
+  "OK": "好",
   "Off": "关",
   "Ok": "好",
   "On": "开",

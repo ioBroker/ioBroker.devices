@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2020 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -12,7 +12,13 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import IconButton from '@material-ui/core/IconButton';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import TextField from '@material-ui/core/TextField';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import Button from '@material-ui/core/Button';
+import Fab from '@material-ui/core/Fab';
 
 import {FaFolderOpen as IconFolderOpened} from 'react-icons/fa';
 import {FaFolder as IconFolder} from 'react-icons/fa';
@@ -22,20 +28,35 @@ import {TiLightbulb as IconTypeSwitch} from 'react-icons/ti'
 import {FaQuestion as IconTypeGeneric} from 'react-icons/fa'
 import {MdExpandMore as IconCollapse} from 'react-icons/md';
 import {MdKeyboardArrowRight as IconExpand} from 'react-icons/md';
+import {MdAdd as IconAdd} from 'react-icons/md';
+import {MdCheck as IconOK} from 'react-icons/md';
+import {MdCancel as IconCancel} from 'react-icons/md';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import Theme from '@iobroker/adapter-react/Theme';
+import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
 
 const styles = theme => ({
     expandButton: {
         width: 37,
         height: 37
     },
+    addButton: {
+        marginBottom: 5,
+    },
+    list: {
+        maxHeight: 400,
+        overflowY: 'auto',
+        //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
+    },
     selected: Theme.colors[theme.palette.type].selected,
     folder: {
-        background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
+        //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
         cursor: 'pointer',
-        padding: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 4,
+        paddingRight: 0,
         userSelect: 'none'
     },
     element: {
@@ -48,7 +69,20 @@ const styles = theme => ({
         height: 18,
         borderRadius: 2
     },
-
+    dialogNewForm: {
+        width: 'calc(100% - 30px)',
+        padding: 10
+    },
+    dialogNewInput: {
+        width: '100%',
+    },
+    dialogNew: {
+        minWidth: 200,
+    },
+    childrenCount: {
+        fontSize: 'smaller',
+        opacity: 0.8,
+    }
 });
 
 const prepareList = (data, root) => {
@@ -74,7 +108,7 @@ const prepareList = (data, root) => {
         result.push({
             id: ids[i],
             title: Utils.getObjectName(data, ids[i], {language: I18n.getLanguage()}),
-            depth: parts.length - 2,
+            depth: parts.length - 1,
             type: obj.type,
             parent: parts.length > 2 ? parts.join('.') : null,
             instance: obj.common.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null
@@ -127,9 +161,9 @@ const prepareList = (data, root) => {
                     result.push({
                         id: item.parent,
                         title: root ? item.parent.replace(regEx, '') : item.parent,
-                        depth: parts.length - 2,
+                        depth: parts.length - 1,
                         type: 'folder',
-                        parent: parts.length > 2 ? parts.join('.') : null
+                        parent: parts.length >= 2 ? parts.join('.') : null
                     });
                     modified = true;
                 }
@@ -167,16 +201,20 @@ class TreeView extends React.Component {
             expanded = [];
         }
 
+        const listItems = prepareList(props.objects || {});
+
         this.state = {
-            listItems: prepareList(props.objects || {}),
-            expanded: expanded,
-            theme: this.props.theme,
-            selected: this.props.selected || null,
-            renaming: null,
-            deleting: null,
-            errorText: '',
-            width: this.props.width || 300,
+            listItems,
+            expanded:   expanded,
+            theme:      this.props.theme,
+            selected:   this.props.selected || window.localStorage.getItem('TreeView.selected') || (listItems[0] && listItems[0].id) || '',
+            renaming:   null,
+            deleting:   null,
+            errorText:  '',
+            width:      this.props.width || 300,
             filterMenuOpened: false,
+            addNew:         false,
+            addNewName: '',
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
         };
@@ -190,10 +228,42 @@ class TreeView extends React.Component {
 
         // debounce search process
         this.filterTimer = null;
+        setTimeout(() => this.props.onSelect && this.props.onSelect(this.state.selected), 200);
     }
+
     handleOk() {
         this.props.onClose && this.props.onClose();
     };
+
+    static getDerivedStateFromProps(props, state) {
+        let changed = false;
+        const newState = {};
+        if (props.objects) {
+            const listItems = prepareList(props.objects || {});
+            if (JSON.stringify(listItems) !== JSON.stringify(state.listItems)) {
+                state.listItems = listItems;
+                changed = true;
+            }
+        }
+
+        return changed ? newState : null;
+    }
+
+    renderNewItemDialog() {
+        const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
+        const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;
+        return (
+            <Dialog key="newDialog" onClose={() => this.setState({addNew: null})} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
+                <DialogTitle>{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
+                <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
+                    <TextField error={!!error} className={this.props.classes.dialogNewInput}  autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({addNewName: e.target.value})}/>
+                </form>
+                <DialogActions>
+                    <Button disabled={!!error} onClick={() => this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => this.setState({addNew: null, addNewName: ''}))} color="primary" ><IconOK/><span>{I18n.t('OK')}</span></Button>
+                    <Button onClick={() => this.setState({addNew: null, addNewName: ''})} ><IconCancel/><span>{I18n.t('Cancel')}</span></Button>
+                </DialogActions>
+            </Dialog>);
+    }
 
     ensureSelectedIsVisible(selected, expanded) {
         expanded = JSON.parse(JSON.stringify(expanded || this.state.expanded));
@@ -249,10 +319,15 @@ class TreeView extends React.Component {
                 padding: '0 16px 0 0'
             };
         } else {
-            return {
+            const style =  {
                 whiteSpace: 'nowrap',
                 padding: '0 16px 0 0'
             };
+            if (item.id === this.state.selected) {
+                style.fontWeight = 'bold'
+            }
+
+            return style;
         }
     }
 
@@ -270,6 +345,7 @@ class TreeView extends React.Component {
     }
 
     onClick(item, e) {
+        window.localStorage.setItem('TreeView.selected', item.id);
         this.setState({selected: item.id});
         this.props.onSelect && this.props.onSelect(item.id);
     }
@@ -310,10 +386,15 @@ class TreeView extends React.Component {
 
         let isExpanded = false;
         if (children && children.length) {
-            isExpanded = this.state.expanded.indexOf(item.id) !== -1;
+            isExpanded = true || this.state.expanded.includes(item.id);
         }
 
         let iconStyle = {};
+        let countSpan = (childrenFiltered && childrenFiltered.length) || children.length ?
+            (<span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ?
+                `${childrenFiltered.length}(${children.length})` :
+                children.length}</span>)
+            : null;
 
         const inner =
             (<ListItem
@@ -322,18 +403,17 @@ class TreeView extends React.Component {
                 className={(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element) + ' ' + (this.state.reorder ? this.props.classes.reorder : '')}
                 onClick={e => this.onClick(item, e)}
             >
-                {/*this.renderFolderButtons(item, children, isExpanded)*/}
                 <ListItemIcon>{item.type === 'folder' ? (isExpanded ? (<IconFolderOpened style={iconStyle}/>) : (<IconFolder style={iconStyle}/>)) : (
                     <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def}/>)}</ListItemIcon>
                 <ListItemText
                     classes={{primary: item.id === this.state.selected ? this.props.classes.selected : undefined}}
-                    style={this.getTextStyle(item)} primary={(<span>{title}{(childrenFiltered && childrenFiltered.length) || children.length ? (<span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ? `${childrenFiltered.length}(${children.length})` : children.length}</span>) : null}</span>)}/>
-                {/*<ListItemSecondaryAction>{this.renderItemButtons(item, children)}</ListItemSecondaryAction>*/}
+                    style={this.getTextStyle(item)} primary={title}/>
+                {<ListItemSecondaryAction>{countSpan}</ListItemSecondaryAction>}
             </ListItem>);
 
         const result = [inner];
 
-        if (children && this.state.expanded.indexOf(item.id) !== -1) {
+        if (isExpanded) {
             children.forEach(it => result.push(this.renderOneItem(items, it)));
         }
         return result;
@@ -343,7 +423,27 @@ class TreeView extends React.Component {
         const result = [];
         items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
 
-        return (<List key="list" dense={true} disablePadding={true}>{result}</List>);
+        return (<List key="list" dense={true} disablePadding={true} className={this.props.classes.list}>{result}</List>);
+    }
+
+    renderAddButton() {
+        if (!this.props.onAddNew) {
+            return null;
+        } else {
+            return (<Fab
+                disabled={!this.state.selected}
+                key="newFolder"
+                variant="extended"
+                size="small"
+                color="primary"
+                aria-label="add"
+                onClick={() => this.setState({addNew: this.state.listItems.find(it => it.id === this.state.selected)})}
+                className={this.props.classes.addButton}
+            >
+                <IconAdd />
+                {I18n.t('New folder')}
+            </Fab>);
+        }
     }
 
     renderTree() {
@@ -352,7 +452,9 @@ class TreeView extends React.Component {
 
     render() {
         return [
-            this.renderTree()
+            this.renderAddButton(),
+            this.renderTree(),
+            this.renderNewItemDialog(),
         ];
     }
 }
@@ -363,6 +465,7 @@ TreeView.propTypes = {
     selected: PropTypes.string,
     theme: PropTypes.string,
     root: PropTypes.string,
+    onAddNew: PropTypes.func,
 };
 
 export default withStyles(styles)(TreeView);

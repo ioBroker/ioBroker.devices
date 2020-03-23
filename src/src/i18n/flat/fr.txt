@@ -1,3 +1,4 @@
+Ajouter un nouveau dossier à "%s"
 Annuler
 Créer un nouveau périphérique
 Créer un nouvel appareil avec des alias
@@ -14,6 +15,7 @@ Editer l'appareil
 Editer le nom et autres propriétés
 Editer les états
 Filtre
+Nom de dossier
 Une fonction
 Les fonctions
 Obtenir la température réelle
@@ -24,6 +26,7 @@ Incrément de température de couleur
 Pourcentage d'incrément
 Augmenter la température cible
 Des noms
+OK
 De
 D'accord
 Sur

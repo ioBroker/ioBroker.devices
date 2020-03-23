@@ -1,3 +1,4 @@
+Adicione nova pasta a "%s"
 Cancelar
 Criar novo dispositivo
 Crie um novo dispositivo com aliases
@@ -14,6 +15,7 @@ Editar dispositivo
 Editar nome e outras propriedades
 Editar estados
 Filtro
+Nome da pasta
 Função
 Funções
 Obter temperatura real
@@ -24,6 +26,7 @@ Incremento da temperatura de cor
 Percentual de incremento
 Temperatura alvo de incremento
 Nomes
+OK
 Fora
 Está bem
 Em

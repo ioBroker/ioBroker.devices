@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@iobroker/adapter-react": "^0.3.4",
+    "@iobroker/adapter-react": "^0.3.5",
     "@material-ui/core": "^4.9.7",
     "del": "^5.1.0",
     "gulp": "^4.0.2",

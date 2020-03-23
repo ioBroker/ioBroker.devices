@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.2",
+        "version": "0.3.3",
         "news": {
+            "0.3.3": {
+                "en": "Fixed error by device creation",
+                "de": "Fehler durch Geräteerstellung behoben",
+                "ru": "Исправлена ошибка при создании устройства",
+                "pt": "Corrigido erro pela criação do dispositivo",
+                "nl": "Vaste fout bij het maken van apparaten",
+                "fr": "Correction d'une erreur lors de la création de l'appareil",
+                "it": "Risolto errore di creazione del dispositivo",
+                "es": "Se corrigió el error por la creación del dispositivo",
+                "pl": "Naprawiono błąd związany z tworzeniem urządzenia",
+                "zh-cn": "通过设备创建修复错误"
+            },
             "0.3.2": {
                 "en": "usage with all kinds of admin ports and reverse proxies optimized",
                 "de": "Verwendung mit allen Arten von Admin-Ports und Reverse-Proxys optimiert",

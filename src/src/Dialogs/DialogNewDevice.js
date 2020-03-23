@@ -94,15 +94,6 @@ class DialogNewDevice extends React.Component {
             i++;
         }
 
-        this.state = {
-            root: this.prefix,
-            name: I18n.t('Device') + ' ' + i,
-            notUnique: false,
-            functions: window.localStorage.getItem('Devices.new.functions') || '',
-            rooms: window.localStorage.getItem('Devices.new.rooms') || '',
-            type: window.localStorage.getItem('Devices.newType') || 'light',
-        };
-
         const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
 
         // filter aliases
@@ -112,32 +103,50 @@ class DialogNewDevice extends React.Component {
             if (id.startsWith(prefix) &&
                 this.props.objects[id] &&
                 this.props.objects[id].common &&
-                (this.props.objects[id].type === 'channel' || this.props.objects[id].type === 'devices')) {
+                (this.props.objects[id].type === 'channel' || this.props.objects[id].type === 'device' || this.props.objects[id].type === 'folder')) {
+                let parentId;
                 // getParentId
-                const parentId = getParentId(id);
+                if (this.props.objects[id].type === 'folder') {
+                    parentId = id;
+                } else {
+                    parentId = getParentId(id);
+                }
+
                 if (parentId && !ids.includes(parentId)) {
                     ids.push(parentId);
                 }
             }
         });
 
-        this.ids = {};
+        const stateIds = {};
+        const language = I18n.getLanguage();
 
-        ids.forEach(id => this.ids[id] = {
+        ids.forEach(id => stateIds[id] = {
             common: {
-                name: getLastPart(id),
+                name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, {language}) : getLastPart(id),
                 nondeletable: true
             },
             type: 'folder'
         });
 
-        this.ids[this.prefix] = {
+        stateIds[this.prefix] = {
             common: {
                 name: I18n.t('Root'),
                 nondeletable: true
             },
             type: 'folder'
         };
+
+        this.state = {
+            root:      this.prefix,
+            name:      I18n.t('Device') + ' ' + i,
+            notUnique: false,
+            functions: window.localStorage.getItem('Devices.new.functions') || '',
+            rooms:     window.localStorage.getItem('Devices.new.rooms')     || '',
+            type:      window.localStorage.getItem('Devices.newType')       || 'light',
+            ids:       stateIds
+        };
+
     }
 
     renderSelectEnum(name, title) {
@@ -176,12 +185,12 @@ class DialogNewDevice extends React.Component {
     handleOk() {
         // check if name is unique
         this.props.onClose && this.props.onClose({
-            id: this.generateId(),
-            type: this.state.type,
-            name: this.state.name,
+            id:        this.generateId(),
+            type:      this.state.type,
+            name:      this.state.name,
             functions: this.state.functions,
-            rooms: this.state.rooms,
-            prefix: this.prefix
+            rooms:     this.state.rooms,
+            prefix:    this.prefix
         });
     }
 
@@ -207,6 +216,30 @@ class DialogNewDevice extends React.Component {
         }
     }
 
+    addNewFolder(name, parentId, cb) {
+        const id = `${parentId}.${name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const obj = {
+            _id: id,
+            common: {
+                name: {[I18n.getLanguage()]: name},
+            },
+            native: {},
+            type: 'folder'
+        };
+
+        this.props.objects[obj._id] = obj;
+
+        // create folder
+        this.props.socket.setObject(id, obj).then(() => {
+            const ids = JSON.parse(JSON.stringify(this.state.ids));
+            ids[id] = {
+                common: {name},
+                type: 'folder'
+            };
+            this.setState({ids}, () => cb && cb());
+        });
+    }
+
     render() {
         const classes = this.props.classes;
         return (<Dialog
@@ -223,8 +256,8 @@ class DialogNewDevice extends React.Component {
             <DialogContent>
                 <div className={classes.treeDiv}>
                     <TreeView
-                        objects={this.ids}
-                        selected={this.state.root}
+                        objects={this.state.ids}
+                        onAddNew={(name, parentId, cb) => this.addNewFolder(name, parentId, cb)}
                         onSelect={id => this.setState({root: id})}
                         root={this.prefix}
                     />
@@ -271,9 +304,9 @@ class DialogNewDevice extends React.Component {
 DialogNewDevice.propTypes = {
     onClose: PropTypes.func,
     objects: PropTypes.object,
-    theme: PropTypes.string,
+    theme:   PropTypes.string,
     enumIDs: PropTypes.array,
-    socket: PropTypes.object
+    socket:  PropTypes.object
 };
 
 export default withStyles(styles)(DialogNewDevice);

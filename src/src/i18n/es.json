@@ -1,4 +1,5 @@
 {
+  "Add new folder to \"%s\"": "Agregar nueva carpeta a \"%s\"",
   "Cancel": "Cancelar",
   "Create new device": "Crear nuevo dispositivo",
   "Create new device with Aliases": "Crear nuevo dispositivo con alias",
@@ -15,6 +16,7 @@
   "Edit name and other properties": "Editar nombre y otras propiedades",
   "Edit states": "Editar estados",
   "Filter": "Filtrar",
+  "Folder name": "Nombre de la carpeta",
   "Function": "Función",
   "Functions": "Las funciones",
   "Get actual temperature": "Obtener temperatura actual",
@@ -25,6 +27,7 @@
   "Increment percentage": "Porcentaje de incremento",
   "Increment target temperature": "Incremento de temperatura objetivo",
   "Names": "Nombres",
+  "OK": "Okay",
   "Off": "Apagado",
   "Ok": "Okay",
   "On": "En",

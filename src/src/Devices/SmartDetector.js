@@ -42,8 +42,8 @@ class IOBChannelDetector {
     }
 
     detect(options) {
-        if (!options._keysOptional) {
-            if (this.objects !== options.objects) {
+        if (!options._keysOptional || options.forceRebuildKeys) {
+            if (this.objects !== options.objects || options.forceRebuildKeys) {
                 this.objects = options.objects;
                 this.keys = Object.keys(this.objects).sort();
             }

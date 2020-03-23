@@ -1,3 +1,4 @@
+Dodaj nowy folder do „%s”
 anulować
 Utwórz nowe urządzenie
 Utwórz nowe urządzenie za pomocą aliasów
@@ -14,6 +15,7 @@ Edytuj urządzenie
 Edytuj nazwę i inne właściwości
 Edytuj stany
 Filtr
+Nazwa folderu
 Funkcjonować
 Funkcje
 Uzyskaj rzeczywistą temperaturę
@@ -24,6 +26,7 @@ Zwiększ temperaturę barwową
 Procent przyrostu
 Przyrostowa temperatura docelowa
 Nazwy
+OK
 Poza
 Dobrze
 Na

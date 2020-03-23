@@ -1,3 +1,4 @@
+Aggiungi nuova cartella a "%s"
 Annulla
 Crea un nuovo dispositivo
 Crea un nuovo dispositivo con gli alias
@@ -14,6 +15,7 @@ Modifica dispositivo
 Modifica nome e altre proprietà
 Modifica stati
 Filtro
+Nome della cartella
 Funzione
 funzioni
 Ottieni la temperatura effettiva
@@ -24,6 +26,7 @@ Aumenta la temperatura del colore
 Percentuale di incremento
 Aumentare la temperatura target
 nomi
+OK
 via
 Ok
 Sopra

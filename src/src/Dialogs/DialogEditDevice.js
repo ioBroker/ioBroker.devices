@@ -169,16 +169,19 @@ class DialogEditDevice extends React.Component {
             name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
         }
 
+        const extendedAvailable = !!(this.props.channelInfo.states.filter(item => item.indicator).length) && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
+
         this.state = {
             ids,
             name,
-            extended: window.localStorage.getItem('Devices.editExtended') === 'true',
+            extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
             expertMode: window.localStorage.getItem('Devices.expertMode') === 'true',
             selectIdFor: '',
             editFxFor: '',
             newChannelId: '',
             newChannelError: false,
             showCopyDialog: false,
+            extendedAvailable
         };
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
@@ -189,6 +192,7 @@ class DialogEditDevice extends React.Component {
         if (!this.state.selectIdFor) {
             return null;
         }
+
         return (<DialogSelectID
             key="selectDialog"
             connection={this.props.socket}
@@ -290,20 +294,23 @@ class DialogEditDevice extends React.Component {
 
     renderHeader() {
         const classes = this.props.classes;
-        const indicatorsFound = this.props.channelInfo.states.some(item => item.indicator);
+        const alias = this.props.channelInfo.channelId.startsWith('alias.');
 
         return (<div className={classes.header}>
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
+
                 <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : ''} size="small" onClick={() => {
                     window.localStorage.setItem('Devices.expertMode', this.state.expertMode ? 'false' : 'true');
                     this.setState({expertMode: !this.state.expertMode});
                 }}><IconExpert style={{width: 22, height: 22, paddingLeft: 2}}/></Fab>
-                <Fab title={I18n.t('Copy device into aliases')} className={classes.headerButton} size="small" onClick={() => {
+
+                {!alias ? (<Fab title={I18n.t('Copy device into aliases')} className={classes.headerButton} size="small" onClick={() => {
                     this.setState({showCopyDialog: true, newChannelId: ''});
-                }}><IconCopy /></Fab>
-                {indicatorsFound ? (<Fab title={I18n.t('Show hide indicators')} className={classes.headerButton} size="small" onClick={() => {
+                }}><IconCopy /></Fab>) : null}
+
+                {this.state.extendedAvailable ? (<Fab title={I18n.t('Show hide indicators')} className={classes.headerButton} size="small" onClick={() => {
                     window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
                     this.setState({extended: !this.state.extended});
                 }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>) : null}
@@ -517,7 +524,7 @@ class DialogEditDevice extends React.Component {
     }
 
     renderIndicators() {
-        if (!this.state.extended) {
+        if (!this.state.extended || !this.state.extendedAvailable) {
             return null;
         }
         return (<div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
@@ -537,7 +544,7 @@ class DialogEditDevice extends React.Component {
         return [(<Dialog
                 key="editDialog"
                 open={true}
-                maxWidth={this.state.extended ? 'xl' : 'sm'}
+                maxWidth={this.state.extended && this.state.extendedAvailable ? 'xl' : 'sm'}
                 fullWidth={true}
                 onClose={() => this.handleOk()}
                 aria-labelledby="alert-dialog-title"
