@@ -194,18 +194,24 @@ const images = {
 class TreeView extends React.Component {
     constructor(props) {
         super(props);
-        let expanded = window.localStorage ? window.localStorage.getItem('TreeView.expanded') : '[]';
+        let expanded = window.localStorage ? window.localStorage.getItem('TreeView.expanded') : '';
         try {
-            expanded = JSON.parse(expanded) || [];
+            expanded = expanded ? JSON.parse(expanded) || null : null;
         } catch (e) {
-            expanded = [];
+            expanded = null;
         }
 
         const listItems = prepareList(props.objects || {});
 
+        if (expanded === null) {
+            expanded = [];
+            listItems.forEach(item =>
+                expanded.includes(item.parent) && expanded.push(item.parent));
+        }
+
         this.state = {
             listItems,
-            expanded:   expanded,
+            expanded,
             theme:      this.props.theme,
             selected:   this.props.selected || window.localStorage.getItem('TreeView.selected') || (listItems[0] && listItems[0].id) || '',
             renaming:   null,
@@ -213,7 +219,7 @@ class TreeView extends React.Component {
             errorText:  '',
             width:      this.props.width || 300,
             filterMenuOpened: false,
-            addNew:         false,
+            addNew:     false,
             addNewName: '',
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
@@ -304,6 +310,19 @@ class TreeView extends React.Component {
         window.localStorage.setItem('TreeView.expanded', JSON.stringify(expanded || this.state.expanded));
     }
 
+    toggleExpanded(id) {
+        const expanded = this.state.expanded.slice();
+        const pos = expanded.indexOf(id);
+        if (pos === -1) {
+            expanded.push(id);
+            expanded.sort();
+        } else {
+            expanded.splice(pos, 1);
+        }
+        this.setState({expanded});
+        this.saveExpanded(expanded);
+    }
+
     isFilteredOut(item) {
         return false;
     }
@@ -334,8 +353,9 @@ class TreeView extends React.Component {
     renderFolderButtons(item, children, isExpanded) {
         if (children && children.length) {
             return (
-                <IconButton className={this.props.classes.expandButton}
-                            onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}>
+                <IconButton
+                    className={this.props.classes.expandButton}
+                    onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}>
                     {isExpanded ? (<IconCollapse fontSize="small"/>) : (<IconExpand fontSize="small"/>)}
                 </IconButton>
             );
@@ -386,7 +406,7 @@ class TreeView extends React.Component {
 
         let isExpanded = false;
         if (children && children.length) {
-            isExpanded = true || this.state.expanded.includes(item.id);
+            isExpanded = this.state.expanded.includes(item.id);
         }
 
         let iconStyle = {};
@@ -396,6 +416,10 @@ class TreeView extends React.Component {
                 children.length}</span>)
             : null;
 
+        if (!countSpan) {
+            iconStyle.opacity = 0.5;
+        }
+
         const inner =
             (<ListItem
                 key={item.id}
@@ -403,7 +427,7 @@ class TreeView extends React.Component {
                 className={(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element) + ' ' + (this.state.reorder ? this.props.classes.reorder : '')}
                 onClick={e => this.onClick(item, e)}
             >
-                <ListItemIcon>{item.type === 'folder' ? (isExpanded ? (<IconFolderOpened style={iconStyle}/>) : (<IconFolder style={iconStyle}/>)) : (
+                <ListItemIcon>{item.type === 'folder' ? (isExpanded ? (<IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>) : (<IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>)) : (
                     <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def}/>)}</ListItemIcon>
                 <ListItemText
                     classes={{primary: item.id === this.state.selected ? this.props.classes.selected : undefined}}
