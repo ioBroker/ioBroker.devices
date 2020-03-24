@@ -1,7 +1,7 @@
 *
 !/admin/
 !/admin/*
-!/admin/*/*.*
+!/admin/*/**
 !/package.json
 !/io-package.json
 !/README.md
