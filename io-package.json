@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.4",
+        "version": "0.3.5",
         "news": {
+            "0.3.5": {
+                "en": "fixed typo",
+                "de": "Tippfehler behoben",
+                "ru": "исправлена опечатка",
+                "pt": "erro de digitação fixo",
+                "nl": "vaste typefout",
+                "fr": "faute de frappe fixe",
+                "it": "errore di battitura fisso",
+                "es": "error tipográfico fijo",
+                "pl": "poprawiona literówka",
+                "zh-cn": "固定错字"
+            },
             "0.3.4": {
                 "en": "Fixed error by device creation",
                 "de": "Fehler durch Geräteerstellung behoben",

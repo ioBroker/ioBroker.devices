@@ -44,7 +44,7 @@ class App extends GenericApp {
                 case 'https:':
                     extendedProps.socket.port = 443;
                     break;
-                case 'http:':
+                default: //case 'http:':
                     extendedProps.socket.port = 80;
                     break;
             }
@@ -58,8 +58,7 @@ class App extends GenericApp {
     }
 
     onHashChanged() {
-        const location = GenericApp.getLocation();
-
+        //const location = GenericApp.getLocation();
     }
 
     getSelectedTab() {

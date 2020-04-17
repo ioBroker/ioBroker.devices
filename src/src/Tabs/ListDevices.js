@@ -760,7 +760,7 @@ class ListDevices extends Component {
                     enums.push(id);
 
                     // find any device for this function
-                    if (this.state.devices.find(device => !this.isFilteredOut(device) && device[this.state.orderBy].indcludes(id))) {
+                    if (this.state.devices.find(device => !this.isFilteredOut(device) && device[this.state.orderBy].includes(id))) {
                         const isExpanded = this.state.expanded.includes(id);
                         const icon = Utils.getObjectIcon(id, this.objects[id]);
 
