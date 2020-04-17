@@ -19,6 +19,8 @@ Manage and create devices for using it in other adapters like material, iot,...
 
 ![Screen](img/screen.png)
 
+**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.**
+
 ## ToDo
 - add icons for all states of channels
 - add descriptions for states

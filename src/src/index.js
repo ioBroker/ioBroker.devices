@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import * as Sentry from '@sentry/browser';
+import * as SentryIntegrations from '@sentry/integrations';
 import { MuiThemeProvider} from '@material-ui/core/styles';
 import createTheme from '@iobroker/adapter-react/createTheme';
 
@@ -21,6 +23,13 @@ function build() {
     </MuiThemeProvider>, document.getElementById('root'));
 
 }
+
+Sentry.init({
+    dsn: "https://934e853b521248afabe9da038e6bf36e@sentry.iobroker.net/55",
+    integrations: [
+        new SentryIntegrations.Dedupe()
+    ]
+});
 
 build();
 

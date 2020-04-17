@@ -9,6 +9,7 @@ import I18n from '@iobroker/adapter-react/i18n';
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import TabDevices from './Tabs/ListDevices';
 
+
 const styles = theme => ({
     root: {},
     tabContent: {
