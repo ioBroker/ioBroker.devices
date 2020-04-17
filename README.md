@@ -30,6 +30,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 
 ## Changelog
 
+### 0.3.6 (2020-04-17)
+* (Apollon77) Added Sentry error reporting for Frontend/React
+
 ### 0.3.5 (2020-04-17)
 * (Apollon77) Fixed typo
 
