@@ -290,6 +290,9 @@ const styles = theme => ({
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
         maxWidth: 150,
+        overflow: 'hidden',
+        direction: 'rtl',
+        textAlign: 'left'
     },
     headerCell: {
         fontWeight: 'bold'
@@ -712,7 +715,7 @@ class ListDevices extends Component {
 
         const classes = this.props.classes;
         const background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
-        const color = Utils.isUseBright(background, this.props.theme === 'dark') ? '#FFF' : '#000';
+        const color = Utils.isUseBright(background, this.props.themeType === 'dark') ? '#FFF' : '#000';
 
         let j = 0;
 
@@ -729,7 +732,7 @@ class ListDevices extends Component {
             <TableCell>
                 <Fab style={{float: 'right'}} size="small" aria-label="Edit" title={I18n.t('Edit name and other properties')} onClick={e => this.onEditProps(index, e)}><IconEditName /></Fab>
             </TableCell>
-            {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.tableIdCell}>{device.channelId}</TableCell>) : null}
+            {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.tableIdCell} title={device.channelId}>{device.channelId}</TableCell>) : null}
             {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'rooms'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'types'     && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell>{device.type}</TableCell>) : null}
@@ -1493,6 +1496,7 @@ class ListDevices extends Component {
     renderAddDialog() {
         if (!this.state.showAddDialog) return null;
         return (<DialogNew
+            themeType={this.props.themeType}
             theme={this.props.theme}
             objects={this.objects}
             socket={this.props.socket}
@@ -1625,7 +1629,8 @@ ListDevices.propTypes = {
     onLoad: PropTypes.func,
     onChange: PropTypes.func,
     socket: PropTypes.object.isRequired,
-    theme: PropTypes.string,
+    theme:   PropTypes.object,
+    themeType:   PropTypes.string,
 };
 
 export default withStyles(styles)(ListDevices);

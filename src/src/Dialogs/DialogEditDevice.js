@@ -195,7 +195,7 @@ class DialogEditDevice extends React.Component {
 
         return (<DialogSelectID
             key="selectDialog"
-            connection={this.props.socket}
+            socket={this.props.socket}
             dialogName="devicesEdit"
             title={I18n.t('Select for ') + this.state.selectIdFor}
             selected={this.state.ids[this.state.selectIdFor] || this.findRealDevice()}
@@ -301,7 +301,7 @@ class DialogEditDevice extends React.Component {
             <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
 
-                <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : ''} size="small" onClick={() => {
+                <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : 'default'} size="small" onClick={() => {
                     window.localStorage.setItem('Devices.expertMode', this.state.expertMode ? 'false' : 'true');
                     this.setState({expertMode: !this.state.expertMode});
                 }}><IconExpert style={{width: 22, height: 22, paddingLeft: 2}}/></Fab>
@@ -518,8 +518,8 @@ class DialogEditDevice extends React.Component {
     }
 
     renderVariables() {
-        return (<div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : '')}>
-            {this.props.channelInfo.states.filter(item => !item.indicator).map(item => this.renderVariable(item))}
+        return (<div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : this.props.classes.divCollapsed)}>
+            {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
         </div>);
     }
 
@@ -528,7 +528,7 @@ class DialogEditDevice extends React.Component {
             return null;
         }
         return (<div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
-            this.props.channelInfo.states.filter(item => item.indicator).map(item => this.renderVariable(item))
+            this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item))
         }</div>);
     }
 
@@ -544,7 +544,7 @@ class DialogEditDevice extends React.Component {
         return [(<Dialog
                 key="editDialog"
                 open={true}
-                maxWidth={this.state.extended && this.state.extendedAvailable ? 'xl' : 'sm'}
+                maxWidth={this.state.extended && this.state.extendedAvailable ? 'xl' : 'md'}
                 fullWidth={true}
                 onClose={() => this.handleOk()}
                 aria-labelledby="alert-dialog-title"

@@ -33,8 +33,9 @@ import {MdCheck as IconOK} from 'react-icons/md';
 import {MdCancel as IconCancel} from 'react-icons/md';
 
 import I18n from '@iobroker/adapter-react/i18n';
-import Theme from '@iobroker/adapter-react/Theme';
 import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
+
+const LEVEL_OFFSET = 24;
 
 const styles = theme => ({
     expandButton: {
@@ -49,7 +50,9 @@ const styles = theme => ({
         overflowY: 'auto',
         //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
     },
-    selected: Theme.colors[theme.palette.type].selected,
+    selected: {
+        //color: theme.palette.action.selected
+    },
     folder: {
         //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
         cursor: 'pointer',
@@ -382,7 +385,7 @@ class TreeView extends React.Component {
             return;
         }
 
-        const depthPx = item.depth * Theme.treeView.depthOffset;
+        const depthPx = item.depth * LEVEL_OFFSET;
 
         let title = item.title;
 
@@ -402,7 +405,7 @@ class TreeView extends React.Component {
             cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'inherit',
             opacity: item.filteredPartly ? 0.5 : 1,
             width: `calc(100% - ${depthPx}px)`
-        }, item.id === this.state.selected ? Theme.colors[this.theme].selected : {});
+        }, item.id === this.state.selected ? {background: this.props.theme.palette.secondary.dark} : {});
 
         let isExpanded = false;
         if (children && children.length) {
@@ -420,25 +423,30 @@ class TreeView extends React.Component {
             iconStyle.opacity = 0.5;
         }
 
-        const inner =
-            (<ListItem
+
+        const inner = <ListItem
                 key={item.id}
                 style={style}
-                className={(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element) + ' ' + (this.state.reorder ? this.props.classes.reorder : '')}
+                className={ Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder) }
                 onClick={e => this.onClick(item, e)}
             >
-                <ListItemIcon>{item.type === 'folder' ? (isExpanded ? (<IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>) : (<IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>)) : (
-                    <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def}/>)}</ListItemIcon>
+            <ListItemIcon>{ item.type === 'folder' ?
+                    (isExpanded ? <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/> : <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>)
+                    :
+                    <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def}/>
+                }</ListItemIcon>
                 <ListItemText
                     classes={{primary: item.id === this.state.selected ? this.props.classes.selected : undefined}}
-                    style={this.getTextStyle(item)} primary={title}/>
-                {<ListItemSecondaryAction>{countSpan}</ListItemSecondaryAction>}
-            </ListItem>);
+                    style={this.getTextStyle(item)}
+                    primary={title}
+                />
+                <ListItemSecondaryAction>{countSpan}</ListItemSecondaryAction>
+            </ListItem>;
 
         const result = [inner];
 
         if (isExpanded) {
-            children.forEach(it => result.push(this.renderOneItem(items, it)));
+            //children.forEach(it => result.push(this.renderOneItem(items, it)));
         }
         return result;
     }
@@ -455,7 +463,7 @@ class TreeView extends React.Component {
             return null;
         } else {
             return (<Fab
-                disabled={!this.state.selected}
+                disabled={ !this.state.listItems.find(it => it.id === this.state.selected) }
                 key="newFolder"
                 variant="extended"
                 size="small"
@@ -487,7 +495,8 @@ TreeView.propTypes = {
     objects: PropTypes.object,
     onSelect: PropTypes.func,
     selected: PropTypes.string,
-    theme: PropTypes.string,
+    theme:   PropTypes.object,
+    themeType:   PropTypes.string,
     root: PropTypes.string,
     onAddNew: PropTypes.func,
 };

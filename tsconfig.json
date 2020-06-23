@@ -1,6 +1,7 @@
 {
     "compileOnSave": true,
     "compilerOptions": {
+        "jsx": "react",
         // do not compile anything, this file is just to configure type checking
         "noEmit": true,
 
@@ -24,7 +25,7 @@
         // "noUnusedParameters": true,
 
         // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
-        "target": "es2015",
+        "target": "es2015"
 
     },
     "include": [

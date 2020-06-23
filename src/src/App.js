@@ -9,7 +9,6 @@ import I18n from '@iobroker/adapter-react/i18n';
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import TabDevices from './Tabs/ListDevices';
 
-
 const styles = theme => ({
     root: {},
     tabContent: {
@@ -37,25 +36,8 @@ class App extends GenericApp {
             'pl': require('./i18n/pl'),
             'zh-cn': require('./i18n/zh-cn'),
         };
-        // get actual port
-        extendedProps.socket = extendedProps.socket || {};
-        extendedProps.socket.port = parseInt(window.location.port, 10);
-        if (isNaN(extendedProps.socket.port)) {
-            switch (window.location.protocol) {
-                case 'https:':
-                    extendedProps.socket.port = 443;
-                    break;
-                default: //case 'http:':
-                    extendedProps.socket.port = 80;
-                    break;
-            }
-        }
-        // for debug and fallback purposes
-        if (!extendedProps.socket.port || extendedProps.socket.port === 3000) {
-            extendedProps.socket.port = 8081;
-        }
 
-        super(extendedProps);
+        super(props, extendedProps);
     }
 
     onHashChanged() {
@@ -84,6 +66,8 @@ class App extends GenericApp {
                 </AppBar>
                 <div className={this.props.classes.tabContent}>
                     {(this.state.selectedTab === 'list' || !this.state.selectedTab) && (<TabDevices
+                        theme={this.state.theme}
+                        themeType={this.state.themeType}
                         key="options"
                         common={this.common}
                         socket={this.socket}

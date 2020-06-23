@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.6",
+        "version": "0.3.7",
         "news": {
+            "0.3.7": {
+                "en": "Themes are used now",
+                "de": "Fügen Sie Sentry für die Fehlerberichterstattung in React hinzu",
+                "ru": "добавить Sentry для отчетов об ошибках в React",
+                "pt": "adicione Sentry para relatório de erros no React",
+                "nl": "voeg Sentry toe voor foutrapportage in React",
+                "fr": "ajouter Sentry pour le rapport d'erreurs dans React",
+                "it": "aggiungi Sentry per la segnalazione degli errori in React",
+                "es": "agregar Centinela para informar de errores en Reaccionar",
+                "pl": "dodaj Sentry do zgłaszania błędów w React",
+                "zh-cn": "在React中添加Sentry进行错误报告"
+            },
             "0.3.6": {
                 "en": "add Sentry for error reporting in React",
                 "de": "Fügen Sie Sentry für die Fehlerberichterstattung in React hinzu",

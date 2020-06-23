@@ -202,7 +202,7 @@ class DialogNewDevice extends React.Component {
     showDeviceIcon() {
         return (
             <div className={this.props.classes.icon}>
-                <IconType type={this.state.type} style={{color: this.props.theme === 'dark' ? '#FFFFFF' : '#000'}}/>
+                <IconType type={this.state.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
             </div>
         );
     }
@@ -256,6 +256,8 @@ class DialogNewDevice extends React.Component {
             <DialogContent>
                 <div className={classes.treeDiv}>
                     <TreeView
+                        themeType={this.props.themeType}
+                        theme={this.props.theme}
                         objects={this.state.ids}
                         onAddNew={(name, parentId, cb) => this.addNewFolder(name, parentId, cb)}
                         onSelect={id => this.setState({root: id})}
@@ -304,7 +306,8 @@ class DialogNewDevice extends React.Component {
 DialogNewDevice.propTypes = {
     onClose: PropTypes.func,
     objects: PropTypes.object,
-    theme:   PropTypes.string,
+    theme:   PropTypes.object,
+    themeType:   PropTypes.string,
     enumIDs: PropTypes.array,
     socket:  PropTypes.object
 };

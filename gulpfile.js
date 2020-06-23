@@ -7,12 +7,8 @@
 'use strict';
 
 const gulp       = require('gulp');
-const exec       = require('gulp-exec');
 const fs         = require('fs');
-const connect    = require('gulp-connect');
-const watch      = require('gulp-watch');
 const rename     = require('gulp-rename');
-const replace    = require('gulp-replace');
 const del        = require('del');
 
 const pkg       = require('./package.json');
@@ -148,30 +144,36 @@ gulp.task('2-npm', () => {
 gulp.task('2-npm-dep', gulp.series('clean', '2-npm'));
 
 function build() {
-    const options = {
-        continueOnError:        false, // default = false, true means don't emit error event
-        pipeStdout:             false, // default = false, true means stdout is written to file.contents
-        customTemplatingThing:  'build', // content passed to gutil.template()
-        cwd:                    __dirname + '/src/'
-    };
-    const reportOptions = {
-        err:    true, // default = true, false means don't write err
-        stderr: true, // default = true, false means don't write stderr
-        stdout: true  // default = true, false means don't write stdout
-    };
+    return new Promise((resolve, reject) => {
+        const options = {
+            stdio: 'pipe',
+            cwd:   __dirname + '/src/'
+        };
 
-    console.log(options.cwd);
+        const version = JSON.parse(fs.readFileSync(__dirname + '/package.json').toString('utf8')).version;
+        const data = JSON.parse(fs.readFileSync(__dirname + '/src/package.json').toString('utf8'));
+        data.version = version;
+        fs.writeFileSync(__dirname + '/src/package.json', JSON.stringify(data, null, 2));
 
-    if (fs.existsSync(__dirname + '/src/node_modules/react-scripts/scripts/build.js')) {
-        return gulp.src(__dirname + '/src/node_modules/react-scripts/scripts/build.js')
-            .pipe(exec('node <%= file.path %>', options))
-            .pipe(exec.reporter(reportOptions)).pipe(connect.reload());
-    } else {
-        return gulp.src(__dirname + '/node_modules/react-scripts/scripts/build.js')
-            .pipe(exec('node <%= file.path %>', options))
-            .pipe(exec.reporter(reportOptions)).pipe(connect.reload());
+        console.log(options.cwd);
 
-    }
+        let script = __dirname + '/src/node_modules/react-scripts/scripts/build.js';
+        if (!fs.existsSync(script)) {
+            script = __dirname + '/node_modules/react-scripts/scripts/build.js';
+        }
+        if (!fs.existsSync(script)) {
+            console.error('Cannot find execution file: ' + script);
+            reject('Cannot find execution file: ' + script);
+        } else {
+            const child = cp.fork(script, [], options);
+            child.stdout.on('data', data => console.log(data.toString()));
+            child.stderr.on('data', data => console.log(data.toString()));
+            child.on('close', code => {
+                console.log(`child process exited with code ${code}`);
+                code ? reject('Exit code: ' + code) : resolve();
+            });
+        }
+    });
 }
 
 gulp.task('3-build', () => build());
@@ -187,6 +189,8 @@ function copyFiles() {
                 'src/build/**/*',
                 '!src/build/index.html',
                 '!src/build/static/js/main.*.chunk.js',
+                '!src/build/i18n/**/*',
+                '!src/build/i18n',
                 'admin-config/*'
             ])
                 .pipe(gulp.dest('admin/')),
@@ -194,14 +198,12 @@ function copyFiles() {
             gulp.src([
                 'src/build/index.html',
             ])
-                .pipe(replace('href="/', 'href="'))
-                .pipe(replace('src="/', 'src="'))
                 .pipe(rename('tab.html'))
                 .pipe(gulp.dest('admin/')),
+
             gulp.src([
                 'src/build/static/js/main.*.chunk.js',
             ])
-                .pipe(replace('s.p+"static/media/copy-content', '"./static/media/copy-content'))
                 .pipe(gulp.dest('admin/static/js/')),
         ]);
     });
@@ -211,21 +213,27 @@ gulp.task('5-copy', () => copyFiles());
 
 gulp.task('5-copy-dep', gulp.series('3-build-dep', '5-copy'));
 
-gulp.task('webserver', () => {
-    connect.server({
-        root: 'src/build',
-        livereload: true
-    });
-});
+gulp.task('6-patch', () => new Promise(resolve => {
+    if (fs.existsSync(__dirname + '/admin/tab.html')) {
+        let code = fs.readFileSync(__dirname + '/admin/tab.html').toString('utf8');
+        code = code.replace(/<script>var script=document\.createElement\("script"\)[^<]+<\/script>/,
+            `<script type="text/javascript" src="./../../lib/js/socket.io.js"></script>`);
 
-gulp.task('prewatch', () => {
-    // Callback mode, useful if any plugin in the pipeline depends on the `end`/`flush` event
-    return watch(['src/src/*/**', 'src/src/*'], { ignoreInitial: true }, ['build']);
-});
+        fs.writeFileSync(__dirname + '/admin/tab.html', code);
+    }
+    if (fs.existsSync(__dirname + '/src/build/index.html')) {
+        let code = fs.readFileSync(__dirname + '/src/build/index.html').toString('utf8');
+        code = code.replace(/<script>var script=document\.createElement\("script"\)[^<]+<\/script>/,
+            `<script type="text/javascript" src="./../../lib/js/socket.io.js"></script>`);
 
-gulp.task('watch', gulp.series('webserver', 'prewatch'));
+        fs.writeFileSync(__dirname + '/src/build/index.html', code);
+    }
+    resolve();
+}));
 
-gulp.task('default', gulp.series('5-copy-dep'));
+gulp.task('6-patch-dep',  gulp.series('5-copy-dep', '6-patch'));
+
+gulp.task('default', gulp.series('6-patch-dep'));
 
 // you can write here: words.js, jquery.cron.words.js or adminWords.js
 const fileName = 'adminWords.js';
