@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.7",
+        "version": "0.3.8",
         "news": {
+            "0.3.8": {
+                "en": "added the air conditioner",
+                "de": "fügte die Klimaanlage hinzu",
+                "ru": "добавлен кондиционер",
+                "pt": "adicionou o ar condicionado",
+                "nl": "voegde de airconditioner toe",
+                "fr": "ajouté le climatiseur",
+                "it": "aggiunto il condizionatore d'aria",
+                "es": "agregó el aire acondicionado",
+                "pl": "dodał klimatyzator",
+                "zh-cn": "添加了空调"
+            },
             "0.3.7": {
                 "en": "Themes are used now",
                 "de": "Fügen Sie Sentry für die Fehlerberichterstattung in React hinzu",

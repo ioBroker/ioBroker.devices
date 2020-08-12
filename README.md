@@ -34,7 +34,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 0.3.8 (2020-08-12)
 * (bluefox) added the air conditioner
 
 ### 0.3.6 (2020-04-17)
