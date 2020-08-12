@@ -35,10 +35,14 @@ import TypeIconWindow from '../icons/WindowOpened';
 import TypeIconWindowTilt from '../icons/WindowTilted';
 import {WiCloudy as TypeIconWeather} from 'react-icons/wi';
 import {MdWarning as TypeIconWarning} from 'react-icons/md';
+import {FaFan as TypeIconAC} from 'react-icons/fa';
+import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
 
 const TYPE_ICONS = {
+    [Types.airCondition]: TypeIconAC,
     [Types.blind]: TypeIconBlinds,
     [Types.button]: TypeIconButton,
+    [Types.buttonSensor]: TypeIconButtonSensor,
     [Types.camera]: TypeIconCamera,
     [Types.url]: TypeIconURL,
     [Types.image]: TypeIconImage,

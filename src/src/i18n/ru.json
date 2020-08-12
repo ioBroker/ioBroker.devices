@@ -101,5 +101,10 @@
   "filter_customs": "настройки",
   "Value": "Значение",
   "Select ID": "Выберите ID",
-  "Selected": "выбранный"
+  "Selected": "выбранный",
+  "type-airCondition": "Кондиционер",
+  "type-buttonSensor": "Датчик кнопки",
+  "New folder": "Новая папка",
+  " Show expert settings": " Показать экспертные настройки",
+  "Copy device into aliases": "Копировать устройство в псевдонимы"
 }

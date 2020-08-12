@@ -10,6 +10,7 @@ const gulp       = require('gulp');
 const fs         = require('fs');
 const rename     = require('gulp-rename');
 const del        = require('del');
+const cp         = require('child_process');
 
 const pkg       = require('./package.json');
 const iopackage = require('./io-package.json');
@@ -737,9 +738,6 @@ gulp.task('adminLanguagesFlat2words', done => {
     languagesFlat2words('./admin-config/');
     done();
 });
-
-
-
 
 gulp.task('updatePackages', done => {
     iopackage.common.version = pkg.version;

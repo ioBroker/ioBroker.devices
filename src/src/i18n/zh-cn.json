@@ -101,5 +101,10 @@
   "filter_customs": "设定值",
   "Value": "值",
   "Select ID": "选择ID",
-  "Selected": "已选"
+  "Selected": "已选",
+  "type-airCondition": "冷气机",
+  "type-buttonSensor": "按键传感器",
+  "New folder": "新建文件夹",
+  " Show expert settings": " 显示专家设置",
+  "Copy device into aliases": "将设备复制到别名"
 }

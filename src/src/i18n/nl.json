@@ -101,5 +101,10 @@
   "filter_customs": "Instellingen",
   "Value": "Waarde",
   "Select ID": "Selecteer ID",
-  "Selected": "Geselecteerd"
+  "Selected": "Geselecteerd",
+  "type-airCondition": "Airco",
+  "type-buttonSensor": "Knop sensor",
+  "New folder": "Nieuwe map",
+  " Show expert settings": " Toon expertinstellingen",
+  "Copy device into aliases": "Kopieer het apparaat naar aliassen"
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2020 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -7,6 +7,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {withStyles} from '@material-ui/core/styles';
+
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -22,7 +23,7 @@ import {Types} from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
-import IconType from '../Components/IconType';
+import TypeIcon from '../Components/TypeIcon';
 
 const styles = theme => ({
     header: {
@@ -202,7 +203,7 @@ class DialogNewDevice extends React.Component {
     showDeviceIcon() {
         return (
             <div className={this.props.classes.icon}>
-                <IconType type={this.state.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
+                <TypeIcon type={this.state.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
             </div>
         );
     }

@@ -101,5 +101,10 @@
   "filter_customs": "Settings",
   "Value": "Value",
   "Select ID": "Select ID",
-  "Selected": "Selected"
+  "Selected": "Selected",
+  "type-airCondition": "Air conditioner",
+  "type-buttonSensor": "Button sensor",
+  "New folder": "New folder",
+  " Show expert settings": " Show expert settings",
+  "Copy device into aliases": "Copy device into aliases"
 }
