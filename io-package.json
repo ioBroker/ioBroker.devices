@@ -1,9 +1,9 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.8",
+        "version": "0.3.9",
         "news": {
-            "0.3.8": {
+            "0.3.9": {
                 "en": "added the air conditioner",
                 "de": "fügte die Klimaanlage hinzu",
                 "ru": "добавлен кондиционер",

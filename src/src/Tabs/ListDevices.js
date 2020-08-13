@@ -1054,6 +1054,9 @@ class ListDevices extends Component {
                                             common.alias.id = data.ids[state.name];
                                             common.name = common.name || state.name;
                                             common.role = state.defaultRole;
+                                            if (state.defaultStates) {
+                                                common.states = state.defaultStates;
+                                            }
                                             if (data.fx[state.name].read) {
                                                 obj.common.alias.read = data.fx[state.name].read;
                                             }
@@ -1132,6 +1135,9 @@ class ListDevices extends Component {
 
                                             common.name = common.name || state.name;
                                             common.role = state.defaultRole;
+                                            if (state.defaultStates) {
+                                                common.states = state.defaultStates;
+                                            }
                                             common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
 
                                             if (state.min) {
@@ -1428,6 +1434,9 @@ class ListDevices extends Component {
                             id: ''
                         }
                     };
+                    if (state.defaultStates) {
+                        common.states = state.defaultStates;
+                    }
                     if (state.min) {
                         common.min = 0;
                     }

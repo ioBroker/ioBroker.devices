@@ -1,6 +1,6 @@
 {
   "name": "devices-admin",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "private": true,
   "dependencies": {
     "@iobroker/adapter-react": "^1.1.4",
@@ -11,7 +11,7 @@
     "@sentry/integrations": "^5.20.1",
     "del": "^5.1.0",
     "gulp": "^4.0.2",
-    "iobroker.type-detector": "^1.0.2",
+    "iobroker.type-detector": "^1.0.3",
     "react-input-color": "^3.0.1",
     "react-color": "^2.18.1",
     "react-dropzone": "^11.0.2",
