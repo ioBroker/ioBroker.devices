@@ -34,7 +34,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### 0.3.11 (2020-08-16)
+### 0.3.12 (2020-08-16)
 * (bluefox) added the vacuum cleaner
 
 ### 0.3.10 (2020-08-12)

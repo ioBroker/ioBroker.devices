@@ -1,9 +1,9 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.11",
+        "version": "0.3.12",
         "news": {
-            "0.3.11": {
+            "0.3.12": {
                 "en": "Added the vacuum cleaner",
                 "de": "fügte den Staubsauger hinzu",
                 "ru": "добавил пылесос",
