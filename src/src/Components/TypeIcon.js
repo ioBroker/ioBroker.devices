@@ -37,6 +37,7 @@ import {WiCloudy as TypeIconWeather} from 'react-icons/wi';
 import {MdWarning as TypeIconWarning} from 'react-icons/md';
 import {FaFan as TypeIconAC} from 'react-icons/fa';
 import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
+import TypeIconVacuumCleaner from './icons/Cleaner';
 
 const TYPE_ICONS = {
     [Types.airCondition]: TypeIconAC,
@@ -67,6 +68,7 @@ const TYPE_ICONS = {
     [Types.temperature]: TypeIconTemperature,
     [Types.thermostat]: TypeIconThermostat,
     [Types.valve]: TypeIconValve,
+    [Types.vacuumCleaner]: TypeIconVacuumCleaner,
     [Types.volume]: TypeIconVolume,
     [Types.volumeGroup]: TypeIconVolumeGroup,
     [Types.window]: TypeIconWindow,

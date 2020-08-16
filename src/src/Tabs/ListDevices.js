@@ -1057,6 +1057,7 @@ class ListDevices extends Component {
                                             if (state.defaultStates) {
                                                 common.states = state.defaultStates;
                                             }
+
                                             if (data.fx[state.name].read) {
                                                 obj.common.alias.read = data.fx[state.name].read;
                                             }
@@ -1066,15 +1067,26 @@ class ListDevices extends Component {
 
                                             common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
 
-                                            if (state.min) {
+                                            if (state.defaultMin !== undefined) {
+                                                common.min = state.defaultMin;
+                                            } else
+                                            if (state.min !== undefined) {
                                                 common.min = 0;
                                             }
-                                            if (state.max) {
-                                                common.min = 100;
+
+                                            if (state.defaultMax !== undefined) {
+                                                common.max = state.defaultMax;
+                                            } else
+                                            if (state.max !== undefined) {
+                                                common.max = 100;
                                             }
-                                            if (state.unit) {
-                                                common.unit = state.unit;
+
+                                            if (state.defaultUnit) {
+                                                common.unit = state.defaultUnit;
+                                            } else if (state.unit) {
+                                                common.unit = 0;
                                             }
+
                                             this.objects[obj._id] = obj;
                                             return this.props.socket.setObject(obj._id, obj);
                                         }));
@@ -1140,14 +1152,24 @@ class ListDevices extends Component {
                                             }
                                             common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
 
-                                            if (state.min) {
+                                            if (state.defaultMin !== undefined) {
+                                                common.min = state.defaultMin;
+                                            } else
+                                            if (state.min !== undefined) {
                                                 common.min = 0;
                                             }
-                                            if (state.max) {
-                                                common.min = 100;
+
+                                            if (state.defaultMax !== undefined) {
+                                                common.max = state.defaultMax;
+                                            } else
+                                            if (state.max !== undefined) {
+                                                common.max = 100;
                                             }
-                                            if (state.unit) {
-                                                common.unit = state.unit;
+
+                                            if (state.defaultUnit) {
+                                                common.unit = state.defaultUnit;
+                                            } else if (state.unit) {
+                                                common.unit = 0;
                                             }
                                             this.objects[obj._id] = obj;
                                             return this.props.socket.setObject(obj._id, obj);
@@ -1437,15 +1459,28 @@ class ListDevices extends Component {
                     if (state.defaultStates) {
                         common.states = state.defaultStates;
                     }
-                    if (state.min) {
+
+                    if (state.defaultMin !== undefined) {
+                        common.min = state.defaultMin;
+                    } else
+                    if (state.min !== undefined) {
                         common.min = 0;
                     }
-                    if (state.max) {
-                        common.min = 100;
+
+                    if (state.defaultMax !== undefined) {
+                        common.max = state.defaultMax;
+                    } else
+                    if (state.max !== undefined) {
+                        common.max = 100;
                     }
+
+                    if (state.defaultUnit) {
+                        common.unit = state.defaultUnit;
+                    } else
                     if (state.unit) {
                         common.unit = state.unit;
                     }
+
                     const obj = {
                         _id: options.id + '.' + state.name,
                         common,

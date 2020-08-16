@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.10",
+        "version": "0.3.11",
         "news": {
+            "0.3.11": {
+                "en": "Added the vacuum cleaner",
+                "de": "fügte den Staubsauger hinzu",
+                "ru": "добавил пылесос",
+                "pt": "adicionou o aspirador de pó",
+                "nl": "voegde de stofzuiger toe",
+                "fr": "a ajouté l'aspirateur",
+                "it": "ha aggiunto l'aspirapolvere",
+                "es": "añadió la aspiradora",
+                "pl": "dodał odkurzacz",
+                "zh-cn": "添加了吸尘器"
+            },
             "0.3.10": {
                 "en": "added the air conditioner",
                 "de": "fügte die Klimaanlage hinzu",
