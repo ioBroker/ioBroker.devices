@@ -106,5 +106,6 @@
   "type-buttonSensor": "Sensore pulsante",
   "New folder": "Nuova cartella",
   " Show expert settings": " Mostra impostazioni avanzate",
-  "Copy device into aliases": "Copia il dispositivo negli alias"
+  "Copy device into aliases": "Copia il dispositivo negli alias",
+  "type-vacuumCleaner": "Aspirapolvere"
 }

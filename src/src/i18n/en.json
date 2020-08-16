@@ -106,5 +106,6 @@
   "type-buttonSensor": "Button sensor",
   "New folder": "New folder",
   " Show expert settings": " Show expert settings",
-  "Copy device into aliases": "Copy device into aliases"
+  "Copy device into aliases": "Copy device into aliases",
+  "type-vacuumCleaner": "Vacuum cleaner"
 }

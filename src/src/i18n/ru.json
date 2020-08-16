@@ -106,5 +106,6 @@
   "type-buttonSensor": "Датчик кнопки",
   "New folder": "Новая папка",
   " Show expert settings": " Показать экспертные настройки",
-  "Copy device into aliases": "Копировать устройство в псевдонимы"
+  "Copy device into aliases": "Копировать устройство в псевдонимы",
+  "type-vacuumCleaner": "Пылесос"
 }

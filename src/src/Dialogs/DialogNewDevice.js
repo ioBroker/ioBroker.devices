@@ -57,8 +57,13 @@ const styles = theme => ({
     },
     icon: {
         display: 'inline-block',
-        marginTop: 15,
-        marginLeft: 5,
+    },
+    selectIcon: {
+        paddingRight: theme.spacing(1),
+        verticalAlign: 'middle',
+    },
+    selectText: {
+        verticalAlign: 'middle',
     }
 });
 
@@ -116,6 +121,23 @@ class DialogNewDevice extends React.Component {
                 if (parentId && !ids.includes(parentId)) {
                     ids.push(parentId);
                 }
+            }
+        });
+
+        this.typesWords = {};
+        Object.keys(Types)
+            .filter(id => !UNSUPPORTED_TYPES.includes(id))
+            .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
+
+        // sort types by ABC in the current language
+        this.types = Object.keys(this.typesWords).sort((a, b) => {
+            if (this.typesWords[a] === this.typesWords[b]) {
+                return 0;
+            }
+            if (this.typesWords[a] > this.typesWords[b]) {
+                return 1;
+            } else {
+                return -1;
             }
         });
 
@@ -200,14 +222,6 @@ class DialogNewDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
-    showDeviceIcon() {
-        return (
-            <div className={this.props.classes.icon}>
-                <TypeIcon type={this.state.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
-            </div>
-        );
-    }
-
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
@@ -243,6 +257,7 @@ class DialogNewDevice extends React.Component {
 
     render() {
         const classes = this.props.classes;
+
         return (<Dialog
             open={true}
             maxWidth="md"
@@ -284,10 +299,14 @@ class DialogNewDevice extends React.Component {
                                 this.setState({type: e.target.value});
                             }}
                         >
-                            {Object.keys(Types).filter(id => !UNSUPPORTED_TYPES.includes(id)).map(typeId => (<MenuItem key={Types[typeId]} value={Types[typeId]}>{I18n.t('type-' + Types[typeId])}</MenuItem>))}
+                            {this.types
+                                .filter(id => !UNSUPPORTED_TYPES.includes(id))
+                                .map(typeId => <MenuItem key={Types[typeId]} value={Types[typeId]}>
+                                        <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
+                                        <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
+                                    </MenuItem>)}
                         </Select>
                     </FormControl>
-                    {this.showDeviceIcon()}
                     <br/>
                     {this.renderSelectEnum('functions', I18n.t('Function'))}
                     {this.showEnumIcon('functions')}

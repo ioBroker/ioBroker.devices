@@ -106,5 +106,6 @@
   "type-buttonSensor": "Sensor de botón",
   "New folder": "Nueva carpeta",
   " Show expert settings": " Mostrar configuración de experto",
-  "Copy device into aliases": "Copiar dispositivo en alias"
+  "Copy device into aliases": "Copiar dispositivo en alias",
+  "type-vacuumCleaner": "Aspiradora"
 }

@@ -106,5 +106,6 @@
   "type-buttonSensor": "Bouton capteur",
   "New folder": "Nouveau dossier",
   " Show expert settings": " Afficher les paramètres experts",
-  "Copy device into aliases": "Copier l'appareil dans des alias"
+  "Copy device into aliases": "Copier l'appareil dans des alias",
+  "type-vacuumCleaner": "Aspirateur"
 }

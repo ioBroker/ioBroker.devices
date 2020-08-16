@@ -106,5 +106,6 @@
   "type-buttonSensor": "Tastensensor",
   "New folder": "Neuer Ordner",
   " Show expert settings": " Experteneinstellungen anzeigen",
-  "Copy device into aliases": "Gerät in Aliase kopieren"
+  "Copy device into aliases": "Gerät in Aliase kopieren",
+  "type-vacuumCleaner": "Staubsauger"
 }

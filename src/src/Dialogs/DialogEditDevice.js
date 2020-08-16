@@ -26,6 +26,7 @@ import IconExpert from '../icons/RepairExpert';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
+import TypeIcon from "../Components/TypeIcon";
 
 const styles = theme => ({
     header: {
@@ -70,6 +71,8 @@ const styles = theme => ({
         width: 100,
         verticalAlign: 'top',
         fontWeight: 'bold',
+        whiteSpace: 'nowrap',
+        lineHeight: '32px'
     },
     divIndicators: {
         display: 'inline-block',
@@ -118,7 +121,15 @@ const styles = theme => ({
         display: 'inline-block',
         marginTop: 0,
         marginBottom: 0,
-    }
+    },
+    icon: {
+        color: theme.palette.type === 'light' ? 'black' : 'white',
+        display: 'inline-block',
+        verticalAlign: 'middle'
+    },
+    deviceText: {
+        verticalAlign: 'middle'
+    },
 });
 
 const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
@@ -220,6 +231,14 @@ class DialogEditDevice extends React.Component {
         }, isRefresh);
     };
 
+    showDeviceIcon() {
+        return (
+            <div className={this.props.classes.icon}>
+                <TypeIcon type={this.props.channelInfo.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
+            </div>
+        );
+    }
+
     addToEnum(enumId, id) {
         this.props.socket.getObject(enumId)
             .then(obj => {
@@ -298,7 +317,7 @@ class DialogEditDevice extends React.Component {
 
         return (<div className={classes.header}>
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
-            <div className={classes.divDevice}>{this.props.channelInfo.type}</div>
+            <div className={classes.divDevice}>{this.showDeviceIcon()}<span className={classes.deviceText}>{this.props.channelInfo.type}</span></div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
 
                 <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : 'default'} size="small" onClick={() => {
@@ -578,7 +597,8 @@ DialogEditDevice.propTypes = {
     objects: PropTypes.object,
     enumIDs: PropTypes.array,
     states: PropTypes.object,
-    socket: PropTypes.object
+    socket: PropTypes.object,
+    themeType: PropTypes.string
 };
 
 export default withStyles(styles)(DialogEditDevice);

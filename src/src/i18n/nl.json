@@ -106,5 +106,6 @@
   "type-buttonSensor": "Knop sensor",
   "New folder": "Nieuwe map",
   " Show expert settings": " Toon expertinstellingen",
-  "Copy device into aliases": "Kopieer het apparaat naar aliassen"
+  "Copy device into aliases": "Kopieer het apparaat naar aliassen",
+  "type-vacuumCleaner": "Stofzuiger"
 }

@@ -265,14 +265,14 @@ const styles = theme => ({
         marginLeft: 4,
         width: 32,
         height: 32,
-        color: '#FFF'
+        color: theme.palette.type === 'dark' ? '#FFF' : '#000',
     },
     tableIcon: {
         width: 40,
         height: 40,
         display: 'inline-block',
         padding: 2,
-        background: '#e0e0e0',
+        background: theme.palette.type === 'dark' ? '#3b3b3b' : '#e0e0e0',
         borderRadius: 3,
         '& img': {
             verticalAlign: 'middle',
@@ -993,6 +993,7 @@ class ListDevices extends Component {
             objects={this.objects}
             states={this.states}
             patterns={this.patterns}
+            themeType={this.props.themeType}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
             onClose={(data, refresh) => {
