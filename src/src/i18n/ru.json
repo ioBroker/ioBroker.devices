@@ -107,5 +107,7 @@
   "New folder": "Новая папка",
   " Show expert settings": " Показать экспертные настройки",
   "Copy device into aliases": "Копировать устройство в псевдонимы",
-  "type-vacuumCleaner": "Пылесос"
+  "type-vacuumCleaner": "Пылесос",
+  "Show expert settings": "Показать экспертные настройки",
+  "Show hide indicators": "Показать / скрыть индикаторы"
 }

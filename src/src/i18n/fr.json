@@ -107,5 +107,7 @@
   "New folder": "Nouveau dossier",
   " Show expert settings": " Afficher les paramètres experts",
   "Copy device into aliases": "Copier l'appareil dans des alias",
-  "type-vacuumCleaner": "Aspirateur"
+  "type-vacuumCleaner": "Aspirateur",
+  "Show expert settings": "Afficher les paramètres experts",
+  "Show hide indicators": "Afficher / masquer les indicateurs"
 }

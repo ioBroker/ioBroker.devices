@@ -1,6 +1,6 @@
 {
   "name": "iobroker.devices",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "Manage and create devices for using it in other adapters like material, iot,...",
   "author": {
     "name": "bluefox",

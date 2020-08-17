@@ -268,8 +268,9 @@ class DialogEditDevice extends React.Component {
             this.props.objects[task.id] = task.obj;
             promises.push(this.props.socket.setObject(task.id, task.obj));
 
-            Promise.all(promises).then(() => setTimeout(() =>
-                this.processTasks(tasks, cb), 0));
+            Promise.all(promises)
+                .then(() => setTimeout(() =>
+                    this.processTasks(tasks, cb), 0));
         }
     }
 

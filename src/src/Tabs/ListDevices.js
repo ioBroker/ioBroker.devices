@@ -1055,6 +1055,13 @@ class ListDevices extends Component {
                                             common.alias.id = data.ids[state.name];
                                             common.name = common.name || state.name;
                                             common.role = state.defaultRole;
+                                            if (state.read !== undefined) {
+                                                common.read = state.read;
+                                            }
+                                            if (state.write !== undefined) {
+                                                common.write = state.write;
+                                            }
+
                                             if (state.defaultStates) {
                                                 common.states = state.defaultStates;
                                             }
@@ -1085,7 +1092,7 @@ class ListDevices extends Component {
                                             if (state.defaultUnit) {
                                                 common.unit = state.defaultUnit;
                                             } else if (state.unit) {
-                                                common.unit = 0;
+                                                common.unit = state.unit;
                                             }
 
                                             this.objects[obj._id] = obj;
@@ -1148,6 +1155,14 @@ class ListDevices extends Component {
 
                                             common.name = common.name || state.name;
                                             common.role = state.defaultRole;
+
+                                            if (state.read !== undefined) {
+                                                common.read = state.read;
+                                            }
+                                            if (state.write !== undefined) {
+                                                common.write = state.write;
+                                            }
+
                                             if (state.defaultStates) {
                                                 common.states = state.defaultStates;
                                             }
@@ -1170,7 +1185,7 @@ class ListDevices extends Component {
                                             if (state.defaultUnit) {
                                                 common.unit = state.defaultUnit;
                                             } else if (state.unit) {
-                                                common.unit = 0;
+                                                common.unit = state.unit;
                                             }
                                             this.objects[obj._id] = obj;
                                             return this.props.socket.setObject(obj._id, obj);

@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.12",
+        "version": "0.3.13",
         "news": {
+            "0.3.13": {
+                "en": "Fixed errors by optional states",
+                "de": "Fehler durch optionale Zustände behoben",
+                "ru": "Исправлены ошибки по необязательным состояниям",
+                "pt": "Erros corrigidos por estados opcionais",
+                "nl": "Fouten opgelost door optionele statussen",
+                "fr": "Erreurs corrigées par des états optionnels",
+                "it": "Risolti errori da stati opzionali",
+                "es": "Errores corregidos por estados opcionales",
+                "pl": "Naprawiono błędy przez opcjonalne stany",
+                "zh-cn": "通过可选状态修复了错误"
+            },
             "0.3.12": {
                 "en": "Added the vacuum cleaner",
                 "de": "fügte den Staubsauger hinzu",
