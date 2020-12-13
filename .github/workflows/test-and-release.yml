@@ -47,11 +47,21 @@ jobs:
 #      - name: Test package files
 #        run: npm run test:package
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 10
+      - run: npm i
+      - run: npm run build
+
   # Runs adapter tests on all supported node versions and OSes
   adapter-tests:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
 
-    needs: [check-and-lint]
+    needs: [check-and-lint, build]
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -105,26 +115,24 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Extract the version and commit body from the tag
+        id: extract_release
         # The body may be multiline, therefore we need to escape some characters
         run: |
           VERSION="${{ github.ref }}"
           VERSION=${VERSION##*/}
           VERSION=${VERSION##*v}
-          echo "::set-env name=VERSION::$VERSION"
+          echo "::set-output name=VERSION::$VERSION"
           BODY=$(git show -s --format=%b)
           BODY="${BODY//'%'/'%25'}"
           BODY="${BODY//$'\n'/'%0A'}"
           BODY="${BODY//$'\r'/'%0D'}"
-          echo "::set-env name=BODY::$BODY"
+          echo "::set-output name=BODY::$BODY"
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Build
+      - name: Create a clean build
         run: npm run build
-
-#      - name: Create a clean build
-#        run: npm run build
       - name: Publish package to npm
         run: |
           npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
@@ -137,11 +145,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release v${{ env.VERSION }}
+          release_name: Release v${{ steps.extract_release.outputs.VERSION }}
           draft: false
           # Prerelease versions create prereleases on Github
-          prerelease: ${{ contains(env.VERSION, '-') }}
-          body: ${{ env.BODY }}
+          prerelease: ${{ contains(steps.extract_release.outputs.VERSION, '-') }}
+          body: ${{ steps.extract_release.outputs.BODY }}
 
       - name: Notify Sentry.io about the release
         run: |
