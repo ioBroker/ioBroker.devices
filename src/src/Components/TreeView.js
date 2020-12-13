@@ -405,7 +405,7 @@ class TreeView extends React.Component {
             cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'inherit',
             opacity: item.filteredPartly ? 0.5 : 1,
             width: `calc(100% - ${depthPx}px)`
-        }, item.id === this.state.selected ? {background: this.props.theme.palette.secondary.dark} : {});
+        }, item.id === this.state.selected ? {background: this.props.theme.palette.secondary.dark, color: '#FFF'} : {});
 
         let isExpanded = false;
         if (children && children.length) {
