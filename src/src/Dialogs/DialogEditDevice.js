@@ -206,6 +206,7 @@ class DialogEditDevice extends React.Component {
 
         return (<DialogSelectID
             key="selectDialog"
+            imagePrefix="../.."
             socket={this.props.socket}
             dialogName="devicesEdit"
             title={I18n.t('Select for ') + this.state.selectIdFor}

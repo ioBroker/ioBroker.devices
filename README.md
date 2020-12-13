@@ -34,7 +34,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### 0.3.14 (2020-12-13)
+### 0.3.15 (2020-12-13)
 * (bluefox) Updated the select ID dialog
 
 ### 0.3.13 (2020-08-17)
