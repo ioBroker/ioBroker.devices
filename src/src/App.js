@@ -53,37 +53,35 @@ class App extends GenericApp {
 
     render() {
         if (!this.state.loaded) {
-            return (<Loader theme={this.state.themeType}/>);
+            return <Loader theme={this.state.themeType}/>;
         }
 
-        return (
-            <div className="App">
-                <AppBar position="static">
-                    <Tabs value={this.getSelectedTab()}
-                          onChange={(e, index) => this.selectTab(e.target.parentNode.dataset.name, index)}>
-                        <Tab label={I18n.t('Devices')} data-name="list"/>
-                    </Tabs>
-                </AppBar>
-                <div className={this.props.classes.tabContent}>
-                    {(this.state.selectedTab === 'list' || !this.state.selectedTab) && (<TabDevices
-                        theme={this.state.theme}
-                        themeType={this.state.themeType}
-                        key="options"
-                        common={this.common}
-                        socket={this.socket}
-                        native={this.state.native}
-                        onError={text => this.setState({errorText: text})}
-                        onLoad={native => this.onLoadConfig(native)}
-                        instance={this.instance}
-                        adapterName={this.adapterName}
-                        onChange={(attr, value) => this.updateNativeValue(attr, value)}
-                    />)}
+        return <div className="App">
+            <AppBar position="static">
+                <Tabs value={this.getSelectedTab()}
+                      onChange={(e, index) => this.selectTab(e.target.parentNode.dataset.name, index)}>
+                    <Tab label={I18n.t('Devices')} data-name="list"/>
+                </Tabs>
+            </AppBar>
+            <div className={this.props.classes.tabContent}>
+                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? <TabDevices
+                    theme={this.state.theme}
+                    themeType={this.state.themeType}
+                    key="options"
+                    common={this.common}
+                    socket={this.socket}
+                    native={this.state.native}
+                    onError={text => this.setState({errorText: text})}
+                    onLoad={native => this.onLoadConfig(native)}
+                    instance={this.instance}
+                    adapterName={this.adapterName}
+                    onChange={(attr, value) => this.updateNativeValue(attr, value)}
+                /> : null}
 
-                </div>
-                {this.renderError()}
-                {this.renderSaveCloseButtons()}
             </div>
-        );
+            {this.renderError()}
+            {this.renderSaveCloseButtons()}
+        </div>;
     }
 }
 

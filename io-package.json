@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.15",
+        "version": "0.3.16",
         "news": {
+            "0.3.16": {
+                "en": "Fixed the error for IDs with the strange characters",
+                "de": "Der Fehler für IDs mit den seltsamen Zeichen wurde behoben",
+                "ru": "Исправлена ошибка идентификаторов со странными символами.",
+                "pt": "Corrigido o erro de IDs com caracteres estranhos",
+                "nl": "De fout verholpen voor ID's met de vreemde tekens",
+                "fr": "Correction de l'erreur pour les identifiants avec les caractères étranges",
+                "it": "Risolto l'errore per gli ID con i caratteri strani",
+                "es": "Se corrigió el error de las identificaciones con caracteres extraños.",
+                "pl": "Naprawiono błąd identyfikatorów z dziwnymi znakami",
+                "zh-cn": "修复了带有奇怪字符的ID的错误"
+            },
             "0.3.15": {
                 "en": "Updated the select ID dialog",
                 "de": "Das Dialogfeld \"ID auswählen\" wurde aktualisiert",
