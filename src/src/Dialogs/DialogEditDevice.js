@@ -204,7 +204,7 @@ class DialogEditDevice extends React.Component {
             return null;
         }
 
-        return (<DialogSelectID
+        return <DialogSelectID
             key="selectDialog"
             imagePrefix="../.."
             socket={this.props.socket}
@@ -215,10 +215,10 @@ class DialogEditDevice extends React.Component {
             onOk={id => {
                 const ids = JSON.parse(JSON.stringify(this.state.ids));
                 ids[this.state.selectIdFor] = id;
-                this.setState({selectIdFor: '', ids})
+                this.setState({selectIdFor: '', ids});
             }}
             onClose={() => this.setState({selectIdFor: ''})}
-        />);
+        />;
     }
 
     handleClose() {
@@ -233,11 +233,9 @@ class DialogEditDevice extends React.Component {
     };
 
     showDeviceIcon() {
-        return (
-            <div className={this.props.classes.icon}>
-                <TypeIcon type={this.props.channelInfo.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
-            </div>
-        );
+        return <div className={this.props.classes.icon}>
+            <TypeIcon type={this.props.channelInfo.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
+        </div>;
     }
 
     addToEnum(enumId, id) {
@@ -317,7 +315,7 @@ class DialogEditDevice extends React.Component {
         const classes = this.props.classes;
         const alias = this.props.channelInfo.channelId.startsWith('alias.');
 
-        return (<div className={classes.header}>
+        return <div className={classes.header}>
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
             <div className={classes.divDevice}>{this.showDeviceIcon()}<span className={classes.deviceText}>{this.props.channelInfo.type}</span></div>
             <div className={classes.divIndicators + ' ' + classes.divExtended}>
@@ -336,7 +334,7 @@ class DialogEditDevice extends React.Component {
                     this.setState({extended: !this.state.extended});
                 }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>) : null}
             </div>
-        </div>);
+        </div>;
     }
 
     findRealDevice() {
@@ -361,7 +359,7 @@ class DialogEditDevice extends React.Component {
             }
         });
 
-        return (<Select
+        return <Select
             className={this.props.classes.oidField}
             value={this.state[name]}
             multiple={true}
@@ -373,7 +371,7 @@ class DialogEditDevice extends React.Component {
                     {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
                     {obj.name}
                 </MenuItem>))}
-        </Select>);
+        </Select>;
     }
 
     renderEditFxDialog() {
@@ -444,7 +442,7 @@ class DialogEditDevice extends React.Component {
 
         const ALIAS_PREFIX = 'alias.0.';
 
-        return (<Dialog
+        return <Dialog
             key="copyDialog"
             open={true}
             maxWidth="sm"
@@ -480,7 +478,7 @@ class DialogEditDevice extends React.Component {
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button href="" onClick={() => this.setState({showCopyDialog: false})}>{I18n.t('Cancel')}</Button>
             </DialogActions>
-        </Dialog>);
+        </Dialog>;
     }
 
     renderVariable(item) {
@@ -514,55 +512,54 @@ class DialogEditDevice extends React.Component {
         const linkeddevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
 
-        return (
-            <div key={name} className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
-                <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
-                <TextField
-                    key={name}
-                    fullWidth
-                    disabled={!alias && !linkeddevices}
-                    label={this.state.expertMode ? item.id || (this.channelId + '.' + name) : ''}
-                    value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
-                    className={this.props.classes.oidField}
-                    style={{paddingTop: this.state.expertMode ? undefined: 8}}
-                    onChange={e => {
-                        const ids = JSON.parse(JSON.stringify(this.state.ids));
-                        ids[name] = e.target.value;
-                        this.setState({ids});
-                    }}
-                    helperText={this.state.expertMode ? props.join(', ') : ''}
-                    margin="normal"
-                />
-                {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" title={I18n.t('Select ID')} onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
-                {this.state.expertMode && alias && this.state.ids[name] ? (<Fab title={I18n.t('Edit convert functions')}  href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
-            </div>);
+        return <div key={name} className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
+            <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
+            <TextField
+                key={name}
+                fullWidth
+                disabled={!alias && !linkeddevices}
+                label={this.state.expertMode ? item.id || (this.channelId + '.' + name) : ''}
+                value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
+                className={this.props.classes.oidField}
+                style={{paddingTop: this.state.expertMode ? undefined: 8}}
+                onChange={e => {
+                    const ids = JSON.parse(JSON.stringify(this.state.ids));
+                    ids[name] = e.target.value;
+                    this.setState({ids});
+                }}
+                helperText={this.state.expertMode ? props.join(', ') : ''}
+                margin="normal"
+            />
+            {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" title={I18n.t('Select ID')} onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
+            {this.state.expertMode && alias && this.state.ids[name] ? (<Fab title={I18n.t('Edit convert functions')}  href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
+        </div>;
     }
 
     renderVariables() {
-        return (<div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : this.props.classes.divCollapsed)}>
+        return <div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
-        </div>);
+        </div>;
     }
 
     renderIndicators() {
         if (!this.state.extended || !this.state.extendedAvailable) {
             return null;
         }
-        return (<div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
+        return <div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
             this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item))
-        }</div>);
+        }</div>;
     }
 
     renderContent() {
         return [
             this.renderVariables(),
-            (<div key="device" className={this.props.classes.divDevice}/>),
+            <div key="device" className={this.props.classes.divDevice}/>,
             this.renderIndicators()
         ];
     }
 
     render() {
-        return [(<Dialog
+        return [<Dialog
                 key="editDialog"
                 open={true}
                 maxWidth={this.state.extended && this.state.extendedAvailable ? 'xl' : 'md'}
@@ -584,7 +581,7 @@ class DialogEditDevice extends React.Component {
                     <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                     <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
                 </DialogActions>
-            </Dialog>),
+            </Dialog>,
             this.renderSelectDialog(),
             this.renderEditFxDialog(),
             this.renderCopyDialog(),
