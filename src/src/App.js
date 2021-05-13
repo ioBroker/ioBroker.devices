@@ -1,27 +1,41 @@
 import React from 'react';
-import {withStyles} from '@material-ui/core/styles';
+import { ThemeProvider, withStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
-import Tabs from '@material-ui/core/Tabs';
-import Tab from '@material-ui/core/Tab';
 import Loader from '@iobroker/adapter-react/Components/Loader'
 import I18n from '@iobroker/adapter-react/i18n';
 
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import TabDevices from './Tabs/ListDevices';
+import Utils from '@iobroker/adapter-react/Components/Utils';
+import ToggleThemeMenu from './Components/ToggleThemeMenu';
+import { Paper, Toolbar } from '@material-ui/core';
+import DvrIcon from '@material-ui/icons/Dvr';
 
 const styles = theme => ({
     root: {},
     tabContent: {
         padding: 10,
-        height: 'calc(100% - 40px - 20px)',
+        height: 'calc(100% - 64px - 20px)',
         overflow: 'auto',
-        background: theme.palette.type === 'light' ? 'white': 'gray',
+        // background: theme.palette.type === 'light' ? 'white' : 'gray',
+    },
+    wrapperMenu: {
+        display: 'flex',
+        justifyContent: 'space-between'
+    },
+    wrapperIconHeader: {
+
+    },
+    wrapperName: {
+        fontWeight: 800,
+        display: 'flex',
+        alignItems: 'center'
     }
 });
 
 class App extends GenericApp {
     constructor(props) {
-        const extendedProps = {...props};
+        const extendedProps = { ...props };
         extendedProps.bottomButtons = false;
         extendedProps.adapterName = 'devices';
         extendedProps.translations = {
@@ -36,8 +50,14 @@ class App extends GenericApp {
             'pl': require('./i18n/pl'),
             'zh-cn': require('./i18n/zh-cn'),
         };
-
         super(props, extendedProps);
+
+        const theme = this.createTheme();
+        this.state = {
+            theme,
+            themeName: this.getThemeName(theme),
+            themeType: this.getThemeType(theme),
+        }
     }
 
     onHashChanged() {
@@ -50,20 +70,58 @@ class App extends GenericApp {
             return 0;
         }
     }
+    /**
+     * Changes the current theme
+     */
+    toggleTheme = currentThemeName => {
+        const themeName = this.state.themeName;
+
+        // dark => blue => colored => light => dark
+        let newThemeName = themeName === 'dark' ? 'blue' :
+            (themeName === 'blue' ? 'colored' :
+                (themeName === 'colored' ? 'light' : 'dark'));
+
+        if (currentThemeName) {
+            newThemeName = currentThemeName;
+        }
+
+        Utils.setThemeName(newThemeName);
+
+        const theme = this.createTheme(newThemeName);
+
+        this.setState({
+            theme: theme,
+            themeName: this.getThemeName(theme),
+            themeType: this.getThemeType(theme)
+        });
+    }
 
     render() {
         if (!this.state.loaded) {
-            return <Loader theme={this.state.themeType}/>;
+            return <Loader theme={this.state.themeType} />;
         }
-
-        return <div className="App">
-            <AppBar position="static">
-                <Tabs value={this.getSelectedTab()}
-                      onChange={(e, index) => this.selectTab(e.target.parentNode.dataset.name, index)}>
-                    <Tab label={I18n.t('Devices')} data-name="list"/>
-                </Tabs>
-            </AppBar>
-            <div className={this.props.classes.tabContent}>
+        console.log(this.state.themeName)
+        return <ThemeProvider theme={this.state.theme}>
+            <Paper square elevation={0}>
+                <AppBar
+                    color="default"
+                    position="static"
+                >
+                    <Toolbar className={this.props.classes.wrapperMenu}>
+                        <div className={this.props.classes.wrapperIconHeader}>
+                            <ToggleThemeMenu
+                                toggleTheme={this.toggleTheme}
+                                themeName={this.state.themeName}
+                                t={I18n.t} />
+                        </div>
+                        <div className={this.props.classes.wrapperName}>
+                            <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
+                            {I18n.t('Devices')}
+                        </div>
+                    </Toolbar>
+                </AppBar>
+            </Paper>
+            <Paper square elevation={0} className={this.props.classes.tabContent}>
                 {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? <TabDevices
                     theme={this.state.theme}
                     themeType={this.state.themeType}
@@ -71,17 +129,17 @@ class App extends GenericApp {
                     common={this.common}
                     socket={this.socket}
                     native={this.state.native}
-                    onError={text => this.setState({errorText: text})}
+                    onError={text => this.setState({ errorText: text })}
                     onLoad={native => this.onLoadConfig(native)}
                     instance={this.instance}
                     adapterName={this.adapterName}
                     onChange={(attr, value) => this.updateNativeValue(attr, value)}
                 /> : null}
 
-            </div>
+            </Paper>
             {this.renderError()}
             {this.renderSaveCloseButtons()}
-        </div>;
+        </ThemeProvider>;
     }
 }
 

@@ -88,10 +88,10 @@ const defaultStyle = {
 class TypeIcon extends Component {
     render() {
         if (this.props.src) {
-            return (<img src={this.props.src} style={Object.assign({}, defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>);
+            return (<img src={this.props.src} style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>);
         } else {
             const Icon = this.props.type && TYPE_ICONS[this.props.type];
-            return Icon ? (<Icon style={Object.assign({}, defaultStyle, this.props.style || {})} className={this.props.className || ''}/>) : null;
+            return Icon ? (<Icon style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''}/>) : null;
         }
     }
 }
