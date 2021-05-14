@@ -13,6 +13,7 @@
     "iobroker.type-detector": "^1.0.8",
     "react": "^17.0.1",
     "react-color": "^2.19.3",
+    "react-cropper": "^2.1.7",
     "react-dom": "^17.0.1",
     "react-dropzone": "^11.3.1",
     "react-icons": "^4.2.0",

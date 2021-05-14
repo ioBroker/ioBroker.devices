@@ -6,20 +6,14 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from '@material-ui/core/styles';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
+import { withStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Switch from '@material-ui/core/Switch';
-import ImageSelector from '../Components/ImageSelector';
 import TypeIcon from '../Components/TypeIcon';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-
+import UploadImage from '../Components/UploadImage';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 
@@ -35,21 +29,18 @@ const styles = theme => ({
     },
     divOidField: {
         width: '100%',
-        borderTop: '1px dashed #cacaca',
         display: 'block',
-        paddingTop: 5,
-        paddingBottom: 5,
-        height: 69,
+        paddingTop: 7,
+        paddingBottom: 7,
     },
     oidName: {
-        width: 100,
-        display: 'inline-block',
+        fontSize: 14,
+        fontWeight: 'bold'
     },
     oidField: {
         display: 'inline-block',
         marginTop: 0,
         marginBottom: 0,
-        width: 'calc(100% - 185px)',
     },
     colorButton: {
         marginLeft: 5,
@@ -120,7 +111,7 @@ const styles = theme => ({
     }
 });
 
-class DialogEditProperties extends React.Component {
+class DialogEditProperties extends React.PureComponent {
     constructor(props) {
         super(props);
 
@@ -128,7 +119,7 @@ class DialogEditProperties extends React.Component {
         const channelObj = this.props.objects[this.props.channelId];
 
         if (channelObj && channelObj.common) {
-            name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
+            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
         const functions = this.props.enumIDs.filter(id => {
@@ -150,7 +141,7 @@ class DialogEditProperties extends React.Component {
         // ;common.custom[adapter.namespace].smartName
         let smartName = this.getSmartName(channelObj);
 
-        this.state = {
+        this.state = Object.keys(this.props.changeProperties).length ? this.props.changeProperties : {
             color: channelObj && channelObj.common && channelObj.common.color,
             icon: channelObj && channelObj.common && channelObj.common.icon,
             functions,
@@ -160,17 +151,29 @@ class DialogEditProperties extends React.Component {
         };
     }
 
+    componentDidMount() {
+        if (!Object.keys(this.props.changeProperties).length) {
+            this.props.onChange(this.state, this.state);
+        }
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
+            this.props.onChange(this.state);
+        }
+    }
+
     handleClose() {
         this.props.onClose && this.props.onClose();
     }
 
     handleOk() {
         this.props.onClose && this.props.onClose({
-            rooms:     this.state.rooms,
+            rooms: this.state.rooms,
             functions: this.state.functions,
-            name:      this.state.name,
-            icon:      this.state.icon,
-            color:     this.state.color,
+            name: this.state.name,
+            icon: this.state.icon,
+            color: this.state.color,
             smartName: this.state.smartName,
         });
     }
@@ -178,7 +181,7 @@ class DialogEditProperties extends React.Component {
     renderHeader() {
         const classes = this.props.classes;
         return (<div className={classes.header}>
-            <TypeIcon type={this.props.type} className={classes.tableIconImg}/>
+            <TypeIcon type={this.props.type} className={classes.tableIconImg} />
             {this.props.type}
         </div>);
     }
@@ -199,7 +202,7 @@ class DialogEditProperties extends React.Component {
         const language = I18n.getLanguage();
         const objs = enums.map(id => {
             return {
-                name: Utils.getObjectName(this.props.objects, id, {language}),
+                name: Utils.getObjectName(this.props.objects, id, { language }),
                 icon: Utils.getObjectIcon(id, this.props.objects[id]),
                 id: id
             }
@@ -208,15 +211,16 @@ class DialogEditProperties extends React.Component {
         return (<Select
             className={this.props.classes.oidField}
             value={this.state[name]}
+            fullWidth
             multiple={true}
             onChange={e => {
-                this.setState({[name]: e.target.value})
+                this.setState({ [name]: e.target.value })
             }}
-            >
+        >
             {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
-                    {obj.name}
-                </MenuItem>))}
+                {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
+                {obj.name}
+            </MenuItem>))}
         </Select>);
     }
 
@@ -245,7 +249,7 @@ class DialogEditProperties extends React.Component {
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
-            return (<img className={this.props.classes.icon} src={obj.icon} alt=""/>);
+            return (<img className={this.props.classes.icon} src={obj.icon} alt="" />);
         } else {
             return null;
         }
@@ -255,7 +259,7 @@ class DialogEditProperties extends React.Component {
         const newValue = typeof file === 'object' ? file.data : file;
 
         //newValue.changed = this.isChanged(name, newValue.values[name]);
-        this.setState({icon: newValue});
+        this.setState({ icon: newValue });
     }
 
     renderProperties() {
@@ -263,18 +267,18 @@ class DialogEditProperties extends React.Component {
         return (
             <div className={classes.divOids}>
                 <div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Name')}</div>
+                    <div className={classes.oidName} >{I18n.t('Name')}</div>
                     <TextField
                         key="_name"
                         fullWidth
                         value={this.state.name}
                         className={classes.oidField}
-                        onChange={e => this.setState({name: e.target.value})}
+                        onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
                     />
                 </div>
                 <div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Disable smart')}</div>
+                    <div className={classes.oidName} >{I18n.t('Disable smart')}</div>
                     <FormControlLabel
                         className={classes.disableSwitchLabel}
                         control={
@@ -282,14 +286,14 @@ class DialogEditProperties extends React.Component {
                                 className={classes.disableSwitch}
                                 checked={this.state.smartName === false}
                                 color="secondary"
-                                onChange={e => this.setState({smartName: e.target.checked ? false : ''})}
+                                onChange={e => this.setState({ smartName: e.target.checked ? false : '' })}
                             />
                         }
                         label={I18n.t('Hide this name from smart assistance')}
                     />
                 </div>
                 {this.state.smartName !== false ? (<div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Smart name')}</div>
+                    <div className={classes.oidName} >{I18n.t('Smart name')}</div>
                     <TextField
                         key="_smartName"
                         fullWidth
@@ -297,83 +301,56 @@ class DialogEditProperties extends React.Component {
                         value={this.state.smartName}
                         className={classes.oidField}
                         helperText={I18n.t('This name will use be in smart assistance. (optional)')}
-                        onChange={e => this.setState({smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')})}
+                        onChange={e => this.setState({ smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') })}
                         margin="normal"
                     />
                 </div>) : null}
                 <div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Function')}</div>
+                    <div className={classes.oidName} >{I18n.t('Function')}</div>
                     {this.renderSelectEnum('functions')}
                     {this.showEnumIcon('functions')}
                 </div>
                 <div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Room')}</div>
+                    <div className={classes.oidName} >{I18n.t('Room')}</div>
                     {this.renderSelectEnum('rooms')}
                     {this.showEnumIcon('rooms')}
-               </div>
-               <div className={classes.divOidField}>
-                    <div className={classes.oidName} style={{fontWeight: 'bold'}}>{I18n.t('Color')}</div>
+                </div>
+                <div className={classes.divOidField}>
+                    <div className={classes.oidName} >{I18n.t('Color')}</div>
                     <TextField
                         key="_color"
                         fullWidth
                         value={this.state.color}
-                        style={{width: 'calc(100% - 185px)'}}
-                        onChange={e => this.setState({color: e.target.value})}
-                        margin="normal"
+                        style={{ width: 'calc(100% - 185px)' }}
+                        onChange={e => this.setState({ color: e.target.value })}
                     />
                     <TextField
                         key="_color1"
                         type="color"
-                        style={{width: 40, marginTop: 16}}
+                        style={{ width: 40 }}
                         value={this.state.color}
                         className={classes.oidField + ' ' + classes.colorButton}
-                        onChange={e => this.setState({color: e.target.value})}
+                        onChange={e => this.setState({ color: e.target.value })}
                         margin="normal"
                     />
                 </div>
-                <ImageSelector
-                    maxSize={15000}
-                    icons={true}
-                    aspect={1}
-                    height={64}
-                    accept={'image/jpeg, image/png, image/gif, image/svg+xml'}
-                    label={I18n.t('Icon')}
-                    image={this.state.icon}
-                    maxHeight={200}
-                    onUpload={file => this.handleIcon(file)}
-                    textAccepted={I18n.t('All files will be accepted')}
-                    textRejected={I18n.t('Some files will be rejected')}
-                    textWaiting={I18n.t('Drop some files here or click...')}
+                <UploadImage
+                    crop
+                    icons
+                    maxSize={256 * 1024}
+                    icon={this.state.icon}
+                    removeIconFunc={() => this.setState({ icon: '' })}
+                    onChange={(base64) => this.setState({ icon: base64 })}
+                    t={I18n.t}
                 />
             </div>
         );
     }
 
     render() {
-        return (
-            <Dialog
-                open={true}
-                maxWidth="sm"
-                fullWidth={true}
-                onClose={() => this.handleOk()}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle className={this.props.classes.titleBackground}
-                             classes={{root: this.props.classes.titleColor}}
-                             id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.props.channelId}</b></DialogTitle>
-                <DialogContent>
-                    <div className={this.props.classes.divDialogContent}>
-                        {this.renderHeader()}
-                        {this.renderProperties()}
-                    </div>
-                </DialogContent>
-                <DialogActions>
-                    <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                    <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
-                </DialogActions>
-            </Dialog>
-        );
+        return <div className={this.props.classes.divDialogContent}>
+            {this.renderProperties()}
+        </div>
     }
 }
 

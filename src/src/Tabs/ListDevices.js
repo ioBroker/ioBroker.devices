@@ -49,7 +49,6 @@ import DialogConfirm from '@iobroker/adapter-react/Dialogs/Confirm';
 import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import DialogEditProperties from '../Dialogs/DialogEditProperties';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { Types } from 'iobroker.type-detector';
@@ -125,7 +124,6 @@ const styles = theme => ({
     },
     filter: {
         margin: 0,
-        //color: theme.palette.type === 'light' ? 'black' : 'grey',
     },
     button: {
         marginRight: 20
@@ -241,7 +239,6 @@ const styles = theme => ({
     },
     orderSelector: {
         marginRight: 10,
-        //color: theme.palette.secondary.main,
     },
     paperTable: {
         width: '100%',
@@ -251,7 +248,6 @@ const styles = theme => ({
         marginTop: 5,
     },
     tableLine: {
-        //cursor: 'pointer',
         height: 50,
         '&:hover': {
             background: `#3399cccc !important`,
@@ -261,8 +257,6 @@ const styles = theme => ({
         }
     },
     tableIconImg: {
-        // marginTop: 4,
-        // marginLeft: 4,
         width: 20,
         height: 20,
         color: theme.palette.type === 'dark' ? '#FFF' : '#000',
@@ -358,6 +352,14 @@ const styles = theme => ({
     enumsEditFocusVisible: {},
     wrapperIcon: {
         margin: '5px 0'
+    },
+    wrapperButton: {
+        marginRight: 10,
+        display: 'flex',
+        justifyContent: 'flex-end'
+    },
+    emptyBlock: {
+        width: 24
     }
 });
 
@@ -380,7 +382,6 @@ class ListDevices extends Component {
 
         this.state = {
             editIndex: location.dialog === 'edit' ? location.id : null,
-            editPropIndex: location.dialog === 'props' ? location.id : null,
             deleteIndex: null,
             deleteId: '',
             editEnum: null,
@@ -682,13 +683,6 @@ class ListDevices extends Component {
         this.setState({ editIndex });
     }
 
-    onEditProps(editPropIndex, e) {
-        e && e.preventDefault();
-        e && e.stopPropagation();
-        Router.doNavigate('list', 'props', editPropIndex.toString());
-        this.setState({ editPropIndex });
-    }
-
     isFilteredOut(device) {
         if (this.filter &&
             device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
@@ -737,43 +731,34 @@ class ListDevices extends Component {
                 </div>
             </TableCell>
             <TableCell style={{ color }} className={classes.tableNameCell}>{device.name}{smartName !== '' ? (<div className={classes.tableSmartName}>{smartName || I18n.t('disabled')}</div>) : null}</TableCell>
-            <TableCell style={{ color }}>
-                <Tooltip title={I18n.t('Edit name and other properties')}>
-                    <IconButton
-                        style={{ color }}
-                        size="small"
-                        onClick={e => this.onEditProps(index, e)}>
-                        <IconEdit />
-                    </IconButton>
-                </Tooltip>
-            </TableCell>
             {this.state.windowWidth >= WIDTHS[4] ? (<TableCell style={{ color }} className={classes.tableIdCell} title={device.channelId}>{device.channelId}</TableCell>) : null}
             {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{device.type}</TableCell>) : null}
             {this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ color }}>{device.usedStates}</TableCell>) : null}
-            <TableCell style={{ color }} className={classes.buttonsCell}>
-
-                <Tooltip title={I18n.t('Edit states')}>
-                    <IconButton
-                        style={{ color }}
-                        size="small"
-                        onClick={e => this.onEdit(index, e)}>
-                        <IconEdit />
-                    </IconButton>
-                </Tooltip>
-                {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) &&
-                    <Tooltip title={I18n.t('Delete device with all states')}>
+            <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+                <div className={classes.wrapperButton}>
+                    <Tooltip title={I18n.t('Edit states')}>
                         <IconButton
                             style={{ color }}
                             size="small"
-                            onClick={e => {
-                                e.stopPropagation();
-                                this.setState({ deleteIndex: index });
-                            }}>
-                            <IconDelete />
+                            onClick={e => this.onEdit(index, e)}>
+                            <IconEdit />
                         </IconButton>
-                    </Tooltip>}
+                    </Tooltip>
+                    {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
+                        <Tooltip title={I18n.t('Delete device with all states')}>
+                            <IconButton
+                                style={{ color }}
+                                size="small"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.setState({ deleteIndex: index });
+                                }}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip> : <div className={classes.emptyBlock} />}
+                </div>
             </TableCell>
         </TableRow>);
     }
@@ -912,7 +897,7 @@ class ListDevices extends Component {
                         <TableCell className={classes.tableExpandIconCell} />
                         <TableCell className={classes.tableIconCell} />
                         <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>Name</TableCell>
-                        <TableCell />
+                        {/* <TableCell /> */}
                         {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>ID</TableCell>) : null}
                         {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Function</TableCell>) : null}
                         {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Room</TableCell>) : null}
@@ -1017,6 +1002,8 @@ class ListDevices extends Component {
         }
 
         return (<DialogEdit
+            channelId={this.state.devices[this.state.editIndex].channelId}
+            type={this.state.devices[this.state.editIndex].type}
             channelInfo={this.state.devices[this.state.editIndex]}
             objects={this.objects}
             states={this.states}
@@ -1024,6 +1011,62 @@ class ListDevices extends Component {
             themeType={this.props.themeType}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
+            onSaveProperties={data => {
+                const promises = [];
+                if (data) {
+                    const language = I18n.getLanguage();
+                    const device = this.state.devices[this.state.editIndex];
+                    const channelId = device.channelId;
+                    const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, { language });
+
+                    let oldSmartName = this.getSmartName(this.objects[channelId], language);
+
+                    if (this.objects[channelId] && this.objects[channelId].common &&
+                        (oldName !== data.name ||
+                            oldSmartName !== data.smartName ||
+                            (this.objects[channelId].common.color || '') !== data.color ||
+                            (this.objects[channelId].common.icon || '') !== data.icon)
+                    ) {
+                        // update channel
+                        promises.push(
+                            this.props.socket.getObject(channelId)
+                                .then(obj => {
+                                    obj = obj || {};
+                                    obj.common = obj.common || {};
+                                    if (typeof obj.common.name !== 'object') {
+                                        obj.common.name = { [language]: obj.common.name || '' };
+                                    }
+                                    obj.common.name[language] = data.name;
+                                    obj.common.role = device.type;
+                                    obj.common.color = data.color;
+                                    if (!data.color) {
+                                        delete obj.common.color;
+                                    }
+                                    obj.common.icon = data.icon;
+                                    if (!data.icon) {
+                                        delete obj.common.icon;
+                                    }
+                                    obj.type = obj.type || 'channel';
+                                    this.objects[channelId] = obj;
+
+                                    this.setSmartName(obj, data.smartName, language);
+
+                                    return this.props.socket.setObject(obj._id, obj);
+                                }));
+                    }
+                    this.setEnumsOfDevice(channelId, data.functions, data.rooms, promises);
+                }
+                const somethingChanged = !!promises.length;
+                Promise.all(promises)
+                    .then(() => {
+                        if (somethingChanged) {
+                            const devices = JSON.parse(JSON.stringify(this.state.devices));
+                            // update enums, name
+                            this.updateEnumsForOneDevice(devices[this.state.editIndex]);
+                            this.setState({  devices });
+                        }
+                    });
+            }}
             onClose={(data, refresh) => {
                 const promises = [];
                 if (data) {
@@ -1319,90 +1362,6 @@ class ListDevices extends Component {
         });
 
         return promises;
-    }
-
-    renderEditPropDialog() {
-        if (this.state.editPropIndex === null) return null;
-
-        if (!this.state.devices[this.state.editPropIndex]) {
-            window.alert('Device not found');
-            Router.doNavigate(null, '', '');
-            return this.setState({ editPropIndex: null });
-        }
-
-        return (<DialogEditProperties
-            channelId={this.state.devices[this.state.editPropIndex].channelId}
-            type={this.state.devices[this.state.editPropIndex].type}
-            iot={this.state.iot}
-            iotNoCommon={this.state.iotNoCommon}
-            objects={this.objects}
-            patterns={this.patterns}
-            enumIDs={this.enumIDs}
-            socket={this.props.socket}
-            onClose={data => {
-                const promises = [];
-                if (data) {
-                    const language = I18n.getLanguage();
-                    const device = this.state.devices[this.state.editPropIndex];
-                    const channelId = device.channelId;
-                    const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, { language });
-
-                    let oldSmartName = this.getSmartName(this.objects[channelId], language);
-
-                    if (this.objects[channelId] && this.objects[channelId].common &&
-                        (oldName !== data.name ||
-                            oldSmartName !== data.smartName ||
-                            (this.objects[channelId].common.color || '') !== data.color ||
-                            (this.objects[channelId].common.icon || '') !== data.icon)
-                    ) {
-                        // update channel
-                        promises.push(
-                            this.props.socket.getObject(channelId)
-                                .then(obj => {
-                                    obj = obj || {};
-                                    obj.common = obj.common || {};
-                                    if (typeof obj.common.name !== 'object') {
-                                        obj.common.name = { [language]: obj.common.name || '' };
-                                    }
-                                    obj.common.name[language] = data.name;
-                                    obj.common.role = device.type;
-                                    obj.common.color = data.color;
-                                    if (!data.color) {
-                                        delete obj.common.color;
-                                    }
-                                    obj.common.icon = data.icon;
-                                    if (!data.icon) {
-                                        delete obj.common.icon;
-                                    }
-                                    obj.type = obj.type || 'channel';
-                                    this.objects[channelId] = obj;
-
-                                    this.setSmartName(obj, data.smartName, language);
-
-                                    return this.props.socket.setObject(obj._id, obj);
-                                }));
-                    }
-
-                    this.setEnumsOfDevice(channelId, data.functions, data.rooms, promises);
-                }
-
-                const somethingChanged = !!promises.length;
-
-                Promise.all(promises)
-                    .then(() => {
-                        if (somethingChanged) {
-                            const devices = JSON.parse(JSON.stringify(this.state.devices));
-                            // update enums, name
-                            this.updateEnumsForOneDevice(devices[this.state.editPropIndex]);
-                            this.setState({ editPropIndex: null, devices });
-                        } else {
-                            this.setState({ editPropIndex: null });
-                        }
-                    });
-
-                Router.doNavigate(null, '', '');
-            }}
-        />);
     }
 
     deleteDevice(index, cb) {
@@ -1738,7 +1697,6 @@ class ListDevices extends Component {
                 {this.renderDevices()}
                 {this.renderMessage()}
                 {this.renderEditDialog()}
-                {this.renderEditPropDialog()}
                 {this.renderAddDialog()}
                 {this.renderDeleteDialog()}
                 {this.renderEditEnumDialog()}

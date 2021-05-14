@@ -6,7 +6,7 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from '@material-ui/core/styles';
+import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -15,125 +15,182 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
-import Fab from '@material-ui/core/Fab';
 
-import {MdEdit as IconEdit} from 'react-icons/md';
-import {MdFunctions as IconFunction} from 'react-icons/md';
-import {MdOpenInNew as IconExtended} from 'react-icons/md';
-import {MdContentCopy as IconCopy} from 'react-icons/md';
-import IconExpert from '../icons/RepairExpert';
+import { MdEdit as IconEdit } from 'react-icons/md';
+import { MdFunctions as IconFunction } from 'react-icons/md';
+import { MdOpenInNew as IconExtended } from 'react-icons/md';
+import { MdContentCopy as IconCopy } from 'react-icons/md';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 import TypeIcon from "../Components/TypeIcon";
+import { AppBar, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
+import DialogEditProperties from './DialogEditProperties';
+import IconClose from '@material-ui/icons/Close';
+import IconCheck from '@material-ui/icons/Check';
 
-const styles = theme => ({
-    header: {
-        width: '100%',
-        fontSize: 16,
-        textTransform: 'capitalize',
-        textAlign: 'center',
-        paddingBottom: 20,
-        color: '#000',
-    },
-    divOidField: {
-        width: '100%',
-        borderTop: '1px dashed #cacaca',
-        display: 'block',
-        paddingTop: 5,
-        paddingBottom: 5,
-        height: 69,
-    },
-    oidName: {
-        width: 100,
-        display: 'inline-block',
-    },
-    oidField: {
-        display: 'inline-block',
-        marginTop: 0,
-        marginBottom: 0,
-        width: 'calc(100% - 185px)',
-    },
-    colorButton: {
-        '&>div': {
+const styles = theme => {
+    console.log(theme)
+    return ({
+        header: {
+            width: '100%',
+            fontSize: 16,
+            textTransform: 'capitalize',
+            textAlign: 'center',
+            paddingBottom: 20,
+            color: '#000',
+        },
+        divOidField: {
+            width: '100%',
+            display: 'flex',
+            paddingTop: 5,
+            paddingBottom: 5,
+            height: 69,
+        },
+        oidName: {
+            width: 100,
+            display: 'flex',
+            alignItems: 'center'
+        },
+        oidField: {
+            display: 'inline-block',
+            marginTop: 0,
+            marginBottom: 0,
+            width: 'calc(100% - 185px)',
+        },
+        colorButton: {
+            '&>div': {
+                width: '100%'
+            }
+        },
+        divOids: {
+            display: 'inline-block',
+            verticalAlign: 'top',
+            width: '100%',
+        },
+        divDevice: {
+            color: theme.palette.type === 'light' ? 'black' : 'white',
+            display: 'inline-block',
+            width: 100,
+            verticalAlign: 'top',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+            lineHeight: '32px',
+        },
+        divIndicators: {
+            display: 'inline-block',
+            verticalAlign: 'top',
+        },
+        menuWrapperIcons: {
+            display: 'flex'
+        },
+        divExtended: {
+            width: 'calc(50% - 55px)',
+        },
+        divDialogContent: {
+            fontSize: '1rem',
+            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+        },
+        buttonPen: {
+            color: '#ffffff',
+        },
+        headerButtons: {
+            textAlign: 'right'
+        },
+        headerButton: {
+            float: 'right',
+            marginLeft: 3,
+        },
+        enumIcon: {
+            width: 24,
+            height: 24
+        },
+        funcDivEdit: {
             width: '100%'
+        },
+        funcEditName: {
+            display: 'inline-block',
+            width: 85
+        },
+        funcEdit: {
+            display: 'inline-block',
+            marginTop: 0,
+            marginBottom: 0,
+            width: 'calc(100% - 85px)',
+        },
+        idEditName: {
+            display: 'inline-block',
+            width: 200
+        },
+        idEdit: {
+            width: 'calc(100% - 200px)',
+            display: 'inline-block',
+            marginTop: 0,
+            marginBottom: 0,
+        },
+        icon: {
+            color: theme.palette.type === 'light' ? 'black' : 'white',
+            display: 'inline-block',
+            verticalAlign: 'middle'
+        },
+        deviceText: {
+            verticalAlign: 'middle'
+        },
+        wrapperIconHead: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 18,
+            fontWeight: 900,
+            marginTop: 5
+        },
+        iconStyle: {
+            marginRight: 7
+        },
+        content: {
+            paddingTop: 0
+        },
+        wrapperItemButtons: {
+            display: 'flex',
+            margin: 'auto 0'
+        },
+        emptyButton: {
+            width: 48,
+            height: 48
+        },
+        tab: {
+            '& .Mui-selected': {
+                color: theme.name === 'colored' && 'black'
+            }
+        },
+        indicator: {
+            backgroundColor: theme.name === 'colored' && 'black'
         }
-    },
-    divOids: {
-        display: 'inline-block',
-        verticalAlign: 'top',
-        width: '100%',
-    },
-    divDevice: {
-        color: theme.palette.type === 'light' ? 'black' : 'white',
-        display: 'inline-block',
-        width: 100,
-        verticalAlign: 'top',
-        fontWeight: 'bold',
-        whiteSpace: 'nowrap',
-        lineHeight: '32px'
-    },
-    divIndicators: {
-        display: 'inline-block',
-        verticalAlign: 'top',
-    },
-    divExtended: {
-        width: 'calc(50% - 55px)',
-    },
-    divDialogContent: {
-        fontSize: '1rem',
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-    },
-    buttonPen: {
-        color: '#ffffff',
-    },
-    headerButtons: {
-        textAlign: 'right'
-    },
-    headerButton: {
-        float: 'right',
-        marginLeft: 3,
-    },
-    enumIcon: {
-        width: 24,
-        height: 24
-    },
-    funcDivEdit: {
-        width: '100%'
-    },
-    funcEditName: {
-        display: 'inline-block',
-        width: 85
-    },
-    funcEdit: {
-        display: 'inline-block',
-        marginTop: 0,
-        marginBottom: 0,
-        width: 'calc(100% - 85px)',
-    },
-    idEditName: {
-        display: 'inline-block',
-        width: 200
-    },
-    idEdit: {
-        width: 'calc(100% - 200px)',
-        display: 'inline-block',
-        marginTop: 0,
-        marginBottom: 0,
-    },
-    icon: {
-        color: theme.palette.type === 'light' ? 'black' : 'white',
-        display: 'inline-block',
-        verticalAlign: 'middle'
-    },
-    deviceText: {
-        verticalAlign: 'middle'
-    },
-});
+    })
+};
 
 const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
+function TabPanel(props) {
+    const { children, value, index, ...other } = props;
+
+    return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`scrollable-auto-tabpanel-${index}`}
+            aria-labelledby={`scrollable-auto-tab-${index}`}
+            {...other}
+        >
+            {value === index && (
+                <Paper style={{ padding: `10px 20px` }} p={3}>
+                    <Typography variant="outlined" component="div">{children}</Typography>
+                </Paper>
+            )}
+        </div>
+    );
+}
 class DialogEditDevice extends React.Component {
     constructor(props) {
         super(props);
@@ -146,11 +203,11 @@ class DialogEditDevice extends React.Component {
                 if (obj && obj.common && obj.common.alias) {
                     ids[state.name] = obj.common.alias.id || '';
                     this.fx[state.name] = {
-                        read:  obj.common.alias.read  || '',
+                        read: obj.common.alias.read || '',
                         write: obj.common.alias.write || '',
                     };
                 } else {
-                    this.fx[state.name] = {read: '', write: ''};
+                    this.fx[state.name] = { read: '', write: '' };
                 }
                 if (obj && obj.common && obj.common.custom) {
                     const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
@@ -168,7 +225,7 @@ class DialogEditDevice extends React.Component {
                     delete this.fx[state.name].write;
                 }
             } else {
-                this.fx[state.name] = {read: '', write: ''};
+                this.fx[state.name] = { read: '', write: '' };
             }
         });
 
@@ -177,22 +234,26 @@ class DialogEditDevice extends React.Component {
         const channelObj = this.props.objects[this.channelId];
 
         if (channelObj && channelObj.common) {
-            name = Utils.getObjectNameFromObj(channelObj, null, {language: I18n.getLanguage()});
+            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
         const extendedAvailable = !!(this.props.channelInfo.states.filter(item => item.indicator).length) && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
 
         this.state = {
             ids,
+            idsInit: ids,
             name,
             extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
-            expertMode: window.localStorage.getItem('Devices.expertMode') === 'true',
+            expertMode: true,
             selectIdFor: '',
             editFxFor: '',
             newChannelId: '',
             newChannelError: false,
             showCopyDialog: false,
-            extendedAvailable
+            extendedAvailable,
+            tab: 0,
+            initChangeProperties: {},
+            changeProperties: {}
         };
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
@@ -215,26 +276,29 @@ class DialogEditDevice extends React.Component {
             onOk={id => {
                 const ids = JSON.parse(JSON.stringify(this.state.ids));
                 ids[this.state.selectIdFor] = id;
-                this.setState({selectIdFor: '', ids});
+                this.setState({ selectIdFor: '', ids });
             }}
-            onClose={() => this.setState({selectIdFor: ''})}
+            onClose={() => this.setState({ selectIdFor: '' })}
         />;
     }
 
-    handleClose() {
+    handleClose = () => {
         this.props.onClose && this.props.onClose(null);
     }
 
-    handleOk(isRefresh) {
+    handleOk = (isRefresh) => {
+        if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
+            this.props.onSaveProperties && this.props.onSaveProperties(this.state.changeProperties);
+        }
         this.props.onClose && this.props.onClose({
             ids: this.state.ids,
-            fx:  this.fx,
+            fx: this.fx,
         }, isRefresh);
     };
 
     showDeviceIcon() {
         return <div className={this.props.classes.icon}>
-            <TypeIcon type={this.props.channelInfo.type} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
+            <TypeIcon type={this.props.channelInfo.type} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
         </div>;
     }
 
@@ -303,9 +367,9 @@ class DialogEditDevice extends React.Component {
 
             obj.native = {};
             if (!isAlias) {
-                obj.common.alias = {id: state.id};
+                obj.common.alias = { id: state.id };
             }
-            tasks.push({id: obj._id, obj});
+            tasks.push({ id: obj._id, obj });
         });
 
         this.processTasks(tasks, cb);
@@ -316,23 +380,23 @@ class DialogEditDevice extends React.Component {
         const alias = this.props.channelInfo.channelId.startsWith('alias.');
 
         return <div className={classes.header}>
-            <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended}/>
-            <div className={classes.divDevice}>{this.showDeviceIcon()}<span className={classes.deviceText}>{this.props.channelInfo.type}</span></div>
-            <div className={classes.divIndicators + ' ' + classes.divExtended}>
-
-                <Fab title={I18n.t('Show expert settings')} className={classes.headerButton} color={this.state.expertMode ? 'primary' : 'default'} size="small" onClick={() => {
-                    window.localStorage.setItem('Devices.expertMode', this.state.expertMode ? 'false' : 'true');
-                    this.setState({expertMode: !this.state.expertMode});
-                }}><IconExpert style={{width: 22, height: 22, paddingLeft: 2}}/></Fab>
-
-                {!alias ? (<Fab title={I18n.t('Copy device into aliases')} className={classes.headerButton} size="small" onClick={() => {
-                    this.setState({showCopyDialog: true, newChannelId: ''});
-                }}><IconCopy /></Fab>) : null}
-
-                {this.state.extendedAvailable ? (<Fab title={I18n.t('Show hide indicators')} className={classes.headerButton} size="small" onClick={() => {
-                    window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
-                    this.setState({extended: !this.state.extended});
-                }}><IconExtended style={{transform: !this.state.extended ? 'rotate(180deg)' : ''}}/></Fab>) : null}
+            <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended} />
+            <div className={classes.menuWrapperIcons}>
+                {!alias && <Tooltip title={I18n.t('Copy device into aliases')}>
+                    <IconButton onClick={() => this.setState({ showCopyDialog: true, newChannelId: '' })}>
+                        <IconCopy />
+                    </IconButton>
+                </Tooltip>}
+                {this.state.extendedAvailable && <Tooltip title={I18n.t('Show hide indicators')}>
+                    <IconButton
+                        style={this.state.extended ? { color: '#4dabf5' } : null}
+                        onClick={() => {
+                            window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
+                            this.setState({ extended: !this.state.extended });
+                        }}>
+                        <IconExtended style={{ transform: !this.state.extended ? 'rotate(180deg)' : '' }} />
+                    </IconButton>
+                </Tooltip>}
             </div>
         </div>;
     }
@@ -353,7 +417,7 @@ class DialogEditDevice extends React.Component {
         const language = I18n.getLanguage();
         const objs = enums.map(id => {
             return {
-                name: Utils.getObjectName(this.props.objects, id, {language}),
+                name: Utils.getObjectName(this.props.objects, id, { language }),
                 icon: Utils.getObjectIcon(id, this.props.objects[id]),
                 id: id
             }
@@ -364,13 +428,12 @@ class DialogEditDevice extends React.Component {
             value={this.state[name]}
             multiple={true}
             onChange={e => {
-                this.setState({[name]: e.target.value})
+                this.setState({ [name]: e.target.value })
             }}
-            >
+        >
             {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
-                    {obj.name}
-                </MenuItem>))}
+                {obj.name}
+            </MenuItem>))}
         </Select>;
     }
 
@@ -380,24 +443,24 @@ class DialogEditDevice extends React.Component {
         }
         const fx = this.fx[this.state.editFxFor];
 
-        this.fxRead  = fx.read;
+        this.fxRead = fx.read;
         this.fxWrite = fx.write;
 
         return (<Dialog
             open={true}
             key="editFxDialog"
             maxWidth="sm"
-            onClose={() => this.setState({editFxFor: ''})}
+            onClose={() => this.setState({ editFxFor: '' })}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
             <DialogTitle className={this.props.classes.titleBackground}
-                         classes={{root: this.props.classes.titleColor}}
-                         id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
+                classes={{ root: this.props.classes.titleColor }}
+                id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
             <DialogContent>
                 <div className={this.props.classes.divDialogContent}>
                     {fx.read !== undefined ? (<div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{fontWeight: 'bold'}}>{I18n.t('Read')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Read')}</div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxRead}
@@ -408,7 +471,7 @@ class DialogEditDevice extends React.Component {
                         />
                     </div>) : null}
                     {fx.write !== undefined ? (<div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{fontWeight: 'bold'}}>{I18n.t('Write')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Write')}</div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxWrite}
@@ -422,7 +485,7 @@ class DialogEditDevice extends React.Component {
             </DialogContent>
             <DialogActions>
                 <Button href="" onClick={() => {
-                    this.setState({editFxFor: ''});
+                    this.setState({ editFxFor: '' });
                     if (this.fx[this.state.editFxFor].read !== undefined) {
                         this.fx[this.state.editFxFor].read = this.fxRead;
                     }
@@ -430,7 +493,7 @@ class DialogEditDevice extends React.Component {
                         this.fx[this.state.editFxFor].write = this.fxWrite;
                     }
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button href="" onClick={() => this.setState({editFxFor: ''})}>{I18n.t('Cancel')}</Button>
+                <Button href="" onClick={() => this.setState({ editFxFor: '' })}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>);
     }
@@ -447,16 +510,16 @@ class DialogEditDevice extends React.Component {
             open={true}
             maxWidth="sm"
             fullWidth={true}
-            onClose={() => this.setState({showCopyDialog: false})}
+            onClose={() => this.setState({ showCopyDialog: false })}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
             <DialogTitle className={this.props.classes.titleBackground}
-                         classes={{root: this.props.classes.titleColor}}
-                         id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
+                classes={{ root: this.props.classes.titleColor }}
+                id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
             <DialogContent>
                 <div className={this.props.classes.divDialogContent}>
-                    <div className={this.props.classes.idEditName} style={{fontWeight: 'bold'}}>{I18n.t('New device ID')} - {ALIAS_PREFIX}</div>
+                    <div className={this.props.classes.idEditName} style={{ fontWeight: 'bold' }}>{I18n.t('New device ID')} - {ALIAS_PREFIX}</div>
                     <TextField
                         fullWidth
                         placeholder={I18n.t('...')}
@@ -464,7 +527,7 @@ class DialogEditDevice extends React.Component {
                         error={this.state.newChannelError}
                         value={this.state.newChannelId}
                         className={this.props.classes.idEdit}
-                        onChange={e => this.setState({newChannelId: e.target.value.replace(FORBIDDEN_CHARS, '_'), newChannelError: !!this.props.objects[ALIAS_PREFIX + e.target.value.replace(FORBIDDEN_CHARS, '_')]})}
+                        onChange={e => this.setState({ newChannelId: e.target.value.replace(FORBIDDEN_CHARS, '_'), newChannelError: !!this.props.objects[ALIAS_PREFIX + e.target.value.replace(FORBIDDEN_CHARS, '_')] })}
                         margin="normal"
                     />
                 </div>
@@ -472,16 +535,16 @@ class DialogEditDevice extends React.Component {
             <DialogActions>
                 <Button href="" disabled={this.state.newChannelError} onClick={() => {
                     this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
-                        this.setState({showCopyDialog: false, newChannelId: ''}, () =>
+                        this.setState({ showCopyDialog: false, newChannelId: '' }, () =>
                             this.handleOk(true)));
 
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button href="" onClick={() => this.setState({showCopyDialog: false})}>{I18n.t('Cancel')}</Button>
+                <Button href="" onClick={() => this.setState({ showCopyDialog: false })}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>;
     }
 
-    renderVariable(item) {
+    renderVariable(item, color) {
         if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
             return null;
         }
@@ -490,11 +553,11 @@ class DialogEditDevice extends React.Component {
         let pattern = this.pattern.states.find(state => state.name === item.name || state.name === dName);
         if (item.write) props.push('write');
         if (item.read) props.push('read');
-		if (pattern.defaultRole) {
-			props.push('role=' + pattern.defaultRole);
-		} else {
-			pattern.role && props.push('role=' + pattern.role.toString());
-		}
+        if (pattern.defaultRole) {
+            props.push('role=' + pattern.defaultRole);
+        } else {
+            pattern.role && props.push('role=' + pattern.role.toString());
+        }
 
         if (pattern.enums) {
             const type = this.props.channelInfo.type;
@@ -512,79 +575,133 @@ class DialogEditDevice extends React.Component {
         const linkeddevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
 
-        return <div key={name} className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? {opacity: 0.6} : {}}>
-            <div className={this.props.classes.oidName} style={item.required ? {fontWeight: 'bold'} : {}}>{(item.required ? '*' : '') + name}</div>
+        return <div key={name} className={this.props.classes.divOidField} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                {(item.required ? '*' : '') + name}
+            </div>
             <TextField
                 key={name}
                 fullWidth
                 disabled={!alias && !linkeddevices}
-                label={this.state.expertMode ? item.id || (this.channelId + '.' + name) : ''}
                 value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
                 className={this.props.classes.oidField}
-                style={{paddingTop: this.state.expertMode ? undefined: 8}}
+                style={{ paddingTop: 8 }}
                 onChange={e => {
                     const ids = JSON.parse(JSON.stringify(this.state.ids));
                     ids[name] = e.target.value;
-                    this.setState({ids});
+                    this.setState({ ids });
                 }}
-                helperText={this.state.expertMode ? props.join(', ') : ''}
+                helperText={props.join(', ')}
                 margin="normal"
             />
-            {(alias || linkeddevices) ? (<Fab href="" size="small" color="secondary" title={I18n.t('Select ID')} onClick={() => {this.setState({selectIdFor: name})}} className={this.props.classes.buttonPen}><IconEdit /></Fab>) : null}
-            {this.state.expertMode && alias && this.state.ids[name] ? (<Fab title={I18n.t('Edit convert functions')}  href="" color={this.fx[name] && (this.fx[name].read || this.fx[name].write) ? 'primary' : ''} style={{marginLeft: 5}} size="small" onClick={() => {this.setState({editFxFor: name})}} className={this.props.classes.buttonPen}><IconFunction /></Fab>) : null}
+            <div className={this.props.classes.wrapperItemButtons}>
+                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                    <IconButton onClick={() => this.setState({ selectIdFor: name })}>
+                        <IconEdit />
+                    </IconButton>
+                </Tooltip>}
+                {alias && this.state.ids[name] ? <Tooltip title={I18n.t('Edit convert functions')}>
+                    <IconButton onClick={() => this.setState({ editFxFor: name })}>
+                        <IconFunction />
+                    </IconButton>
+                </Tooltip> : <div className={this.props.classes.emptyButton} />}
+            </div>
         </div>;
     }
 
     renderVariables() {
-        return <div key="vars" className={this.props.classes.divOids + ' ' + (this.state.extended ? this.props.classes.divExtended : this.props.classes.divCollapsed)}>
+        return <div key="vars" className={this.props.classes.divOids + ' ' + this.props.classes.divCollapsed}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
+            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, true))}
         </div>;
     }
 
-    renderIndicators() {
-        if (!this.state.extended || !this.state.extendedAvailable) {
-            return null;
-        }
-        return <div key="indicators" className={this.props.classes.divIndicators + ' ' + this.props.classes.divExtended}>{
-            this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item))
-        }</div>;
+    a11yProps(index) {
+        return {
+            id: `scrollable-auto-tab-${index}`,
+            'aria-controls': `scrollable-auto-tabpanel-${index}`,
+        };
     }
-
-    renderContent() {
-        return [
-            this.renderVariables(),
-            <div key="device" className={this.props.classes.divDevice}/>,
-            this.renderIndicators()
-        ];
-    }
-
+    
     render() {
         return [<Dialog
-                key="editDialog"
-                open={true}
-                maxWidth={this.state.extended && this.state.extendedAvailable ? 'xl' : 'md'}
-                fullWidth={true}
-                onClose={() => this.handleOk()}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle className={this.props.classes.titleBackground}
-                             classes={{root: this.props.classes.titleColor}}
-                             id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
-                <DialogContent>
+            key="editDialog"
+            open={true}
+            maxWidth="md"
+            fullWidth={true}
+            onClose={() => this.handleOk()}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            <DialogTitle className={this.props.classes.titleBackground}
+                classes={{ root: this.props.classes.titleColor }}
+                id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
+            <DialogContent className={this.props.classes.content}>
+                <AppBar style={{ top: 0 }} position="sticky" color="default">
+                    <div className={this.props.classes.wrapperIconHead}>
+                        <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
+                        <span className={this.props.classes.deviceText}>{this.props.channelInfo.type}</span>
+                    </div>
+                    <Tabs
+                        value={this.state.tab}
+                        className={this.props.classes.tab}
+                        classes={{
+                            indicator: this.props.classes.indicator
+                        }}
+                        onChange={(_, newTab) => this.setState({ tab: newTab })}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        aria-label="scrollable auto tabs example"
+                    >
+                        <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
+                        <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
+                    </Tabs>
+                </AppBar>
+                <TabPanel value={this.state.tab} index={0}>
                     <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
-                        {this.renderContent()}
+                        {this.renderVariables()}
                     </div>
-                </DialogContent>
-                <DialogActions>
-                    <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                    <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
-                </DialogActions>
-            </Dialog>,
-            this.renderSelectDialog(),
-            this.renderEditFxDialog(),
-            this.renderCopyDialog(),
+                </TabPanel>
+                <TabPanel value={this.state.tab} index={1}>
+                    <DialogEditProperties
+                        channelId={this.props.channelId}
+                        type={this.props.type}
+                        iot={this.props.iot}
+                        iotNoCommon={this.props.iotNoCommon}
+                        objects={this.props.objects}
+                        patterns={this.props.patterns}
+                        enumIDs={this.props.enumIDs}
+                        socket={this.props.socket}
+                        changeProperties={this.state.changeProperties}
+                        onChange={(state, initState) => {
+                            if (initState) {
+                                return this.setState({ initChangeProperties: initState, changeProperties: initState });
+                            }
+                            this.setState({ changeProperties: state });
+                        }}
+                    />
+                </TabPanel>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    disabled={JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)}
+                    onClick={this.handleOk}
+                    startIcon={<IconCheck />}
+                    color="primary">{I18n.t('Write')}</Button>
+                <Button
+                    variant="contained"
+                    onClick={this.handleClose}
+                    startIcon={<IconClose />}
+                >{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>,
+        this.renderSelectDialog(),
+        this.renderEditFxDialog(),
+        this.renderCopyDialog(),
         ];
     }
 }
