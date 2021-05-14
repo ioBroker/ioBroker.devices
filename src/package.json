@@ -1,46 +1,46 @@
 {
-  "name": "devices-admin",
-  "version": "0.3.16",
-  "private": true,
-  "dependencies": {
-    "@iobroker/adapter-react": "^1.6.3",
-    "@material-ui/core": "^4.11.3",
-    "@material-ui/icons": "^4.11.2",
-    "@sentry/browser": "^6.2.2",
-    "@sentry/integrations": "^6.2.2",
-    "del": "^6.0.0",
-    "gulp": "^4.0.2",
-    "iobroker.type-detector": "^1.0.8",
-    "react": "^17.0.1",
-    "react-color": "^2.19.3",
-    "react-cropper": "^2.1.7",
-    "react-dom": "^17.0.1",
-    "react-dropzone": "^11.3.1",
-    "react-icons": "^4.2.0",
-    "react-image-crop": "^8.6.6",
-    "react-input-color": "^4.0.0",
-    "react-scripts": "^4.0.3"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "homepage": ".",
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+    "name": "devices-admin",
+    "version": "0.3.16",
+    "private": true,
+    "dependencies": {
+        "@iobroker/adapter-react": "^1.6.3",
+        "@material-ui/core": "^4.11.3",
+        "@material-ui/icons": "^4.11.2",
+        "@sentry/browser": "^6.2.2",
+        "@sentry/integrations": "^6.2.2",
+        "del": "^6.0.0",
+        "gulp": "^4.0.2",
+        "iobroker.type-detector": "^1.0.8",
+        "react": "^17.0.1",
+        "react-color": "^2.19.3",
+        "react-cropper": "^2.1.7",
+        "react-dom": "^17.0.1",
+        "react-dropzone": "^11.3.1",
+        "react-icons": "^4.2.0",
+        "react-image-crop": "^8.6.6",
+        "react-input-color": "^4.0.0",
+        "react-scripts": "^4.0.3"
+    },
+    "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject"
+    },
+    "eslintConfig": {
+        "extends": "react-app"
+    },
+    "homepage": ".",
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    }
 }
