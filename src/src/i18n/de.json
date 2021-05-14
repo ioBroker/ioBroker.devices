@@ -83,7 +83,7 @@
     "tooltip_value": "Wert",
     "tooltip_ack": "Bestätigt",
     "tooltip_ts": "Zeitstempel",
-    "tooltip_lc": "Zeit letzte Änderung",
+    "tooltip_lc": "Zeit der letzten Änderung",
     "tooltip_from": "Quelle",
     "tooltip_user": "Benutzer",
     "tooltip_quality": "Qualität",
