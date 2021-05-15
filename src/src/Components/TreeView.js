@@ -6,11 +6,10 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from '@material-ui/core/styles';
+import { withStyles } from '@material-ui/core/styles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemText from '@material-ui/core/ListItemText';
 import IconButton from '@material-ui/core/IconButton';
 import TextField from '@material-ui/core/TextField';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
@@ -18,24 +17,25 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import Button from '@material-ui/core/Button';
-import Fab from '@material-ui/core/Fab';
 
-import {FaFolderOpen as IconFolderOpened} from 'react-icons/fa';
-import {FaFolder as IconFolder} from 'react-icons/fa';
-import {TiLightbulb as IconTypeLight} from 'react-icons/ti'
-import {TiLightbulb as IconTypeDimmer} from 'react-icons/ti'
-import {TiLightbulb as IconTypeSwitch} from 'react-icons/ti'
-import {FaQuestion as IconTypeGeneric} from 'react-icons/fa'
-import {MdExpandMore as IconCollapse} from 'react-icons/md';
-import {MdKeyboardArrowRight as IconExpand} from 'react-icons/md';
-import {MdAdd as IconAdd} from 'react-icons/md';
-import {MdCheck as IconOK} from 'react-icons/md';
-import {MdCancel as IconCancel} from 'react-icons/md';
+import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
+import { FaFolder as IconFolder } from 'react-icons/fa';
+import { TiLightbulb as IconTypeLight } from 'react-icons/ti'
+import { TiLightbulb as IconTypeDimmer } from 'react-icons/ti'
+import { TiLightbulb as IconTypeSwitch } from 'react-icons/ti'
+import { FaQuestion as IconTypeGeneric } from 'react-icons/fa'
+import { MdExpandMore as IconCollapse } from 'react-icons/md';
+import { MdKeyboardArrowRight as IconExpand } from 'react-icons/md';
+import { MdCheck as IconOK } from 'react-icons/md';
+import { MdCancel as IconCancel } from 'react-icons/md';
+import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
 
 import I18n from '@iobroker/adapter-react/i18n';
-import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
+import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
+import { Paper, Tooltip } from '@material-ui/core';
+import clsx from 'clsx';
 
-const LEVEL_OFFSET = 24;
+const LEVEL_OFFSET = 14;
 
 const styles = theme => ({
     expandButton: {
@@ -58,7 +58,7 @@ const styles = theme => ({
         cursor: 'pointer',
         paddingTop: 0,
         paddingBottom: 0,
-        paddingLeft: 4,
+        paddingLeft: 1,
         paddingRight: 0,
         userSelect: 'none'
     },
@@ -85,6 +85,28 @@ const styles = theme => ({
     childrenCount: {
         fontSize: 'smaller',
         opacity: 0.8,
+    },
+    wrapperFoldersBlock: {
+        padding: 10
+    },
+    iconStyle: {
+        minWidth: 40
+    },
+    buttonWrapper: {
+        top: 0,
+        background: theme.palette.type === 'light' ? '#0000000d' : '#ffffff12',
+        marginBottom: 5
+    },
+    iconCommon: {
+        marginLeft: 5,
+        width: 20,
+        height: 20
+    },
+    fontStyle: {
+        fontSize: 14,
+        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+        lineHeight: 1.5,
+        fontWeight: 600
     }
 });
 
@@ -110,7 +132,9 @@ const prepareList = (data, root) => {
         parts.pop();
         result.push({
             id: ids[i],
-            title: Utils.getObjectName(data, ids[i], {language: I18n.getLanguage()}),
+            title: Utils.getObjectName(data, ids[i], { language: I18n.getLanguage() }),
+            icon: obj.common.icon || null,
+            color: obj.common.color || null,
             depth: parts.length - 1,
             type: obj.type,
             parent: parts.length > 2 ? parts.join('.') : null,
@@ -172,7 +196,7 @@ const prepareList = (data, root) => {
                 }
             }
         });
-    } while(modified);
+    } while (modified);
 
     // Fill all parentIndex
     result.forEach(item => {
@@ -215,14 +239,14 @@ class TreeView extends React.Component {
         this.state = {
             listItems,
             expanded,
-            theme:      this.props.theme,
-            selected:   this.props.selected || window.localStorage.getItem('TreeView.selected') || (listItems[0] && listItems[0].id) || '',
-            renaming:   null,
-            deleting:   null,
-            errorText:  '',
-            width:      this.props.width || 300,
+            theme: this.props.theme,
+            selected: this.props.selected || window.localStorage.getItem('TreeView.selected') || (listItems[0] && listItems[0].id) || '',
+            renaming: null,
+            deleting: null,
+            errorText: '',
+            width: this.props.width || 300,
             filterMenuOpened: false,
-            addNew:     false,
+            addNew: false,
             addNewName: '',
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
@@ -262,14 +286,23 @@ class TreeView extends React.Component {
         const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
         const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;
         return (
-            <Dialog key="newDialog" onClose={() => this.setState({addNew: null})} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
+            <Dialog key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
                 <DialogTitle>{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
                 <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
-                    <TextField error={!!error} className={this.props.classes.dialogNewInput}  autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({addNewName: e.target.value})}/>
+                    <TextField error={!!error} className={this.props.classes.dialogNewInput} autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({ addNewName: e.target.value })} />
                 </form>
                 <DialogActions>
-                    <Button disabled={!!error} onClick={() => this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => this.setState({addNew: null, addNewName: ''}))} color="primary" ><IconOK/><span>{I18n.t('OK')}</span></Button>
-                    <Button onClick={() => this.setState({addNew: null, addNewName: ''})} ><IconCancel/><span>{I18n.t('Cancel')}</span></Button>
+                    <Button
+                        variant="contained"
+                        disabled={!!error}
+                        onClick={() => this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => this.setState({ addNew: null, addNewName: '' }))}
+                        startIcon={<IconOK />}
+                        color="primary">{I18n.t('Add')}</Button>
+                    <Button
+                        variant="contained"
+                        onClick={() => this.setState({ addNew: null, addNewName: '' })}
+                        startIcon={<IconCancel />}
+                    >{I18n.t('Cancel')}</Button>
                 </DialogActions>
             </Dialog>);
     }
@@ -294,7 +327,7 @@ class TreeView extends React.Component {
     }
 
     onCollapseAll() {
-        this.setState({expanded: []});
+        this.setState({ expanded: [] });
         this.saveExpanded([]);
     }
 
@@ -305,7 +338,7 @@ class TreeView extends React.Component {
                 expanded.push(item.id);
             }
         });
-        this.setState({expanded});
+        this.setState({ expanded });
         this.saveExpanded(expanded);
     }
 
@@ -322,7 +355,7 @@ class TreeView extends React.Component {
         } else {
             expanded.splice(pos, 1);
         }
-        this.setState({expanded});
+        this.setState({ expanded });
         this.saveExpanded(expanded);
     }
 
@@ -341,7 +374,7 @@ class TreeView extends React.Component {
                 padding: '0 16px 0 0'
             };
         } else {
-            const style =  {
+            const style = {
                 whiteSpace: 'nowrap',
                 padding: '0 16px 0 0'
             };
@@ -359,17 +392,17 @@ class TreeView extends React.Component {
                 <IconButton
                     className={this.props.classes.expandButton}
                     onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}>
-                    {isExpanded ? (<IconCollapse fontSize="small"/>) : (<IconExpand fontSize="small"/>)}
+                    {isExpanded ? (<IconCollapse fontSize="small" />) : (<IconExpand fontSize="small" />)}
                 </IconButton>
             );
         } else {
-            return (<div className={this.props.classes.expandButton}/>);
+            return (<div className={this.props.classes.expandButton} />);
         }
     }
 
     onClick(item, e) {
         window.localStorage.setItem('TreeView.selected', item.id);
-        this.setState({selected: item.id});
+        this.setState({ selected: item.id });
         this.props.onSelect && this.props.onSelect(item.id);
     }
 
@@ -385,7 +418,7 @@ class TreeView extends React.Component {
             return;
         }
 
-        const depthPx = item.depth * LEVEL_OFFSET;
+        const depthPx = item.depth * LEVEL_OFFSET + 10;
 
         let title = item.title;
 
@@ -394,18 +427,18 @@ class TreeView extends React.Component {
             if (pos !== -1) {
                 title = [
                     (<span key="first">{title.substring(0, pos)}</span>),
-                    (<span key="second" style={{color: 'orange'}}>{title.substring(pos, pos + this.state.searchText.length)}</span>),
+                    (<span key="second" style={{ color: 'orange' }}>{title.substring(pos, pos + this.state.searchText.length)}</span>),
                     (<span key="third">{title.substring(pos + this.state.searchText.length)}</span>),
                 ];
             }
         }
 
         const style = Object.assign({
-            marginLeft: depthPx,
-            cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'inherit',
+            paddingLeft: depthPx,
+            borderRadius: 3,
+            cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
             opacity: item.filteredPartly ? 0.5 : 1,
-            width: `calc(100% - ${depthPx}px)`
-        }, item.id === this.state.selected ? {background: this.props.theme.palette.secondary.dark, color: '#FFF'} : {});
+        }, item.id === this.state.selected ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' } : {});
 
         let isExpanded = false;
         if (children && children.length) {
@@ -422,31 +455,39 @@ class TreeView extends React.Component {
         if (!countSpan) {
             iconStyle.opacity = 0.5;
         }
-
+        if (item.id === this.state.selected) {
+            iconStyle.opacity = 1;
+        }
+        iconStyle.color = "#448dde";
 
         const inner = <ListItem
-                key={item.id}
-                style={style}
-                className={ Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder) }
-                onClick={e => this.onClick(item, e)}
-            >
-            <ListItemIcon>{ item.type === 'folder' ?
-                    (isExpanded ? <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/> : <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle}/>)
-                    :
-                    <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def}/>
-                }</ListItemIcon>
-                <ListItemText
-                    classes={{primary: item.id === this.state.selected ? this.props.classes.selected : undefined}}
-                    style={this.getTextStyle(item)}
-                    primary={title}
-                />
-                <ListItemSecondaryAction>{countSpan}</ListItemSecondaryAction>
-            </ListItem>;
+            key={item.id}
+            style={style}
+            onDoubleClick={() => this.toggleExpanded(item.id)}
+            className={Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder)}
+            onClick={e => this.onClick(item, e)}
+        >
+            <ListItemIcon className={this.props.classes.iconStyle}>{item.type === 'folder' ?
+                (isExpanded ?
+                    <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
+                    <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
+                :
+                <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def} />
+            }</ListItemIcon>
+            <div
+                style={Object.assign({ color: item.color, background: Utils.invertColor(item.color, true) }, this.getTextStyle(item))}
+                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+
+            >{title}</div>
+            {item.icon && <img className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
+
+            <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction>
+        </ListItem>;
 
         const result = [inner];
 
         if (isExpanded) {
-            //children.forEach(it => result.push(this.renderOneItem(items, it)));
+            children.forEach(it => result.push(this.renderOneItem(items, it)));
         }
         return result;
     }
@@ -459,23 +500,30 @@ class TreeView extends React.Component {
     }
 
     renderAddButton() {
-        if (!this.props.onAddNew) {
-            return null;
-        } else {
-            return (<Fab
-                disabled={ !this.state.listItems.find(it => it.id === this.state.selected) }
-                key="newFolder"
-                variant="extended"
-                size="small"
-                color="primary"
-                aria-label="add"
-                onClick={() => this.setState({addNew: this.state.listItems.find(it => it.id === this.state.selected)})}
-                className={this.props.classes.addButton}
-            >
-                <IconAdd />
-                {I18n.t('New folder')}
-            </Fab>);
-        }
+
+        return (<Paper className={this.props.classes.buttonWrapper} position="sticky" color="default">
+            {this.props.onAddNew && <Tooltip title={I18n.t('Create new folder')}>
+                <IconButton
+                    color="primary"
+                    onClick={() => this.setState({ addNew: this.state.listItems.find(it => it.id === this.state.selected) })}>
+                    <CreateNewFolderIcon />
+                </IconButton>
+            </Tooltip>}
+            <Tooltip title={I18n.t('Expand all nodes')}>
+                <IconButton
+                    color="primary"
+                    onClick={() => this.onExpandAll()}>
+                    <IconFolderOpened />
+                </IconButton>
+            </Tooltip>
+            <Tooltip title={I18n.t('Collapse all nodes')}>
+                <IconButton
+                    color="primary"
+                    onClick={() => this.onCollapseAll()}>
+                    <IconFolder />
+                </IconButton>
+            </Tooltip>
+        </Paper>);
     }
 
     renderTree() {
@@ -483,11 +531,11 @@ class TreeView extends React.Component {
     }
 
     render() {
-        return [
-            this.renderAddButton(),
-            this.renderTree(),
-            this.renderNewItemDialog(),
-        ];
+        return <Paper className={this.props.classes.wrapperFoldersBlock}>
+            {this.renderAddButton()}
+            {this.renderTree()}
+            {this.renderNewItemDialog()}
+        </Paper>;
     }
 }
 
@@ -495,8 +543,8 @@ TreeView.propTypes = {
     objects: PropTypes.object,
     onSelect: PropTypes.func,
     selected: PropTypes.string,
-    theme:   PropTypes.object,
-    themeType:   PropTypes.string,
+    theme: PropTypes.object,
+    themeType: PropTypes.string,
     root: PropTypes.string,
     onAddNew: PropTypes.func,
 };

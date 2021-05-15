@@ -659,13 +659,13 @@ class DialogEditDevice extends React.Component {
                         <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
                     </Tabs>
                 </AppBar>
-                <TabPanel value={this.state.tab} index={0}>
+                <TabPanel value={this.state.tab} index={1}>
                     <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
                         {this.renderVariables()}
                     </div>
                 </TabPanel>
-                <TabPanel value={this.state.tab} index={1}>
+                <TabPanel value={this.state.tab} index={0}>
                     <DialogEditProperties
                         channelId={this.props.channelId}
                         type={this.props.type}

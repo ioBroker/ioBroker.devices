@@ -107,7 +107,9 @@ class App extends GenericApp {
                     color="default"
                     position="static"
                 >
-                    <Toolbar className={this.props.classes.wrapperMenu}>
+                    <Toolbar
+                        variant="dense"
+                        className={this.props.classes.wrapperMenu}>
                         <div className={this.props.classes.wrapperIconHeader}>
                             <ToggleThemeMenu
                                 toggleTheme={this.toggleTheme}

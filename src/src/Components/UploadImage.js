@@ -9,12 +9,11 @@ import IconButton from '@material-ui/core/IconButton';
 
 import IconClose from '@material-ui/icons/Close';
 import CropIcon from '@material-ui/icons/Crop';
-import AppsIcon from '@material-ui/icons/Apps';
 import { FaFileUpload as UploadIcon } from 'react-icons/fa';
 import { Cropper } from 'react-cropper';
 import "cropperjs/dist/cropper.css";
 import IconList from './icons/icons';
-import TypeIcon from './TypeIcon'
+import IconSelector from './IconSelector';
 
 
 const styles = theme => ({
@@ -75,7 +74,9 @@ const styles = theme => ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        opacity: 0.3,
+        margin: '0 35px'
 
     },
     disabledOpacity: {
@@ -110,7 +111,6 @@ class UploadImage extends Component {
         this.state = {
             uploadFile: false,
             anchorEl: null,
-            anchorElIcons: null,
             cropHandler: false,
         };
         this.cropperRef = createRef();
@@ -144,8 +144,8 @@ class UploadImage extends Component {
     }
 
     render() {
-        const { disabled, maxSize, classes, icon, t, removeIconFunc, accept, error, crop, onChange, icons } = this.props;
-        const { uploadFile, anchorEl, cropHandler, anchorElIcons } = this.state;
+        const { disabled, maxSize, classes, icon, t, removeIconFunc, accept, error, crop, onChange, icons, className } = this.props;
+        const { uploadFile, anchorEl, cropHandler } = this.state;
         return <Dropzone
             disabled={disabled || cropHandler}
             key="dropzone"
@@ -166,6 +166,7 @@ class UploadImage extends Component {
             {({ getRootProps, getInputProps }) => (
                 <div className={clsx(
                     classes.uploadDiv,
+                    className,
                     uploadFile === 'dragging' && classes.uploadDivDragging,
                     classes.dropZone,
                     disabled && classes.disabledOpacity,
@@ -218,38 +219,7 @@ class UploadImage extends Component {
                             </Menu>
                         </div>}
                         {icons && crop && <div className={classes.buttonIconsWrapper}>
-                            <Tooltip title={t('Icons')}>
-                                <IconButton onClick={e => {
-                                    this.setState({ anchorElIcons: e.currentTarget });
-                                    e.stopPropagation();
-                                }}><AppsIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Menu
-                                id="simple-menu"
-                                anchorEl={anchorElIcons}
-                                keepMounted
-                                open={Boolean(anchorElIcons)}
-                                onClose={(e) => {
-                                    this.setState({ anchorElIcons: null });
-                                    e.stopPropagation();
-                                }}
-                            >
-                                {IconList.List.map(el =>
-                                    <MenuItem key={el} onClick={(e) => {
-                                        this.setState({ anchorElIcons: null }, () => {
-                                            onChange(el);
-                                        });
-                                        e.stopPropagation();
-                                    }
-                                    }>
-                                        <TypeIcon src={el} />
-                                    </MenuItem>)}
-                                <MenuItem onClick={(e) => {
-                                    this.setState({ anchorElIcons: null });
-                                    e.stopPropagation();
-                                }}>{t('Close')}</MenuItem>
-                            </Menu>
+                            <IconSelector icons={IconList.List} onSelect={base64 => onChange(base64)} t={t} />
                         </div>}
                         {icon && !cropHandler ? <img src={icon} className={classes.image} alt="icon" /> : null}
 

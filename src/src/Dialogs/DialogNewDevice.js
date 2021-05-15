@@ -6,7 +6,7 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from '@material-ui/core/styles';
+import { withStyles } from '@material-ui/core/styles';
 
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -18,10 +18,12 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
+import IconClose from '@material-ui/icons/Close';
+import IconCheck from '@material-ui/icons/Check';
 
-import {Types} from 'iobroker.type-detector';
+import { Types } from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
-import Utils, {FORBIDDEN_CHARS} from '@iobroker/adapter-react/Components/Utils';
+import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
 
@@ -33,12 +35,6 @@ const styles = theme => ({
         textAlign: 'center',
         paddingBottom: 20,
         color: '#000',
-    },
-    treeDiv: {
-        width: 'calc(50% - 22px)',
-        display: 'inline-block',
-        padding: 10,
-        verticalAlign: 'top',
     },
     nameDiv: {
         width: '50%',
@@ -61,10 +57,50 @@ const styles = theme => ({
     selectIcon: {
         paddingRight: theme.spacing(1),
         verticalAlign: 'middle',
+        width: 20,
+        height: 20
     },
     selectText: {
         verticalAlign: 'middle',
-    }
+    },
+    enumIcon: {
+        width: 24,
+        height: 24,
+        marginRight: 10
+    },
+    renderValueWrapper: {
+        display: 'flex'
+    },
+    renderValueCurrent: {
+        display: 'flex',
+        alignItems: 'center',
+        marginRight: 10
+    },
+    blockFields: {
+        display: 'flex',
+        flex: 1,
+        width: '100%',
+        flexDirection: 'column',
+        margin: 5
+    },
+    container: {
+        display: 'flex',
+        overflowX: 'hidden',
+        flexFlow: 'wrap'
+    },
+    treeDiv: {
+        width: '100%',
+        flex: 1,
+        margin: 5
+    },
+    titleColor: {
+        '& h2': {
+            overflow: 'hidden',
+            direction: 'rtl',
+            textOverflow: 'ellipsis',
+            textAlign: 'end'
+        },
+    },
 });
 
 const UNSUPPORTED_TYPES = [
@@ -143,11 +179,13 @@ class DialogNewDevice extends React.Component {
 
         const stateIds = {};
         const language = I18n.getLanguage();
-
+        // console.log(2222, 45555, this.props.objects)
         ids.forEach(id => stateIds[id] = {
             common: {
-                name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, {language}) : getLastPart(id),
-                nondeletable: true
+                name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, { language }) : getLastPart(id),
+                nondeletable: true,
+                color: this.props.objects[id].common && this.props.objects[id].common.color ? this.props.objects[id].common.color : null,
+                icon: this.props.objects[id].common && this.props.objects[id].common.icon ? this.props.objects[id].common.icon : null
             },
             type: 'folder'
         });
@@ -159,45 +197,61 @@ class DialogNewDevice extends React.Component {
             },
             type: 'folder'
         };
-
+        const functionStorage = JSON.parse(window.localStorage.getItem('Devices.new.functions'));
+        const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
         this.state = {
-            root:      this.prefix,
-            name:      I18n.t('Device') + ' ' + i,
+            root: this.prefix,
+            name: I18n.t('Device') + ' ' + i,
             notUnique: false,
-            functions: window.localStorage.getItem('Devices.new.functions') || '',
-            rooms:     window.localStorage.getItem('Devices.new.rooms')     || '',
-            type:      window.localStorage.getItem('Devices.newType')       || 'light',
-            ids:       stateIds
+            functions: !!roomsStorage && typeof functionStorage !== 'string' ? functionStorage : [],
+            rooms: !!roomsStorage && typeof roomsStorage !== 'string' ? roomsStorage : [],
+            type: window.localStorage.getItem('Devices.newType') || 'light',
+            ids: stateIds
         };
 
     }
-
     renderSelectEnum(name, title) {
         const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
         const language = I18n.getLanguage();
         const objs = enums.map(id => {
             return {
-                name: Utils.getObjectName(this.props.objects, id, {language}),
+                name: Utils.getObjectName(this.props.objects, id, { language }),
                 icon: Utils.getObjectIcon(id, this.props.objects[id]),
                 id: id
             }
         });
-
-        return (<FormControl className={this.props.classes.type + ' ' + this.props.classes.input}>
+        return (<FormControl className={this.props.classes.type}>
             <InputLabel>{title}</InputLabel>
-                <Select
+            <Select
                 className={this.props.classes.oidField}
-                value={this.state[name]}
+                fullWidth
+                multiple
+                renderValue={(arrId) => {
+                    const newArr = arrId.length && typeof arrId !== 'string' ? arrId.map(id => {
+                        return {
+                            name: Utils.getObjectName(this.props.objects, id, { language }),
+                            icon: Utils.getObjectIcon(id, this.props.objects[id]),
+                            id: id
+                        }
+                    }) : []
+                    return <div className={this.props.classes.renderValueWrapper}>
+                        {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
+                            {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                            {obj.name}
+                        </div>))}
+                    </div>
+                }}
+                value={this.state[name] || []}
                 onChange={e => {
-                    localStorage.setItem('Devices.new.' + name, e.target.value);
-                    this.setState({[name]: e.target.value});
+                    localStorage.setItem('Devices.new.' + name, JSON.stringify(e.target.value));
+                    this.setState({ [name]: e.target.value });
                 }}
             >
-                    {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                        {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
-                        {obj.name}
-                    </MenuItem>))}
-                </Select>
+                {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                    {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                    {obj.name}
+                </MenuItem>))}
+            </Select>
         </FormControl>);
     }
 
@@ -205,19 +259,19 @@ class DialogNewDevice extends React.Component {
         return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
-    handleOk() {
+    handleOk = () => {
         // check if name is unique
         this.props.onClose && this.props.onClose({
-            id:        this.generateId(),
-            type:      this.state.type,
-            name:      this.state.name,
+            id: this.generateId(),
+            type: this.state.type,
+            name: this.state.name,
             functions: this.state.functions,
-            rooms:     this.state.rooms,
-            prefix:    this.prefix
+            rooms: this.state.rooms,
+            prefix: this.prefix
         });
     }
 
-    handleCancel() {
+    handleCancel = () => {
         // check if name is unique
         this.props.onClose && this.props.onClose(null);
     }
@@ -225,7 +279,7 @@ class DialogNewDevice extends React.Component {
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
-            return (<img className={this.props.classes.icon} src={obj.icon} alt=""/>);
+            return (<img className={this.props.classes.icon} src={obj.icon} alt="" />);
         } else {
             return null;
         }
@@ -236,7 +290,7 @@ class DialogNewDevice extends React.Component {
         const obj = {
             _id: id,
             common: {
-                name: {[I18n.getLanguage()]: name},
+                name: { [I18n.getLanguage()]: name },
             },
             native: {},
             type: 'folder'
@@ -248,10 +302,10 @@ class DialogNewDevice extends React.Component {
         this.props.socket.setObject(id, obj).then(() => {
             const ids = JSON.parse(JSON.stringify(this.state.ids));
             ids[id] = {
-                common: {name},
+                common: { name },
                 type: 'folder'
             };
-            this.setState({ids}, () => cb && cb());
+            this.setState({ ids }, () => cb && cb());
         });
     }
 
@@ -262,62 +316,67 @@ class DialogNewDevice extends React.Component {
             open={true}
             maxWidth="md"
             fullWidth={true}
-            onClose={() => this.handleOk()}
+            onClose={() => this.handleCancel()}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
             <DialogTitle className={classes.titleBackground}
-                         classes={{root: classes.titleColor}}
-                         id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b></DialogTitle>
-            <DialogContent>
+                classes={{ root: classes.titleColor }}
+                id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b></DialogTitle>
+            <DialogContent className={classes.container}>
                 <div className={classes.treeDiv}>
                     <TreeView
                         themeType={this.props.themeType}
                         theme={this.props.theme}
                         objects={this.state.ids}
                         onAddNew={(name, parentId, cb) => this.addNewFolder(name, parentId, cb)}
-                        onSelect={id => this.setState({root: id})}
+                        onSelect={id => this.setState({ root: id })}
                         root={this.prefix}
                     />
                 </div>
-                <form className={classes.nameDiv} noValidate autoComplete="off">
+                <div className={classes.blockFields}>
                     <TextField
+                        fullWidth
                         label={I18n.t('Device name')}
                         error={!!this.props.objects[this.generateId()]}
-                        className={classes.name + ' ' + classes.input}
+                        className={classes.name}
                         value={this.state.name}
-                        onChange={e => this.setState({name: e.target.value})}
+                        onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
                     />
-                    <br/>
-                    <FormControl className={classes.type + ' ' + classes.input}>
+                    <FormControl className={classes.type}>
                         <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
                         <Select
                             value={this.state.type}
                             onChange={e => {
                                 localStorage.setItem('Devices.newType', e.target.value);
-                                this.setState({type: e.target.value});
+                                this.setState({ type: e.target.value });
                             }}
                         >
                             {this.types
                                 .filter(id => !UNSUPPORTED_TYPES.includes(id))
                                 .map(typeId => <MenuItem key={Types[typeId]} value={Types[typeId]}>
-                                        <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000'}}/>
-                                        <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
-                                    </MenuItem>)}
+                                    <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
+                                    <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
+                                </MenuItem>)}
                         </Select>
                     </FormControl>
-                    <br/>
                     {this.renderSelectEnum('functions', I18n.t('Function'))}
-                    {this.showEnumIcon('functions')}
-                    <br/>
                     {this.renderSelectEnum('rooms', I18n.t('Room'))}
-                    {this.showEnumIcon('rooms')}
-                </form>
+                </div>
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => this.handleOk()} disabled={!!this.props.objects[this.generateId()]} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button onClick={() => this.handleCancel()}>{I18n.t('Cancel')}</Button>
+                <Button
+                    variant="contained"
+                    disabled={!!this.props.objects[this.generateId()]}
+                    onClick={this.handleOk}
+                    startIcon={<IconCheck />}
+                    color="primary">{I18n.t('Create')}</Button>
+                <Button
+                    variant="contained"
+                    onClick={this.handleCancel}
+                    startIcon={<IconClose />}
+                >{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>);
     }
@@ -326,10 +385,10 @@ class DialogNewDevice extends React.Component {
 DialogNewDevice.propTypes = {
     onClose: PropTypes.func,
     objects: PropTypes.object,
-    theme:   PropTypes.object,
-    themeType:   PropTypes.string,
+    theme: PropTypes.object,
+    themeType: PropTypes.string,
     enumIDs: PropTypes.array,
-    socket:  PropTypes.object
+    socket: PropTypes.object
 };
 
 export default withStyles(styles)(DialogNewDevice);

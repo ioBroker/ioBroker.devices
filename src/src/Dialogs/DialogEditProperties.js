@@ -76,7 +76,16 @@ const styles = theme => ({
     },
     enumIcon: {
         width: 24,
-        height: 24
+        height: 24,
+        marginRight: 10
+    },
+    renderValueWrapper: {
+        display: 'flex'
+    },
+    renderValueCurrent:{
+        display: 'flex',
+        alignItems: 'center',
+        marginRight: 10
     },
     funcDivEdit: {
         width: '100%'
@@ -108,6 +117,10 @@ const styles = theme => ({
             fontSize: '0.75rem',
             opacity: 0.6,
         }
+    },
+    sizeDropZone: {
+        height: 200,
+        maxWidth: 500,
     }
 });
 
@@ -207,18 +220,32 @@ class DialogEditProperties extends React.PureComponent {
                 id: id
             }
         });
-
         return (<Select
             className={this.props.classes.oidField}
             value={this.state[name]}
             fullWidth
-            multiple={true}
+            multiple
+            renderValue={(arrId) => {
+                const newArr = arrId.map(id => {
+                    return {
+                        name: Utils.getObjectName(this.props.objects, id, { language }),
+                        icon: Utils.getObjectIcon(id, this.props.objects[id]),
+                        id: id
+                    }
+                })
+                return <div className={this.props.classes.renderValueWrapper}>
+                    {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
+                        {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                        {obj.name}
+                    </div>))}
+                </div>
+            }}
             onChange={e => {
                 this.setState({ [name]: e.target.value })
             }}
         >
             {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                {/*obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)*/}
+                {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
                 {obj.name}
             </MenuItem>))}
         </Select>);
@@ -244,15 +271,6 @@ class DialogEditProperties extends React.PureComponent {
             smartName = smartName[language] || smartName.en || '';
         }
         return smartName || '';
-    }
-
-    showEnumIcon(name) {
-        const obj = this.props.objects[this.state[name]];
-        if (obj && obj.common && obj.common.icon) {
-            return (<img className={this.props.classes.icon} src={obj.icon} alt="" />);
-        } else {
-            return null;
-        }
     }
 
     handleIcon(file) {
@@ -308,12 +326,10 @@ class DialogEditProperties extends React.PureComponent {
                 <div className={classes.divOidField}>
                     <div className={classes.oidName} >{I18n.t('Function')}</div>
                     {this.renderSelectEnum('functions')}
-                    {this.showEnumIcon('functions')}
                 </div>
                 <div className={classes.divOidField}>
                     <div className={classes.oidName} >{I18n.t('Room')}</div>
                     {this.renderSelectEnum('rooms')}
-                    {this.showEnumIcon('rooms')}
                 </div>
                 <div className={classes.divOidField}>
                     <div className={classes.oidName} >{I18n.t('Color')}</div>
@@ -337,6 +353,7 @@ class DialogEditProperties extends React.PureComponent {
                 <UploadImage
                     crop
                     icons
+                    className={classes.sizeDropZone}
                     maxSize={256 * 1024}
                     icon={this.state.icon}
                     removeIconFunc={() => this.setState({ icon: '' })}

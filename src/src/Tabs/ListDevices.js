@@ -741,7 +741,7 @@ class ListDevices extends Component {
                     <Tooltip title={I18n.t('Edit states')}>
                         <IconButton
                             style={{ color }}
-                            size="small"
+                            // size="small"
                             onClick={e => this.onEdit(index, e)}>
                             <IconEdit />
                         </IconButton>
@@ -750,7 +750,7 @@ class ListDevices extends Component {
                         <Tooltip title={I18n.t('Delete device with all states')}>
                             <IconButton
                                 style={{ color }}
-                                size="small"
+                                // size="small"
                                 onClick={e => {
                                     e.stopPropagation();
                                     this.setState({ deleteIndex: index });
@@ -1495,36 +1495,7 @@ class ListDevices extends Component {
                 }
             });
 
-            // add channel to function
-            if (options.functions && this.objects[options.functions]) {
-                promises.push(this.props.socket.getObject(options.functions)
-                    .then(obj => {
-                        if (obj && obj.common) {
-                            obj.common.members = obj.common.members || [];
-                            if (!obj.common.members.includes(options.id)) {
-                                obj.common.members.push(options.id);
-                                obj.common.members.sort();
-                                this.objects[obj._id] = obj;
-                                return this.props.socket.setObject(obj._id, obj);
-                            }
-                        }
-                    }));
-            }
-            // add channel to room
-            if (options.rooms && this.objects[options.rooms]) {
-                promises.push(this.props.socket.getObject(options.rooms)
-                    .then(obj => {
-                        if (obj && obj.common) {
-                            obj.common.members = obj.common.members || [];
-                            if (!obj.common.members.includes(options.id)) {
-                                obj.common.members.push(options.id);
-                                obj.common.members.sort();
-                                this.objects[obj._id] = obj;
-                                return this.props.socket.setObject(obj._id, obj);
-                            }
-                        }
-                    }));
-            }
+            this.setEnumsOfDevice(options.id, options.functions, options.rooms,promises);
 
             Promise.all(promises)
                 .then(() => {

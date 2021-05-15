@@ -4,7 +4,7 @@
 - Dialogs must act by ENTER
 - Scroll of devices: header must be always on top
 - Show only aliases by default is ON.
-- AppBar => dense
+<!-- - AppBar => dense -->
 
 ## List of devices
 - Show devices in form of folders in ID mode
