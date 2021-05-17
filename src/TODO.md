@@ -6,6 +6,11 @@
 - Show only aliases by default is ON.
 <!-- - AppBar => dense -->
 
+## Edit device dialog
+- if name not exist => do not show "undefined"
+- Alias can be an object {read: "ID1", write: "ID2"} 
+  Edit dialog must support it
+
 ## List of devices
 - Show devices in form of folders in ID mode
 - Better visualisation of folders in non ID mode
@@ -15,10 +20,12 @@
 - use special controls for room/function
 - Use SVG control for Rooms/Functions icons in dialog
 
-## Folder contorl in new device dialog
+## Folder control in new device dialog
 - Create new folder selector and creator like javascript
 - Change icon for create new device
 - Add expand/collapse all folder icons
+- By creation of new folder process on ENTER event
+- minHeight of folder control is equal with fields on the right
 
 ## Add new device dialog
 - Use special controls for rooms/functions
@@ -41,7 +48,7 @@
 - Use normal translated names for types: e.g. vacuumCleaner => Робот-пылесос, light => Свет
 
 ## Types
-- Check all types that they exists and could be created
+- Check all types that they exist and could be created
 
 ## Functionality
 - Do not search in parent if it is folder (only in devices/channels)
