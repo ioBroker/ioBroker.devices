@@ -106,7 +106,20 @@ const styles = theme => ({
         fontSize: 14,
         fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
         lineHeight: 1.5,
-        fontWeight: 600
+        fontWeight: 600,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        paddingRight: '30px !important'
+    },
+    addNewFolderTitle:{
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        '& h2':{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+        }
     }
 });
 
@@ -227,7 +240,7 @@ class TreeView extends React.Component {
         } catch (e) {
             expanded = null;
         }
-
+        console.log(222333,props.objects)
         const listItems = prepareList(props.objects || {});
 
         if (expanded === null) {
@@ -287,7 +300,7 @@ class TreeView extends React.Component {
         const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;
         return (
             <Dialog key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
-                <DialogTitle>{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
+                <DialogTitle className={this.props.classes.addNewFolderTitle} >{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
                 <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
                     <TextField error={!!error} className={this.props.classes.dialogNewInput} autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({ addNewName: e.target.value })} />
                 </form>

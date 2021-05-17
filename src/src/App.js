@@ -15,7 +15,7 @@ const styles = theme => ({
     root: {},
     tabContent: {
         padding: 10,
-        height: 'calc(100% - 64px - 20px)',
+        height: 'calc(100% - 48px - 20px)',
         overflow: 'auto',
         // background: theme.palette.type === 'light' ? 'white' : 'gray',
     },

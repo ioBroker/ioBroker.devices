@@ -4,10 +4,8 @@
 - Dialogs must act by ENTER
 - Scroll of devices: header must be always on top
 - Show only aliases by default is ON.
-<!-- - AppBar => dense -->
-
 ## Edit device dialog
-- if name not exist => do not show "undefined"
+- if name in english does not exist => do not show "undefined"
 - Alias can be an object {read: "ID1", write: "ID2"} 
   Edit dialog must support it
 
@@ -18,7 +16,14 @@
 - Make font for name a bit bigger
 - Make ID italic in the list
 - use special controls for room/function
-- Use SVG control for Rooms/Functions icons in dialog
+- Use Icon control for Rooms/Functions icons in dialog
+- Translate device type
+- Add to device type the icon
+- Where is 00091BE99106CB.1 in ID view
+- Why some devices are double in name view
+- Edit folders (icon, color, name) and delete (only empty one)
+- Remove root
+- Add folder "Automatically detected" and do not allow creation of the folder with same name
 
 ## Folder control in new device dialog
 - Create new folder selector and creator like javascript
@@ -30,7 +35,7 @@
 ## Add new device dialog
 - Use special controls for rooms/functions
 - Add Alexa/Google/Alisa/Material icons for every type of device by drop down menu
-- Remove instance from drop down menu
+- Remove "instance" from drop down menu
 - Better layout: use full width for text inputs
 - Drop down menu for types: icons have strange size
 - States => Definition of states and providing of IDs

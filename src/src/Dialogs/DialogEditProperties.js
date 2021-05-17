@@ -7,15 +7,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
+
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Switch from '@material-ui/core/Switch';
 import TypeIcon from '../Components/TypeIcon';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import UploadImage from '../Components/UploadImage';
+
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
+import Icon from '@iobroker/adapter-react/Components/Icon';
+
+import UploadImage from '../Components/UploadImage';
 
 const styles = theme => ({
     header: {
@@ -235,7 +239,7 @@ class DialogEditProperties extends React.PureComponent {
                 })
                 return <div className={this.props.classes.renderValueWrapper}>
                     {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
-                        {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                        {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
                         {obj.name}
                     </div>))}
                 </div>
@@ -245,7 +249,7 @@ class DialogEditProperties extends React.PureComponent {
             }}
         >
             {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
                 {obj.name}
             </MenuItem>))}
         </Select>);

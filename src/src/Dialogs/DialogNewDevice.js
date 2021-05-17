@@ -91,7 +91,8 @@ const styles = theme => ({
     treeDiv: {
         width: '100%',
         flex: 1,
-        margin: 5
+        margin: 5,
+        overflow:'hidden'
     },
     titleColor: {
         '& h2': {
@@ -179,7 +180,6 @@ class DialogNewDevice extends React.Component {
 
         const stateIds = {};
         const language = I18n.getLanguage();
-        // console.log(2222, 45555, this.props.objects)
         ids.forEach(id => stateIds[id] = {
             common: {
                 name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, { language }) : getLastPart(id),
@@ -307,6 +307,7 @@ class DialogNewDevice extends React.Component {
             };
             this.setState({ ids }, () => cb && cb());
         });
+        this.props.onChange('render')
     }
 
     render() {

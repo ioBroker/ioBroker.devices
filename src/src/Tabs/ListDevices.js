@@ -52,7 +52,23 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { Types } from 'iobroker.type-detector';
-import { Card, FormControl, InputAdornment, InputLabel, TextField, Tooltip } from '@material-ui/core';
+import { Card, FormControl, InputAdornment, InputLabel, List, ListItem, ListItemIcon, ListItemSecondaryAction, TextField, Tooltip } from '@material-ui/core';
+
+import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
+import { FaFolder as IconFolder } from 'react-icons/fa';
+import { TiLightbulb as IconTypeLight } from 'react-icons/ti'
+import { TiLightbulb as IconTypeDimmer } from 'react-icons/ti'
+import { TiLightbulb as IconTypeSwitch } from 'react-icons/ti'
+import { FaQuestion as IconTypeGeneric } from 'react-icons/fa'
+import clsx from 'clsx';
+
+
+const images = {
+    'dimmer': IconTypeDimmer,
+    'light': IconTypeLight,
+    'socket': IconTypeSwitch,
+    def: IconTypeGeneric,
+};
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -90,6 +106,136 @@ const TYPES_MAPPING = {
     level: 'number',
     indicator: 'boolean',
     action: 'boolean'
+};
+
+const UNSUPPORTED_TYPES = [
+    Types.unknown
+];
+
+function getParentId(id) {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(0, pos);
+    } else {
+        return '';
+    }
+}
+
+function getLastPart(id) {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(pos + 1);
+    } else {
+        return id;
+    }
+}
+
+const prepareList = (data, root) => {
+    const result = [];
+    const ids = Object.keys(data);
+    root = root || '';
+
+    // place common and global scripts at the end
+    ids.sort((a, b) => {
+        if ((a === 'script.js.common' || a === 'script.js.global') && (b === 'script.js.common' || b === 'script.js.global')) {
+            return a > b ? 1 : -1;
+        } else if (a === 'script.js.common' || a === 'script.js.global' || b === 'script.js.common' || b === 'script.js.global') {
+            return 1;
+        } else {
+            return a > b ? 1 : -1;
+        }
+    });
+
+    for (let i = 0; i < ids.length; i++) {
+        const obj = data[ids[i]];
+        const parts = ids[i].split('.');
+        parts.pop();
+        result.push({
+            id: ids[i],
+            title: Utils.getObjectName(data, ids[i], { language: I18n.getLanguage() }),
+            icon: obj.common?.icon || null,
+            color: obj.common?.color || null,
+            depth: parts.length - 1,
+            type: obj.type,
+            role: obj.role,
+            parent: parts.length > 2 ? parts.join('.') : null,
+            instance: obj.common?.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null
+        });
+    }
+
+    // Place all folder-less items at start
+    result.sort((a, b) => {
+        // without folders => always at start
+        if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
+            if (a.id === b.id) return 0;
+            return a.id > b.id ? 1 : -1;
+        } else if (!a.parent && a.type !== 'folder') {
+            return 1;
+        } else if (!b.parent && b.type !== 'folder') {
+            return -1;
+        } else {
+            // common and global are always at the end
+            if ((a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) &&
+                (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global'))) {
+                if (a.id === b.id) return 0;
+                return a.id > b.id ? 1 : -1;
+            } else if (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) {
+                return 1;
+            } else if (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global')) {
+                return -1;
+            } else {
+                if (a.type !== b.type) {
+                    if (a.type === 'folder') return -1;
+                    if (b.type === 'folder') return 1;
+                    return 0;
+                } else {
+                    if (a.id === b.id) return 0;
+                    return a.id > b.id ? 1 : -1;
+                }
+            }
+        }
+    });
+
+    // Fill all index
+    result.forEach((item, i) => item.index = i);
+
+    let modified;
+    const regEx = new RegExp('^' + root.replace(/\./g, '\\.'));
+    do {
+        modified = false;
+        // check if all parents exists
+
+        // eslint-disable-next-line no-loop-func
+        result.forEach(item => {
+            if (item.parent) {
+                const parent = result.find(it => it.id === item.parent);
+                if (!parent) {
+                    const parts = item.parent.split('.');
+                    parts.pop();
+                    result.push({
+                        id: item.parent,
+                        title: root ? item.parent.replace(regEx, '') : item.parent,
+                        depth: parts.length - 1,
+                        type: 'folder',
+                        parent: parts.length >= 2 ? parts.join('.') : null
+                    });
+                    modified = true;
+                }
+            }
+        });
+    } while (modified);
+
+    // Fill all parentIndex
+    result.forEach(item => {
+        if (item.parent) {
+            const parent = result.find(it => it.id === item.parent);
+            if (parent) {
+                item.parentIndex = parent.index;
+            }
+        }
+    });
+
+    return result;
 };
 
 const WIDTHS = [
@@ -360,6 +506,20 @@ const styles = theme => ({
     },
     emptyBlock: {
         width: 24
+    },
+    displayFlex: {
+        display: 'flex',
+        alignItems: 'center'
+    },
+    iconCommon: {
+        width: 24,
+        height: 24
+    },
+    fontStyle: {
+        maxWidth: 200,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
     }
 });
 
@@ -380,11 +540,27 @@ class ListDevices extends Component {
             expanded = [];
         }
 
+        let expandedIDs = window.localStorage ? window.localStorage.getItem('IDs.expanded') : '';
+        try {
+            expandedIDs = expandedIDs ? JSON.parse(expandedIDs) || null : null;
+        } catch (e) {
+            expandedIDs = null;
+        }
+        // console.log(222,this,listItems)
+
+        // if (expanded === null) {
+        //     expanded = [];
+        //     listItems.forEach(item =>
+        //         expanded.includes(item.parent) && expanded.push(item.parent));
+        // }
+
         this.state = {
             editIndex: location.dialog === 'edit' ? location.id : null,
             deleteIndex: null,
             deleteId: '',
             editEnum: null,
+            listItems: [],
+            expandedIDs,
 
             windowWidth: window.innerWidth,
             showAddDialog: '',
@@ -525,9 +701,95 @@ class ListDevices extends Component {
                 // find channelID for every device
                 devices.forEach(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
 
-                this.setState({ devices, loading: false, browse: false });
+                ///////
+
+                const listItems = this.onObjectsGenerate(this.objects || {});
+                let expandedIDs = this.state.expandedIDs;
+                if (expandedIDs === null) {
+                    expandedIDs = [];
+                    listItems.forEach(item =>
+                        expandedIDs.includes(item.parent) && expandedIDs.push(item.parent));
+                }
+
+                ///////
+
+                this.setState({ devices, expandedIDs, listItems, loading: false, browse: false });
             });
     }
+
+
+    onObjectsGenerate = (objects) => {
+        this.prefix = this.props.prefix || 'alias.0';
+        let i = 1;
+        while (objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
+            i++;
+        }
+
+        const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
+
+        const ids = [];
+
+        Object.keys(objects).forEach(id => {
+            if (id.startsWith(prefix) &&
+                objects[id] &&
+                objects[id].common &&
+                (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder')) {
+                let parentId;
+                // getParentId
+                if (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder') {
+                    parentId = id;
+                } else {
+                    parentId = getParentId(id);
+                }
+
+                if (parentId && !ids.includes(parentId)) {
+                    ids.push(parentId);
+                }
+            }
+        });
+        this.typesWords = {};
+        Object.keys(Types)
+            .filter(id => !UNSUPPORTED_TYPES.includes(id))
+            .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
+
+        // sort types by ABC in the current language
+        this.types = Object.keys(this.typesWords).sort((a, b) => {
+            if (this.typesWords[a] === this.typesWords[b]) {
+                return 0;
+            }
+            if (this.typesWords[a] > this.typesWords[b]) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+
+        const stateIds = {};
+        const language = I18n.getLanguage();
+        ids.forEach(id => {
+
+            return stateIds[id] = {
+                common: {
+                    name: objects[id] && objects[id].type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
+                    nondeletable: true,
+                    color: objects[id].common && objects[id].common.color ? objects[id].common.color : null,
+                    icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : null
+                },
+                type: objects[id].type,
+                role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null
+            }
+        });
+
+        stateIds[this.prefix] = {
+            common: {
+                name: I18n.t('Root'),
+                nondeletable: true
+            },
+            type: 'folder'
+        };
+        return prepareList(stateIds)
+    }
+
 
     updateEnumsForOneDevice(device, funcEnums, roomsEnums) {
         funcEnums = funcEnums || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
@@ -727,7 +989,7 @@ class ListDevices extends Component {
             <TableCell style={{ color }} className={classes.tableExpandIconCell} />
             <TableCell style={{ color }} className={classes.tableIconCell}>
                 <div className={classes.tableIcon}>
-                    <TypeIcon src={device.icon} className={classes.tableIconImg} type={device.type} />
+                    <TypeIcon style={{ color }} src={device.icon} className={classes.tableIconImg} type={device.type} />
                 </div>
             </TableCell>
             <TableCell style={{ color }} className={classes.tableNameCell}>{device.name}{smartName !== '' ? (<div className={classes.tableSmartName}>{smartName || I18n.t('disabled')}</div>) : null}</TableCell>
@@ -762,9 +1024,206 @@ class ListDevices extends Component {
             </TableCell>
         </TableRow>);
     }
+    saveExpanded(expandedIDs) {
+        window.localStorage.setItem('IDs.expanded', JSON.stringify(expandedIDs || this.state.expandedIDs));
+    }
+
+    toggleExpanded(id) {
+        const expandedIDs = this.state.expandedIDs.slice();
+        const pos = expandedIDs.indexOf(id);
+        if (pos === -1) {
+            expandedIDs.push(id);
+            expandedIDs.sort();
+        } else {
+            expandedIDs.splice(pos, 1);
+        }
+        this.setState({ expandedIDs });
+        this.saveExpanded(expandedIDs);
+    }
+
+    getTextStyle(item) {
+        if (item.type !== 'folder') {
+            return {
+                //width: 130,
+                // width: `calc(100% - ${this.state.width > 350 ? 210 : 165}px)`,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                flex: 'none',
+                padding: '0 16px 0 16px'
+            };
+        } else {
+            const style = {
+                whiteSpace: 'nowrap',
+                padding: '0 16px 0 16px'
+            };
+            if (item.id === this.state.selected) {
+                style.fontWeight = 'bold'
+            }
+
+            return style;
+        }
+    }
+
+    renderOneItem(items, item) {
+        let childrenFiltered = (this.state.searchText || this.state.typeFilter) && items.filter(i => i.parent === item.id ? !this.isFilteredOut(i) : false);
+        let children = items.filter(i => i.parent === item.id);
+
+        if (this.isFilteredOut(item)) {
+            return;
+        }
+
+        if (item.type === 'folder' && (this.state.searchText || this.state.typeFilter) && !childrenFiltered.length) {
+            return;
+        }
+
+        const depthPx = item.depth * 20 + 10;
+
+        let title = item.title;
+
+        if (this.state.searchText) {
+            const pos = title.toLowerCase().indexOf(this.state.searchText.toLowerCase());
+            if (pos !== -1) {
+                title = [
+                    (<span key="first">{title.substring(0, pos)}</span>),
+                    (<span key="second" style={{ color: 'orange' }}>{title.substring(pos, pos + this.state.searchText.length)}</span>),
+                    (<span key="third">{title.substring(pos + this.state.searchText.length)}</span>),
+                ];
+            }
+        }
+
+        const style = Object.assign({
+            paddingLeft: depthPx,
+            borderRadius: 3,
+            cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
+            opacity: item.filteredPartly ? 0.5 : 1,
+        }, item.id === this.state.selected ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' } : {});
+
+        let isExpanded = false;
+        if (children && children.length) {
+            isExpanded = this.state.expandedIDs.includes(item.id);
+        }
+
+        let iconStyle = {};
+        let countSpan = (childrenFiltered && childrenFiltered.length) || children.length ?
+            (<span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ?
+                `${childrenFiltered.length}(${children.length})` :
+                children.length}</span>)
+            : null;
+
+        if (!countSpan) {
+            iconStyle.opacity = 0.5;
+        }
+        if (item.id === this.state.selected) {
+            iconStyle.opacity = 1;
+        }
+        iconStyle.color = "#448dde";
+        iconStyle.width = 36;
+        iconStyle.height = 36;
+
+        const classes = this.props.classes;
+        let background = null;
+        let color = null;
+        let index = null;
+
+        const device = this.state.devices.find(el => el.channelId === item.id);
+        const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
+        const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
+
+        if (device) {
+            background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
+            color = Utils.invertColor(background, true);
+            index = this.state.devices.indexOf(device);
+        }else{
+            background = item.color;
+            color = Utils.invertColor(background, true);
+        }
+
+        let j = 0;
+
+        const inner = <TableRow
+        style={{ background }}
+            key={item.id} padding="default" >
+            <TableCell
+                colSpan={3}
+                style={style}
+                onDoubleClick={() => this.toggleExpanded(item.id)}
+                className={Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder)}
+            // onClick={e => this.onClick(item, e)}
+            >
+                <div className={classes.displayFlex}>
+                    <ListItemIcon className={this.props.classes.iconStyle}>{item.type === 'folder' ?
+                        (isExpanded ?
+                            <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
+                            <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
+                        :
+                        <div className={this.props.classes.tableIcon}>
+                            <TypeIcon src={item.icon} className={this.props.classes.tableIconImg} type={item.role} />
+                        </div>
+                    }</ListItemIcon>
+                    <div
+                        style={Object.assign({color},this.getTextStyle(item)) }
+                        className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+
+                    >{title}</div>
+                    {item.type === 'folder' && item.icon && <img className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
+
+                    {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
+                </div>
+            </TableCell>
+            {/* <TableCell  /> */}
+            {/* <TableCell style={{ color }} className={classes.tableNameCell}>{item.id}</TableCell> */}
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell>) : null}
+
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>
+                {this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}
+            </TableCell>) : null}
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{device.type}</TableCell>) : null}
+            {device && this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ color }}>{device.usedStates}</TableCell>) : null}
+            {device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+                <div className={classes.wrapperButton}>
+                    <Tooltip title={I18n.t('Edit states')}>
+                        <IconButton
+                            style={{ color }}
+                            // size="small"
+                            onClick={e => this.onEdit(index, e)}
+                        >
+                            <IconEdit />
+                        </IconButton>
+                    </Tooltip>
+                    {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
+                        <Tooltip title={I18n.t('Delete device with all states')}>
+                            <IconButton
+                                style={{ color }}
+                                // size="small"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.setState({ deleteIndex: index });
+                                }}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip> : <div className={classes.emptyBlock} />}
+                </div>
+            </TableCell>}
+            {!device && <TableCell colSpan={5} />}
+        </TableRow>;
+
+        const result = [inner];
+
+        if (isExpanded) {
+            children.forEach(it => result.push(this.renderOneItem(items, it)));
+        }
+        return result;
+    }
+
+    renderAllItems(items, dragging) {
+        const result = [];
+        items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
+
+        return result;
+    }
 
     renderDevices() {
-        const result = [];
+        let result = [];
         const classes = this.props.classes;
         const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
@@ -880,7 +1339,16 @@ class ListDevices extends Component {
                         result.push(devices);
                     }
                 });
-            } else {
+            } else if (this.state.orderBy === 'IDs') {
+                /////////// IDs
+                // for (let i = 0; i < this.state.devices.length; i++) {
+                //     if (!this.isFilteredOut(this.state.devices[i])) {
+                //         result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
+                //     }
+                // }
+                result = this.renderAllItems(this.state.listItems);
+            }
+            else {
                 for (let i = 0; i < this.state.devices.length; i++) {
                     if (!this.isFilteredOut(this.state.devices[i])) {
                         result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
@@ -898,7 +1366,7 @@ class ListDevices extends Component {
                         <TableCell className={classes.tableIconCell} />
                         <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>Name</TableCell>
                         {/* <TableCell /> */}
-                        {this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>ID</TableCell>) : null}
+                        {this.state.orderBy !== 'IDs' && this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>ID</TableCell>) : null}
                         {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Function</TableCell>) : null}
                         {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Room</TableCell>) : null}
                         {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Type</TableCell>) : null}
@@ -1063,7 +1531,7 @@ class ListDevices extends Component {
                             const devices = JSON.parse(JSON.stringify(this.state.devices));
                             // update enums, name
                             this.updateEnumsForOneDevice(devices[this.state.editIndex]);
-                            this.setState({  devices });
+                            this.setState({ devices });
                         }
                     });
             }}
@@ -1495,7 +1963,7 @@ class ListDevices extends Component {
                 }
             });
 
-            this.setEnumsOfDevice(options.id, options.functions, options.rooms,promises);
+            this.setEnumsOfDevice(options.id, options.functions, options.rooms, promises);
 
             Promise.all(promises)
                 .then(() => {
@@ -1519,6 +1987,7 @@ class ListDevices extends Component {
             theme={this.props.theme}
             objects={this.objects}
             socket={this.props.socket}
+            onChange={el=>setTimeout(() => this.detectDevices(), 0)}
             enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
             onClose={options => {
