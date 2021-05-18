@@ -109,5 +109,6 @@
   "Copy device into aliases": "Copy device into aliases",
   "type-vacuumCleaner": "Vacuum cleaner",
   "Show expert settings": "Show expert settings",
-  "Show hide indicators": "Show/hide indicators"
+  "Show hide indicators": "Show/hide indicators",
+  "Automatically detected": "Automatically detected"
 }
