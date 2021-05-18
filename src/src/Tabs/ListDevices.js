@@ -52,23 +52,14 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { Types } from 'iobroker.type-detector';
-import { Card, FormControl, InputAdornment, InputLabel, List, ListItem, ListItemIcon, ListItemSecondaryAction, TextField, Tooltip } from '@material-ui/core';
+import { Card, FormControl, InputAdornment, InputLabel, ListItemIcon, TextField, Tooltip } from '@material-ui/core';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
-import { TiLightbulb as IconTypeLight } from 'react-icons/ti'
-import { TiLightbulb as IconTypeDimmer } from 'react-icons/ti'
-import { TiLightbulb as IconTypeSwitch } from 'react-icons/ti'
-import { FaQuestion as IconTypeGeneric } from 'react-icons/fa'
 import clsx from 'clsx';
-
-
-const images = {
-    'dimmer': IconTypeDimmer,
-    'light': IconTypeLight,
-    'socket': IconTypeSwitch,
-    def: IconTypeGeneric,
-};
+import { deleteFolderCallBack } from '../Dialogs/DeleteFolder';
+import { editFolderCallBack } from '../Dialogs/EditFolder';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -151,13 +142,14 @@ const prepareList = (data, root) => {
         const parts = ids[i].split('.');
         parts.pop();
         result.push({
-            id: ids[i],
+            id: obj.obj?._id || ids[i],
             title: Utils.getObjectName(data, ids[i], { language: I18n.getLanguage() }),
             icon: obj.common?.icon || null,
             color: obj.common?.color || null,
             depth: parts.length - 1,
             type: obj.type,
             role: obj.role,
+            obj: obj.obj,
             parent: parts.length > 2 ? parts.join('.') : null,
             instance: obj.common?.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null
         });
@@ -505,21 +497,41 @@ const styles = theme => ({
         justifyContent: 'flex-end'
     },
     emptyBlock: {
-        width: 24
+        width: 48
     },
     displayFlex: {
         display: 'flex',
         alignItems: 'center'
     },
     iconCommon: {
-        width: 24,
-        height: 24
+        width: 20,
+        height: 20,
+        position: 'absolute',
+        top: 10,
+        left: 8,
+        opacity: 0.8
+    },
+    iconStyle: {
+        position: 'relative'
     },
     fontStyle: {
         maxWidth: 200,
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
+    },
+    wrapperIconEnumCell: {
+        display: 'flex',
+        alignItems: 'center',
+        marginLeft: 3,
+        marginRight: 3
+    },
+    enumIcon: {
+        width: 16,
+        height: 16,
+    },
+    nameEnumCell: {
+        marginLeft: 3
     }
 });
 
@@ -703,7 +715,7 @@ class ListDevices extends Component {
 
                 ///////
 
-                const listItems = this.onObjectsGenerate(this.objects || {});
+                const listItems = this.onObjectsGenerate(this.objects || {}, devices);
                 let expandedIDs = this.state.expandedIDs;
                 if (expandedIDs === null) {
                     expandedIDs = [];
@@ -718,7 +730,7 @@ class ListDevices extends Component {
     }
 
 
-    onObjectsGenerate = (objects) => {
+    onObjectsGenerate = (objects,devices) => {
         this.prefix = this.props.prefix || 'alias.0';
         let i = 1;
         while (objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
@@ -775,18 +787,41 @@ class ListDevices extends Component {
                     color: objects[id].common && objects[id].common.color ? objects[id].common.color : null,
                     icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : null
                 },
+                obj: objects[id],
                 type: objects[id].type,
                 role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null
             }
         });
+        console.log(2222, stateIds)
 
-        stateIds[this.prefix] = {
+        stateIds[`${this.prefix}.automatically_detected`] = {
             common: {
-                name: I18n.t('Root'),
-                nondeletable: true
+                name: I18n.t('Automatically detected'),
+                nondeletable: true,
             },
             type: 'folder'
         };
+
+        let devicesArr = devices || this.state.devices;
+        
+        devicesArr = devicesArr.filter(({channelId})=>!channelId.startsWith('alias.0'))
+        devicesArr.forEach(device=>{
+            console.log(222,1111,device)
+            stateIds[`${this.prefix}.automatically_detected.${Utils.getObjectName(objects, device.channelId, { language })}`] = {
+                common: {
+                    name:  Utils.getObjectName(objects, device.channelId, { language }),
+                    nondeletable: true,
+                    color: objects[device.channelId].common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                    icon: objects[device.channelId].common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                },
+                obj: objects[device.channelId],
+                type: objects[device.channelId].type,
+                role:device.type
+            }
+
+        })
+        console.log(2222, 'test,', stateIds)
+
         return prepareList(stateIds)
     }
 
@@ -946,17 +981,29 @@ class ListDevices extends Component {
     }
 
     isFilteredOut(device) {
-        if (this.filter &&
-            device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
-            device.name.toLowerCase().indexOf(this.filter) === -1) {
-            return true;
-        }
+        if (this.state.orderBy === 'IDs') {
+            if (this.filter &&
+                Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().indexOf(this.filter) === -1 &&
+                device.id.toLowerCase().indexOf(this.filter) === -1) {
+                return true;
+            }
+            if (this.state.onlyAliases && device.id === "alias.0.automatically_detected") {
+                return true
+            }
+            return false;
+        } else {
+            if (this.filter &&
+                device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
+                device.name.toLowerCase().indexOf(this.filter) === -1) {
+                return true;
+            }
 
-        if (this.state.hideInfo && device.type === Types.info) {
-            return true;
-        }
+            if (this.state.hideInfo && device.type === Types.info) {
+                return true;
+            }
 
-        return this.state.onlyAliases && !device.channelId.startsWith(ALIAS) && !device.channelId.startsWith(LINKEDDEVICES);
+            return this.state.onlyAliases && !device.channelId?.startsWith(ALIAS) && !device.channelId?.startsWith(LINKEDDEVICES);
+        }
     }
 
     onEditEnum(values, enums, index) {
@@ -964,13 +1011,30 @@ class ListDevices extends Component {
     }
 
     renderEnumCell(names, values, enums, index) {
+        const objs = values.map(id => ({
+            icon: Utils.getObjectIcon(id, this.objects[id]),
+            name: Utils.getObjectName(this.objects, id, { language: I18n.getLanguage() }),
+            id
+        }))
         return (<ButtonBase
             focusRipple
             onClick={() => this.onEditEnum(values, enums, index)}
             className={this.props.classes.enumsEdit}
             focusVisibleClassName={this.props.classes.enumsEditFocusVisible}
-        >{names}</ButtonBase>);
+        >{objs.map(obj => <div className={this.props.classes.wrapperIconEnumCell} key={obj.id}>
+            {obj.icon && <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />}
+            <div className={this.props.classes.nameEnumCell}>{obj.name}</div>
+        </div>)}</ButtonBase>);
     }
+
+    renderTypeCell(type) {
+        return <div className={this.props.classes.wrapperIconEnumCell}>
+            <TypeIcon className={this.props.classes.enumIcon} type={type} />
+            <div className={this.props.classes.nameEnumCell}>{type}</div>
+        </div>;
+    }
+
+
 
     renderDevice(key, index, device, funcEnums, roomsEnums) {
         device = device || this.state.devices[index];
@@ -996,7 +1060,7 @@ class ListDevices extends Component {
             {this.state.windowWidth >= WIDTHS[4] ? (<TableCell style={{ color }} className={classes.tableIdCell} title={device.channelId}>{device.channelId}</TableCell>) : null}
             {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell>) : null}
             {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell>) : null}
-            {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{device.type}</TableCell>) : null}
+            {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderTypeCell(device.type)}</TableCell>) : null}
             {this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ color }}>{device.usedStates}</TableCell>) : null}
             <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
                 <div className={classes.wrapperButton}>
@@ -1120,6 +1184,14 @@ class ListDevices extends Component {
         iconStyle.width = 36;
         iconStyle.height = 36;
 
+        if (item.id === "alias.0.automatically_detected") {
+            iconStyle.color = "#F1C40F"
+        }
+
+        if (item.id === "alias.0.automatically_detected" && !countSpan) {
+            return
+        }
+
         const classes = this.props.classes;
         let background = null;
         let color = null;
@@ -1133,15 +1205,15 @@ class ListDevices extends Component {
             background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
             color = Utils.invertColor(background, true);
             index = this.state.devices.indexOf(device);
-        }else{
+        } else {
             background = item.color;
             color = Utils.invertColor(background, true);
         }
 
         let j = 0;
-
+        console.log(2222333,)
         const inner = <TableRow
-        style={{ background }}
+            style={{ background }}
             key={item.id} padding="default" >
             <TableCell
                 colSpan={3}
@@ -1151,21 +1223,21 @@ class ListDevices extends Component {
             // onClick={e => this.onClick(item, e)}
             >
                 <div className={classes.displayFlex}>
-                    <ListItemIcon className={this.props.classes.iconStyle}>{item.type === 'folder' ?
-                        (isExpanded ?
-                            <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
-                            <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
-                        :
-                        <div className={this.props.classes.tableIcon}>
-                            <TypeIcon src={item.icon} className={this.props.classes.tableIconImg} type={item.role} />
-                        </div>
-                    }</ListItemIcon>
+                    <ListItemIcon className={this.props.classes.iconStyle}>
+                        {item.type === 'folder' ?
+                            (isExpanded ?
+                                <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
+                                <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
+                            :
+                            <div className={this.props.classes.tableIcon}>
+                                <TypeIcon src={item.icon} className={this.props.classes.tableIconImg} type={item.role} />
+                            </div>}
+                        {item.type === 'folder' && item.icon && <img onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
+                    </ListItemIcon>
                     <div
-                        style={Object.assign({color},this.getTextStyle(item)) }
+                        style={Object.assign({ color }, this.getTextStyle(item))}
                         className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
-
                     >{title}</div>
-                    {item.type === 'folder' && item.icon && <img className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
 
                     {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
                 </div>
@@ -1177,7 +1249,7 @@ class ListDevices extends Component {
             {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>
                 {this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}
             </TableCell>) : null}
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{device.type}</TableCell>) : null}
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell style={{ color }}>{this.renderTypeCell(device.type)}</TableCell>) : null}
             {device && this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ color }}>{device.usedStates}</TableCell>) : null}
             {device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
                 <div className={classes.wrapperButton}>
@@ -1204,7 +1276,36 @@ class ListDevices extends Component {
                         </Tooltip> : <div className={classes.emptyBlock} />}
                 </div>
             </TableCell>}
-            {!device && <TableCell colSpan={5} />}
+            {!device && <TableCell colSpan={4} />}
+            {!device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+                {item.id !== "alias.0.automatically_detected" && <div className={classes.wrapperButton}>
+                    <Tooltip title={I18n.t('Edit folder')}>
+                        <IconButton
+                            style={{ color }}
+                            // size="small" 
+                            onClick={e => editFolderCallBack(item.obj, (obj) => {
+                                obj && this.props.socket.setObject(obj._id, obj)
+                                    .then(() => this.detectDevices());
+                            })}
+                        >
+                            <IconEdit />
+                        </IconButton>
+                    </Tooltip>
+                    {!countSpan ?
+                        <Tooltip title={I18n.t('Delete folder')}>
+                            <IconButton
+                                style={{ color }}
+                                onClick={e => {
+                                    deleteFolderCallBack((bool) => {
+                                        bool && this.props.socket.delObjects(item.id, true)
+                                            .then(() => this.detectDevices());
+                                    })
+                                }}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip> : <div className={classes.emptyBlock} />}
+                </div>}
+            </TableCell>}
         </TableRow>;
 
         const result = [inner];
@@ -1340,12 +1441,6 @@ class ListDevices extends Component {
                     }
                 });
             } else if (this.state.orderBy === 'IDs') {
-                /////////// IDs
-                // for (let i = 0; i < this.state.devices.length; i++) {
-                //     if (!this.isFilteredOut(this.state.devices[i])) {
-                //         result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
-                //     }
-                // }
                 result = this.renderAllItems(this.state.listItems);
             }
             else {
@@ -1987,7 +2082,7 @@ class ListDevices extends Component {
             theme={this.props.theme}
             objects={this.objects}
             socket={this.props.socket}
-            onChange={el=>setTimeout(() => this.detectDevices(), 0)}
+            onChange={el => setTimeout(() => this.detectDevices(), 0)}
             enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
             onClose={options => {

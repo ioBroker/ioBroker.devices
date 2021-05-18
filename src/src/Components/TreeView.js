@@ -87,7 +87,8 @@ const styles = theme => ({
         opacity: 0.8,
     },
     wrapperFoldersBlock: {
-        padding: 10
+        padding: 10,
+        height: '100%'
     },
     iconStyle: {
         minWidth: 40

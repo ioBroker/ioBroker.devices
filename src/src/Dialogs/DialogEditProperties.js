@@ -136,7 +136,7 @@ class DialogEditProperties extends React.PureComponent {
         const channelObj = this.props.objects[this.props.channelId];
 
         if (channelObj && channelObj.common) {
-            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
+            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() }) === 'undefined'? channelObj.common.name[Object.keys(channelObj.common.name)[0]]:Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
         const functions = this.props.enumIDs.filter(id => {

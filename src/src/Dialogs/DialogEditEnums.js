@@ -21,6 +21,7 @@ import Checkbox from '@material-ui/core/Checkbox';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 const styles = theme => ({
     header: {
@@ -85,7 +86,7 @@ class DialogEditEnums extends React.Component {
         return (<List className={this.props.classes.list}>
             {objs.map(obj => (<ListItem key={obj.id} button onClick={() => this.onToggle(obj.id)}>
                 <ListItemIcon>
-                    {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)}
+                    {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)}
                 </ListItemIcon>
                 <ListItemText primary={obj.name} />
                 <ListItemSecondaryAction>

@@ -26,6 +26,7 @@ import I18n from '@iobroker/adapter-react/i18n';
 import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
 import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 const styles = theme => ({
     header: {
@@ -236,7 +237,7 @@ class DialogNewDevice extends React.Component {
                     }) : []
                     return <div className={this.props.classes.renderValueWrapper}>
                         {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
-                            {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                            {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
                             {obj.name}
                         </div>))}
                     </div>
@@ -248,7 +249,7 @@ class DialogNewDevice extends React.Component {
                 }}
             >
                 {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {obj.icon ? (<img className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                    {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
                     {obj.name}
                 </MenuItem>))}
             </Select>
