@@ -37,6 +37,7 @@ import 'react-image-crop/dist/ReactCrop.css'
 // Icons
 import IconList from './icons/icons';
 import I18n from '@iobroker/adapter-react/i18n';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 const style = {
     label: {
@@ -316,7 +317,7 @@ class ImageSelector extends React.Component {
             <div style={{position: 'relative'}}>
                 <div key="image-label" className={classes.label}>{this.props.label}</div>
                 {this.state.image ? [
-                    (<img key="image-preview"
+                    (<Icon key="image-preview"
                           src={typeof this.state.image === 'object' ? this.state.image.preview : this.state.image}
                           alt={this.props.label || ''} style={{width: this.props.height || '100%', height: 'auto'}}/>),
                     (<IconButton

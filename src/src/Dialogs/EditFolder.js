@@ -26,11 +26,11 @@ const useStyles = makeStyles((theme) => ({
     },
     paper: {
         maxWidth: 600,
-        width:'100%'
+        width: '100%'
     },
     overflowHidden: {
         display: 'flex',
-        overflow: 'hidden'
+        // overflow: 'hidden'
     },
     pre: {
         overflow: 'auto',
@@ -76,7 +76,7 @@ const EditFolder = ({ cb, data }) => {
             open={open}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Edit folder %s',data._id)}</DialogTitle>
+            <DialogTitle>{I18n.t('Edit folder %s', data._id)}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <div className={classes.divOids}>
                     <div className={classes.divOidField}>
@@ -98,9 +98,9 @@ const EditFolder = ({ cb, data }) => {
                         <div className={classes.oidName} >{I18n.t('Color')}</div>
                         <TextField
                             key="_color"
-                            fullWidth
+                            // fullWidth
                             value={dataEdit.common.color}
-                            style={{ width: 'calc(100% - 185px)' }}
+                            style={{ width: 'calc(100% - 40px)' }}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.color = e.target.value;
@@ -118,11 +118,12 @@ const EditFolder = ({ cb, data }) => {
                                 newDataEdit.common.color = e.target.value;
                                 setDataEdit(newDataEdit);
                             }}
-                            // margin="normal"
+                        // margin="normal"
                         />
                     </div>
                     <UploadImage
                         crop
+                        icons
                         className={classes.sizeDropZone}
                         maxSize={256 * 1024}
                         icon={dataEdit.common.icon}

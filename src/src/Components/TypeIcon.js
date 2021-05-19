@@ -38,6 +38,7 @@ import {MdWarning as TypeIconWarning} from 'react-icons/md';
 import {FaFan as TypeIconAC} from 'react-icons/fa';
 import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
 import TypeIconVacuumCleaner from './icons/Cleaner';
+import IconAdapter from '@iobroker/adapter-react/Components/Icon';
 
 const TYPE_ICONS = {
     [Types.airCondition]: TypeIconAC,
@@ -88,7 +89,7 @@ const defaultStyle = {
 class TypeIcon extends Component {
     render() {
         if (this.props.src) {
-            return (<img src={this.props.src} style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>);
+            return (<IconAdapter src={this.props.src} style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>);
         } else {
             const Icon = this.props.type && TYPE_ICONS[this.props.type];
             return Icon ? (<Icon style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''}/>) : null;

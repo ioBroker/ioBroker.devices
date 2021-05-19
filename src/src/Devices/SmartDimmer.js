@@ -22,6 +22,8 @@ import {TiLightbulb as Icon} from 'react-icons/ti'
 import SmartGeneric from './SmartGeneric';
 import Theme from '@iobroker/adapter-react/Theme';
 import I18n from '@iobroker/adapter-react/i18n';
+import IconAdapter from '@iobroker/adapter-react/Components/Icon';
+
 
 class SmartDimmer extends SmartGeneric {
     constructor(props) {
@@ -176,10 +178,10 @@ class SmartDimmer extends SmartGeneric {
     getIcon() {
         let customIcon;
         if (this.state.settings.useDefaultIcon) {
-            customIcon = (<img src={this.getDefaultIcon()} alt="icon" style={{height: '100%'}}/>);
+            customIcon = (<IconAdapter src={this.getDefaultIcon()} alt="icon" style={{height: '100%'}}/>);
         } else {
             if (this.state.settings.icon) {
-                customIcon = (<img src={this.state.settings.icon} alt="icon" style={{height: '100%'}}/>);
+                customIcon = (<IconAdapter src={this.state.settings.icon} alt="icon" style={{height: '100%'}}/>);
             } else {
                 customIcon = (<Icon width={Theme.tile.tileIconSvg.size} height={Theme.tile.tileIconSvg.size} style={{height: Theme.tile.tileIconSvg.size, width: Theme.tile.tileIconSvg.size}}/>);
             }

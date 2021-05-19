@@ -10,8 +10,8 @@ import PropTypes from 'prop-types';
 
 import IconButton from '@material-ui/core/IconButton';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
+// import Select from '@material-ui/core/Select';
+// import MenuItem from '@material-ui/core/MenuItem';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -52,7 +52,11 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { Types } from 'iobroker.type-detector';
-import { Card, FormControl, InputAdornment, InputLabel, ListItemIcon, TextField, Tooltip } from '@material-ui/core';
+import { Card,
+    //  FormControl, 
+    InputAdornment, 
+    // InputLabel, 
+    ListItemIcon, TextField, Tooltip } from '@material-ui/core';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
@@ -158,6 +162,10 @@ const prepareList = (data, root) => {
     // Place all folder-less items at start
     result.sort((a, b) => {
         // without folders => always at start
+        // debugger
+        if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
+        if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
+
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
             if (a.id === b.id) return 0;
             return a.id > b.id ? 1 : -1;
@@ -515,10 +523,11 @@ const styles = theme => ({
         position: 'relative'
     },
     fontStyle: {
-        maxWidth: 200,
+        maxWidth: 160,
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
+        fontWeight: 'bold'
     },
     wrapperIconEnumCell: {
         display: 'flex',
@@ -532,6 +541,11 @@ const styles = theme => ({
     },
     nameEnumCell: {
         marginLeft: 3
+    },
+    table: {
+        '& th': {
+            background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white'
+        }
     }
 });
 
@@ -588,8 +602,8 @@ class ListDevices extends Component {
             linkeddevices: '',
             iot: '',
             iotNoCommon: false,
-            onlyAliases: window.localStorage.getItem('Devices.onlyAliases') === 'true',
-            hideInfo: window.localStorage.getItem('Devices.hideInfo') === 'true',
+            onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
+            hideInfo: window.localStorage.getItem('Devices.hideInfo') ? JSON.parse(window.localStorage.getItem('Devices.hideInfo')) : true,
         };
 
 
@@ -730,7 +744,7 @@ class ListDevices extends Component {
     }
 
 
-    onObjectsGenerate = (objects,devices) => {
+    onObjectsGenerate = (objects, devices) => {
         this.prefix = this.props.prefix || 'alias.0';
         let i = 1;
         while (objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
@@ -792,7 +806,6 @@ class ListDevices extends Component {
                 role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null
             }
         });
-        console.log(2222, stateIds)
 
         stateIds[`${this.prefix}.automatically_detected`] = {
             common: {
@@ -803,24 +816,22 @@ class ListDevices extends Component {
         };
 
         let devicesArr = devices || this.state.devices;
-        
-        devicesArr = devicesArr.filter(({channelId})=>!channelId.startsWith('alias.0'))
-        devicesArr.forEach(device=>{
-            console.log(222,1111,device)
+
+        devicesArr = devicesArr.filter(({ channelId }) => !channelId.startsWith('alias.0'))
+        devicesArr.forEach(device => {
             stateIds[`${this.prefix}.automatically_detected.${Utils.getObjectName(objects, device.channelId, { language })}`] = {
                 common: {
-                    name:  Utils.getObjectName(objects, device.channelId, { language }),
+                    name: Utils.getObjectName(objects, device.channelId, { language }),
                     nondeletable: true,
                     color: objects[device.channelId].common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
                     icon: objects[device.channelId].common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
                 },
                 obj: objects[device.channelId],
                 type: objects[device.channelId].type,
-                role:device.type
+                role: device.type
             }
 
         })
-        console.log(2222, 'test,', stateIds)
 
         return prepareList(stateIds)
     }
@@ -982,13 +993,19 @@ class ListDevices extends Component {
 
     isFilteredOut(device) {
         if (this.state.orderBy === 'IDs') {
+            console.log(222, this.filter)
             if (this.filter &&
-                Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().indexOf(this.filter) === -1 &&
-                device.id.toLowerCase().indexOf(this.filter) === -1) {
+                // device.type !== 'folder' && 
+                Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().indexOf(this.filter.toLowerCase()) === -1 &&
+                device.id.toLowerCase().indexOf(this.filter.toLowerCase()) === -1) {
                 return true;
             }
             if (this.state.onlyAliases && device.id === "alias.0.automatically_detected") {
                 return true
+            }
+            const deviceAllparams = this.state.devices.find(el => el.channelId === device.id);
+            if (this.state.hideInfo && deviceAllparams && deviceAllparams.type === Types.info) {
+                return true;
             }
             return false;
         } else {
@@ -1030,7 +1047,7 @@ class ListDevices extends Component {
     renderTypeCell(type) {
         return <div className={this.props.classes.wrapperIconEnumCell}>
             <TypeIcon className={this.props.classes.enumIcon} type={type} />
-            <div className={this.props.classes.nameEnumCell}>{type}</div>
+            <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
         </div>;
     }
 
@@ -1131,8 +1148,9 @@ class ListDevices extends Component {
     renderOneItem(items, item) {
         let childrenFiltered = (this.state.searchText || this.state.typeFilter) && items.filter(i => i.parent === item.id ? !this.isFilteredOut(i) : false);
         let children = items.filter(i => i.parent === item.id);
-
-        if (this.isFilteredOut(item)) {
+        let childrenFilter = items.filter(i => i.parent === item.id).filter(i => !this.isFilteredOut(i));
+        console.log(222333, childrenFilter)
+        if (this.isFilteredOut(item) && !childrenFilter.length) {
             return;
         }
 
@@ -1157,7 +1175,7 @@ class ListDevices extends Component {
 
         const style = Object.assign({
             paddingLeft: depthPx,
-            borderRadius: 3,
+            // borderRadius: 3,
             cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
             opacity: item.filteredPartly ? 0.5 : 1,
         }, item.id === this.state.selected ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' } : {});
@@ -1179,6 +1197,9 @@ class ListDevices extends Component {
         }
         if (item.id === this.state.selected) {
             iconStyle.opacity = 1;
+        }
+        if (this.filter && childrenFilter.length && item.type === 'folder') {
+            iconStyle.opacity = 0.5;
         }
         iconStyle.color = "#448dde";
         iconStyle.width = 36;
@@ -1211,7 +1232,6 @@ class ListDevices extends Component {
         }
 
         let j = 0;
-        console.log(2222333,)
         const inner = <TableRow
             style={{ background }}
             key={item.id} padding="default" >
@@ -1234,11 +1254,12 @@ class ListDevices extends Component {
                             </div>}
                         {item.type === 'folder' && item.icon && <img onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
                     </ListItemIcon>
-                    <div
-                        style={Object.assign({ color }, this.getTextStyle(item))}
-                        className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
-                    >{title}</div>
-
+                    <Tooltip title={title}>
+                        <div
+                            style={Object.assign({ color }, this.getTextStyle(item))}
+                            className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+                        >{title}</div>
+                    </Tooltip>
                     {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
                 </div>
             </TableCell>
@@ -1276,7 +1297,10 @@ class ListDevices extends Component {
                         </Tooltip> : <div className={classes.emptyBlock} />}
                 </div>
             </TableCell>}
-            {!device && <TableCell colSpan={4} />}
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell colSpan={1} >{countSpan}</TableCell>}
             {!device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
                 {item.id !== "alias.0.automatically_detected" && <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Edit folder')}>
@@ -1454,18 +1478,18 @@ class ListDevices extends Component {
         let j = 0;
 
         return (<Paper className={classes.paperTable}>
-            <Table className={classes.table} size="small">
+            <Table stickyHeader className={classes.table} size="small">
                 <TableHead>
                     <TableRow>
                         <TableCell className={classes.tableExpandIconCell} />
                         <TableCell className={classes.tableIconCell} />
-                        <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>Name</TableCell>
+                        <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>{I18n.t('Name')}</TableCell>
                         {/* <TableCell /> */}
-                        {this.state.orderBy !== 'IDs' && this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>ID</TableCell>) : null}
-                        {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Function</TableCell>) : null}
-                        {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Room</TableCell>) : null}
-                        {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>Type</TableCell>) : null}
-                        {this.state.windowWidth >= WIDTHS[0] ? (<TableCell className={classes.headerCell}>States</TableCell>) : null}
+                        {this.state.orderBy !== 'IDs' && this.state.windowWidth >= WIDTHS[4] ? (<TableCell className={classes.headerCell}>{I18n.t('ID')}</TableCell>) : null}
+                        {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Function')}</TableCell>) : null}
+                        {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Room')}</TableCell>) : null}
+                        {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Type')}</TableCell>) : null}
+                        {this.state.windowWidth >= WIDTHS[0] ? (<TableCell className={classes.headerCell}>{I18n.t('States')}</TableCell>) : null}
                         <TableCell className={classes.headerCell + ' ' + classes.buttonsCellHeader} />
                     </TableRow>
                 </TableHead>
@@ -2146,6 +2170,23 @@ class ListDevices extends Component {
         }, 400);
     }
 
+
+    onCollapseAll() {
+        this.setState({ expandedIDs: [] });
+        this.saveExpanded([]);
+    }
+
+    onExpandAll() {
+        const expandedIDs = [];
+        this.state.listItems.forEach(item => {
+            if (this.state.listItems.find(it => it.parent === item.id)) {
+                expandedIDs.push(item.id);
+            }
+        });
+        this.setState({ expandedIDs });
+        this.saveExpanded(expandedIDs);
+    }
+
     render() {
         if (this.state.loading) {
             return (<CircularProgress key="alexaProgress" />);
@@ -2190,7 +2231,25 @@ class ListDevices extends Component {
                             <IconInfo />
                         </IconButton>
                     </Tooltip>
-                    <FormControl>
+
+                    {this.state.orderBy === 'IDs' &&
+                        <><Tooltip title={I18n.t('Expand all nodes')}>
+                            <IconButton
+                                color="primary"
+                                onClick={() => this.onExpandAll()}>
+                                <IconFolderOpened />
+                            </IconButton>
+                        </Tooltip>
+                            <Tooltip title={I18n.t('Collapse all nodes')}>
+                                <IconButton
+                                    color="primary"
+                                    onClick={() => this.onCollapseAll()}>
+                                    <IconFolder />
+                                </IconButton>
+                            </Tooltip></>
+                    }
+
+                    {/* <FormControl>
                         <InputLabel>{I18n.t('Select')}</InputLabel>
                         <Select
                             className={classes.orderSelector}
@@ -2206,7 +2265,7 @@ class ListDevices extends Component {
                             <MenuItem value='rooms'>{I18n.t('Rooms')}</MenuItem>
                             <MenuItem value='types'>{I18n.t('Types')}</MenuItem>
                         </Select>
-                    </FormControl>
+                    </FormControl> */}
                     <TextField
                         inputRef={this.inputRef}
                         label={I18n.t('Filter')}

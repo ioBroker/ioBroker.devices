@@ -63,7 +63,7 @@ class IconSelector extends Component {
                 }}><AppsIcon />
                 </IconButton>
             </Tooltip>
-            {this.state.opened ? <Dialog onClose={(e) => {
+            {this.state.opened ? <Dialog onClick={e=>e.stopPropagation()} onClose={(e) => {
                 this.setState({ opened: false });
                 e.stopPropagation();
             }} open={true}>

@@ -28,7 +28,7 @@ const useStyles = makeStyles((theme) => ({
     },
     overflowHidden: {
         display: 'flex',
-        overflow: 'hidden'
+        // overflow: 'hidden'
     },
     pre: {
         overflow: 'auto',

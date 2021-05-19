@@ -34,6 +34,7 @@ import I18n from '@iobroker/adapter-react/i18n';
 import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
 import { Paper, Tooltip } from '@material-ui/core';
 import clsx from 'clsx';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 const LEVEL_OFFSET = 14;
 
@@ -88,7 +89,7 @@ const styles = theme => ({
     },
     wrapperFoldersBlock: {
         padding: 10,
-        height: '100%'
+        height: 'calc(100% - 20px)'
     },
     iconStyle: {
         minWidth: 40
@@ -241,7 +242,6 @@ class TreeView extends React.Component {
         } catch (e) {
             expanded = null;
         }
-        console.log(222333,props.objects)
         const listItems = prepareList(props.objects || {});
 
         if (expanded === null) {
@@ -486,14 +486,14 @@ class TreeView extends React.Component {
                     <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
                     <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
                 :
-                <img className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def} />
+                <Icon className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def} />
             }</ListItemIcon>
             <div
                 style={Object.assign({ color: item.color, background: Utils.invertColor(item.color, true) }, this.getTextStyle(item))}
                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
 
             >{title}</div>
-            {item.icon && <img className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
+            {item.icon && <Icon className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
 
             <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction>
         </ListItem>;

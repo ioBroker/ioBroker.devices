@@ -164,7 +164,7 @@ class DialogNewDevice extends React.Component {
 
         this.typesWords = {};
         Object.keys(Types)
-            .filter(id => !UNSUPPORTED_TYPES.includes(id))
+            .filter(id => id !== "instance" && !UNSUPPORTED_TYPES.includes(id))
             .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
 
         // sort types by ABC in the current language
@@ -280,7 +280,7 @@ class DialogNewDevice extends React.Component {
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
-            return (<img className={this.props.classes.icon} src={obj.icon} alt="" />);
+            return (<Icon className={this.props.classes.icon} src={obj.icon} alt="" />);
         } else {
             return null;
         }
