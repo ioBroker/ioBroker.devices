@@ -52,11 +52,13 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { Types } from 'iobroker.type-detector';
-import { Card,
+import {
+    Card,
     //  FormControl, 
-    InputAdornment, 
+    InputAdornment,
     // InputLabel, 
-    ListItemIcon, TextField, Tooltip } from '@material-ui/core';
+    ListItemIcon, TextField, Tooltip
+} from '@material-ui/core';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
@@ -64,6 +66,8 @@ import clsx from 'clsx';
 import { deleteFolderCallBack } from '../Dialogs/DeleteFolder';
 import { editFolderCallBack } from '../Dialogs/EditFolder';
 import Icon from '@iobroker/adapter-react/Components/Icon';
+import DvrIcon from '@material-ui/icons/Dvr';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -165,6 +169,7 @@ const prepareList = (data, root) => {
         // debugger
         if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
         if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
+        if (b.id === "alias.0.automatically_detected" && a.type === 'folder') return -1;
 
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
             if (a.id === b.id) return 0;
@@ -388,7 +393,7 @@ const styles = theme => ({
     },
     paperTable: {
         width: '100%',
-        height: 'calc(100% - 50px)',
+        height: 'calc(100% - 57px)',
         overflowX: 'hidden',
         overflowY: 'auto',
         marginTop: 5,
@@ -497,7 +502,15 @@ const styles = theme => ({
     },
     enumsEditFocusVisible: {},
     wrapperIcon: {
-        margin: '5px 0'
+        margin: '5px 0',
+        display: 'flex'
+    },
+    emptyClear: {
+        width: 32
+    },
+    icons: {
+        display: 'flex',
+        width: '100%'
     },
     wrapperButton: {
         marginRight: 10,
@@ -520,14 +533,29 @@ const styles = theme => ({
         opacity: 0.8
     },
     iconStyle: {
-        position: 'relative'
+        position: 'relative',
+        minWidth: 36
     },
     fontStyle: {
-        maxWidth: 160,
+        // maxWidth: 160,
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         fontWeight: 'bold'
+    },
+    wrapperTitleAndId: {
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+    },
+    fontStyleId: {
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        fontWeight: 'bold',
+        fontSize: 9,
+        opacity: 0.6,
+        fontStyle: 'italic'
     },
     wrapperIconEnumCell: {
         display: 'flex',
@@ -541,6 +569,15 @@ const styles = theme => ({
     },
     nameEnumCell: {
         marginLeft: 3
+    },
+    amptyBlock: {
+        flexGrow: 1
+    },
+    wrapperName: {
+        fontWeight: 800,
+        display: 'flex',
+        alignItems: 'center',
+        marginRight: 10
     },
     table: {
         '& th': {
@@ -581,7 +618,8 @@ class ListDevices extends Component {
         // }
 
         this.state = {
-            editIndex: location.dialog === 'edit' ? location.id : null,
+            editId: location.dialog === 'edit' ? location.id : null,
+            copyId: null,
             deleteIndex: null,
             deleteId: '',
             editEnum: null,
@@ -840,7 +878,9 @@ class ListDevices extends Component {
     updateEnumsForOneDevice(device, funcEnums, roomsEnums) {
         funcEnums = funcEnums || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums = roomsEnums || this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
-
+        if (!device) {
+            return
+        }
         const stateId = device.states.find(state => state.id).id;
         let statesCount = device.states.filter(state => state.id).length;
         const pos = stateId.lastIndexOf('.');
@@ -882,6 +922,7 @@ class ListDevices extends Component {
         device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
 
         device.icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]);
+        device.color = this.objects[channelId]?.common?.color || null;
         if (!device.icon) {
             const parts = device.channelId.split('.');
             parts.pop();
@@ -984,16 +1025,21 @@ class ListDevices extends Component {
         }
     }
 
-    onEdit(editIndex, e) {
+    onEdit(editId, e) {
         e && e.preventDefault();
         e && e.stopPropagation();
-        Router.doNavigate('list', 'edit', editIndex.toString());
-        this.setState({ editIndex });
+        Router.doNavigate('list', 'edit', editId.toString());
+        this.setState({ editId });
+    }
+
+    onCopy(copyId, e) {
+        e && e.preventDefault();
+        e && e.stopPropagation();
+        this.setState({ copyId, showAddDialog: ALIAS + '0' });
     }
 
     isFilteredOut(device) {
         if (this.state.orderBy === 'IDs') {
-            console.log(222, this.filter)
             if (this.filter &&
                 // device.type !== 'folder' && 
                 Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().indexOf(this.filter.toLowerCase()) === -1 &&
@@ -1085,7 +1131,7 @@ class ListDevices extends Component {
                         <IconButton
                             style={{ color }}
                             // size="small"
-                            onClick={e => this.onEdit(index, e)}>
+                            onClick={e => this.onEdit(device.channelId, e)}>
                             <IconEdit />
                         </IconButton>
                     </Tooltip>
@@ -1129,7 +1175,7 @@ class ListDevices extends Component {
                 // width: `calc(100% - ${this.state.width > 350 ? 210 : 165}px)`,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                flex: 'none',
+                // flex: 'none',
                 padding: '0 16px 0 16px'
             };
         } else {
@@ -1149,9 +1195,12 @@ class ListDevices extends Component {
         let childrenFiltered = (this.state.searchText || this.state.typeFilter) && items.filter(i => i.parent === item.id ? !this.isFilteredOut(i) : false);
         let children = items.filter(i => i.parent === item.id);
         let childrenFilter = items.filter(i => i.parent === item.id).filter(i => !this.isFilteredOut(i));
-        console.log(222333, childrenFilter)
-        if (this.isFilteredOut(item) && !childrenFilter.length) {
-            return;
+        if (this.isFilteredOut(item)) {
+            if (this.filter && !childrenFilter.length) {
+                return
+            } else if (!this.filter) {
+                return;
+            }
         }
 
         if (item.type === 'folder' && (this.state.searchText || this.state.typeFilter) && !childrenFiltered.length) {
@@ -1198,7 +1247,9 @@ class ListDevices extends Component {
         if (item.id === this.state.selected) {
             iconStyle.opacity = 1;
         }
+        const serachStyle = {};
         if (this.filter && childrenFilter.length && item.type === 'folder') {
+            serachStyle.opacity = 0.5;
             iconStyle.opacity = 0.5;
         }
         iconStyle.color = "#448dde";
@@ -1237,7 +1288,9 @@ class ListDevices extends Component {
             key={item.id} padding="default" >
             <TableCell
                 colSpan={3}
-                style={style}
+                style={Object.assign({
+                    maxWidth: 300
+                }, style)}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
                 className={Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder)}
             // onClick={e => this.onClick(item, e)}
@@ -1254,11 +1307,20 @@ class ListDevices extends Component {
                             </div>}
                         {item.type === 'folder' && item.icon && <img onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
                     </ListItemIcon>
-                    <Tooltip title={title}>
-                        <div
-                            style={Object.assign({ color }, this.getTextStyle(item))}
-                            className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
-                        >{title}</div>
+                    <Tooltip title={<div>
+                        <div>{`${I18n.t("Name")}: ${title}`}</div>
+                        <div>{`${I18n.t("Id")}: ${item.id}`}</div>
+                    </div>}>
+                        <div className={this.props.classes.wrapperTitleAndId}>
+                            <div
+                                style={Object.assign(Object.assign(serachStyle, { color }), this.getTextStyle(item))}
+                                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+                            >{title}</div>
+                            <div
+                                style={Object.assign(Object.assign(serachStyle, { color }), this.getTextStyle(item))}
+                                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyleId)}
+                            >{item.id}</div>
+                        </div>
                     </Tooltip>
                     {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
                 </div>
@@ -1274,11 +1336,20 @@ class ListDevices extends Component {
             {device && this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ color }}>{device.usedStates}</TableCell>) : null}
             {device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
                 <div className={classes.wrapperButton}>
+                    <Tooltip title={I18n.t('Copy device')}>
+                        <IconButton
+                            style={{ color }}
+                            // size="small"
+                            onClick={e => this.onCopy(item.id, e)}
+                        >
+                            <FileCopyIcon />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title={I18n.t('Edit states')}>
                         <IconButton
                             style={{ color }}
                             // size="small"
-                            onClick={e => this.onEdit(index, e)}
+                            onClick={e => this.onEdit(item.id, e)}
                         >
                             <IconEdit />
                         </IconButton>
@@ -1295,6 +1366,7 @@ class ListDevices extends Component {
                                 <IconDelete />
                             </IconButton>
                         </Tooltip> : <div className={classes.emptyBlock} />}
+
                 </div>
             </TableCell>}
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
@@ -1489,7 +1561,7 @@ class ListDevices extends Component {
                         {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Function')}</TableCell>) : null}
                         {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Room')}</TableCell>) : null}
                         {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? (<TableCell className={classes.headerCell}>{I18n.t('Type')}</TableCell>) : null}
-                        {this.state.windowWidth >= WIDTHS[0] ? (<TableCell className={classes.headerCell}>{I18n.t('States')}</TableCell>) : null}
+                        {this.state.windowWidth >= WIDTHS[0] ? (<TableCell style={{ width: 50 }} className={classes.headerCell}>{I18n.t('States')}</TableCell>) : null}
                         <TableCell className={classes.headerCell + ' ' + classes.buttonsCellHeader} />
                     </TableRow>
                 </TableHead>
@@ -1578,20 +1650,23 @@ class ListDevices extends Component {
     }
 
     renderEditDialog() {
-        if (this.state.editIndex === null) {
+        if (this.state.editId === null) {
             return null;
         }
-
-        if (!this.state.devices[this.state.editIndex]) {
+        const device = this.state.devices.find(({ channelId }) => channelId === this.state.editId);
+        if (!device) {
+            return null;
+        }
+        if (!this.objects[this.state.editId]) {
             window.alert('Device not found');
             Router.doNavigate(null, '', '');
-            return this.setState({ editIndex: null });
+            return this.setState({ editId: null });
         }
 
         return (<DialogEdit
-            channelId={this.state.devices[this.state.editIndex].channelId}
-            type={this.state.devices[this.state.editIndex].type}
-            channelInfo={this.state.devices[this.state.editIndex]}
+            channelId={device.channelId}
+            type={device.type}
+            channelInfo={device}
             objects={this.objects}
             states={this.states}
             patterns={this.patterns}
@@ -1602,7 +1677,7 @@ class ListDevices extends Component {
                 const promises = [];
                 if (data) {
                     const language = I18n.getLanguage();
-                    const device = this.state.devices[this.state.editIndex];
+                    // const device = this.state.devices[this.state.editIndex];
                     const channelId = device.channelId;
                     const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, { language });
 
@@ -1649,7 +1724,7 @@ class ListDevices extends Component {
                         if (somethingChanged) {
                             const devices = JSON.parse(JSON.stringify(this.state.devices));
                             // update enums, name
-                            this.updateEnumsForOneDevice(devices[this.state.editIndex]);
+                            this.updateEnumsForOneDevice(device);
                             this.setState({ devices });
                         }
                     });
@@ -1657,7 +1732,7 @@ class ListDevices extends Component {
             onClose={(data, refresh) => {
                 const promises = [];
                 if (data) {
-                    const device = this.state.devices[this.state.editIndex];
+                    // const device = this.state.devices[this.state.editIndex];
                     const channelId = device.channelId;
 
                     if (channelId.startsWith(ALIAS)) {
@@ -1858,11 +1933,11 @@ class ListDevices extends Component {
                 Promise.all(promises)
                     .then(() => {
                         // update expert mode if was changed
-                        const newState = { editIndex: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true' };
+                        const newState = { editId: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true' };
                         if (somethingChanged) {
                             const devices = JSON.parse(JSON.stringify(this.state.devices));
                             // update enums, name
-                            this.updateEnumsForOneDevice(devices[this.state.editIndex]);
+                            this.updateEnumsForOneDevice(device);
                             newState.devices = devices;
                         }
 
@@ -2009,6 +2084,7 @@ class ListDevices extends Component {
                 devices.splice(index, 1);
                 this.setState({ devices }, cb);
             });
+        setTimeout(() => this.detectDevices(), 0)
     }
 
     createDevice(options) {
@@ -2018,11 +2094,16 @@ class ListDevices extends Component {
             return this.setState({ message: I18n.t('Unknown type!') + options.type });
         }
         states = patterns[states].states;
+        if (options.states.length) {
+            states = options.states;
+        }
         const obj = {
             _id: options.id,
             common: {
                 name: { [I18n.getLanguage()]: options.name },
                 role: options.type,
+                icon: options.icon,
+                color: options.color,
             },
             native: {},
             type: 'channel'
@@ -2093,10 +2174,11 @@ class ListDevices extends Component {
                         this.updateEnumsForOneDevice(device);
                         devices.push(device);
                     });
-                    Router.doNavigate('list', 'edit', devices.length - 1);
-                    this.setState({ devices, editIndex: devices.length - 1 });
+                    Router.doNavigate('list', 'edit', obj._id);
+                    this.setState({ devices, editId: obj._id });
                 });
         });
+        setTimeout(() => this.detectDevices(), 0)
     }
 
     renderAddDialog() {
@@ -2109,8 +2191,9 @@ class ListDevices extends Component {
             onChange={el => setTimeout(() => this.detectDevices(), 0)}
             enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
+            copyDevice={this.state.copyId ? this.state.devices.find(el => el.channelId === this.state.copyId) || null : null}
             onClose={options => {
-                this.setState({ showAddDialog: '' });
+                this.setState({ showAddDialog: '', copyId: '' });
                 options && this.createDevice(options);
             }}
         />);
@@ -2196,60 +2279,61 @@ class ListDevices extends Component {
         return (
             <Card key="list" className={classes.tab}>
                 <div className={classes.wrapperIcon}>
-                    <Tooltip title={I18n.t('Create new device with Aliases')}>
-                        <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
-                            <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
-                        </IconButton>
-                    </Tooltip>
-                    {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
-                        <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
-                            <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
-                        </IconButton>
-                    </Tooltip>}
-                    <Tooltip title={I18n.t('Refresh')}>
-                        <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
-                            {this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh />)}
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title={I18n.t('Show only aliases')}>
-                        <IconButton
-                            color={this.state.onlyAliases ? 'primary' : 'inherit'}
-                            onClick={() => {
-                                window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
-                                this.setState({ onlyAliases: !this.state.onlyAliases });
-                            }}>
-                            <IconStar />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title={I18n.t('Hide info devices')}>
-                        <IconButton
-                            color={this.state.hideInfo ? 'primary' : 'inherit'}
-                            onClick={() => {
-                                window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
-                                this.setState({ hideInfo: !this.state.hideInfo });
-                            }}>
-                            <IconInfo />
-                        </IconButton>
-                    </Tooltip>
-
-                    {this.state.orderBy === 'IDs' &&
-                        <><Tooltip title={I18n.t('Expand all nodes')}>
-                            <IconButton
-                                color="primary"
-                                onClick={() => this.onExpandAll()}>
-                                <IconFolderOpened />
+                    <div className={classes.icons}>
+                        <Tooltip title={I18n.t('Create new device with Aliases')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
+                                <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
                             </IconButton>
                         </Tooltip>
-                            <Tooltip title={I18n.t('Collapse all nodes')}>
+                        {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
+                                <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
+                            </IconButton>
+                        </Tooltip>}
+                        <Tooltip title={I18n.t('Refresh')}>
+                            <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
+                                {this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh />)}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Show only aliases')}>
+                            <IconButton
+                                color={this.state.onlyAliases ? 'primary' : 'inherit'}
+                                onClick={() => {
+                                    window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
+                                    this.setState({ onlyAliases: !this.state.onlyAliases });
+                                }}>
+                                <IconStar />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Hide info devices')}>
+                            <IconButton
+                                color={this.state.hideInfo ? 'primary' : 'inherit'}
+                                onClick={() => {
+                                    window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
+                                    this.setState({ hideInfo: !this.state.hideInfo });
+                                }}>
+                                <IconInfo />
+                            </IconButton>
+                        </Tooltip>
+
+                        {this.state.orderBy === 'IDs' &&
+                            <><Tooltip title={I18n.t('Expand all nodes')}>
                                 <IconButton
                                     color="primary"
-                                    onClick={() => this.onCollapseAll()}>
-                                    <IconFolder />
+                                    onClick={() => this.onExpandAll()}>
+                                    <IconFolderOpened />
                                 </IconButton>
-                            </Tooltip></>
-                    }
+                            </Tooltip>
+                                <Tooltip title={I18n.t('Collapse all nodes')}>
+                                    <IconButton
+                                        color="primary"
+                                        onClick={() => this.onCollapseAll()}>
+                                        <IconFolder />
+                                    </IconButton>
+                                </Tooltip></>
+                        }
 
-                    {/* <FormControl>
+                        {/* <FormControl>
                         <InputLabel>{I18n.t('Select')}</InputLabel>
                         <Select
                             className={classes.orderSelector}
@@ -2266,27 +2350,35 @@ class ListDevices extends Component {
                             <MenuItem value='types'>{I18n.t('Types')}</MenuItem>
                         </Select>
                     </FormControl> */}
-                    <TextField
-                        inputRef={this.inputRef}
-                        label={I18n.t('Filter')}
-                        defaultValue={this.filter}
-                        onChange={e => this.setFilter(e.target.value)}
-                        InputProps={{
-                            endAdornment: (
-                                this.filter ? <InputAdornment position="end">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            this.setFilter('');
-                                            this.inputRef.current.value = '';
-                                        }}
-                                    >
-                                        <IconClear />
-                                    </IconButton>
-                                </InputAdornment> : null
-                            ),
-                        }}
-                    />
+                        <div className={classes.amptyBlock} />
+                        <TextField
+                            inputRef={this.inputRef}
+                            label={I18n.t('Filter')}
+                            InputLabelProps={{ shrink: true }}
+                            defaultValue={this.filter}
+                            onChange={e => this.setFilter(e.target.value)}
+                            InputProps={{
+                                endAdornment: (
+                                    this.filter ? <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                                this.setFilter('');
+                                                this.inputRef.current.value = '';
+                                            }}
+                                        >
+                                            <IconClear />
+                                        </IconButton>
+                                    </InputAdornment> : <div className={classes.emptyClear} />
+                                ),
+                            }}
+                        />
+                        <div className={classes.amptyBlock} />
+                        <div className={classes.wrapperName}>
+                            <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
+                            {I18n.t('Devices')}
+                        </div>
+                    </div>
                 </div>
                 {this.renderDevices()}
                 {this.renderMessage()}

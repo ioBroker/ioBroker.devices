@@ -84,7 +84,7 @@ const EditFolder = ({ cb, data }) => {
                         <TextField
                             key="_name"
                             fullWidth
-                            value={Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage())}
+                            value={Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage())}
                             className={classes.oidField}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));

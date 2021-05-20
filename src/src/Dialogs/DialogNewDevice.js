@@ -93,7 +93,7 @@ const styles = theme => ({
         width: '100%',
         flex: 1,
         margin: 5,
-        overflow:'hidden'
+        overflow: 'hidden'
     },
     titleColor: {
         '& h2': {
@@ -185,8 +185,8 @@ class DialogNewDevice extends React.Component {
             common: {
                 name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, { language }) : getLastPart(id),
                 nondeletable: true,
-                color: this.props.objects[id].common && this.props.objects[id].common.color ? this.props.objects[id].common.color : null,
-                icon: this.props.objects[id].common && this.props.objects[id].common.icon ? this.props.objects[id].common.icon : null
+                color: this.props.objects[id]?.common && this.props.objects[id].common.color ? this.props.objects[id].common.color : null,
+                icon: this.props.objects[id]?.common && this.props.objects[id].common.icon ? this.props.objects[id].common.icon : null
             },
             type: 'folder'
         });
@@ -262,11 +262,32 @@ class DialogNewDevice extends React.Component {
 
     handleOk = () => {
         // check if name is unique
+        console.log(2222222, this.props.copyDevice)
+
+        if (this.props.copyDevice) {
+            const { functions, type, rooms, icon, states, color } = this.props.copyDevice;
+            return this.props.onClose && this.props.onClose({
+                id: this.generateId(),
+                type: type,
+                name: this.state.name,
+                functions: functions,
+                rooms: rooms,
+                icon: icon,
+                color: color,
+                states: states,
+                prefix: this.prefix
+            });
+
+        }
+
         this.props.onClose && this.props.onClose({
             id: this.generateId(),
             type: this.state.type,
             name: this.state.name,
             functions: this.state.functions,
+            icon: '',
+            states: [],
+            color: null,
             rooms: this.state.rooms,
             prefix: this.prefix
         });
@@ -346,7 +367,7 @@ class DialogNewDevice extends React.Component {
                         onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
                     />
-                    <FormControl className={classes.type}>
+                    {!this.props.copyDevice && <FormControl className={classes.type}>
                         <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
                         <Select
                             value={this.state.type}
@@ -362,9 +383,9 @@ class DialogNewDevice extends React.Component {
                                     <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
                                 </MenuItem>)}
                         </Select>
-                    </FormControl>
-                    {this.renderSelectEnum('functions', I18n.t('Function'))}
-                    {this.renderSelectEnum('rooms', I18n.t('Room'))}
+                    </FormControl>}
+                    {!this.props.copyDevice && this.renderSelectEnum('functions', I18n.t('Function'))}
+                    {!this.props.copyDevice && this.renderSelectEnum('rooms', I18n.t('Room'))}
                 </div>
             </DialogContent>
             <DialogActions>
@@ -390,7 +411,7 @@ DialogNewDevice.propTypes = {
     theme: PropTypes.object,
     themeType: PropTypes.string,
     enumIDs: PropTypes.array,
-    socket: PropTypes.object
+    socket: PropTypes.object,
 };
 
 export default withStyles(styles)(DialogNewDevice);

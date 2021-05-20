@@ -30,6 +30,7 @@ import DialogEditProperties from './DialogEditProperties';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 import clsx from 'clsx';
+import ImportExportIcon from '@material-ui/icons/ImportExport';
 
 const styles = theme => {
     return ({
@@ -267,7 +268,7 @@ class DialogEditDevice extends React.Component {
             newChannelError: false,
             showCopyDialog: false,
             extendedAvailable,
-            tab: 0,
+            tab: localStorage.getItem('EditDevice.tab') ? JSON.parse(localStorage.getItem('EditDevice.tab')) || 0 : 0,
             initChangeProperties: {},
             changeProperties: {}
         };
@@ -287,7 +288,7 @@ class DialogEditDevice extends React.Component {
             socket={this.props.socket}
             dialogName="devicesEdit"
             title={I18n.t('Select for ') + this.state.selectIdFor}
-            selected={selected || this.findRealDevice()}
+            selected={selected || this.findRealDevice(this.state.selectIdPrefix)}
             statesOnly={true}
             onOk={id => {
                 const ids = JSON.parse(JSON.stringify(this.state.ids));
@@ -421,7 +422,10 @@ class DialogEditDevice extends React.Component {
         </div>;
     }
 
-    findRealDevice() {
+    findRealDevice(prefix) {
+        if (prefix) {
+            return
+        }
         let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
         if (realParent) {
             realParent = this.state.ids[realParent];
@@ -564,6 +568,21 @@ class DialogEditDevice extends React.Component {
         </Dialog>;
     }
 
+    onToggleTypeStates = (name) => {
+        let stateDevice = this.state.ids[name];
+        if (typeof stateDevice === 'object') {
+            stateDevice = stateDevice.read;
+        } else {
+            stateDevice = {
+                read: stateDevice,
+                write: ''
+            }
+        }
+        const newIds = JSON.parse(JSON.stringify(this.state.ids));
+        newIds[name] = stateDevice;
+        this.setState({ ids: newIds });
+    }
+
     renderVariable(item, color) {
         if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
             return null;
@@ -591,84 +610,113 @@ class DialogEditDevice extends React.Component {
                 props.push('enum ' + this.props.channelInfo.type);
             }
         }
+        ////////////// ImportExportIcon
         const alias = this.channelId.startsWith('alias.');
         const linkeddevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
-        return <div key={name} className={clsx(this.props.classes.divOidField, typeof this.state.ids[name] === 'object' && this.props.classes.divOidFieldObj)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+
+        if (typeof this.state.ids[name] === 'object') {
+            return <>
+                <div key={name} className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+                    <div className={this.props.classes.displayFlex}>
+                        <div className={this.props.classes.displayFlexRow}>
+                            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                {(item.required ? '*' : '') + name} (read)
+                                </div>
+                            <TextField
+                                key={name}
+                                fullWidth
+                                disabled={!alias && !linkeddevices}
+                                value={this.state.ids[name].read}
+                                className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                style={{ paddingTop: 8 }}
+                                onChange={e => {
+                                    const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                    ids[name].read = e.target.value;
+                                    this.setState({ ids });
+                                }}
+                                helperText={`${props.join(', ')}`}
+                                margin="normal"
+                            />
+                            <div className={this.props.classes.wrapperItemButtons}>
+                                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                                    <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
+                                        <IconEdit />
+                                    </IconButton>
+                                </Tooltip>}
+                            </div>
+                        </div>
+                        <div className={this.props.classes.displayFlexRow}>
+                            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                {(item.required ? '*' : '') + name} (write)
+                                </div>
+                            <TextField
+                                key={name}
+                                fullWidth
+                                disabled={!alias && !linkeddevices}
+                                value={this.state.ids[name].write}
+                                className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                style={{ paddingTop: 8 }}
+                                onChange={e => {
+                                    const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                    ids[name].write = e.target.value;
+                                    this.setState({ ids });
+                                }}
+                                helperText={`${props.join(', ')}`}
+                                margin="normal"
+                            /> <div className={this.props.classes.wrapperItemButtons}>
+                                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                                    <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
+                                        <IconEdit />
+                                    </IconButton>
+                                </Tooltip>}
+                            </div>
+                        </div>
+                    </div>
+                    <div className={this.props.classes.wrapperItemButtons}>
+                        {(alias || linkeddevices) && <Tooltip title={I18n.t('object/string')}>
+                            <IconButton onClick={() => this.onToggleTypeStates(name)}>
+                                <ImportExportIcon />
+                            </IconButton>
+                        </Tooltip>}
+                        {alias && this.state.ids[name] ? <Tooltip title={I18n.t('Edit convert functions')}>
+                            <IconButton onClick={() => this.setState({ editFxFor: name })}>
+                                <IconFunction />
+                            </IconButton>
+                        </Tooltip> : <div className={this.props.classes.emptyButton} />}
+                    </div>
+                </div>
+            </>
+        }
+
+        return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
             <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
                 {(item.required ? '*' : '') + name}
             </div>
-            {typeof this.state.ids[name] === 'object' ?
-                <div className={this.props.classes.displayFlex}>
-                    <div className={this.props.classes.displayFlexRow}>
-                        <TextField
-                            key={name}
-                            fullWidth
-                            disabled={!alias && !linkeddevices}
-                            value={this.state.ids[name].read}
-                            className={clsx(this.props.classes.oidField, this.props.classes.width100)}
-                            style={{ paddingTop: 8 }}
-                            onChange={e => {
-                                const ids = JSON.parse(JSON.stringify(this.state.ids));
-                                ids[name] = e.target.value;
-                                this.setState({ ids });
-                            }}
-                            helperText={`read, ${props.join(', ')}`}
-                            margin="normal"
-                        />
-                        <div className={this.props.classes.wrapperItemButtons}>
-                            {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
-                                <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
-                                    <IconEdit />
-                                </IconButton>
-                            </Tooltip>}
-                        </div>
-                    </div>
-                    <div className={this.props.classes.displayFlexRow}>
-                        <TextField
-                            key={name}
-                            fullWidth
-                            disabled={!alias && !linkeddevices}
-                            value={this.state.ids[name].write}
-                            className={clsx(this.props.classes.oidField, this.props.classes.width100)}
-                            style={{ paddingTop: 8 }}
-                            onChange={e => {
-                                const ids = JSON.parse(JSON.stringify(this.state.ids));
-                                ids[name] = e.target.value;
-                                this.setState({ ids });
-                            }}
-                            helperText={`write, ${props.join(', ')}`}
-                            margin="normal"
-                        /> <div className={this.props.classes.wrapperItemButtons}>
-                            {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
-                                <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
-                                    <IconEdit />
-                                </IconButton>
-                            </Tooltip>}
-                        </div>
-                    </div>
-                </div>
-                :
-                <TextField
-                    key={name}
-                    fullWidth
-                    disabled={!alias && !linkeddevices}
-                    value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
-                    className={this.props.classes.oidField}
-                    style={{ paddingTop: 8 }}
-                    onChange={e => {
-                        const ids = JSON.parse(JSON.stringify(this.state.ids));
-                        ids[name] = e.target.value;
-                        this.setState({ ids });
-                    }}
-                    helperText={props.join(', ')}
-                    margin="normal"
-                />
-            }
+            <TextField
+                key={name}
+                fullWidth
+                disabled={!alias && !linkeddevices}
+                value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
+                className={this.props.classes.oidField}
+                style={{ paddingTop: 8 }}
+                onChange={e => {
+                    const ids = JSON.parse(JSON.stringify(this.state.ids));
+                    ids[name] = e.target.value;
+                    this.setState({ ids });
+                }}
+                helperText={props.join(', ')}
+                margin="normal"
+            />
             <div className={this.props.classes.wrapperItemButtons}>
-                {typeof this.state.ids[name] !== 'object' && (alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
                     <IconButton onClick={() => this.setState({ selectIdFor: name })}>
                         <IconEdit />
+                    </IconButton>
+                </Tooltip>}
+                {(alias || linkeddevices) && <Tooltip title={I18n.t('object/string')}>
+                    <IconButton onClick={() => this.onToggleTypeStates(name)}>
+                        <ImportExportIcon />
                     </IconButton>
                 </Tooltip>}
                 {alias && this.state.ids[name] ? <Tooltip title={I18n.t('Edit convert functions')}>
@@ -700,7 +748,7 @@ class DialogEditDevice extends React.Component {
             open={true}
             maxWidth="md"
             fullWidth={true}
-            onClose={() => this.handleOk()}
+            onClose={() => this.handleClose()}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
@@ -719,7 +767,9 @@ class DialogEditDevice extends React.Component {
                         classes={{
                             indicator: this.props.classes.indicator
                         }}
-                        onChange={(_, newTab) => this.setState({ tab: newTab })}
+                        onChange={(_, newTab) => this.setState({ tab: newTab }, () => {
+                            localStorage.setItem('EditDevice.tab', newTab);
+                        })}
                         indicatorColor="primary"
                         textColor="primary"
                         variant="scrollable"

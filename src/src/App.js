@@ -1,23 +1,21 @@
 import React from 'react';
 import { ThemeProvider, withStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
 import Loader from '@iobroker/adapter-react/Components/Loader'
-import I18n from '@iobroker/adapter-react/i18n';
+// import I18n from '@iobroker/adapter-react/i18n';
 
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import TabDevices from './Tabs/ListDevices';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import ToggleThemeMenu from './Components/ToggleThemeMenu';
-import { Paper, Toolbar } from '@material-ui/core';
-import DvrIcon from '@material-ui/icons/Dvr';
+// import ToggleThemeMenu from './Components/ToggleThemeMenu';
+import { Paper } from '@material-ui/core';
+
 
 const styles = theme => ({
     root: {},
     tabContent: {
         padding: 10,
-        height: 'calc(100% - 48px - 20px)',
+        height: 'calc(100% - 20px)',
         overflow: 'auto',
-        // background: theme.palette.type === 'light' ? 'white' : 'gray',
     },
     wrapperMenu: {
         display: 'flex',
@@ -102,27 +100,10 @@ class App extends GenericApp {
         }
         console.log(this.state.themeName)
         return <ThemeProvider theme={this.state.theme}>
-            <Paper square elevation={0}>
-                <AppBar
-                    color="default"
-                    position="static"
-                >
-                    <Toolbar
-                        variant="dense"
-                        className={this.props.classes.wrapperMenu}>
-                        <div className={this.props.classes.wrapperIconHeader}>
-                            <ToggleThemeMenu
+            {/* <ToggleThemeMenu
                                 toggleTheme={this.toggleTheme}
                                 themeName={this.state.themeName}
-                                t={I18n.t} />
-                        </div>
-                        <div className={this.props.classes.wrapperName}>
-                            <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
-                            {I18n.t('Devices')}
-                        </div>
-                    </Toolbar>
-                </AppBar>
-            </Paper>
+                                t={I18n.t} /> */}
             <Paper square elevation={0} className={this.props.classes.tabContent}>
                 {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? <TabDevices
                     theme={this.state.theme}
