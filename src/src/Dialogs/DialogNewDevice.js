@@ -27,6 +27,7 @@ import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils
 import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
 import Icon from '@iobroker/adapter-react/Components/Icon';
+import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 
 const styles = theme => ({
     header: {
@@ -103,6 +104,25 @@ const styles = theme => ({
             textAlign: 'end'
         },
     },
+    iconStyle: {
+        width: 16,
+        height: 16,
+        margin: '0 3px'
+    },
+    emptyIcon: {
+        width: 16,
+        height: 16,
+        margin: '0 3px'
+    },
+    itemChildrenWrapper: {
+        display: 'flex',
+        width: '100%',
+        justifyContent: 'space-between'
+    },
+    iconWrapper: {
+        display: 'flex',
+        alignItems: 'center'
+    }
 });
 
 const UNSUPPORTED_TYPES = [
@@ -164,19 +184,19 @@ class DialogNewDevice extends React.Component {
 
         this.typesWords = {};
         Object.keys(Types)
-            .filter(id => id !== "instance" && !UNSUPPORTED_TYPES.includes(id))
+            .filter(id => id !== 'instance' && !UNSUPPORTED_TYPES.includes(id))
             .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
 
         // sort types by ABC in the current language
         this.types = Object.keys(this.typesWords).sort((a, b) => {
             if (this.typesWords[a] === this.typesWords[b]) {
                 return 0;
-            }
-            if (this.typesWords[a] > this.typesWords[b]) {
-                return 1;
-            } else {
-                return -1;
-            }
+            } else
+                if (this.typesWords[a] > this.typesWords[b]) {
+                    return 1;
+                } else {
+                    return -1;
+                }
         });
 
         const stateIds = {};
@@ -202,7 +222,7 @@ class DialogNewDevice extends React.Component {
         const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
         this.state = {
             root: this.prefix,
-            name: I18n.t('Device') + ' ' + i,
+            name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
             notUnique: false,
             functions: !!roomsStorage && typeof functionStorage !== 'string' ? functionStorage : [],
             rooms: !!roomsStorage && typeof roomsStorage !== 'string' ? roomsStorage : [],
@@ -260,23 +280,99 @@ class DialogNewDevice extends React.Component {
         return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
+    addToEnum(enumId, id) {
+        this.props.socket.getObject(enumId)
+            .then(obj => {
+                if (obj && obj.common) {
+                    obj.common.members = obj.common.members || [];
+
+                    if (!obj.common.members.includes(id)) {
+                        obj.common.members.push(id);
+                        obj.common.members.sort();
+                        this.props.objects[enumId] = obj;
+                        return this.props.socket.setObject(enumId, obj);
+                    }
+                }
+            });
+    }
+
+    processTasks(tasks, cb) {
+        if (!tasks || !tasks.length) {
+            cb && cb();
+        } else {
+            const task = tasks.shift();
+            let promises = [];
+
+            if (task.enums) {
+                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
+            }
+            this.props.objects[task.id] = task.obj;
+            promises.push(this.props.socket.setObject(task.id, task.obj));
+
+            Promise.all(promises)
+                .then(() => setTimeout(() =>
+                    this.processTasks(tasks, cb), 0));
+        }
+    }
+
+    onCopyDevice(newChannelId, cb) {
+        // if this is device not from linkeddevice or from alias
+        this.channelId = this.props.copyDevice.channelId;
+        const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
+
+        const channelObj = this.props.objects[this.channelId];
+        const { functions, rooms, icon, states, color } = this.props.copyDevice;
+        const tasks = [];
+        tasks.push({
+            id: newChannelId,
+            obj: {
+                common: {
+                    name: channelObj.common.name,
+                    color: color,
+                    desc: channelObj.common.desc,
+                    role: channelObj.common.role,
+                    icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
+                },
+                type: 'channel'
+            },
+            enums: rooms.concat(functions)
+        });
+
+        states.forEach(state => {
+            if (!state.id) {
+                return;
+            }
+            const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
+            obj._id = newChannelId + '.' + state.name;
+
+            obj.native = {};
+            if (!isAlias) {
+                obj.common.alias = { id: state.id };
+            }
+            tasks.push({ id: obj._id, obj });
+        });
+
+        this.processTasks(tasks, cb);
+    }
+
     handleOk = () => {
         // check if name is unique
-        console.log(2222222, this.props.copyDevice)
-
         if (this.props.copyDevice) {
-            const { functions, type, rooms, icon, states, color } = this.props.copyDevice;
-            return this.props.onClose && this.props.onClose({
-                id: this.generateId(),
-                type: type,
-                name: this.state.name,
-                functions: functions,
-                rooms: rooms,
-                icon: icon,
-                color: color,
-                states: states,
-                prefix: this.prefix
+            return this.onCopyDevice(this.generateId(), () => {
+                this.props.onChange()
+                this.props.onClose()
             });
+            // return this.props.onClose && this.props.onClose({
+            //     id: this.generateId(),
+            //     type: type,
+            //     name: this.state.name,
+            //     functions: functions,
+            //     rooms: rooms,
+            //     icon: icon,
+            //     color: color,
+            //     states: states,
+            //     prefix: this.prefix
+            // });
 
         }
 
@@ -360,6 +456,19 @@ class DialogNewDevice extends React.Component {
                 <div className={classes.blockFields}>
                     <TextField
                         fullWidth
+                        autoFocus={!!this.props.copyDevice}
+                        onKeyPress={(ev) => {
+                            if (this.props.copyDevice) {
+                                if (ev.key === 'Enter') {
+                                    if (this.state.name && !this.props.objects[this.generateId()]) {
+                                        this.handleOk();
+                                    } else {
+                                        this.handleCancel();
+                                    }
+                                    ev.preventDefault();
+                                }
+                            }
+                        }}
                         label={I18n.t('Device name')}
                         error={!!this.props.objects[this.generateId()]}
                         className={classes.name}
@@ -379,8 +488,13 @@ class DialogNewDevice extends React.Component {
                             {this.types
                                 .filter(id => !UNSUPPORTED_TYPES.includes(id))
                                 .map(typeId => <MenuItem key={Types[typeId]} value={Types[typeId]}>
-                                    <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
-                                    <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
+                                    <div className={classes.itemChildrenWrapper}>
+                                        <div>
+                                            <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
+                                            <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
+                                        </div>
+                                        <div className={classes.iconWrapper}>{Object.keys(TYPE_OPTIONS[typeId]).map(key => TYPE_OPTIONS[typeId][key] ? <Icon className={classes.iconStyle} src={ICONS_TYPE[key]} /> : <div key={key} className={classes.emptyIcon} />)}</div>
+                                    </div>
                                 </MenuItem>)}
                         </Select>
                     </FormControl>}

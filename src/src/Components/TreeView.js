@@ -113,11 +113,11 @@ const styles = theme => ({
         textOverflow: 'ellipsis',
         paddingRight: '30px !important'
     },
-    addNewFolderTitle:{
+    addNewFolderTitle: {
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        '& h2':{
+        '& h2': {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -300,10 +300,22 @@ class TreeView extends React.Component {
         const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
         const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;
         return (
-            <Dialog key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
+            <Dialog
+                key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
                 <DialogTitle className={this.props.classes.addNewFolderTitle} >{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
                 <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
-                    <TextField error={!!error} className={this.props.classes.dialogNewInput} autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({ addNewName: e.target.value })} />
+                    <TextField
+                        onKeyPress={(ev) => {
+                            if (ev.key === 'Enter') {
+                                if (this.state.addNewName) {
+                                    this.props.onAddNew(this.state.addNewName, this.state.addNew.id,
+                                        () => this.setState({ addNew: null, addNewName: '' }))
+                                } else {
+                                    this.setState({ addNew: null, addNewName: '' })
+                                }
+                                ev.preventDefault();
+                            }
+                        }} error={!!error} className={this.props.classes.dialogNewInput} autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({ addNewName: e.target.value })} />
                 </form>
                 <DialogActions>
                     <Button

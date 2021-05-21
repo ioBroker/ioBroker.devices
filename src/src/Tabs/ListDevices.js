@@ -68,6 +68,7 @@ import { editFolderCallBack } from '../Dialogs/EditFolder';
 import Icon from '@iobroker/adapter-react/Components/Icon';
 import DvrIcon from '@material-ui/icons/Dvr';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
+import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -129,7 +130,7 @@ function getLastPart(id) {
     }
 }
 
-const prepareList = (data, root) => {
+const prepareList = (data, root, objects) => {
     const result = [];
     const ids = Object.keys(data);
     root = root || '';
@@ -170,6 +171,9 @@ const prepareList = (data, root) => {
         if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
         if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
         if (b.id === "alias.0.automatically_detected" && a.type === 'folder') return -1;
+        if (a.id === "alias.0.linked_devices" && b.type === 'folder') return 1;
+        if (b.id === "alias.0.linked_devices" && a.type !== 'folder') return -1;
+        if (b.id === "alias.0.linked_devices" && a.type === 'folder') return -1;
 
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
             if (a.id === b.id) return 0;
@@ -215,13 +219,21 @@ const prepareList = (data, root) => {
             if (item.parent) {
                 const parent = result.find(it => it.id === item.parent);
                 if (!parent) {
+                    let obj = {};
+                    if (item.id.indexOf('linkeddevices.0') !== -1) {
+                        const partsLinkedDevices = item.id.split('.');
+                        partsLinkedDevices.pop();
+                        // console.log(22222,33333,partsLinkedDevices.join('.'))
+                        obj = objects[partsLinkedDevices.join('.')]
+                    }
                     const parts = item.parent.split('.');
                     parts.pop();
                     result.push({
                         id: item.parent,
-                        title: root ? item.parent.replace(regEx, '') : item.parent,
+                        title: root ? item.parent.replace(regEx, '') : item.parent.split('.').pop(),
                         depth: parts.length - 1,
                         type: 'folder',
+                        obj: obj,
                         parent: parts.length >= 2 ? parts.join('.') : null
                     });
                     modified = true;
@@ -583,6 +595,27 @@ const styles = theme => ({
         '& th': {
             background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white'
         }
+    },
+    spaceBetween: {
+        justifyContent: 'space-between'
+
+    },
+    iconWrapper: {
+        display: 'flex',
+        alignItems: 'center'
+    },
+    iconStyleType: {
+        width: 16,
+        height: 16,
+        margin: '0 3px'
+    },
+    emptyIcon: {
+        width: 16,
+        height: 16,
+        margin: '0 3px'
+    },
+    typeCellNameAndIcon: {
+        display: 'flex'
     }
 });
 
@@ -640,7 +673,8 @@ class ListDevices extends Component {
             linkeddevices: '',
             iot: '',
             iotNoCommon: false,
-            onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
+            // onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
+            onlyAliases: false,
             hideInfo: window.localStorage.getItem('Devices.hideInfo') ? JSON.parse(window.localStorage.getItem('Devices.hideInfo')) : true,
         };
 
@@ -707,7 +741,11 @@ class ListDevices extends Component {
         }, 300);
     }
 
-    detectDevices() {
+    detectDevices(delay) {
+        /*if (delay) {
+            return setTimeout(() => this.detectDevices(), 300);
+        }*/
+
         // read objects
         this.setState({ browse: true });
 
@@ -754,8 +792,10 @@ class ListDevices extends Component {
 
                 const _usedIdsOptional = [];
                 const devices = [];
+                console.log(2222221,idsInEnums,devices)
                 idsInEnums.forEach(id => {
                     const result = this.detector.detect({ id, objects: this.objects, _usedIdsOptional, _keysOptional: keys });
+                    console.log(222222,id,result,this.objects[id])
                     result && result.forEach(device => devices.push(device));
                 });
 
@@ -763,11 +803,13 @@ class ListDevices extends Component {
                 const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
                 // find channelID for every device
-                devices.forEach(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
+                devices.map(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
+                
+                console.log(222222,idsInEnums,devices)
 
                 ///////
 
-                const listItems = this.onObjectsGenerate(this.objects || {}, devices);
+                const listItems = this.onObjectsGenerate(this.objects || {}, JSON.parse(JSON.stringify(devices)));
                 let expandedIDs = this.state.expandedIDs;
                 if (expandedIDs === null) {
                     expandedIDs = [];
@@ -855,7 +897,7 @@ class ListDevices extends Component {
 
         let devicesArr = devices || this.state.devices;
 
-        devicesArr = devicesArr.filter(({ channelId }) => !channelId.startsWith('alias.0'))
+        devicesArr = devicesArr.filter(({ channelId }) => !channelId.startsWith('alias.0') && !channelId.startsWith('linkeddevices.0'));
         devicesArr.forEach(device => {
             stateIds[`${this.prefix}.automatically_detected.${Utils.getObjectName(objects, device.channelId, { language })}`] = {
                 common: {
@@ -868,10 +910,34 @@ class ListDevices extends Component {
                 type: objects[device.channelId].type,
                 role: device.type
             }
-
         })
 
-        return prepareList(stateIds)
+        if (this.state.linkeddevices) {
+            let devicesArrLinkeddevices = devices || this.state.devices;
+
+            devicesArrLinkeddevices = devicesArrLinkeddevices.filter(({ channelId }) => channelId.startsWith('linkeddevices.0'));
+            stateIds[`${this.prefix}.linked_devices`] = {
+                common: {
+                    name: I18n.t('Linked devices'),
+                    nondeletable: true,
+                },
+                type: 'folder'
+            };
+            devicesArrLinkeddevices.forEach(device => {
+                stateIds[`${this.prefix}.linked_devices.${device.channelId.replace('linkeddevices.0.', '')}`] = {
+                    common: {
+                        name: Utils.getObjectName(objects, device.channelId, { language }),
+                        nondeletable: true,
+                        color: objects[device.channelId].common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                        icon: objects[device.channelId].common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                    },
+                    obj: objects[device.channelId],
+                    type: objects[device.channelId].type,
+                    role: device.type
+                }
+            })
+        }
+        return prepareList(stateIds, null, this.objects)
     }
 
 
@@ -1091,9 +1157,12 @@ class ListDevices extends Component {
     }
 
     renderTypeCell(type) {
-        return <div className={this.props.classes.wrapperIconEnumCell}>
-            <TypeIcon className={this.props.classes.enumIcon} type={type} />
-            <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
+        return <div className={clsx(this.props.classes.wrapperIconEnumCell, this.props.classes.spaceBetween)}>
+            <div className={this.props.classes.typeCellNameAndIcon}>
+                <TypeIcon className={this.props.classes.enumIcon} type={type} />
+                <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
+            </div>
+            <div className={this.props.classes.iconWrapper}>{Object.keys(TYPE_OPTIONS[type]).map(key => TYPE_OPTIONS[type][key] ? <Icon className={this.props.classes.iconStyleType} src={ICONS_TYPE[key]} /> : <div key={key} className={this.props.classes.emptyIcon} />)}</div>
         </div>;
     }
 
@@ -1256,11 +1325,14 @@ class ListDevices extends Component {
         iconStyle.width = 36;
         iconStyle.height = 36;
 
-        if (item.id === "alias.0.automatically_detected") {
+        if (item.id === 'alias.0.automatically_detected') {
             iconStyle.color = "#F1C40F"
         }
+        if (item.id === 'alias.0.linked_devices') {
+            iconStyle.color = "#E67E22"
 
-        if (item.id === "alias.0.automatically_detected" && !countSpan) {
+        }
+        if (item.id === 'alias.0.automatically_detected' && !countSpan) {
             return
         }
 
@@ -1381,7 +1453,7 @@ class ListDevices extends Component {
                             // size="small" 
                             onClick={e => editFolderCallBack(item.obj, (obj) => {
                                 obj && this.props.socket.setObject(obj._id, obj)
-                                    .then(() => this.detectDevices());
+                                    .then(() => this.detectDevices(true));
                             })}
                         >
                             <IconEdit />
@@ -1394,7 +1466,7 @@ class ListDevices extends Component {
                                 onClick={e => {
                                     deleteFolderCallBack((bool) => {
                                         bool && this.props.socket.delObjects(item.id, true)
-                                            .then(() => this.detectDevices());
+                                            .then(() => this.detectDevices(true));
                                     })
                                 }}>
                                 <IconDelete />
@@ -1941,7 +2013,7 @@ class ListDevices extends Component {
                             newState.devices = devices;
                         }
 
-                        this.setState(newState, () => refresh && this.detectDevices());
+                        this.setState(newState, () => refresh && this.detectDevices(true));
                     });
 
                 Router.doNavigate(null, '', '');
@@ -2078,13 +2150,17 @@ class ListDevices extends Component {
                 console.log(`${device.channelId} deleted`);
             }));
 
+        
+
         Promise.all(promises)
             .then(() => {
                 let devices = JSON.parse(JSON.stringify(this.state.devices));
                 devices.splice(index, 1);
-                this.setState({ devices }, cb);
+                this.setState({ devices }, () => {
+                    setTimeout(() => this.detectDevices(true), 0);
+                    cb && cb();
+                });
             });
-        setTimeout(() => this.detectDevices(), 0)
     }
 
     createDevice(options) {
@@ -2188,7 +2264,7 @@ class ListDevices extends Component {
             theme={this.props.theme}
             objects={this.objects}
             socket={this.props.socket}
-            onChange={el => setTimeout(() => this.detectDevices(), 0)}
+            onChange={el => setTimeout(() => this.detectDevices(true), 0)}
             enumIDs={this.enumIDs}
             prefix={this.state.showAddDialog}
             copyDevice={this.state.copyId ? this.state.devices.find(el => el.channelId === this.state.copyId) || null : null}
@@ -2295,7 +2371,7 @@ class ListDevices extends Component {
                                 {this.state.browse ? (<CircularProgress size={20} />) : (<IconRefresh />)}
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title={I18n.t('Show only aliases')}>
+                        {/* <Tooltip title={I18n.t('Show only aliases')}>
                             <IconButton
                                 color={this.state.onlyAliases ? 'primary' : 'inherit'}
                                 onClick={() => {
@@ -2304,7 +2380,7 @@ class ListDevices extends Component {
                                 }}>
                                 <IconStar />
                             </IconButton>
-                        </Tooltip>
+                        </Tooltip> */}
                         <Tooltip title={I18n.t('Hide info devices')}>
                             <IconButton
                                 color={this.state.hideInfo ? 'primary' : 'inherit'}

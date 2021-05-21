@@ -20,6 +20,7 @@ import { MdEdit as IconEdit } from 'react-icons/md';
 import { MdFunctions as IconFunction } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
 import { MdContentCopy as IconCopy } from 'react-icons/md';
+import { MdHelpOutline } from 'react-icons/md';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
@@ -31,6 +32,7 @@ import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 import clsx from 'clsx';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
+import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 
 const styles = theme => {
     return ({
@@ -50,9 +52,14 @@ const styles = theme => {
             height: 69,
         },
         oidName: {
-            width: 100,
+            minWidth: 100,
             display: 'flex',
-            alignItems: 'center'
+            // alignItems: 'center',
+            flexDirection: 'column',
+            marginTop: 17,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
         },
         oidField: {
             display: 'inline-block',
@@ -182,6 +189,32 @@ const styles = theme => {
         },
         width100: {
             width: '100%'
+        },
+        stateSubCategory: {
+            fontSize: 12,
+            opacity: .6
+        },
+        wrapperHeaderIndicators: {
+            display: 'flex',
+            padding: 30
+        },
+        headerIndicatorsLine: {
+            flexGrow: 1,
+            borderTop: '1px solid #4dabf5',
+            margin: '0 10px',
+            marginTop: 11,
+            opacity: 0.8
+        },
+        headerIndicatorsName: {
+            color: '#4dabf5',
+            fontSize: 18
+        },
+        wrapperOidName: {
+            display: 'flex',
+        },
+        oidNameIcon: {
+            marginTop: 16,
+            marginRight: 3
         }
     })
 };
@@ -429,9 +462,16 @@ class DialogEditDevice extends React.Component {
         let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
         if (realParent) {
             realParent = this.state.ids[realParent];
-            const parts = realParent.split('.');
-            parts.pop();
-            realParent = parts.join('.');
+            if(typeof realParent === 'string'){
+                const parts = realParent.split('.');
+                parts.pop();
+                realParent = parts.join('.');
+            }else if(typeof realParent === 'object'){
+                realParent = Object.keys(realParent)[0];
+                const parts = realParent.split('.');
+                parts.pop();
+                realParent = parts.join('.');
+            }
         }
         return realParent || '';
     }
@@ -610,19 +650,34 @@ class DialogEditDevice extends React.Component {
                 props.push('enum ' + this.props.channelInfo.type);
             }
         }
+
+        const titleTooltip = <div>
+            <div>{`${I18n.t("Type")}: ${item.type || 'any'}`}</div>
+            <div>{`${I18n.t("Write")}: ${!!item.write}`}</div>
+            <div>{`${I18n.t("Role")}: ${pattern.defaultRole || (pattern.role && pattern.role.toString()) || ''}`}</div>
+        </div>
+
         ////////////// ImportExportIcon
         const alias = this.channelId.startsWith('alias.');
         const linkeddevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
+
+        const IconsState = STATES_NAME_ICONS[name] || MdHelpOutline
 
         if (typeof this.state.ids[name] === 'object') {
             return <>
                 <div key={name} className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
                     <div className={this.props.classes.displayFlex}>
                         <div className={this.props.classes.displayFlexRow}>
-                            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
-                                {(item.required ? '*' : '') + name} (read)
+                            <Tooltip title={titleTooltip}>
+                                <div className={this.props.classes.wrapperOidName}>
+                                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
+                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                        {(item.required ? '*' : '') + name}
+                                        <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_read')}</div>
+                                    </div>
                                 </div>
+                            </Tooltip>
                             <TextField
                                 key={name}
                                 fullWidth
@@ -647,9 +702,15 @@ class DialogEditDevice extends React.Component {
                             </div>
                         </div>
                         <div className={this.props.classes.displayFlexRow}>
-                            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
-                                {(item.required ? '*' : '') + name} (write)
+                            <Tooltip title={titleTooltip}>
+                                <div className={this.props.classes.wrapperOidName}>
+                                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
+                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                        {(item.required ? '*' : '') + name}
+                                        <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_write')}</div>
+                                    </div>
                                 </div>
+                            </Tooltip>
                             <TextField
                                 key={name}
                                 fullWidth
@@ -674,8 +735,8 @@ class DialogEditDevice extends React.Component {
                         </div>
                     </div>
                     <div className={this.props.classes.wrapperItemButtons}>
-                        {(alias || linkeddevices) && <Tooltip title={I18n.t('object/string')}>
-                            <IconButton onClick={() => this.onToggleTypeStates(name)}>
+                        {(alias || linkeddevices) && <Tooltip title={I18n.t('Use one state for read and write')}>
+                            <IconButton color="primary" onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
@@ -690,9 +751,14 @@ class DialogEditDevice extends React.Component {
         }
 
         return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
-            <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
-                {(item.required ? '*' : '') + name}
-            </div>
+            <Tooltip title={titleTooltip}>
+                <div className={this.props.classes.wrapperOidName}>
+                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
+                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                        {(item.required ? '*' : '') + name}
+                    </div>
+                </div>
+            </Tooltip>
             <TextField
                 key={name}
                 fullWidth
@@ -714,7 +780,7 @@ class DialogEditDevice extends React.Component {
                         <IconEdit />
                     </IconButton>
                 </Tooltip>}
-                {(alias || linkeddevices) && <Tooltip title={I18n.t('object/string')}>
+                {(alias || linkeddevices) && <Tooltip title={I18n.t('Use differnet states for read and write')}>
                     <IconButton onClick={() => this.onToggleTypeStates(name)}>
                         <ImportExportIcon />
                     </IconButton>
@@ -731,6 +797,12 @@ class DialogEditDevice extends React.Component {
     renderVariables() {
         return <div key="vars" className={this.props.classes.divOids + ' ' + this.props.classes.divCollapsed}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
+            {this.state.extended && this.state.extendedAvailable &&
+                <div className={this.props.classes.wrapperHeaderIndicators}>
+                    <div className={this.props.classes.headerIndicatorsLine} />
+                    <div className={this.props.classes.headerIndicatorsName}>{I18n.t('Indicators')}</div>
+                    <div className={this.props.classes.headerIndicatorsLine} />
+                </div>}
             {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, true))}
         </div>;
     }

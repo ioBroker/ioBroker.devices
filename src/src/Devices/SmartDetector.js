@@ -43,7 +43,7 @@ class IOBChannelDetector {
 
     detect(options) {
         if (!options._keysOptional || options.forceRebuildKeys) {
-            if (this.objects !== options.objects || options.forceRebuildKeys) {
+            if (JSON.stringify(this.objects) !== JSON.stringify(options.objects) || options.forceRebuildKeys) {
                 this.objects = options.objects;
                 this.keys = Object.keys(this.objects).sort();
             }
@@ -53,9 +53,9 @@ class IOBChannelDetector {
         const result = this.detector.detect(options);
 
         // Apply additionalParameters
-        result && result.forEach(one =>
-            one.states.forEach(state =>
-                state.id && additionalParameters[state.name] && Object.assign(state, additionalParameters[state.name])));
+        // result && result.forEach(one =>
+        //     one.states.forEach(state =>
+        //         state.id && additionalParameters[state.name] && Object.assign(state, additionalParameters[state.name])));
 
         return result;
     }

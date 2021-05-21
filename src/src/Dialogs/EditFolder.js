@@ -84,6 +84,18 @@ const EditFolder = ({ cb, data }) => {
                         <TextField
                             key="_name"
                             fullWidth
+                            autoFocus
+                            onKeyPress={(ev) => {
+                                if (ev.key === 'Enter') {
+                                    if (dataEdit.common.name && JSON.stringify(dataEdit) !== JSON.stringify(data)) {
+                                        cb(dataEdit);
+                                    } else {
+                                        cb(false);
+                                    }
+                                    onClose();
+                                    ev.preventDefault();
+                                }
+                            }}
                             value={Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage())}
                             className={classes.oidField}
                             onChange={e => {
