@@ -343,7 +343,7 @@ class TreeView extends React.Component {
             // eslint-disable-next-line
             el = el && el.parent && this.state.listItems.find(it => it.id === el.parent);
             if (el) {
-                if (expanded.indexOf(el.id) === -1) {
+                if (!expanded.includes(el.id)) {
                     expanded.push(el.id);
                     changed = true;
                 }

@@ -220,7 +220,7 @@ const prepareList = (data, root, objects) => {
                 const parent = result.find(it => it.id === item.parent);
                 if (!parent) {
                     let obj = {};
-                    if (item.id.indexOf('linkeddevices.0') !== -1) {
+                    if (item.id.includes('linkeddevices.0')) {
                         const partsLinkedDevices = item.id.split('.');
                         partsLinkedDevices.pop();
                         // console.log(22222,33333,partsLinkedDevices.join('.'))
@@ -763,7 +763,7 @@ class ListDevices extends Component {
                 this.enumIDs.forEach(en => {
                     const e = enums[en];
                     e.common && e.common.members && e.common.members.forEach(id =>
-                        idsInEnums.indexOf(id) === -1 && idsInEnums.push(id));
+                        !idsInEnums.includes(id) && idsInEnums.push(id));
                 });
 
                 // List all devices in aliases
@@ -772,7 +772,7 @@ class ListDevices extends Component {
                     if (keys[i] < ALIAS) continue;
                     if (keys[i] > LINKEDDEVICES + '\u9999') break;
 
-                    if ((keys[i].startsWith(ALIAS) || keys[i].startsWith(LINKEDDEVICES)) && this.objects[keys[i]] && idsInEnums.indexOf(keys[i]) === -1) {
+                    if ((keys[i].startsWith(ALIAS) || keys[i].startsWith(LINKEDDEVICES)) && this.objects[keys[i]] && !idsInEnums.includes(keys[i])) {
                         if (this.objects[keys[i]].type === 'device') {
                             idsInEnums.push(keys[i]);
                         } else if (this.objects[keys[i]].type === 'channel') {
@@ -781,7 +781,7 @@ class ListDevices extends Component {
 
                             const parentId = parts.join('.');
                             // if parent was not yet included
-                            if (!this.objects[parentId] || idsInEnums.indexOf(parentId) === -1) {
+                            if (!this.objects[parentId] || !idsInEnums.includes(parentId)) {
                                 idsInEnums.push(keys[i]);
                             }
                         }
@@ -966,8 +966,8 @@ class ListDevices extends Component {
             return obj &&
                 obj.common &&
                 obj.common.members &&
-                (obj.common.members.indexOf(device.channelId) !== -1 ||
-                    obj.common.members.indexOf(device.mainStateId) !== -1);
+                (obj.common.members.includes(device.channelId) ||
+                    obj.common.members.includes(device.mainStateId));
         });
 
         const rooms = roomsEnums.filter(id => {
@@ -975,8 +975,8 @@ class ListDevices extends Component {
             return obj &&
                 obj.common &&
                 obj.common.members &&
-                (obj.common.members.indexOf(device.channelId) !== -1 ||
-                    obj.common.members.indexOf(device.mainStateId) !== -1);
+                (obj.common.members.includes(device.channelId) ||
+                    obj.common.members.includes(device.mainStateId));
         });
 
         device.functions = functions;
@@ -1000,7 +1000,7 @@ class ListDevices extends Component {
 
     addChanged(id, cb) {
         const changed = JSON.parse(JSON.stringify(this.state.changed));
-        if (changed.indexOf(id) === -1) {
+        if (!changed.includes(id)) {
             changed.push(id);
             this.setState({ changed }, () => cb && cb());
         } else {
@@ -1106,8 +1106,8 @@ class ListDevices extends Component {
         if (this.state.orderBy === 'IDs') {
             if (this.filter &&
                 // device.type !== 'folder' &&
-                Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().indexOf(this.filter.toLowerCase()) === -1 &&
-                device.id.toLowerCase().indexOf(this.filter.toLowerCase()) === -1) {
+                !Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().includes(this.filter.toLowerCase()) &&
+                !device.id.toLowerCase().includes(this.filter.toLowerCase())) {
                 return true;
             }
             if (this.state.onlyAliases && device.id === "alias.0.automatically_detected") {
@@ -1120,8 +1120,8 @@ class ListDevices extends Component {
             return false;
         } else {
             if (this.filter &&
-                device.channelId.toLowerCase().indexOf(this.filter) === -1 &&
-                device.name.toLowerCase().indexOf(this.filter) === -1) {
+                !device.channelId.toLowerCase().includes(this.filter) &&
+                !device.name.toLowerCase().includes(this.filter)) {
                 return true;
             }
 
@@ -1520,7 +1520,7 @@ class ListDevices extends Component {
                             onClick={() => this.onToggle(id)}
                             padding="none"
                         >
-                            <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} />): <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
+                            <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
                             <TableCell className={classes.tableIconCell}>{icon ? <img src={icon} alt="" className={classes.tableGroupIcon} /> : null}</TableCell>
                             <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{Utils.getObjectNameFromObj(this.objects[id], null, { language: I18n.getLanguage() })}</TableCell>
                             <TableCell />
@@ -1536,7 +1536,7 @@ class ListDevices extends Component {
                             const devices = [];
 
                             this.state.devices.forEach((device, i) =>
-                                device[this.state.orderBy].indexOf(id) !== -1 && !this.isFilteredOut(device) && devices.push(this.renderDevice(id + '_' + i, i, device, funcEnums, roomsEnums)));
+                                device[this.state.orderBy].includes(id) && !this.isFilteredOut(device) && devices.push(this.renderDevice(id + '_' + i, i, device, funcEnums, roomsEnums)));
 
                             result.push(devices);
                         }
@@ -1545,9 +1545,9 @@ class ListDevices extends Component {
             }
 
             // No group
-            if (this.state.devices.find(device => !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].indexOf(id) !== -1))) {
+            if (this.state.devices.find(device => !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].includes(id)))) {
                 let j = 0;
-                const isExpanded = this.state.expanded.indexOf('no_group') !== -1;
+                const isExpanded = this.state.expanded.includes('no_group');
                 // add group
                 result.push(<TableRow
                     key="no_group"
@@ -1569,7 +1569,7 @@ class ListDevices extends Component {
                 if (isExpanded) {
                     const devices = [];
                     this.state.devices.forEach((device, i) =>
-                        !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].indexOf(id) !== -1) && devices.push(this.renderDevice('no_group_' + i, i, device, funcEnums, roomsEnums)));
+                        !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].includes(id)) && devices.push(this.renderDevice('no_group_' + i, i, device, funcEnums, roomsEnums)));
 
                     result.push(devices);
                 }
@@ -1577,11 +1577,11 @@ class ListDevices extends Component {
         } else
         if (this.state.orderBy === 'types') {
             const types = [];
-            this.state.devices.forEach(device => !this.isFilteredOut(device) && types.indexOf(device.type) === -1 && types.push(device.type));
+            this.state.devices.forEach(device => !this.isFilteredOut(device) && !types.includes(device.type) && types.push(device.type));
             types.sort();
 
             types.forEach(type => {
-                const isExpanded = this.state.expanded.indexOf(type) !== -1;
+                const isExpanded = this.state.expanded.includes(type);
                 let j = 0;
                 // add group
                 result.push(<TableRow
@@ -1647,7 +1647,7 @@ class ListDevices extends Component {
     }
 
     onExpand(group) {
-        if (this.state.expanded.indexOf(group) === -1) {
+        if (!this.state.expanded.includes(group)) {
             const expanded = JSON.parse(JSON.stringify(this.state.expanded));
             expanded.push(group);
             window.localStorage.setItem('Devices.expanded', JSON.stringify(expanded));
@@ -1666,7 +1666,7 @@ class ListDevices extends Component {
     }
 
     onToggle(group) {
-        if (this.state.expanded.indexOf(group) === -1) {
+        if (!this.state.expanded.includes(group)) {
             this.onExpand(group);
         } else {
             this.onCollapse(group);
@@ -2029,8 +2029,8 @@ class ListDevices extends Component {
             const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
             // if this channel is in enum
             if (id.startsWith('enum.functions.') && functions) {
-                if (functions.indexOf(id) !== -1) {
-                    if (members.indexOf(channelId) === -1) {
+                if (functions.includes(id)) {
+                    if (!members.includes(channelId)) {
                         promises.push(
                             this.props.socket.getObject(id)
                                 .then(obj => {
@@ -2043,7 +2043,7 @@ class ListDevices extends Component {
                                 }));
                     }
                 } else {
-                    if (members.indexOf(channelId) !== -1) {
+                    if (members.includes(channelId)) {
                         promises.push(
                             this.props.socket.getObject(id)
                                 .then(obj => {
@@ -2063,8 +2063,8 @@ class ListDevices extends Component {
             }
 
             if (id.startsWith('enum.rooms.') && rooms) {
-                if (rooms.indexOf(id) !== -1) {
-                    if (members.indexOf(channelId) === -1) {
+                if (rooms.includes(id)) {
+                    if (!members.includes(channelId)) {
                         promises.push(
                             this.props.socket.getObject(id)
                                 .then(obj => {
@@ -2077,7 +2077,7 @@ class ListDevices extends Component {
                                 }));
                     }
                 } else {
-                    if (members.indexOf(channelId) !== -1) {
+                    if (members.includes(channelId)) {
                         promises.push(
                             this.props.socket.getObject(id)
                                 .then(obj => {

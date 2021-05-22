@@ -144,7 +144,7 @@ class DialogEditProperties extends React.PureComponent {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.props.channelId) !== -1;
+            return obj && obj.common && obj.common.members && obj.common.members.includes(this.props.channelId);
         });
 
         const rooms = this.props.enumIDs.filter(id => {
@@ -152,7 +152,7 @@ class DialogEditProperties extends React.PureComponent {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.indexOf(this.props.channelId) !== -1;
+            return obj && obj.common && obj.common.members && obj.common.members.includes(this.props.channelId);
         });
 
         // ;common.custom[adapter.namespace].smartName
