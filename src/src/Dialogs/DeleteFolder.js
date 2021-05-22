@@ -86,7 +86,7 @@ const DeleteFolder = ({ cb }) => {
     </ThemeProvider>;
 }
 
-export const deleteFolderCallBack = (cb) => {
+export const deleteFolderCallBack = cb => {
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';

@@ -197,10 +197,10 @@ class DialogEditProperties extends React.PureComponent {
 
     renderHeader() {
         const classes = this.props.classes;
-        return (<div className={classes.header}>
+        return <div className={classes.header}>
             <TypeIcon type={this.props.type} className={classes.tableIconImg} />
             {this.props.type}
-        </div>);
+        </div>;
     }
 
     findRealDevice() {
@@ -224,35 +224,36 @@ class DialogEditProperties extends React.PureComponent {
                 id: id
             }
         });
-        return (<Select
+        return <Select
             className={this.props.classes.oidField}
             value={this.state[name]}
             fullWidth
             multiple
-            renderValue={(arrId) => {
+            renderValue={arrId => {
                 const newArr = arrId.map(id => {
                     return {
                         name: Utils.getObjectName(this.props.objects, id, { language }),
                         icon: Utils.getObjectIcon(id, this.props.objects[id]),
                         id: id
                     }
-                })
+                });
+
                 return <div className={this.props.classes.renderValueWrapper}>
-                    {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
-                        {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                    {newArr.map(obj => <div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
+                        {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                         {obj.name}
-                    </div>))}
+                    </div>)}
                 </div>
             }}
             onChange={e => {
                 this.setState({ [name]: e.target.value })
             }}
         >
-            {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+            {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                 {obj.name}
-            </MenuItem>))}
-        </Select>);
+            </MenuItem>)}
+        </Select>;
     }
 
     getSmartName(obj, language) {
@@ -286,86 +287,84 @@ class DialogEditProperties extends React.PureComponent {
 
     renderProperties() {
         const classes = this.props.classes;
-        return (
-            <div className={classes.divOids}>
-                <div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Name')}</div>
-                    <TextField
-                        key="_name"
-                        fullWidth
-                        value={this.state.name}
-                        className={classes.oidField}
-                        onChange={e => this.setState({ name: e.target.value })}
-                        margin="normal"
-                    />
-                </div>
-                <div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Disable smart')}</div>
-                    <FormControlLabel
-                        className={classes.disableSwitchLabel}
-                        control={
-                            <Switch
-                                className={classes.disableSwitch}
-                                checked={this.state.smartName === false}
-                                color="secondary"
-                                onChange={e => this.setState({ smartName: e.target.checked ? false : '' })}
-                            />
-                        }
-                        label={I18n.t('Hide this name from smart assistance')}
-                    />
-                </div>
-                {this.state.smartName !== false ? (<div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Smart name')}</div>
-                    <TextField
-                        key="_smartName"
-                        fullWidth
-                        placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
-                        value={this.state.smartName}
-                        className={classes.oidField}
-                        helperText={I18n.t('This name will use be in smart assistance. (optional)')}
-                        onChange={e => this.setState({ smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') })}
-                        margin="normal"
-                    />
-                </div>) : null}
-                <div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Function')}</div>
-                    {this.renderSelectEnum('functions')}
-                </div>
-                <div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Room')}</div>
-                    {this.renderSelectEnum('rooms')}
-                </div>
-                <div className={classes.divOidField}>
-                    <div className={classes.oidName} >{I18n.t('Color')}</div>
-                    <TextField
-                        key="_color"
-                        fullWidth
-                        value={this.state.color}
-                        style={{ width: 'calc(100% - 185px)' }}
-                        onChange={e => this.setState({ color: e.target.value })}
-                    />
-                    <TextField
-                        key="_color1"
-                        type="color"
-                        style={{ width: 40 }}
-                        value={this.state.color}
-                        className={classes.oidField + ' ' + classes.colorButton}
-                        onChange={e => this.setState({ color: e.target.value })}
-                        margin="normal"
-                    />
-                </div>
-                <UploadImage
-                    crop
-                    icons
-                    className={classes.sizeDropZone}
-                    maxSize={256 * 1024}
-                    icon={this.state.icon}
-                    removeIconFunc={() => this.setState({ icon: '' })}
-                    onChange={(base64) => this.setState({ icon: base64 })}
-                    t={I18n.t}
+        return <div className={classes.divOids}>
+            <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Name')}</div>
+                <TextField
+                    key="_name"
+                    fullWidth
+                    value={this.state.name}
+                    className={classes.oidField}
+                    onChange={e => this.setState({ name: e.target.value })}
+                    margin="normal"
                 />
             </div>
-        );
+            <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Disable smart')}</div>
+                <FormControlLabel
+                    className={classes.disableSwitchLabel}
+                    control={
+                        <Switch
+                            className={classes.disableSwitch}
+                            checked={this.state.smartName === false}
+                            color="secondary"
+                            onChange={e => this.setState({ smartName: e.target.checked ? false : '' })}
+                        />
+                    }
+                    label={I18n.t('Hide this name from smart assistance')}
+                />
+            </div>
+            {this.state.smartName !== false ? <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Smart name')}</div>
+                <TextField
+                    key="_smartName"
+                    fullWidth
+                    placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
+                    value={this.state.smartName}
+                    className={classes.oidField}
+                    helperText={I18n.t('This name will use be in smart assistance. (optional)')}
+                    onChange={e => this.setState({ smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') })}
+                    margin="normal"
+                />
+            </div> : null}
+            <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Function')}</div>
+                {this.renderSelectEnum('functions')}
+            </div>
+            <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Room')}</div>
+                {this.renderSelectEnum('rooms')}
+            </div>
+            <div className={classes.divOidField}>
+                <div className={classes.oidName} >{I18n.t('Color')}</div>
+                <TextField
+                    key="_color"
+                    fullWidth
+                    value={this.state.color}
+                    style={{ width: 'calc(100% - 185px)' }}
+                    onChange={e => this.setState({ color: e.target.value })}
+                />
+                <TextField
+                    key="_color1"
+                    type="color"
+                    style={{ width: 40 }}
+                    value={this.state.color}
+                    className={classes.oidField + ' ' + classes.colorButton}
+                    onChange={e => this.setState({ color: e.target.value })}
+                    margin="normal"
+                />
+            </div>
+            <UploadImage
+                crop
+                icons
+                className={classes.sizeDropZone}
+                maxSize={256 * 1024}
+                icon={this.state.icon}
+                removeIconFunc={() => this.setState({ icon: '' })}
+                onChange={(base64) => this.setState({ icon: base64 })}
+                t={I18n.t}
+            />
+        </div>;
     }
 
     render() {

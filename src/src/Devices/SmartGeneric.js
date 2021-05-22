@@ -491,11 +491,11 @@ class SmartGeneric extends Component {
 
                 titles.push(I18n.t(state.id.split('.').pop()));
 
-                result.push((<Icon
+                result.push(<Icon
                     key={that.key + 'indicator-' + state.name.toLowerCase()}
                     className={'indicator-' + state.name.toLowerCase()}
                     style={Object.assign({}, Theme.tile.tileIndicator, {color: state.color})}
-                />));
+                />);
             }
         });
 
@@ -503,7 +503,7 @@ class SmartGeneric extends Component {
             if (this.errorText) {
                 titles.push(this.errorText)
             }
-            return (<div key={this.key + 'indicators'} style={Theme.tile.tileIndicators} title={titles.join(', ')}>{result}</div>);
+            return <div key={this.key + 'indicators'} style={Theme.tile.tileIndicators} title={titles.join(', ')}>{result}</div>;
         } else {
             return null;
         }
@@ -672,34 +672,34 @@ class SmartGeneric extends Component {
         }
 
         return [
-            this.getIcon ? (<div key={this.key + 'tile-icon'} style={noPointerEvents ? {pointerEvents: 'none'} : {}}>{this.getIcon()}</div>): null,
-            (<div key={this.key + 'tile-text'} style={styleText}>
+            this.getIcon ? <div key={this.key + 'tile-icon'} style={noPointerEvents ? {pointerEvents: 'none'} : {}}>{this.getIcon()}</div> : null,
+            <div key={this.key + 'tile-text'} style={styleText}>
                 <div style={styleName}>{this.getFirstName ? this.getFirstName() : this.state.settings.name}{this.getAdditionalName()}</div>
-                {this.getStateText ? (<div style={styleState}>{this.getStateText()}</div>) : null}
-            </div>)
+                {this.getStateText ? <div style={styleState}>{this.getStateText()}</div> : null}
+            </div>
         ];
     }
 
     wrapContent(content) {
         if (this.state.editMode) {
             return [
-                (<div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>),
-                (<div key={this.key + 'wrapper'}>
+                <div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>,
+                <div key={this.key + 'wrapper'}>
                     {this.state.settings.enabled ?
-                        [(<div onClick={this.toggleEnabled.bind(this)} key={this.key + 'icon-check'} style={Theme.tile.editMode.checkIcon} className="edit-buttons">
+                        [<div onClick={this.toggleEnabled.bind(this)} key={this.key + 'icon-check'} style={Theme.tile.editMode.checkIcon} className="edit-buttons">
                             <IconCheck size={'50%'} style={Theme.tile.editMode.buttonIcon}/>
-                        </div>),
-                        (<div onClick={this.showSettings.bind(this)} key={this.key + 'icon-edit'} style={Theme.tile.editMode.editIcon} className="edit-buttons">
+                        </div>,
+                        <div onClick={this.showSettings.bind(this)} key={this.key + 'icon-edit'} style={Theme.tile.editMode.editIcon} className="edit-buttons">
                             <IconEdit size={'50%'} style={Object.assign({}, Theme.tile.editMode.buttonIcon, {width: '80%', marginLeft: '20%'})}/>
                             </div>
-                        )]
+                        ]
                         :
-                        (<div onClick={this.toggleEnabled.bind(this)} key={this.key + '.icon-check'} style={Theme.tile.editMode.removeIcon}>
+                        <div onClick={this.toggleEnabled.bind(this)} key={this.key + '.icon-check'} style={Theme.tile.editMode.removeIcon}>
                             <IconRemoved size={'100%'} style={Theme.tile.editMode.buttonIconRemoved}/>
-                        </div>)
+                        </div>
                     }
                     {content}
-                </div>),
+                </div>,
                 /*this.state.showSettings ? (
                     <Dialog key={this.key + 'settings'}
                          windowWidth={this.props.windowWidth}
@@ -714,12 +714,12 @@ class SmartGeneric extends Component {
                 />): null*/];
         } else if (this.state.settings.enabled) {
             return [
-                (<div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>),
-                (<div key={this.key + 'wrapper'} >
-                    {this.showCorner ? (<div key={this.key + 'corner'} onMouseDown={this.onLongClick.bind(this)} className="corner" style={Theme.tile.tileCorner}/>) : null}
+                <div key={this.key + 'type'} style={styles.type}>{I18n.t('type-' + this.channelInfo.type)}</div>,
+                <div key={this.key + 'wrapper'} >
+                    {this.showCorner ? <div key={this.key + 'corner'} onMouseDown={this.onLongClick.bind(this)} className="corner" style={Theme.tile.tileCorner}/> : null}
                     {this.getIndicators()}
                     {content}
-                </div>)
+                </div>
             ];
         } else {
             return null;

@@ -33,6 +33,7 @@ class SmartSwitch extends SmartGeneric {
             state = this.channelInfo.states.find(state => state.id && state.name === 'ACTUAL');
             this.actualId = state ? state.id : this.id;
         }
+
         if (this.channelInfo) {
             switch (this.channelInfo.type) {
                 case Types.light:
@@ -113,21 +114,19 @@ class SmartSwitch extends SmartGeneric {
         let customIcon;
 
         if (this.state.settings.useDefaultIcon) {
-            customIcon = (<IconAdapter alt="icon" src={this.getDefaultIcon()} style={{height: '100%'}}/>);
+            customIcon = <IconAdapter alt="icon" src={this.getDefaultIcon()} style={{height: '100%'}}/>;
         } else {
             if (this.state.settings.icon) {
-                customIcon = (<IconAdapter alt="icon" src={state ? this.state.settings.icon : this.state.settings.iconOff || this.state.settings.icon} style={{height: '100%'}}/>);
+                customIcon = <IconAdapter alt="icon" src={state ? this.state.settings.icon : this.state.settings.iconOff || this.state.settings.icon} style={{height: '100%'}}/>;
             } else {
                 const Icon = this.state[this.actualId] ? this.iconOn : this.iconOff;
-                customIcon = (<Icon width={Theme.tile.tileIconSvg.size} height={Theme.tile.tileIconSvg.size} style={{height: Theme.tile.tileIconSvg.size, width: Theme.tile.tileIconSvg.size}}/>);
+                customIcon = <Icon width={Theme.tile.tileIconSvg.size} height={Theme.tile.tileIconSvg.size} style={{height: Theme.tile.tileIconSvg.size, width: Theme.tile.tileIconSvg.size}}/>;
             }
         }
-        return (
-            <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, style)} className="tile-icon">
-                {customIcon}
-                {this.state.executing ? <CircularProgress style={{zIndex: 3, position: 'absolute', top: 0, left: 0}} size={Theme.tile.tileIcon.width}/> : null}
-            </div>
-        );
+        return <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, style)} className="tile-icon">
+            {customIcon}
+            {this.state.executing ? <CircularProgress style={{zIndex: 3, position: 'absolute', top: 0, left: 0}} size={Theme.tile.tileIcon.width}/> : null}
+        </div>;
     }
 
     getStateText() {

@@ -178,20 +178,18 @@ class SmartDimmer extends SmartGeneric {
     getIcon() {
         let customIcon;
         if (this.state.settings.useDefaultIcon) {
-            customIcon = (<IconAdapter src={this.getDefaultIcon()} alt="icon" style={{height: '100%'}}/>);
+            customIcon = <IconAdapter src={this.getDefaultIcon()} alt="icon" style={{height: '100%'}}/>;
         } else {
             if (this.state.settings.icon) {
-                customIcon = (<IconAdapter src={this.state.settings.icon} alt="icon" style={{height: '100%'}}/>);
+                customIcon = <IconAdapter src={this.state.settings.icon} alt="icon" style={{height: '100%'}}/>;
             } else {
-                customIcon = (<Icon width={Theme.tile.tileIconSvg.size} height={Theme.tile.tileIconSvg.size} style={{height: Theme.tile.tileIconSvg.size, width: Theme.tile.tileIconSvg.size}}/>);
+                customIcon = <Icon width={Theme.tile.tileIconSvg.size} height={Theme.tile.tileIconSvg.size} style={{height: Theme.tile.tileIconSvg.size, width: Theme.tile.tileIconSvg.size}}/>;
             }
         }
-        return (
-            <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, this.state[this.actualId] !== this.min ? {color: Theme.colors[this.theme].lampOn} : {})} className="tile-icon">
-                {customIcon}
-                {this.state.executing ? <CircularProgress style={{position: 'absolute', top: 0, left: 0}} size={Theme.tile.tileIcon.width}/> : null}
-            </div>
-        );
+        return <div key={this.key + 'icon'} style={Object.assign({}, Theme.tile.tileIcon, this.state[this.actualId] !== this.min ? {color: Theme.colors[this.theme].lampOn} : {})} className="tile-icon">
+            {customIcon}
+            {this.state.executing ? <CircularProgress style={{position: 'absolute', top: 0, left: 0}} size={Theme.tile.tileIcon.width}/> : null}
+        </div>;
     }
 
     getStateText() {

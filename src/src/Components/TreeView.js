@@ -381,6 +381,7 @@ class TreeView extends React.Component {
         } else {
             expanded.splice(pos, 1);
         }
+
         this.setState({ expanded });
         this.saveExpanded(expanded);
     }
@@ -404,6 +405,7 @@ class TreeView extends React.Component {
                 whiteSpace: 'nowrap',
                 padding: '0 16px 0 0'
             };
+
             if (item.id === this.state.selected) {
                 style.fontWeight = 'bold'
             }
@@ -414,15 +416,13 @@ class TreeView extends React.Component {
 
     renderFolderButtons(item, children, isExpanded) {
         if (children && children.length) {
-            return (
-                <IconButton
-                    className={this.props.classes.expandButton}
-                    onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}>
-                    {isExpanded ? (<IconCollapse fontSize="small" />) : (<IconExpand fontSize="small" />)}
-                </IconButton>
-            );
+            return <IconButton
+                className={this.props.classes.expandButton}
+                onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}>
+                {isExpanded ? <IconCollapse fontSize="small" /> : <IconExpand fontSize="small" />}
+            </IconButton>;
         } else {
-            return (<div className={this.props.classes.expandButton} />);
+            return <div className={this.props.classes.expandButton} />;
         }
     }
 
@@ -452,9 +452,9 @@ class TreeView extends React.Component {
             const pos = title.toLowerCase().indexOf(this.state.searchText.toLowerCase());
             if (pos !== -1) {
                 title = [
-                    (<span key="first">{title.substring(0, pos)}</span>),
-                    (<span key="second" style={{ color: 'orange' }}>{title.substring(pos, pos + this.state.searchText.length)}</span>),
-                    (<span key="third">{title.substring(pos + this.state.searchText.length)}</span>),
+                    <span key="first">{title.substring(0, pos)}</span>,
+                    <span key="second" style={{ color: 'orange' }}>{title.substring(pos, pos + this.state.searchText.length)}</span>,
+                    <span key="third">{title.substring(pos + this.state.searchText.length)}</span>,
                 ];
             }
         }
@@ -473,9 +473,9 @@ class TreeView extends React.Component {
 
         let iconStyle = {};
         let countSpan = (childrenFiltered && childrenFiltered.length) || children.length ?
-            (<span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ?
+            <span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ?
                 `${childrenFiltered.length}(${children.length})` :
-                children.length}</span>)
+                children.length}</span>
             : null;
 
         if (!countSpan) {
@@ -522,12 +522,12 @@ class TreeView extends React.Component {
         const result = [];
         items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
 
-        return (<List key="list" dense={true} disablePadding={true} className={this.props.classes.list}>{result}</List>);
+        return <List key="list" dense={true} disablePadding={true} className={this.props.classes.list}>{result}</List>;
     }
 
     renderAddButton() {
 
-        return (<Paper className={this.props.classes.buttonWrapper} position="sticky" color="default">
+        return <Paper className={this.props.classes.buttonWrapper} position="sticky" color="default">
             {this.props.onAddNew && <Tooltip title={I18n.t('Create new folder')}>
                 <IconButton
                     color="primary"
@@ -549,7 +549,7 @@ class TreeView extends React.Component {
                     <IconFolder />
                 </IconButton>
             </Tooltip>
-        </Paper>);
+        </Paper>;
     }
 
     renderTree() {

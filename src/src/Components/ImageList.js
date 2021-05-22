@@ -105,35 +105,33 @@ class ImageList extends React.Component {
     }
 
     render() {
-        return (
-            <div className={this.classes.root} style={this.props.maxHeight ? {maxHeight: this.props.maxHeight} : {}}>
-                {this.props.images.map((image, i) => {
-                    let Image;
+        return <div className={this.classes.root} style={this.props.maxHeight ? {maxHeight: this.props.maxHeight} : {}}>
+            {this.props.images.map((image, i) => {
+                let Image;
 
-                    if (typeof image === 'object') {
-                        Image = image.icon;
-                    }
-                    return (
-                        <ButtonBase
-                            tabIndex={i}
-                            onClick={() => this.onSelect(image, i)}
-                            focusRipple
-                            key={'images-' + i}
-                            className={this.classes.image}
-                            focusVisibleClassName={this.classes.focusVisible}
-                            style={{width: 64, height: 64, background: 'grey', marginRight: 2, marginBottom: 2}}
-                        >
-                            {Image ?
-                                (<Image className={this.classes.imageSrc} width={'calc(100% - 10px)'} height={'calc(100% - 10px)'}/>) :
-                                (<span className={this.classes.imageSrc} style={{backgroundImage: `url(${image})`,}}/>)
-                            }
-                            <span className={this.classes.imageBackdrop} />
-                            <span className={this.classes.imageButton}/>
-                        </ButtonBase>
-                    );
-                })}
-            </div>
-        );
+                if (typeof image === 'object') {
+                    Image = image.icon;
+                }
+                return (
+                    <ButtonBase
+                        tabIndex={i}
+                        onClick={() => this.onSelect(image, i)}
+                        focusRipple
+                        key={'images-' + i}
+                        className={this.classes.image}
+                        focusVisibleClassName={this.classes.focusVisible}
+                        style={{width: 64, height: 64, background: 'grey', marginRight: 2, marginBottom: 2}}
+                    >
+                        {Image ?
+                            <Image className={this.classes.imageSrc} width={'calc(100% - 10px)'} height={'calc(100% - 10px)'}/> :
+                            <span className={this.classes.imageSrc} style={{backgroundImage: `url(${image})`,}}/>
+                        }
+                        <span className={this.classes.imageBackdrop} />
+                        <span className={this.classes.imageButton}/>
+                    </ButtonBase>
+                );
+            })}
+        </div>;
     }
 
 }

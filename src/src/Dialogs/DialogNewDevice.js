@@ -229,8 +229,8 @@ class DialogNewDevice extends React.Component {
             type: window.localStorage.getItem('Devices.newType') || 'light',
             ids: stateIds
         };
-
     }
+
     renderSelectEnum(name, title) {
         const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
         const language = I18n.getLanguage();
@@ -241,7 +241,8 @@ class DialogNewDevice extends React.Component {
                 id: id
             }
         });
-        return (<FormControl className={this.props.classes.type}>
+
+        return <FormControl className={this.props.classes.type}>
             <InputLabel>{title}</InputLabel>
             <Select
                 className={this.props.classes.oidField}
@@ -256,10 +257,10 @@ class DialogNewDevice extends React.Component {
                         }
                     }) : []
                     return <div className={this.props.classes.renderValueWrapper}>
-                        {newArr.map(obj => (<div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
-                            {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                        {newArr.map(obj => <div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
+                            {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                             {obj.name}
-                        </div>))}
+                        </div>)}
                     </div>
                 }}
                 value={this.state[name] || []}
@@ -268,12 +269,12 @@ class DialogNewDevice extends React.Component {
                     this.setState({ [name]: e.target.value });
                 }}
             >
-                {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />) : (<div className={this.props.classes.enumIcon} />)}
+                {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                    {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                     {obj.name}
-                </MenuItem>))}
+                </MenuItem>)}
             </Select>
-        </FormControl>);
+        </FormControl>;
     }
 
     generateId() {
@@ -323,6 +324,7 @@ class DialogNewDevice extends React.Component {
         const channelObj = this.props.objects[this.channelId];
         const { functions, rooms, icon, states, color } = this.props.copyDevice;
         const tasks = [];
+
         tasks.push({
             id: newChannelId,
             obj: {
@@ -397,7 +399,7 @@ class DialogNewDevice extends React.Component {
     showEnumIcon(name) {
         const obj = this.props.objects[this.state[name]];
         if (obj && obj.common && obj.common.icon) {
-            return (<Icon className={this.props.classes.icon} src={obj.icon} alt="" />);
+            return <Icon className={this.props.classes.icon} src={obj.icon} alt="" />;
         } else {
             return null;
         }
@@ -425,13 +427,14 @@ class DialogNewDevice extends React.Component {
             };
             this.setState({ ids }, () => cb && cb());
         });
+
         this.props.onChange('render')
     }
 
     render() {
         const classes = this.props.classes;
 
-        return (<Dialog
+        return <Dialog
             open={true}
             maxWidth="md"
             fullWidth={true}
@@ -515,7 +518,7 @@ class DialogNewDevice extends React.Component {
                     startIcon={<IconClose />}
                 >{I18n.t('Cancel')}</Button>
             </DialogActions>
-        </Dialog>);
+        </Dialog>;
     }
 }
 

@@ -1,14 +1,15 @@
 import React from 'react';
 import { ThemeProvider, withStyles } from '@material-ui/core/styles';
-import Loader from '@iobroker/adapter-react/Components/Loader'
 // import I18n from '@iobroker/adapter-react/i18n';
 
-import GenericApp from '@iobroker/adapter-react/GenericApp';
-import TabDevices from './Tabs/ListDevices';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-// import ToggleThemeMenu from './Components/ToggleThemeMenu';
 import { Paper } from '@material-ui/core';
 
+import GenericApp from '@iobroker/adapter-react/GenericApp';
+import Utils from '@iobroker/adapter-react/Components/Utils';
+import Loader from '@iobroker/adapter-react/Components/Loader'
+// import ToggleThemeMenu from './Components/ToggleThemeMenu';
+
+import TabDevices from './Tabs/ListDevices';
 
 const styles = theme => ({
     root: {},
@@ -98,7 +99,7 @@ class App extends GenericApp {
         if (!this.state.loaded) {
             return <Loader theme={this.state.themeType} />;
         }
-        console.log(this.state.themeName)
+
         return <ThemeProvider theme={this.state.theme}>
             {/* <ToggleThemeMenu
                                 toggleTheme={this.toggleTheme}

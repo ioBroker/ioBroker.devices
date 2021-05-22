@@ -340,7 +340,7 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
-    handleOk = (isRefresh) => {
+    handleOk = isRefresh => {
         if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
             this.props.onSaveProperties && this.props.onSaveProperties(this.state.changeProperties);
         }
@@ -491,13 +491,11 @@ class DialogEditDevice extends React.Component {
             className={this.props.classes.oidField}
             value={this.state[name]}
             multiple={true}
-            onChange={e => {
-                this.setState({ [name]: e.target.value })
-            }}
+            onChange={e => this.setState({ [name]: e.target.value })}
         >
-            {objs.map(obj => (<MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+            {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
                 {obj.name}
-            </MenuItem>))}
+            </MenuItem>)}
         </Select>;
     }
 
@@ -510,7 +508,7 @@ class DialogEditDevice extends React.Component {
         this.fxRead = fx.read;
         this.fxWrite = fx.write;
 
-        return (<Dialog
+        return <Dialog
             open={true}
             key="editFxDialog"
             maxWidth="sm"
@@ -523,7 +521,7 @@ class DialogEditDevice extends React.Component {
                 id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
             <DialogContent>
                 <div className={this.props.classes.divDialogContent}>
-                    {fx.read !== undefined ? (<div className={this.props.classes.funcDivEdit}>
+                    {fx.read !== undefined ? <div className={this.props.classes.funcDivEdit}>
                         <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Read')}</div>
                         <TextField
                             fullWidth
@@ -533,8 +531,8 @@ class DialogEditDevice extends React.Component {
                             helperText={I18n.t('JS function like') + ' "val / 5 + 21"'}
                             margin="normal"
                         />
-                    </div>) : null}
-                    {fx.write !== undefined ? (<div className={this.props.classes.funcDivEdit}>
+                    </div> : null}
+                    {fx.write !== undefined ? <div className={this.props.classes.funcDivEdit}>
                         <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Write')}</div>
                         <TextField
                             fullWidth
@@ -544,7 +542,7 @@ class DialogEditDevice extends React.Component {
                             onChange={e => this.fxWrite = e.target.value}
                             margin="normal"
                         />
-                    </div>) : null}
+                    </div> : null}
                 </div>
             </DialogContent>
             <DialogActions>
@@ -559,7 +557,7 @@ class DialogEditDevice extends React.Component {
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button href="" onClick={() => this.setState({ editFxFor: '' })}>{I18n.t('Cancel')}</Button>
             </DialogActions>
-        </Dialog>);
+        </Dialog>;
     }
 
     renderCopyDialog() {
@@ -815,86 +813,87 @@ class DialogEditDevice extends React.Component {
     }
 
     render() {
-        return [<Dialog
-            key="editDialog"
-            open={true}
-            maxWidth="md"
-            fullWidth={true}
-            onClose={() => this.handleClose()}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-        >
-            <DialogTitle className={this.props.classes.titleBackground}
-                classes={{ root: this.props.classes.titleColor }}
-                id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
-            <DialogContent className={this.props.classes.content}>
-                <AppBar style={{ top: 0 }} position="sticky" color="default">
-                    <div className={this.props.classes.wrapperIconHead}>
-                        <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
-                        <span className={this.props.classes.deviceText}>{I18n.t('type-' + this.props.channelInfo.type)}</span>
-                    </div>
-                    <Tabs
-                        value={this.state.tab}
-                        className={this.props.classes.tab}
-                        classes={{
-                            indicator: this.props.classes.indicator
-                        }}
-                        onChange={(_, newTab) => this.setState({ tab: newTab }, () => {
-                            localStorage.setItem('EditDevice.tab', newTab);
-                        })}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        aria-label="scrollable auto tabs example"
-                    >
-                        <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
-                        <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
-                    </Tabs>
-                </AppBar>
-                <TabPanel value={this.state.tab} index={1}>
-                    <div className={this.props.classes.divDialogContent}>
-                        {this.renderHeader()}
-                        {this.renderVariables()}
-                    </div>
-                </TabPanel>
-                <TabPanel value={this.state.tab} index={0}>
-                    <DialogEditProperties
-                        channelId={this.props.channelId}
-                        type={this.props.type}
-                        iot={this.props.iot}
-                        iotNoCommon={this.props.iotNoCommon}
-                        objects={this.props.objects}
-                        patterns={this.props.patterns}
-                        enumIDs={this.props.enumIDs}
-                        socket={this.props.socket}
-                        changeProperties={this.state.changeProperties}
-                        onChange={(state, initState) => {
-                            if (initState) {
-                                return this.setState({ initChangeProperties: initState, changeProperties: initState });
-                            }
-                            this.setState({ changeProperties: state });
-                        }}
-                    />
-                </TabPanel>
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    variant="contained"
-                    disabled={JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)}
-                    onClick={this.handleOk}
-                    startIcon={<IconCheck />}
-                    color="primary">{I18n.t('Write')}</Button>
-                <Button
-                    variant="contained"
-                    onClick={this.handleClose}
-                    startIcon={<IconClose />}
-                >{I18n.t('Cancel')}</Button>
-            </DialogActions>
-        </Dialog>,
-        this.renderSelectDialog(),
-        this.renderEditFxDialog(),
-        this.renderCopyDialog(),
+        return [
+            <Dialog
+                key="editDialog"
+                open={true}
+                maxWidth="md"
+                fullWidth={true}
+                onClose={() => this.handleClose()}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle className={this.props.classes.titleBackground}
+                    classes={{ root: this.props.classes.titleColor }}
+                    id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
+                <DialogContent className={this.props.classes.content}>
+                    <AppBar style={{ top: 0 }} position="sticky" color="default">
+                        <div className={this.props.classes.wrapperIconHead}>
+                            <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
+                            <span className={this.props.classes.deviceText}>{I18n.t('type-' + this.props.channelInfo.type)}</span>
+                        </div>
+                        <Tabs
+                            value={this.state.tab}
+                            className={this.props.classes.tab}
+                            classes={{
+                                indicator: this.props.classes.indicator
+                            }}
+                            onChange={(_, newTab) => this.setState({ tab: newTab }, () => {
+                                localStorage.setItem('EditDevice.tab', newTab);
+                            })}
+                            indicatorColor="primary"
+                            textColor="primary"
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            aria-label="scrollable auto tabs example"
+                        >
+                            <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
+                            <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
+                        </Tabs>
+                    </AppBar>
+                    <TabPanel value={this.state.tab} index={1}>
+                        <div className={this.props.classes.divDialogContent}>
+                            {this.renderHeader()}
+                            {this.renderVariables()}
+                        </div>
+                    </TabPanel>
+                    <TabPanel value={this.state.tab} index={0}>
+                        <DialogEditProperties
+                            channelId={this.props.channelId}
+                            type={this.props.type}
+                            iot={this.props.iot}
+                            iotNoCommon={this.props.iotNoCommon}
+                            objects={this.props.objects}
+                            patterns={this.props.patterns}
+                            enumIDs={this.props.enumIDs}
+                            socket={this.props.socket}
+                            changeProperties={this.state.changeProperties}
+                            onChange={(state, initState) => {
+                                if (initState) {
+                                    return this.setState({ initChangeProperties: initState, changeProperties: initState });
+                                }
+                                this.setState({ changeProperties: state });
+                            }}
+                        />
+                    </TabPanel>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        variant="contained"
+                        disabled={JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)}
+                        onClick={this.handleOk}
+                        startIcon={<IconCheck />}
+                        color="primary">{I18n.t('Write')}</Button>
+                    <Button
+                        variant="contained"
+                        onClick={this.handleClose}
+                        startIcon={<IconClose />}
+                    >{I18n.t('Cancel')}</Button>
+                </DialogActions>
+            </Dialog>,
+            this.renderSelectDialog(),
+            this.renderEditFxDialog(),
+            this.renderCopyDialog(),
         ];
     }
 }

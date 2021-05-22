@@ -232,6 +232,7 @@ class ImageSelector extends React.Component {
         if (!file) {
             return;
         }
+
         ImageSelector.readFileDataUrl(file, (err, result) => {
             if (err) {
                 alert(err);
@@ -313,66 +314,65 @@ class ImageSelector extends React.Component {
 
         const classes = this.props.classes;
 
-        return (
-            <div style={{position: 'relative'}}>
-                <div key="image-label" className={classes.label}>{this.props.label}</div>
-                {this.state.image ? [
-                    (<Icon key="image-preview"
-                          src={typeof this.state.image === 'object' ? this.state.image.preview : this.state.image}
-                          alt={this.props.label || ''} style={{width: this.props.height || '100%', height: 'auto'}}/>),
-                    (<IconButton
-                        size="small"
-                        key="image-delete"
-                        onClick={this.removeImage.bind(this)}
-                        className={classes.imageButtons + ' ' + classes.deleteIcon}
-                        aria-label="delete">
-                        <IconDelete fontSize="inherit" />
-                    </IconButton>),
-                    (<IconButton
-                        key="image-open"
-                        onClick={() => this.setState({opened: !this.state.opened})}
-                        className={classes.imageButtons + ' ' + classes.openIcon}
-                        style={!this.state.opened ? {bottom: -14} : {top: 85}}
-                        size="small"
-                        aria-label="open">
-                        {this.state.opened ? (<IconClose fontSize="inherit"/>) : (<IconOpen fontSize="inherit"/>)}
-                    </IconButton>)
-                ] : null}
-                {this.state.opened &&
-                    [
-                        (<Dropzone
-                            key="image-drop"
-                            onDrop={files => this.handleDropImage(files)}
-                            maxSize={this.props.maxSize}
-                            accept={this.props.accept || 'image/jpeg, image/png, image/gif, image/svg+xml'}
-                            style={{}}>
-                            {({getRootProps, getInputProps, isDragActive, isDragReject}) => (
-                                <div {...getRootProps()} className={classes.dropzone + ' ' + (isDragReject ? classes.dropzoneRejected : (isDragActive ? classes.dropzoneAccepted : ''))}>
-                                    <input accept="image/*" {...getInputProps()} />
-                                    {isDragReject ? (this.props.textRejected || 'Some files will be rejected') :
-                                        (isDragActive ? (this.props.textAccepted || 'All files will be accepted') :
-                                            (this.props.textWaiting || 'Drop some files here or click...'))}
-                                </div>
-                            )}
-                        </Dropzone>),
-                        (this.state.images && this.state.images.length) || this.icons ? (<ImageList key="image-list" images={this.state.images || this.icons} onSelect={this.handleSelectImage.bind(this)}/>) : null,
-                        ImageSelector.isMobile() && !this.props.icons ?
-                            (<IconButton
-                                key="image-camera" onClick={() => this.onCamera()}
-                                className={classes.camIcon}
-                                size="small"
-                                aria-label="camera">
-                                <IconCam fontSize="inherit"/>
-                                <input ref={this.inputRef}
-                                       type="file"
-                                       accept="image/*"
-                                       onChange={files => this.handleDropImage(files)}
-                                       capture
-                                       style={{display: 'none'}}/>
-                            </IconButton>) : null,
-                    ]
-                }
-                {this.state.cropOpened ? (<Dialog
+        return <div style={{position: 'relative'}}>
+            <div key="image-label" className={classes.label}>{this.props.label}</div>
+            {this.state.image ? [
+                <Icon key="image-preview"
+                      src={typeof this.state.image === 'object' ? this.state.image.preview : this.state.image}
+                      alt={this.props.label || ''} style={{width: this.props.height || '100%', height: 'auto'}}/>,
+                <IconButton
+                    size="small"
+                    key="image-delete"
+                    onClick={this.removeImage.bind(this)}
+                    className={classes.imageButtons + ' ' + classes.deleteIcon}
+                    aria-label="delete">
+                    <IconDelete fontSize="inherit" />
+                </IconButton>,
+                <IconButton
+                    key="image-open"
+                    onClick={() => this.setState({opened: !this.state.opened})}
+                    className={classes.imageButtons + ' ' + classes.openIcon}
+                    style={!this.state.opened ? {bottom: -14} : {top: 85}}
+                    size="small"
+                    aria-label="open">
+                    {this.state.opened ? <IconClose fontSize="inherit"/> : <IconOpen fontSize="inherit"/>}
+                </IconButton>
+            ] : null}
+            {this.state.opened &&
+                [
+                    <Dropzone
+                        key="image-drop"
+                        onDrop={files => this.handleDropImage(files)}
+                        maxSize={this.props.maxSize}
+                        accept={this.props.accept || 'image/jpeg, image/png, image/gif, image/svg+xml'}
+                        style={{}}>
+                        {({getRootProps, getInputProps, isDragActive, isDragReject}) => (
+                            <div {...getRootProps()} className={classes.dropzone + ' ' + (isDragReject ? classes.dropzoneRejected : (isDragActive ? classes.dropzoneAccepted : ''))}>
+                                <input accept="image/*" {...getInputProps()} />
+                                {isDragReject ? (this.props.textRejected || 'Some files will be rejected') :
+                                    (isDragActive ? (this.props.textAccepted || 'All files will be accepted') :
+                                        (this.props.textWaiting || 'Drop some files here or click...'))}
+                            </div>
+                        )}
+                    </Dropzone>,
+                    (this.state.images && this.state.images.length) || this.icons ? <ImageList key="image-list" images={this.state.images || this.icons} onSelect={this.handleSelectImage.bind(this)}/> : null,
+                    ImageSelector.isMobile() && !this.props.icons ?
+                        <IconButton
+                            key="image-camera" onClick={() => this.onCamera()}
+                            className={classes.camIcon}
+                            size="small"
+                            aria-label="camera">
+                            <IconCam fontSize="inherit"/>
+                            <input ref={this.inputRef}
+                                   type="file"
+                                   accept="image/*"
+                                   onChange={files => this.handleDropImage(files)}
+                                   capture
+                                   style={{display: 'none'}}/>
+                        </IconButton> : null,
+                ]
+            }
+            {this.state.cropOpened ? <Dialog
                 key="crop-dialog"
                 open={true}
                 classes={{paper: classes['chart-dialog-paper']}}
@@ -396,9 +396,8 @@ class ImageSelector extends React.Component {
                     <Button onClick={() => this.onCropEnd(true)} color="primary" autoFocus>{I18n.t('Crop')}</Button>
                     <Button onClick={() => this.setState({cropOpened: false})} autoFocus>{I18n.t('Cancel')}</Button>
                 </DialogActions>
-            </Dialog>): null}
-            </div>
-        );
+            </Dialog>: null}
+        </div>;
     }
 }
 ImageSelector.propTypes = {

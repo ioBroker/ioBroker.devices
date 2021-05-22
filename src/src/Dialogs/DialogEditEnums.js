@@ -83,10 +83,10 @@ class DialogEditEnums extends React.Component {
                 id
             }));
 
-        return (<List className={this.props.classes.list}>
-            {objs.map(obj => (<ListItem key={obj.id} button onClick={() => this.onToggle(obj.id)}>
+        return <List className={this.props.classes.list}>
+            {objs.map(obj => <ListItem key={obj.id} button onClick={() => this.onToggle(obj.id)}>
                 <ListItemIcon>
-                    {obj.icon ? (<Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/>) : (<div className={this.props.classes.enumIcon}/>)}
+                    {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id}/> : <div className={this.props.classes.enumIcon}/>}
                 </ListItemIcon>
                 <ListItemText primary={obj.name} />
                 <ListItemSecondaryAction>
@@ -96,33 +96,33 @@ class DialogEditEnums extends React.Component {
                         checked={this.state.values.includes(obj.id)}
                     />
                 </ListItemSecondaryAction>
-            </ListItem>))}
-        </List>);
+            </ListItem>)}
+        </List>;
     }
 
     render() {
-        return (<Dialog
-                key="enumDialog"
-                open={true}
-                maxWidth={'sm'}
-                onClose={() => this.handleOk()}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle className={this.props.classes.titleBackground}
-                             classes={{root: this.props.classes.titleColor}}
-                             id="edit-device-dialog-title">{I18n.t('Edit enums')} <b>{this.props.deviceName}</b></DialogTitle>
-                <DialogContent>
-                    <div className={this.props.classes.divDialogContent}>
-                        {this.renderHeader()}
-                        {this.renderSelectEnum()}
-                    </div>
-                </DialogContent>
-                <DialogActions>
-                    <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                    <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
-                </DialogActions>
-            </Dialog>);
+        return <Dialog
+            key="enumDialog"
+            open={true}
+            maxWidth={'sm'}
+            onClose={() => this.handleOk()}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            <DialogTitle className={this.props.classes.titleBackground}
+                         classes={{root: this.props.classes.titleColor}}
+                         id="edit-device-dialog-title">{I18n.t('Edit enums')} <b>{this.props.deviceName}</b></DialogTitle>
+            <DialogContent>
+                <div className={this.props.classes.divDialogContent}>
+                    {this.renderHeader()}
+                    {this.renderSelectEnum()}
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>;
     }
 }
 
