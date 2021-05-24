@@ -5,32 +5,32 @@
  *
  **/
 
-import {TiCogOutline as IconWorking} from 'react-icons/ti';
-import {MdPermScanWifi as IconUnreach} from 'react-icons/md';
-import {MdPriorityHigh as IconMaintain} from 'react-icons/md';
-import {MdBatteryAlert as IconLowbat} from 'react-icons/md';
-import {MdError as IconError} from 'react-icons/md';
+// import {TiCogOutline as IconWorking} from 'react-icons/ti';
+// import {MdPermScanWifi as IconUnreach} from 'react-icons/md';
+// import {MdPriorityHigh as IconMaintain} from 'react-icons/md';
+// import {MdBatteryAlert as IconLowbat} from 'react-icons/md';
+// import {MdError as IconError} from 'react-icons/md';
 import ChannelDetector from 'iobroker.type-detector';
 
-const COLORS = {
-    working:   '#808080',
-    unreach:   'orange',
-    lowbat:    'red',
-    maintain:  'orange',
-    error:     'red',
-    direction: 'green',
-    connected: 'red'
-};
+// const COLORS = {
+//     working:   '#808080',
+//     unreach:   'orange',
+//     lowbat:    'red',
+//     maintain:  'orange',
+//     error:     'red',
+//     direction: 'green',
+//     connected: 'red'
+// };
 
-const additionalParameters = {
-    'WORKING':      {icon: IconWorking,    color: COLORS.working},
-    'UNREACH':      {icon: IconUnreach,    color: COLORS.unreach},
-    'LOWBAT':       {icon: IconLowbat,     color: COLORS.lowbat},
-    'MAINTAIN':     {icon: IconMaintain,   color: COLORS.maintain},
-    'ERROR':        {icon: IconError,      color: COLORS.error},
-    'DIRECTION':    {                      color: COLORS.direction},
-    'CONNECTED':    {icon: IconUnreach,    color: COLORS.connected},
-};
+// const additionalParameters = {
+//     'WORKING':      {icon: IconWorking,    color: COLORS.working},
+//     'UNREACH':      {icon: IconUnreach,    color: COLORS.unreach},
+//     'LOWBAT':       {icon: IconLowbat,     color: COLORS.lowbat},
+//     'MAINTAIN':     {icon: IconMaintain,   color: COLORS.maintain},
+//     'ERROR':        {icon: IconError,      color: COLORS.error},
+//     'DIRECTION':    {                      color: COLORS.direction},
+//     'CONNECTED':    {icon: IconUnreach,    color: COLORS.connected},
+// };
 
 class IOBChannelDetector {
     constructor() {

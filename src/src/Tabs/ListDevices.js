@@ -39,6 +39,8 @@ import { FaPalette as IconColor } from 'react-icons/fa';
 import { FaLightbulb as IconBulb } from 'react-icons/fa';
 import { FaLockOpen as IconLock } from 'react-icons/fa';
 import { FaThermometer as IconThermometer } from 'react-icons/fa';
+import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import { HiLink } from "react-icons/hi";
 
 import I18n from '@iobroker/adapter-react/i18n';
 import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
@@ -69,6 +71,7 @@ import Icon from '@iobroker/adapter-react/Components/Icon';
 import DvrIcon from '@material-ui/icons/Dvr';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
+import ImporterDialog from '../Dialogs/ImporterDialog';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -667,6 +670,7 @@ class ListDevices extends Component {
             message: '',
             loading: true,
             browse: false,
+            importer: false,
             expanded,
             orderBy: window.localStorage.getItem('Devices.orderBy') || 'IDs',
             lastChanged: '',
@@ -792,10 +796,10 @@ class ListDevices extends Component {
 
                 const _usedIdsOptional = [];
                 const devices = [];
-                console.log(2222221,idsInEnums,devices)
+                console.log(2222221, idsInEnums, devices)
                 idsInEnums.forEach(id => {
                     const result = this.detector.detect({ id, objects: this.objects, _usedIdsOptional, _keysOptional: keys });
-                    console.log(222222,id,result,this.objects[id])
+                    console.log(222222, id, result, this.objects[id])
                     result && result.forEach(device => devices.push(device));
                 });
 
@@ -805,7 +809,7 @@ class ListDevices extends Component {
                 // find channelID for every device
                 devices.map(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
 
-                console.log(222222,idsInEnums,devices)
+                console.log(222222, idsInEnums, devices)
 
                 ///////
 
@@ -889,7 +893,7 @@ class ListDevices extends Component {
         stateIds[`${this.prefix}.automatically_detected`] = {
             common: {
                 name: I18n.t('Automatically detected'),
-                nondeletable: true,
+                nondeletable: true
             },
             type: 'folder'
         };
@@ -902,11 +906,11 @@ class ListDevices extends Component {
                 common: {
                     name: Utils.getObjectName(objects, device.channelId, { language }),
                     nondeletable: true,
-                    color: objects[device.channelId].common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                    icon: objects[device.channelId].common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                    color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
                 },
                 obj: objects[device.channelId],
-                type: objects[device.channelId].type,
+                type: objects[device.channelId]?.type,
                 role: device.type
             }
         })
@@ -919,6 +923,8 @@ class ListDevices extends Component {
                 common: {
                     name: I18n.t('Linked devices'),
                     nondeletable: true,
+                    icon: <HiLink style={{ color: 'black' }} className={this.props.classes.iconCommon}
+                    />
                 },
                 type: 'folder'
             };
@@ -927,11 +933,129 @@ class ListDevices extends Component {
                     common: {
                         name: Utils.getObjectName(objects, device.channelId, { language }),
                         nondeletable: true,
-                        color: objects[device.channelId].common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                        icon: objects[device.channelId].common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                        color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
                     },
                     obj: objects[device.channelId],
-                    type: objects[device.channelId].type,
+                    type: objects[device.channelId]?.type,
+                    role: device.type
+                }
+            })
+        }
+        return prepareList(stateIds, null, this.objects)
+    }
+
+    onInporterObjectsGenerate = (objects, devices) => {
+        this.prefix = this.props.prefix || 'alias.0';
+        let i = 1;
+        while (objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
+            i++;
+        }
+
+        const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
+
+        const ids = [];
+
+        Object.keys(objects).forEach(id => {
+            if (id.startsWith(prefix) &&
+                objects[id] &&
+                objects[id].common &&
+                (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder')) {
+                let parentId;
+                // getParentId
+                if (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder') {
+                    parentId = id;
+                } else {
+                    parentId = getParentId(id);
+                }
+
+                if (parentId && !ids.includes(parentId)) {
+                    ids.push(parentId);
+                }
+            }
+        });
+        this.typesWords = {};
+        Object.keys(Types)
+            .filter(id => !UNSUPPORTED_TYPES.includes(id))
+            .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
+
+        // sort types by ABC in the current language
+        this.types = Object.keys(this.typesWords).sort((a, b) => {
+            if (this.typesWords[a] === this.typesWords[b]) {
+                return 0;
+            }
+            if (this.typesWords[a] > this.typesWords[b]) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+
+        const stateIds = {};
+        const language = I18n.getLanguage();
+        ids.forEach(id => {
+
+            return stateIds[id] = {
+                common: {
+                    name: objects[id] && objects[id].type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
+                    nondeletable: true,
+                    color: objects[id].common && objects[id].common.color ? objects[id].common.color : null,
+                    icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : null
+                },
+                obj: objects[id],
+                type: objects[id].type,
+                role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null
+            }
+        });
+
+        stateIds[`${this.prefix}.automatically_detected`] = {
+            common: {
+                name: I18n.t('Automatically detected'),
+                nondeletable: true
+            },
+            type: 'folder'
+        };
+
+        let devicesArr = devices || this.state.devices;
+
+        devicesArr = devicesArr.filter(({ channelId }) => !channelId.startsWith('alias.0') && !channelId.startsWith('linkeddevices.0'));
+        devicesArr.forEach(device => {
+            stateIds[`${this.prefix}.automatically_detected.${Utils.getObjectName(objects, device.channelId, { language })}`] = {
+                common: {
+                    name: Utils.getObjectName(objects, device.channelId, { language }),
+                    nondeletable: true,
+                    color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                },
+                obj: objects[device.channelId],
+                type: objects[device.channelId]?.type,
+                role: device.type
+            }
+        })
+
+        if (this.state.linkeddevices) {
+            let devicesArrLinkeddevices = devices || this.state.devices;
+
+            devicesArrLinkeddevices = devicesArrLinkeddevices.filter(({ channelId }) => channelId.startsWith('linkeddevices.0'));
+            stateIds[`${this.prefix}.linked_devices`] = {
+                common: {
+                    name: I18n.t('Linked devices'),
+                    nondeletable: true,
+                    icon: <HiLink style={{ color: 'black' }} className={this.props.classes.iconCommon}
+                    />
+                },
+                type: 'folder'
+            };
+            devicesArrLinkeddevices.forEach(device => {
+                stateIds[`${this.prefix}.linked_devices.${device.channelId.replace('linkeddevices.0.', '')}`] = {
+                    common: {
+                        name: Utils.getObjectName(objects, device.channelId, { language }),
+                        nondeletable: true,
+                        color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
+                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                    },
+                    obj: objects[device.channelId],
+                    type: objects[device.channelId]?.type,
                     role: device.type
                 }
             })
@@ -1154,7 +1278,7 @@ class ListDevices extends Component {
                 {obj.icon && <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />}
                 <div className={this.props.classes.nameEnumCell}>{obj.name}</div>
             </div>)
-        }
+            }
         </ButtonBase>;
     }
 
@@ -1333,7 +1457,6 @@ class ListDevices extends Component {
         }
         if (item.id === 'alias.0.linked_devices') {
             iconStyle.color = "#E67E22"
-
         }
         if (item.id === 'alias.0.automatically_detected' && !countSpan) {
             return
@@ -1380,7 +1503,10 @@ class ListDevices extends Component {
                             <div className={this.props.classes.tableIcon}>
                                 <TypeIcon src={item.icon} className={this.props.classes.tableIconImg} type={item.role} />
                             </div>}
-                        {item.type === 'folder' && item.icon && <img onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
+                        {item.type === 'folder' && item.icon &&
+                            <div onClick={() => this.toggleExpanded(item.id)}>
+                                <Icon onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />
+                            </div>}
                     </ListItemIcon>
                     <Tooltip title={<div>
                         <div>{`${I18n.t("Name")}: ${title}`}</div>
@@ -1449,15 +1575,17 @@ class ListDevices extends Component {
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
             {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell colSpan={1} >{countSpan}</TableCell>}
             {!device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
-                {item.id !== "alias.0.automatically_detected" && <div className={classes.wrapperButton}>
+                {item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Edit folder')}>
                         <IconButton
                             style={{ color }}
                             // size="small"
                             onClick={e => editFolderCallBack(item.obj, (obj) => {
-                                obj && this.props.socket.setObject(obj._id, obj)
-                                    .then(() => this.detectDevices(true));
-                            })}
+                                // obj && this.props.socket.setObject(obj._id, obj)
+                                // .then(() => 
+                                this.detectDevices(true)
+                                // );
+                            }, this.props.socket, this.state.devices, this.objects, this.deleteDevice)}
                         >
                             <IconEdit />
                         </IconButton>
@@ -1575,51 +1703,51 @@ class ListDevices extends Component {
                 }
             }
         } else
-        if (this.state.orderBy === 'types') {
-            const types = [];
-            this.state.devices.forEach(device => !this.isFilteredOut(device) && !types.includes(device.type) && types.push(device.type));
-            types.sort();
+            if (this.state.orderBy === 'types') {
+                const types = [];
+                this.state.devices.forEach(device => !this.isFilteredOut(device) && !types.includes(device.type) && types.push(device.type));
+                types.sort();
 
-            types.forEach(type => {
-                const isExpanded = this.state.expanded.includes(type);
-                let j = 0;
-                // add group
-                result.push(<TableRow
-                    key={type}
-                    className={classes.tableGroup}
-                    onClick={() => this.onToggle(type)}
-                    padding="default"
-                >
-                    <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
-                    <TableCell className={classes.tableIconCell}><TypeIcon className={classes.tableIconImg} type={type} /></TableCell>
-                    <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('type-' + type)}</TableCell>
-                    <TableCell />
-                    {this.state.windowWidth >= WIDTHS[4] ? <TableCell /> : null}
-                    {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-                    {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-                    {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-                    {this.state.windowWidth >= WIDTHS[0] ? <TableCell /> : null}
-                    <TableCell className={classes.buttonsCell} />
-                </TableRow>);
+                types.forEach(type => {
+                    const isExpanded = this.state.expanded.includes(type);
+                    let j = 0;
+                    // add group
+                    result.push(<TableRow
+                        key={type}
+                        className={classes.tableGroup}
+                        onClick={() => this.onToggle(type)}
+                        padding="default"
+                    >
+                        <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
+                        <TableCell className={classes.tableIconCell}><TypeIcon className={classes.tableIconImg} type={type} /></TableCell>
+                        <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('type-' + type)}</TableCell>
+                        <TableCell />
+                        {this.state.windowWidth >= WIDTHS[4] ? <TableCell /> : null}
+                        {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
+                        {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
+                        {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
+                        {this.state.windowWidth >= WIDTHS[0] ? <TableCell /> : null}
+                        <TableCell className={classes.buttonsCell} />
+                    </TableRow>);
 
-                if (isExpanded) {
-                    // find all devices for this type
-                    const devices = [];
-                    this.state.devices.forEach((device, i) =>
-                        !this.isFilteredOut(device) && device.type === type && devices.push(this.renderDevice('type_' + i, i, device, funcEnums, roomsEnums)));
+                    if (isExpanded) {
+                        // find all devices for this type
+                        const devices = [];
+                        this.state.devices.forEach((device, i) =>
+                            !this.isFilteredOut(device) && device.type === type && devices.push(this.renderDevice('type_' + i, i, device, funcEnums, roomsEnums)));
 
-                    result.push(devices);
-                }
-            });
-        } else if (this.state.orderBy === 'IDs') {
-            result = this.renderAllItems(this.state.listItems);
-        } else {
-            for (let i = 0; i < this.state.devices.length; i++) {
-                if (!this.isFilteredOut(this.state.devices[i])) {
-                    result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
+                        result.push(devices);
+                    }
+                });
+            } else if (this.state.orderBy === 'IDs') {
+                result = this.renderAllItems(this.state.listItems);
+            } else {
+                for (let i = 0; i < this.state.devices.length; i++) {
+                    if (!this.isFilteredOut(this.state.devices[i])) {
+                        result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
+                    }
                 }
             }
-        }
 
         let j = 0;
 
@@ -1723,6 +1851,91 @@ class ListDevices extends Component {
         return smartName || '';
     }
 
+
+
+    addToEnum(enumId, id) {
+        this.props.socket.getObject(enumId)
+            .then(obj => {
+                if (obj && obj.common) {
+                    obj.common.members = obj.common.members || [];
+
+                    if (!obj.common.members.includes(id)) {
+                        obj.common.members.push(id);
+                        obj.common.members.sort();
+                        this.objects[enumId] = obj;
+                        return this.props.socket.setObject(enumId, obj);
+                    }
+                }
+            });
+    }
+
+    processTasks(tasks, cb) {
+        if (!tasks || !tasks.length) {
+            cb && cb();
+        } else {
+            const task = tasks.shift();
+            let promises = [];
+
+            if (task.enums) {
+                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
+            }
+            this.objects[task.id] = task.obj;
+            promises.push(this.props.socket.setObject(task.id, task.obj));
+
+            Promise.all(promises)
+                .then(() => setTimeout(() =>
+                    this.processTasks(tasks, cb), 0));
+        }
+    }
+
+    onCopyDevice = (id, newChannelId, cb) => {
+        // if this is device not from linkeddevice or from alias
+        const copyDevice = this.state.devices.find(device => device.channelId === id);
+
+        if (!copyDevice) {
+            return
+        }
+
+        const channelId = copyDevice.channelId;
+        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
+
+        const channelObj = this.objects[channelId];
+        const { functions, rooms, icon, states, color } = copyDevice;
+        const tasks = [];
+
+        tasks.push({
+            id: newChannelId,
+            obj: {
+                common: {
+                    name: channelObj.common.name,
+                    color: color,
+                    desc: channelObj.common.desc,
+                    role: channelObj.common.role,
+                    icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
+                },
+                type: 'channel'
+            },
+            enums: rooms.concat(functions)
+        });
+
+        states.forEach(state => {
+            if (!state.id) {
+                return;
+            }
+            const obj = JSON.parse(JSON.stringify(this.objects[state.id]));
+            obj._id = newChannelId + '.' + state.name;
+
+            obj.native = {};
+            if (!isAlias) {
+                obj.common.alias = { id: state.id };
+            }
+            tasks.push({ id: obj._id, obj });
+        });
+
+        this.processTasks(tasks, cb);
+    }
+
+
     renderEditDialog() {
         if (this.state.editId === null) {
             return null;
@@ -1747,6 +1960,13 @@ class ListDevices extends Component {
             themeType={this.props.themeType}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
+            onCopyDevice={(id, newId, cb) => this.onCopyDevice(id, newId, () => {
+                cb && cb();
+                const copyDevice = this.state.devices.find(device => device.channelId === id);
+                if (copyDevice) {
+                    this.deleteDevice(this.state.devices.indexOf(copyDevice), () => this.detectDevices(true));
+                }
+            })}
             onSaveProperties={data => {
                 const promises = [];
                 if (data) {
@@ -1773,6 +1993,7 @@ class ListDevices extends Component {
                                         obj.common.name = { [language]: obj.common.name || '' };
                                     }
                                     obj.common.name[language] = data.name;
+                                    // obj._id = data.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
                                     obj.common.role = device.type;
                                     obj.common.color = data.color;
                                     if (!data.color) {
@@ -1803,7 +2024,7 @@ class ListDevices extends Component {
                         }
                     });
             }}
-            onClose={(data, refresh) => {
+            onClose={(data, refresh, cb) => {
                 const promises = [];
                 if (data) {
                     // const device = this.state.devices[this.state.editIndex];
@@ -2014,7 +2235,7 @@ class ListDevices extends Component {
                             this.updateEnumsForOneDevice(device);
                             newState.devices = devices;
                         }
-
+                        cb && cb();
                         this.setState(newState, () => refresh && this.detectDevices(true));
                     });
 
@@ -2100,7 +2321,7 @@ class ListDevices extends Component {
         return promises;
     }
 
-    deleteDevice(index, cb) {
+    deleteDevice = (index, cb) => {
         // remove each state from all enums
         // delete each state
         // remove channel from all enums
@@ -2280,6 +2501,17 @@ class ListDevices extends Component {
         />;
     }
 
+    renderImporterDialog = () => {
+        if (!this.state.importer) return null;
+        return <ImporterDialog
+            objects={this.objects}
+            socket={this.props.socket}
+            onClose={options => {
+                this.setState({ importer: false });
+            }}
+        />;
+    }
+
     renderDeleteDialog() {
         if (this.state.deleteIndex === null) {
             return;
@@ -2368,9 +2600,14 @@ class ListDevices extends Component {
                     </Tooltip>
                     {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
                         <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
-                            <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
+                            <IconAdd style={{ color: '#E67E22' }} />
                         </IconButton>
                     </Tooltip>}
+                    <Tooltip title={I18n.t('Importer')}>
+                        <IconButton onClick={() => this.setState({ importer: true })}>
+                            <ArrowDownwardIcon />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title={I18n.t('Refresh')}>
                         <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
                             {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
@@ -2462,6 +2699,7 @@ class ListDevices extends Component {
                 </div>
             </div>
             {this.renderDevices()}
+            {this.renderImporterDialog()}
             {this.renderMessage()}
             {this.renderEditDialog()}
             {this.renderAddDialog()}

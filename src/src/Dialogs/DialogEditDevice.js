@@ -19,7 +19,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import { MdEdit as IconEdit } from 'react-icons/md';
 import { MdFunctions as IconFunction } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
-import { MdContentCopy as IconCopy } from 'react-icons/md';
+// import { MdContentCopy as IconCopy } from 'react-icons/md';
 import { MdHelpOutline } from 'react-icons/md';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
@@ -215,6 +215,9 @@ const styles = theme => {
         oidNameIcon: {
             marginTop: 16,
             marginRight: 3
+        },
+        helperText: {
+            opacity: 0.2
         }
     })
 };
@@ -347,7 +350,15 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose({
             ids: this.state.ids,
             fx: this.fx,
-        }, isRefresh);
+        }, isRefresh, () => {
+            if (this.state.changeProperties.name && this.state.initChangeProperties.name &&  this.state.initChangeProperties.name !== this.state.changeProperties.name) {
+                let parts = this.channelId.split('.');
+                parts.pop();
+                parts = parts.join('.');
+                parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+                this.props.onCopyDevice(this.channelId, parts, () => { })
+            }
+        });
     };
 
     showDeviceIcon() {
@@ -431,16 +442,16 @@ class DialogEditDevice extends React.Component {
 
     renderHeader() {
         const classes = this.props.classes;
-        const alias = this.props.channelInfo.channelId.startsWith('alias.');
+        // const alias = this.props.channelInfo.channelId.startsWith('alias.');
 
         return <div className={classes.header}>
             <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended} />
             <div className={classes.menuWrapperIcons}>
-                {!alias && <Tooltip title={I18n.t('Copy device into aliases')}>
+                {/* {!alias && <Tooltip title={I18n.t('Copy device into aliases')}>
                     <IconButton onClick={() => this.setState({ showCopyDialog: true, newChannelId: '' })}>
                         <IconCopy />
                     </IconButton>
-                </Tooltip>}
+                </Tooltip>} */}
                 {this.state.extendedAvailable && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
                         style={this.state.extended ? { color: '#4dabf5' } : null}
@@ -462,11 +473,11 @@ class DialogEditDevice extends React.Component {
         let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
         if (realParent) {
             realParent = this.state.ids[realParent];
-            if(typeof realParent === 'string'){
+            if (typeof realParent === 'string') {
                 const parts = realParent.split('.');
                 parts.pop();
                 realParent = parts.join('.');
-            }else if(typeof realParent === 'object'){
+            } else if (typeof realParent === 'object') {
                 realParent = Object.keys(realParent)[0];
                 const parts = realParent.split('.');
                 parts.pop();
@@ -688,6 +699,9 @@ class DialogEditDevice extends React.Component {
                                     ids[name].read = e.target.value;
                                     this.setState({ ids });
                                 }}
+                                FormHelperTextProps={{
+                                    className: this.props.classes.helperText
+                                }}
                                 helperText={`${props.join(', ')}`}
                                 margin="normal"
                             />
@@ -720,6 +734,9 @@ class DialogEditDevice extends React.Component {
                                     const ids = JSON.parse(JSON.stringify(this.state.ids));
                                     ids[name].write = e.target.value;
                                     this.setState({ ids });
+                                }}
+                                FormHelperTextProps={{
+                                    className: this.props.classes.helperText
                                 }}
                                 helperText={`${props.join(', ')}`}
                                 margin="normal"
@@ -768,6 +785,9 @@ class DialogEditDevice extends React.Component {
                     const ids = JSON.parse(JSON.stringify(this.state.ids));
                     ids[name] = e.target.value;
                     this.setState({ ids });
+                }}
+                FormHelperTextProps={{
+                    className: this.props.classes.helperText
                 }}
                 helperText={props.join(', ')}
                 margin="normal"

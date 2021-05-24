@@ -296,6 +296,12 @@ class TreeView extends React.Component {
         return changed ? newState : null;
     }
 
+    componentDidUpdate(prevProps){
+        if(prevProps.selected !== this.props.selected){
+            this.setState({selected:this.props.selected});
+        }
+    }
+
     renderNewItemDialog() {
         const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
         const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;

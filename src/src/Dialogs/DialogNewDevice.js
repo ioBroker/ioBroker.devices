@@ -425,7 +425,8 @@ class DialogNewDevice extends React.Component {
                 common: { name },
                 type: 'folder'
             };
-            this.setState({ ids }, () => cb && cb());
+            this.prefix = id;
+            this.setState({ ids, root: id }, () => cb && cb());
         });
 
         this.props.onChange('render')
@@ -433,7 +434,6 @@ class DialogNewDevice extends React.Component {
 
     render() {
         const classes = this.props.classes;
-
         return <Dialog
             open={true}
             maxWidth="md"
@@ -453,7 +453,7 @@ class DialogNewDevice extends React.Component {
                         objects={this.state.ids}
                         onAddNew={(name, parentId, cb) => this.addNewFolder(name, parentId, cb)}
                         onSelect={id => this.setState({ root: id })}
-                        root={this.prefix}
+                        selected={this.state.root}
                     />
                 </div>
                 <div className={classes.blockFields}>
