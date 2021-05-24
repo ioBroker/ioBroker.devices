@@ -80,11 +80,11 @@ export const STATES_NAME_ICONS = {
     'LATITUDE': IconWorking,
     'LONGITUDE': IconWorking,
     'GPS': IconWorking,
-    'ON_ACTUAL': IconWorking,
-    'ON_SET': IconWorking,
-    'OPEN': IconWorking,
-    'STOP': IconWorking,
-    'WATER_ALARM': IconWorking,
+    'ON_ACTUAL': IconWorking,    // switch
+    'ON_SET': IconWorking,       // switch
+    'OPEN': IconWorking,         
+    'STOP': IconWorking,         //  stop sign
+    'WATER_ALARM': IconWorking,  // water
     'WASTE_ALARM': IconWorking,
     'PAUSE': IconWorking,
     'STATE': IconWorking,

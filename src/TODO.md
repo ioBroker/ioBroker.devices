@@ -1,26 +1,28 @@
 # General
-- Do not forget autoFocus (only one element may be focused on dialog)
-
+- (bf) provide supported list in google, alexa, alisa, material,
+- (bf) move icon selector into adapter-react with all possible icons
 ## Linked devices
-  <!-- - use icon "link" -->
-  <!-- - Change color of add button -->
 
 ## Edit folder
-<!-- - Support of edit folder => Rename all sub-items too -->
+- Support of edit folder => Rename all sub-items too
+  - Check that new name is free
 ## Edit device dialog
-<!-- - Support of rename ID (use name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_') )  -->
+- Support of rename ID (use name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_') )
+  - only for alias and for linkeddevices
 
 ## List of devices
 - Show devices in sub-folders according to adapter. Every adapter has own folder
+- Clone must take name, icon and color (especially icon)
 
-<!-- ## Folder control in new device dialog
-- Select automatically new created folder -->
+## Folder control in new device dialog
+- Select automatically new created folder
+  - Open all folders so that new created folder is visible
 
 ## Add new device dialog
 - Add to all states: SET/ACTION/POWER.... some icons //
+- By Clone of not alias/linkeddevicessave in native.originalId the source
 
 ## Set states
-<!-- - Make helpers for TextField(only states ) opacity 0.2 -->
 
 ## Types (type-detector)
 - Check all types that exist and could be created
@@ -38,7 +40,9 @@
   - 2. User can select devices by checkbox to clone into aliases
     - 2.1 User can set room/function for devices (if not set)
     - 2.2 user can set the ID and Smart Name of device in the table 
+    - Do not show devices, that exists in aliases.
     - 2.3 User can select if the devices will be cloned flat or by rooms or by functions
     - 2.4 All selected devices will be cloned into aliases.
+
   
 
