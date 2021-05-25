@@ -303,6 +303,7 @@ class DialogEditDevice extends React.Component {
             newChannelId: '',
             newChannelError: false,
             showCopyDialog: false,
+            disabledButton: false,
             extendedAvailable,
             tab: localStorage.getItem('EditDevice.tab') ? JSON.parse(localStorage.getItem('EditDevice.tab')) || 0 : 0,
             initChangeProperties: {},
@@ -351,7 +352,7 @@ class DialogEditDevice extends React.Component {
             ids: this.state.ids,
             fx: this.fx,
         }, isRefresh, () => {
-            if (this.state.changeProperties.name && this.state.initChangeProperties.name &&  this.state.initChangeProperties.name !== this.state.changeProperties.name) {
+            if (this.state.changeProperties.name && this.state.initChangeProperties.name && this.state.initChangeProperties.name !== this.state.changeProperties.name) {
                 let parts = this.channelId.split('.');
                 parts.pop();
                 parts = parts.join('.');
@@ -405,6 +406,10 @@ class DialogEditDevice extends React.Component {
     onCopyDevice(newChannelId, cb) {
         // if this is device not from linkeddevice or from alias
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
+
+        if (!isAlias) {
+            return cb();
+        }
 
         const channelObj = this.props.objects[this.channelId];
         const tasks = [];
@@ -607,9 +612,10 @@ class DialogEditDevice extends React.Component {
             </DialogContent>
             <DialogActions>
                 <Button href="" disabled={this.state.newChannelError} onClick={() => {
-                    this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
-                        this.setState({ showCopyDialog: false, newChannelId: '' }, () =>
-                            this.handleOk(true)));
+                    // this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
+                    this.setState({ showCopyDialog: false, newChannelId: '' }, () =>
+                        this.handleOk(true))
+                    // );
 
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button href="" onClick={() => this.setState({ showCopyDialog: false })}>{I18n.t('Cancel')}</Button>
@@ -888,11 +894,11 @@ class DialogEditDevice extends React.Component {
                             enumIDs={this.props.enumIDs}
                             socket={this.props.socket}
                             changeProperties={this.state.changeProperties}
-                            onChange={(state, initState) => {
+                            onChange={(state, initState, disabledButton) => {
                                 if (initState) {
-                                    return this.setState({ initChangeProperties: initState, changeProperties: initState });
+                                    return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false });
                                 }
-                                this.setState({ changeProperties: state });
+                                this.setState({ changeProperties: state, disabledButton });
                             }}
                         />
                     </TabPanel>
@@ -900,7 +906,7 @@ class DialogEditDevice extends React.Component {
                 <DialogActions>
                     <Button
                         variant="contained"
-                        disabled={JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)}
+                        disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton}
                         onClick={this.handleOk}
                         startIcon={<IconCheck />}
                         color="primary">{I18n.t('Write')}</Button>

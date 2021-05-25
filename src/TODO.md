@@ -4,19 +4,19 @@
 ## Linked devices
 
 ## Edit folder
-- Support of edit folder => Rename all sub-items too
-  - Check that new name is free
+<!-- - Support of edit folder => Rename all sub-items too
+  - Check that new name is free -->
 ## Edit device dialog
-- Support of rename ID (use name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_') )
-  - only for alias and for linkeddevices
+<!-- - Support of rename ID (use name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_') )
+  - only for alias and for linkeddevices -->
 
 ## List of devices
 - Show devices in sub-folders according to adapter. Every adapter has own folder
-- Clone must take name, icon and color (especially icon)
+<!-- - Clone must take name, icon and color (especially icon) -->
 
 ## Folder control in new device dialog
-- Select automatically new created folder
-  - Open all folders so that new created folder is visible
+<!-- - Select automatically new created folder
+  - Open all folders so that new created folder is visible -->
 
 ## Add new device dialog
 - Add to all states: SET/ACTION/POWER.... some icons //

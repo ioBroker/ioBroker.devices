@@ -296,9 +296,10 @@ class TreeView extends React.Component {
         return changed ? newState : null;
     }
 
-    componentDidUpdate(prevProps){
-        if(prevProps.selected !== this.props.selected){
-            this.setState({selected:this.props.selected});
+    componentDidUpdate(prevProps) {
+        if (prevProps.selected !== this.props.selected) {
+            this.setState({ selected: this.props.selected });
+            console.log(1111, this.props.selected)
         }
     }
 
@@ -314,8 +315,12 @@ class TreeView extends React.Component {
                         onKeyPress={(ev) => {
                             if (ev.key === 'Enter') {
                                 if (this.state.addNewName) {
+                                    const id = this.state.selected;
                                     this.props.onAddNew(this.state.addNewName, this.state.addNew.id,
-                                        () => this.setState({ addNew: null, addNewName: '' }))
+                                        () => {
+                                            this.toggleExpanded(id, true);
+                                            this.setState({ addNew: null, addNewName: '' })
+                                        })
                                 } else {
                                     this.setState({ addNew: null, addNewName: '' })
                                 }
@@ -327,7 +332,13 @@ class TreeView extends React.Component {
                     <Button
                         variant="contained"
                         disabled={!!error}
-                        onClick={() => this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => this.setState({ addNew: null, addNewName: '' }))}
+                        onClick={() => {
+                            const id = this.state.selected;
+                            this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => {
+                                this.toggleExpanded(id, true);
+                                this.setState({ addNew: null, addNewName: '' });
+                            })
+                        }}
                         startIcon={<IconOK />}
                         color="primary">{I18n.t('Add')}</Button>
                     <Button
@@ -378,14 +389,16 @@ class TreeView extends React.Component {
         window.localStorage.setItem('TreeView.expanded', JSON.stringify(expanded || this.state.expanded));
     }
 
-    toggleExpanded(id) {
+    toggleExpanded(id, onlyOpen) {
         const expanded = this.state.expanded.slice();
         const pos = expanded.indexOf(id);
         if (pos === -1) {
             expanded.push(id);
             expanded.sort();
         } else {
-            expanded.splice(pos, 1);
+            if (!onlyOpen) {
+                expanded.splice(pos, 1);
+            }
         }
 
         this.setState({ expanded });

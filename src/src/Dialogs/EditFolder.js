@@ -185,6 +185,20 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
         })
     }
 
+    const generateId = () =>{
+        if(typeof dataEdit.common.name !== 'string'){
+            return false;
+        }else if(!dataEdit.common.name){
+            return data._id;
+        }
+        let parts = data._id.split('.');
+        parts.pop();
+        parts = parts.join('.');
+        parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+       return parts;
+
+    }
+
     const onChangeCopy = () => {
         let parts = data._id.split('.');
         parts.pop();
@@ -230,6 +244,7 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                             }}
                             value={name}
                             className={classes.oidField}
+                            error={!!objects[generateId()]}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.name = e.target.value;
@@ -296,7 +311,7 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                 <Button
                     variant="contained"
                     autoFocus
-                    disabled={JSON.stringify(dataEdit) === JSON.stringify(data)|| !dataEdit.common.name}
+                    disabled={JSON.stringify(dataEdit) === JSON.stringify(data) || !dataEdit.common.name || !!objects[generateId()]}
                     onClick={() => {
                         onClose();
                         cb(dataEdit);

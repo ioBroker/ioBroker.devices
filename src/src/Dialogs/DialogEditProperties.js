@@ -86,7 +86,7 @@ const styles = theme => ({
     renderValueWrapper: {
         display: 'flex'
     },
-    renderValueCurrent:{
+    renderValueCurrent: {
         display: 'flex',
         alignItems: 'center',
         marginRight: 10
@@ -136,7 +136,7 @@ class DialogEditProperties extends React.PureComponent {
         const channelObj = this.props.objects[this.props.channelId];
 
         if (channelObj && channelObj.common) {
-            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() }) === 'undefined'? channelObj.common.name[Object.keys(channelObj.common.name)[0]]:Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
+            name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() }) === 'undefined' ? channelObj.common.name[Object.keys(channelObj.common.name)[0]] : Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
         const functions = this.props.enumIDs.filter(id => {
@@ -164,6 +164,7 @@ class DialogEditProperties extends React.PureComponent {
             functions,
             rooms,
             name,
+            initName: name,
             smartName,
         };
     }
@@ -176,7 +177,7 @@ class DialogEditProperties extends React.PureComponent {
 
     componentDidUpdate(prevProps, prevState) {
         if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-            this.props.onChange(this.state);
+            this.props.onChange(this.state, false, this.checkedName());
         }
     }
 
@@ -285,6 +286,19 @@ class DialogEditProperties extends React.PureComponent {
         this.setState({ icon: newValue });
     }
 
+    checkedName = () => {
+        if (!this.state.name) {
+            return true;
+        } else if (this.state.name === this.state.initName) {
+            return false;
+        }
+        let parts = this.props.channelId.split('.');
+        parts.pop();
+        parts = parts.join('.');
+        parts = `${parts}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+        return this.props.objects[parts];
+    }
+
     renderProperties() {
         const classes = this.props.classes;
         return <div className={classes.divOids}>
@@ -294,6 +308,7 @@ class DialogEditProperties extends React.PureComponent {
                     key="_name"
                     fullWidth
                     value={this.state.name}
+                    error={this.checkedName()}
                     className={classes.oidField}
                     onChange={e => this.setState({ name: e.target.value })}
                     margin="normal"
