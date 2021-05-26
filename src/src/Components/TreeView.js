@@ -31,7 +31,7 @@ import { MdCancel as IconCancel } from 'react-icons/md';
 import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
 
 import I18n from '@iobroker/adapter-react/i18n';
-import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
+import Utils from '@iobroker/adapter-react/Components/Utils';
 import { Paper, Tooltip } from '@material-ui/core';
 import clsx from 'clsx';
 import Icon from '@iobroker/adapter-react/Components/Icon';
@@ -122,6 +122,10 @@ const styles = theme => ({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
         }
+    },
+    displayFlex:{
+        display: 'flex',
+        flexDirection: 'column'
     }
 });
 
@@ -303,9 +307,18 @@ class TreeView extends React.Component {
         }
     }
 
+    generateId = () =>{
+        if(!this.state.addNewName){
+            return true;
+        }
+        let parts = `${this.state.selected}.${this.state.addNewName.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+       return parts;
+
+    }
+
     renderNewItemDialog() {
-        const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
-        const error = this.state.addNew ? this.state.listItems.filter(it => it.parent === this.state.addNew.id).find(it => it.title === this.state.addNewName || it.id === id) : null;
+        // const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
+        const error = this.generateId() === true ?true: this.props.objects[this.generateId()];
         return (
             <Dialog
                 key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
@@ -326,7 +339,12 @@ class TreeView extends React.Component {
                                 }
                                 ev.preventDefault();
                             }
-                        }} error={!!error} className={this.props.classes.dialogNewInput} autoFocus label={I18n.t('Folder name')} value={this.state.addNewName} onChange={e => this.setState({ addNewName: e.target.value })} />
+                        }} 
+                        error={!!error} 
+                        className={this.props.classes.dialogNewInput} autoFocus 
+                        label={I18n.t('Folder name')} 
+                        value={this.state.addNewName} 
+                        onChange={e => this.setState({ addNewName: e.target.value })} />
                 </form>
                 <DialogActions>
                     <Button
@@ -505,6 +523,10 @@ class TreeView extends React.Component {
         }
         iconStyle.color = "#448dde";
 
+        if(item.color){
+            iconStyle.color =item.color;
+        }
+
         const inner = <ListItem
             key={item.id}
             style={style}
@@ -520,7 +542,7 @@ class TreeView extends React.Component {
                 <Icon className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def} />
             }</ListItemIcon>
             <div
-                style={Object.assign({ color: item.color, background: Utils.invertColor(item.color, true) }, this.getTextStyle(item))}
+                style={this.getTextStyle(item)}
                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
 
             >{title}</div>
@@ -576,7 +598,7 @@ class TreeView extends React.Component {
     }
 
     render() {
-        return <Paper className={this.props.classes.wrapperFoldersBlock}>
+        return <Paper className={clsx(this.props.classes.wrapperFoldersBlock,this.props.displayFlex && this.props.classes.displayFlex)}>
             {this.renderAddButton()}
             {this.renderTree()}
             {this.renderNewItemDialog()}

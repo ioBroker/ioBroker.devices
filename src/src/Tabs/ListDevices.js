@@ -622,6 +622,25 @@ const styles = theme => ({
     },
     typeCellNameAndIcon: {
         display: 'flex'
+    },
+    iconOpen: {
+        transform: 'skew(147deg, 183deg) scale(0.5) translate(7px, 8px)'
+    },
+    hoverRow: {
+        '&:hover:after': {
+            width: '100%',
+        },
+        position: 'relative',
+        transform: 'scale(1)',
+        '&:after': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            background: '#ffffff36',
+            pointerEvents: 'none'
+        }
     }
 });
 
@@ -757,8 +776,8 @@ class ListDevices extends Component {
         this.props.socket.getAdapters()
             .then(instances => {
                 this.instances = instances;
+                return this.props.socket.getObjects(true);
             })
-        this.props.socket.getObjects(true)
             .then(objects => {
                 this.objects = objects;
                 // read enums
@@ -771,7 +790,7 @@ class ListDevices extends Component {
                 // collect all IDs in all enums
                 this.enumIDs.forEach(en => {
                     const e = enums[en];
-                    e.common && e.common.members && e.common.members.forEach(id =>
+                    e?.common?.members && e.common.members.forEach(id =>
                         !idsInEnums.includes(id) && idsInEnums.push(id));
                 });
 
@@ -810,7 +829,8 @@ class ListDevices extends Component {
                 const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
                 // find channelID for every device
-                devices.map(device => this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
+                devices.map(device => 
+                    this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
                 ///////
 
                 const listItems = this.onObjectsGenerate(this.objects || {}, JSON.parse(JSON.stringify(devices)));
@@ -1092,7 +1112,7 @@ class ListDevices extends Component {
         funcEnums = funcEnums || this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums = roomsEnums || this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         if (!device) {
-            return
+            return;
         }
         const stateId = device.states.find(state => state.id).id;
         let statesCount = device.states.filter(state => state.id).length;
@@ -1188,7 +1208,7 @@ class ListDevices extends Component {
      * @param {array} ids string or array of strings with IDs that must be subscribed or un-subscribed
      * @param {boolean} isMount true if subscribe and false if un-subscribe
      */
-    onCollectIds(elem, ids, isMount) {
+    /*onCollectIds(elem, ids, isMount) {
         if (typeof ids !== 'object') {
             ids = [ids];
         }
@@ -1215,7 +1235,9 @@ class ListDevices extends Component {
                 newIDs.forEach(id => this.props.socket.subscribeState(id, this.onUpdateBound));
             }
             if (oldIDs.length) {
-                setTimeout(() => oldIDs.forEach(item => this.states[item.id] && elem.updateState(item.id, this.states[item.id])), 0);
+                setTimeout(() => 
+                    oldIDs.forEach(item => 
+                        this.states[item.id] && elem.updateState(item.id, this.states[item.id])), 0);
             }
         } else {
             let nonIDs = [];
@@ -1236,7 +1258,7 @@ class ListDevices extends Component {
                 nonIDs.forEach(id => this.props.socket.unsubscribeState(id, this.onUpdateBound));
             }
         }
-    }
+    }*/
 
     onEdit(editId, e) {
         e && e.preventDefault();
@@ -1256,29 +1278,31 @@ class ListDevices extends Component {
             if (this.filter &&
                 // device.type !== 'folder' &&
                 !Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().includes(this.filter.toLowerCase()) &&
-                !device.id.toLowerCase().includes(this.filter.toLowerCase())) {
+                !device.id.toLowerCase().includes(this.filter.toLowerCase())
+            ) {
+                return true;
+            } else
+            if (this.state.onlyAliases && device.id === 'alias.0.automatically_detected') {
                 return true;
             }
-            if (this.state.onlyAliases && device.id === "alias.0.automatically_detected") {
-                return true
-            }
+
             const deviceAllparams = this.state.devices.find(el => el.channelId === device.id);
             if (this.state.hideInfo && deviceAllparams && deviceAllparams.type === Types.info) {
                 return true;
-            }
-            return false;
+            } else {
+                return false;
+            }            
         } else {
             if (this.filter &&
                 !device.channelId.toLowerCase().includes(this.filter) &&
                 !device.name.toLowerCase().includes(this.filter)) {
                 return true;
-            }
-
+            } else 
             if (this.state.hideInfo && device.type === Types.info) {
                 return true;
+            } else {
+                return this.state.onlyAliases && !device.channelId?.startsWith(ALIAS) && !device.channelId?.startsWith(LINKEDDEVICES);
             }
-
-            return this.state.onlyAliases && !device.channelId?.startsWith(ALIAS) && !device.channelId?.startsWith(LINKEDDEVICES);
         }
     }
 
@@ -1460,15 +1484,19 @@ class ListDevices extends Component {
                 children.length}</span>
             : null;
 
+
+        const serachStyle = {};
+
         if (!countSpan) {
             iconStyle.opacity = 0.5;
+        }
+        if (!countSpan && item.type === 'folder') {
+            serachStyle.opacity = 0.5;
         }
 
         if (item.id === this.state.selected) {
             iconStyle.opacity = 1;
         }
-
-        const serachStyle = {};
         if (this.filter && childrenFilter.length && item.type === 'folder') {
             serachStyle.opacity = 0.5;
             iconStyle.opacity = 0.5;
@@ -1477,11 +1505,15 @@ class ListDevices extends Component {
         iconStyle.width = 36;
         iconStyle.height = 36;
 
+        let backgroundRow = null;
+
         if (item.id === 'alias.0.automatically_detected') {
-            iconStyle.color = "#F1C40F"
+            iconStyle.color = "#F1C40F";
+            backgroundRow = "#f1c40f33";
         }
         if (item.id === 'alias.0.linked_devices') {
             iconStyle.color = "#E67E22"
+            backgroundRow = "#e67e2233";
         }
         if (item.id === 'alias.0.automatically_detected' && !countSpan) {
             return
@@ -1505,9 +1537,17 @@ class ListDevices extends Component {
             color = Utils.invertColor(background, true);
         }
 
+
+        if (background && item.type === 'folder') {
+            iconStyle.color = background;
+            // background = null;
+            // color = null;
+        }
+
         let j = 0;
         const inner = <TableRow
-            style={{ background }}
+            style={{ background: backgroundRow }}
+            className={this.props.classes.hoverRow}
             key={item.id} padding="default" >
             <TableCell
                 colSpan={3}
@@ -1525,12 +1565,12 @@ class ListDevices extends Component {
                                 <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
                                 <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
                             :
-                            <div className={this.props.classes.tableIcon}>
-                                <TypeIcon src={item.icon} className={this.props.classes.tableIconImg} type={item.role} />
+                            <div style={{ background }} className={this.props.classes.tableIcon}>
+                                <TypeIcon src={item.icon} style={{ color }} className={this.props.classes.tableIconImg} type={item.role} />
                             </div>}
                         {item.type === 'folder' && item.icon &&
                             <div onClick={() => this.toggleExpanded(item.id)}>
-                                <Icon onClick={() => this.toggleExpanded(item.id)} className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />
+                                <Icon onClick={() => this.toggleExpanded(item.id)} className={clsx(this.props.classes.iconCommon, isExpanded && this.props.classes.iconOpen)} alt={item.type} src={item.icon} />
                             </div>}
                     </ListItemIcon>
                     <Tooltip title={<div>
@@ -1539,11 +1579,11 @@ class ListDevices extends Component {
                     </div>}>
                         <div className={this.props.classes.wrapperTitleAndId}>
                             <div
-                                style={Object.assign(Object.assign(serachStyle, { color }), this.getTextStyle(item))}
+                                style={Object.assign(serachStyle, this.getTextStyle(item))}
                                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
                             >{title}</div>
                             <div
-                                style={Object.assign(Object.assign(serachStyle, { color }), this.getTextStyle(item))}
+                                style={Object.assign(serachStyle, this.getTextStyle(item))}
                                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyleId)}
                             >{item.id}</div>
                         </div>
@@ -1553,18 +1593,17 @@ class ListDevices extends Component {
             </TableCell>
             {/* <TableCell  /> */}
             {/* <TableCell style={{ color }} className={classes.tableNameCell}>{item.id}</TableCell> */}
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
 
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
                 {this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}
             </TableCell> : null}
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderTypeCell(device.type)}</TableCell> : null}
-            {device && this.state.windowWidth >= WIDTHS[0] ? <TableCell style={{ color }}>{device.usedStates}</TableCell> : null}
-            {device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>{this.renderTypeCell(device.type)}</TableCell> : null}
+            {device && this.state.windowWidth >= WIDTHS[0] ? <TableCell>{device.usedStates}</TableCell> : null}
+            {device && <TableCell align="right" className={classes.buttonsCell}>
                 <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Copy device')}>
                         <IconButton
-                            style={{ color }}
                             // size="small"
                             onClick={e => this.onCopy(item.id, e)}
                         >
@@ -1573,7 +1612,6 @@ class ListDevices extends Component {
                     </Tooltip>
                     <Tooltip title={I18n.t('Edit states')}>
                         <IconButton
-                            style={{ color }}
                             // size="small"
                             onClick={e => this.onEdit(item.id, e)}
                         >
@@ -1583,7 +1621,6 @@ class ListDevices extends Component {
                     {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
                         <Tooltip title={I18n.t('Delete device with all states')}>
                             <IconButton
-                                style={{ color }}
                                 // size="small"
                                 onClick={e => {
                                     e.stopPropagation();
@@ -1599,19 +1636,19 @@ class ListDevices extends Component {
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
             {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell colSpan={1} >{countSpan}</TableCell>}
-            {!device && <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+            {!device && <TableCell align="right" className={classes.buttonsCell}>
                 {item.importer &&
                     <div className={classes.wrapperButton}>
                         <Tooltip title={I18n.t('Importer')}>
                             <IconButton
-                                style={{ color }} onClick={() => importerCallBack(
-                                    ()=>{},
+                                onClick={() => importerCallBack(
+                                    (bool) =>  bool && this.detectDevices(true),
                                     item,
                                     this.props.socket,
                                     this.state.devices,
                                     this.objects,
                                     this.state.listItems
-                                    )}>
+                                )}>
                                 <ArrowDownwardIcon />
                             </IconButton>
                         </Tooltip>
@@ -1621,7 +1658,6 @@ class ListDevices extends Component {
                 {!item.noEdit && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Edit folder')}>
                         <IconButton
-                            style={{ color }}
                             // size="small"
                             onClick={e => editFolderCallBack(item.obj, (obj) => {
                                 // obj && this.props.socket.setObject(obj._id, obj)
@@ -1636,7 +1672,6 @@ class ListDevices extends Component {
                     {!countSpan ?
                         <Tooltip title={I18n.t('Delete folder')}>
                             <IconButton
-                                style={{ color }}
                                 onClick={e => {
                                     deleteFolderCallBack((bool) => {
                                         bool && this.props.socket.delObjects(item.id, true)
@@ -2291,41 +2326,34 @@ class ListDevices extends Component {
         />;
     }
 
-    setEnumsOfDevice(channelId, functions, rooms, promises) {
-        promises = promises || [];
-        this.enumIDs.forEach(id => {
+    async setEnumsOfDevice(channelId, functions, rooms) {
+        for (let e = 0; e < this.enumIDs.length; e++) {
+            const id = this.enumIDs[e];
             const members = (this.objects[id] && this.objects[id].common && this.objects[id].common.members) || [];
             // if this channel is in enum
             if (id.startsWith('enum.functions.') && functions) {
                 if (functions.includes(id)) {
                     if (!members.includes(channelId)) {
-                        promises.push(
-                            this.props.socket.getObject(id)
-                                .then(obj => {
-                                    this.objects[obj._id] = obj;
-                                    obj.common = obj.common || {};
-                                    obj.common.members = obj.common.members || [];
-                                    obj.common.members.push(channelId);
-                                    obj.common.members.sort();
-                                    return this.props.socket.setObject(obj._id, obj);
-                                }));
+                        const obj = await this.props.socket.getObject(id);
+                        this.objects[obj._id] = obj;
+                        obj.common = obj.common || {};
+                        obj.common.members = obj.common.members || [];
+                        obj.common.members.push(channelId);
+                        obj.common.members.sort();
+                        await this.props.socket.setObject(obj._id, obj);
                     }
                 } else {
                     if (members.includes(channelId)) {
-                        promises.push(
-                            this.props.socket.getObject(id)
-                                .then(obj => {
-                                    this.objects[obj._id] = obj;
-                                    obj.common = obj.common || {};
-                                    obj.common.members = obj.common.members || [];
-                                    const pos = obj.common.members.indexOf(channelId);
-                                    if (pos !== -1) {
-                                        obj.common.members.splice(pos, 1);
-                                        obj.common.members.sort();
-                                        return this.props.socket.setObject(obj._id, obj);
-                                    }
-                                    return Promise.resolve();
-                                }));
+                        const obj = await this.props.socket.getObject(id);
+                        this.objects[obj._id] = obj;
+                        obj.common = obj.common || {};
+                        obj.common.members = obj.common.members || [];
+                        const pos = obj.common.members.indexOf(channelId);
+                        if (pos !== -1) {
+                            obj.common.members.splice(pos, 1);
+                            obj.common.members.sort();
+                            await this.props.socket.setObject(obj._id, obj);
+                        }
                     }
                 }
             }
@@ -2333,39 +2361,30 @@ class ListDevices extends Component {
             if (id.startsWith('enum.rooms.') && rooms) {
                 if (rooms.includes(id)) {
                     if (!members.includes(channelId)) {
-                        promises.push(
-                            this.props.socket.getObject(id)
-                                .then(obj => {
-                                    this.objects[obj._id] = obj;
-                                    obj.common = obj.common || {};
-                                    obj.common.members = obj.common.members || [];
-                                    obj.common.members.push(channelId);
-                                    obj.common.members.sort();
-                                    return this.props.socket.setObject(obj._id, obj);
-                                }));
+                        const obj = await this.props.socket.getObject(id)
+                        this.objects[obj._id] = obj;
+                        obj.common = obj.common || {};
+                        obj.common.members = obj.common.members || [];
+                        obj.common.members.push(channelId);
+                        obj.common.members.sort();
+                        await this.props.socket.setObject(obj._id, obj);
                     }
                 } else {
                     if (members.includes(channelId)) {
-                        promises.push(
-                            this.props.socket.getObject(id)
-                                .then(obj => {
-                                    this.objects[obj._id] = obj;
-                                    obj.common = obj.common || {};
-                                    obj.common.members = obj.common.members || [];
-                                    const pos = obj.common.members.indexOf(channelId);
-                                    if (pos !== -1) {
-                                        obj.common.members.splice(pos, 1);
-                                        obj.common.members.sort();
-                                        return this.props.socket.setObject(obj._id, obj);
-                                    }
-                                    return Promise.resolve();
-                                }));
+                        const obj = await this.props.socket.getObject(id);
+                        this.objects[obj._id] = obj;
+                        obj.common = obj.common || {};
+                        obj.common.members = obj.common.members || [];
+                        const pos = obj.common.members.indexOf(channelId);
+                        if (pos !== -1) {
+                            obj.common.members.splice(pos, 1);
+                            obj.common.members.sort();
+                            await this.props.socket.setObject(obj._id, obj);
+                        }
                     }
                 }
             }
-        });
-
-        return promises;
+        }
     }
 
     deleteDevice = (index, cb) => {
@@ -2459,11 +2478,12 @@ class ListDevices extends Component {
         this.objects[obj._id] = obj;
 
         // create channel
-        this.props.socket.setObject(options.id, obj)
-            .then(() => {
+        return this.props.socket.setObject(options.id, obj)
+            .then(async () => {
                 const promises = [];
 
-                states.forEach(state => {
+                for (let s = 0; s < states.length; s++) {
+                    const state = states[s];
                     if (state.required && state.defaultRole) {
                         const common = {
                             name: state.name,
@@ -2507,27 +2527,27 @@ class ListDevices extends Component {
                             type: 'state'
                         };
                         this.objects[obj._id] = obj;
-                        promises.push(this.props.socket.setObject(options.id + '.' + state.name, obj));
+                        await this.props.socket.setObject(options.id + '.' + state.name, obj);
                     }
-                });
 
-                this.setEnumsOfDevice(options.id, options.functions, options.rooms, promises);
+                    await this.setEnumsOfDevice(options.id, options.functions, options.rooms, promises);
+                }
+                    
+                const devices = JSON.parse(JSON.stringify(this.state.devices));
+                const result = this.detector.detect({ id: options.id, objects: this.objects, forceRebuildKeys: true });
 
-                Promise.all(promises)
-                    .then(() => {
-                        const devices = JSON.parse(JSON.stringify(this.state.devices));
-                        const result = this.detector.detect({ id: options.id, objects: this.objects, forceRebuildKeys: true });
+                if (result) {
+                    for (let r = 0; r < result.length; r++) {
+                        this.updateEnumsForOneDevice(result[r]);
+                        devices.push(result[r]);
+                    }
+                }
 
-                        result && result.forEach(device => {
-                            this.updateEnumsForOneDevice(device);
-                            devices.push(device);
-                        });
-                        Router.doNavigate('list', 'edit', obj._id);
-                        this.setState({ devices, editId: obj._id });
-                    });
+                this.detectDevices()
+
+                Router.doNavigate('list', 'edit', obj._id);
+                this.setState({ devices, editId: obj._id });
             });
-
-        setTimeout(() => this.detectDevices(), 0);
     }
 
     renderAddDialog() {
@@ -2625,7 +2645,6 @@ class ListDevices extends Component {
             return <CircularProgress key="alexaProgress" />;
         }
         const classes = this.props.classes;
-
         return <Card key="list" className={classes.tab}>
             <div className={classes.wrapperIcon}>
                 <div className={classes.icons}>

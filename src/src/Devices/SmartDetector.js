@@ -10,7 +10,8 @@
 // import {MdPriorityHigh as IconMaintain} from 'react-icons/md';
 // import {MdBatteryAlert as IconLowbat} from 'react-icons/md';
 // import {MdError as IconError} from 'react-icons/md';
-import ChannelDetector from 'iobroker.type-detector';
+//import ChannelDetector from 'iobroker.type-detector';
+import ChannelDetector from '../Components/TypeDetector';
 
 // const COLORS = {
 //     working:   '#808080',

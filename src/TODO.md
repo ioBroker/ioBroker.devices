@@ -4,23 +4,18 @@
 ## Linked devices
 
 ## Edit folder
-<!-- - Support of edit folder => Rename all sub-items too
-  - Check that new name is free -->
-## Edit device dialog
-<!-- - Support of rename ID (use name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_') )
-  - only for alias and for linkeddevices -->
 
+## Edit device dialog
+<!-- - apply for opened folder
+//    transform: skew(137deg, 210deg) scale(0.6) translate(5px, 5px); -->
 ## List of devices
 - Show devices in sub-folders according to adapter. Every adapter has own folder
-<!-- - Clone must take name, icon and color (especially icon) -->
-
+- Add feature: "Do not show dialog for 5 minutes" for delete dialog
+<!-- - On mouse hover do some effect to see the selected line -->
 ## Folder control in new device dialog
-<!-- - Select automatically new created folder
-  - Open all folders so that new created folder is visible -->
-
+<!-- - Disable add new folder if empty or name is not unique -->
 ## Add new device dialog
 - Add to all states: SET/ACTION/POWER.... some icons //
-- By Clone of not alias/linkeddevicessave in native.originalId the source
 
 ## Set states
 
@@ -28,7 +23,10 @@
 - Check all types that exist and could be created
     - url
     - gate
-    - ...
+    - Unknown type!camera
+    - Unknown type!gate
+    - Unknown type!floodAlarm
+    - Unknown type!weatherCurrent
 
 ## Functionality
 - Do not search in parent if it is folder (only in devices/channels)

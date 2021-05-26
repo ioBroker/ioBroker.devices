@@ -10,6 +10,7 @@ import {
     DialogTitle, FormControl, IconButton, InputLabel, makeStyles,
     MenuItem,
     Select,
+    TextField,
     // TextField, 
     ThemeProvider,
     Tooltip
@@ -24,7 +25,9 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import TypeIcon from '../Components/TypeIcon';
 import { MdModeEdit as IconEdit } from 'react-icons/md';
 import clsx from 'clsx';
+import TreeView from '../Components/TreeView';
 // import UploadImage from '../Components/UploadImage';
+import Icon from '@iobroker/adapter-react/Components/Icon';
 
 let node = null;
 
@@ -42,7 +45,7 @@ const useStyles = makeStyles((theme) => ({
     },
     overflowHidden: {
         display: 'flex',
-        // overflow: 'hidden'
+        overflow: 'hidden'
     },
     pre: {
         overflow: 'auto',
@@ -65,14 +68,19 @@ const useStyles = makeStyles((theme) => ({
         fontWeight: 'bold'
     },
     flex: {
-        flex: 1
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
     },
     type: {
         width: '100%',
     },
     deviceWrapper: {
         display: 'flex',
-        marginLeft: 10
+        flexDirection: 'column',
+        padding: 4,
+        margin: '2px 10px'
     },
     fontStyle: {
         padding: '0px 8px',
@@ -104,14 +112,116 @@ const useStyles = makeStyles((theme) => ({
     header: {
         display: 'flex',
         background: '#00000057',
-        padding: 10,
+        margin: 10,
+        padding: 4,
         borderRadius: 4,
         marginBottom: 10
     },
     wrapperDevices: {
         margin: '0 10px'
+    },
+    wrapperItems: {
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'auto'
+    },
+    wrapperCloning: {
+        backgroundColor: '#FFFFFF10',
+        borderRadius: 3
+    },
+    wrapperNameAndId: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%'
+    },
+    wrapperCheckbox: {
+        display: 'flex',
+    },
+    enumsWrapper: {
+        display: 'flex',
+    },
+    wrapperIconEnumCell: {
+        display: 'flex',
+        alignItems: 'center',
+        margin: '0 4px'
+    },
+    enumIcon: {
+        width: 20,
+        height: 20
+    },
+    nameEnumCell: {
+        fontSize: 10,
+        opacity: 0.7,
+        marginLeft: 4
+    },
+    backgroundRed: {
+        background: '#ff000029',
+        borderRadius: 4
+    },
+    dialogNewForm: {
+        margin: 10
     }
 }));
+
+
+const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDeviceInObjects }) => {
+    const [name, setName] = useState(object.title);
+    const error = !name || (object && checkDeviceInObjects(name, object.id));
+    useEffect(() => {
+        if (object && name !== object.title) {
+            setName(object.title)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [object])
+    return (
+        <Dialog
+            key="newDialog"
+            onClose={onClose}
+            open={open}>
+            <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
+            <div className={classes.dialogNewForm} noValidate autoComplete="off">
+                <TextField
+                    onKeyPress={(ev) => {
+                        if (ev.key === 'Enter') {
+                            // if (this.state.addNewName) {
+                            //     const id = this.state.selected;
+                            //     onAddNew(this.state.addNewName, this.state.addNew.id,
+                            //         () => {
+                            //             this.toggleExpanded(id, true);
+                            //             this.setState({ addNew: null, addNewName: '' })
+                            //         })
+                            // } else {
+                            //     this.setState({ addNew: null, addNewName: '' })
+                            // }
+                            ev.preventDefault();
+                        }
+                    }}
+                    error={!!error}
+                    className={classes.dialogNewInput}
+                    autoFocus
+                    fullWidth
+                    label={I18n.t('Name')}
+                    value={name}
+                    onChange={e => setName(e.target.value)} />
+            </div>
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    disabled={!!error}
+                    onClick={() => {
+                        onClose(name);
+                    }}
+                    startIcon={<IconCheck />}
+                    color="primary">{I18n.t('Edit')}</Button>
+                <Button
+                    variant="contained"
+                    onClick={onClose}
+                    startIcon={<IconClose />}
+                >{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>);
+}
+
 
 const ImporterDialog = ({
     onClose,
@@ -125,25 +235,85 @@ const ImporterDialog = ({
     const [open, setOpen] = useState(true);
     const [arrayDevice, setArrayDevice] = useState([]);
     const [cloningMethod, setCloningMethod] = useState('flat');
-    // const [dataEdit, setDataEdit] = useState(data);
+    const [idsFolder, setSdsFolder] = useState([]);
+    const [selectFolder, setSelectFolder] = useState('alias.0');
+    const [checkedSelect, setCheckedSelect] = useState([]);
+    const [openEdit, setOpenEdit] = useState(false);
 
     useEffect(() => {
-        const id = `${item.parent}.${item.id.replace('system.adapter.', '')}`;
+
+        const ids = [];
+        const getParentId = (id) => {
+            const pos = id.lastIndexOf('.');
+            if (pos !== -1) {
+                return id.substring(0, pos);
+            } else {
+                return '';
+            }
+        }
+
+        const getLastPart = (id) => {
+            const pos = id.lastIndexOf('.');
+            if (pos !== -1) {
+                return id.substring(pos + 1);
+            } else {
+                return id;
+            }
+        }
+
+        const prefix = 'alias.0'
+        Object.keys(objects).forEach(id => {
+            if (id.startsWith(prefix) &&
+                objects[id] &&
+                objects[id].common &&
+                (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder')) {
+                let parentId;
+                // getParentId
+                if (objects[id].type === 'folder') {
+                    parentId = id;
+                } else {
+                    parentId = getParentId(id);
+                }
+
+                if (parentId && !ids.includes(parentId)) {
+                    ids.push(parentId);
+                }
+            }
+        });
+
+        const stateIds = {};
+        const language = I18n.getLanguage();
+        ids.forEach(id => stateIds[id] = {
+            common: {
+                name: objects[id] && objects[id].type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
+                nondeletable: true,
+                color: objects[id]?.common && objects[id].common.color ? objects[id].common.color : null,
+                icon: objects[id]?.common && objects[id].common.icon ? objects[id].common.icon : null
+            },
+            type: 'folder'
+        });
+
+        stateIds[prefix] = {
+            common: {
+                name: I18n.t('Root'),
+                nondeletable: true
+            },
+            type: 'folder'
+        };
+        setSdsFolder(stateIds);
+    }, [objects])
+
+
+    useEffect(() => {
         const newArray = listItems.filter(device => device.parent === item.id);
         setArrayDevice(newArray);
-        console.log(222, item.id, id, newArray)
+        const selectId = newArray.map(device => device.id);
+        setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
 
-    console.log(222,
-        item,
-        socket,
-        devices,
-        objects,
-        listItems)
-
-    const onCloseModal = () => {
+    const onCloseModal = (bool) => {
         setOpen(false);
-        onClose();
+        onClose(bool);
         if (node) {
             document.body.removeChild(node);
             node = null;
@@ -238,57 +408,128 @@ const ImporterDialog = ({
         })
     }
 
-    // const generateId = () => {
-    //     if (typeof dataEdit.common.name !== 'string') {
-    //         return false;
-    //     } else if (!dataEdit.common.name) {
-    //         return data._id;
-    //     }
-    //     let parts = data._id.split('.');
-    //     parts.pop();
-    //     parts = parts.join('.');
-    //     parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-    //     return parts;
+    const addNewFolder = async (dataFolder, id, cb) => {
+        const obj = {
+            _id: id,
+            common: {
+                name: dataFolder.objName ? dataFolder.objName : { [I18n.getLanguage()]: dataFolder.name },
+                color: dataFolder.color,
+                icon: dataFolder.icon
+            },
+            native: {},
+            type: 'folder'
+        };
 
-    // }
-
-    // const addNewFolder = async (dataFolder, id, cb) => {
-    //     const obj = {
-    //         _id: id,
-    //         common: {
-    //             name: { [I18n.getLanguage()]: dataFolder.name },
-    //             color: dataFolder.color,
-    //             icon: dataFolder.icon
-    //         },
-    //         native: {},
-    //         type: 'folder'
-    //     };
-
-    //     objects[obj._id] = obj;
-    //     await socket.setObject(id, obj).then(() => {
-    //         cb && cb()
-    //     });
-    // }
-
-    const onChangeCopy = () => {
-        // let parts = data._id.split('.');
-        // parts.pop();
-        // parts = parts.join('.');
-        // parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-        arrayDevice.forEach(async el => {
-            let newId = `alias.0.${cloningMethod}`;
-            newId = `${newId}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-
-            const device = devices.find(device => el.id === device.channelId);
-            console.log(2223, el, device)
-            await onCopyDevice(device, newId, el.id, () => {
-
-            });
-        })
-        // return cb && cb();
+        objects[obj._id] = obj;
+        await socket.setObject(id, obj).then(() => {
+            cb && cb()
+        });
     }
 
+    const onChangeCopy = () => {
+        const arrayDeviceFunction = () => {
+            arrayDevice.forEach(async el => {
+                if (checkedSelect.indexOf(el.id) === -1 && checkDeviceInObjects(el.title, el.id)) {
+                    return;
+                }
+                const addDevice = async (id, cb) => {
+                    const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+                    await onCopyDevice(device, newId, el.id, () => {
+                        cb && cb();
+                    });
+                }
+                let newId = `${selectFolder}`;
+                const device = devices.find(device => el.id === device.channelId);
+                if (cloningMethod === 'rooms') {
+                    if (device.rooms.length) {
+                        newId = `${newId}.${device.rooms[0].replace('enum.rooms.', '')}`;
+                        if (!objects[newId]) {
+                            const newObjFolder = objects[device.rooms[0]];
+                            addNewFolder({
+                                objName: newObjFolder.common.name,
+                                color: newObjFolder.common.color,
+                                icon: newObjFolder.common.icon
+                            }, newId, () => addDevice(newId));
+                        } else {
+                            addDevice(newId);
+                        }
+                    }
+                } else if (cloningMethod === 'functions') {
+                    if (device.functions.length) {
+                        newId = `${newId}.${device.functions[0].replace('enum.functions.', '')}`;
+                        if (!objects[newId]) {
+                            const newObjFolder = objects[device.functions[0]];
+                            addNewFolder({
+                                objName: newObjFolder.common.name,
+                                color: newObjFolder.common.color,
+                                icon: newObjFolder.common.icon
+                            }, newId, () => addDevice(newId));
+                        } else {
+                            addDevice(newId);
+                        }
+                    }
+                } else {
+                    addDevice(newId);
+                }
+            })
+        }
 
+        if (!objects[selectFolder]) {
+            let parts = selectFolder.split('.');
+            parts = parts.pop();
+            addNewFolder({
+                name: parts.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),
+                color: null,
+                icon: null
+            }, selectFolder, () => arrayDeviceFunction())
+        } else {
+            arrayDeviceFunction();
+        }
+        return onCloseModal(true);
+    }
+
+    const generateFolders = () => {
+        switch (cloningMethod) {
+            case 'flat':
+                return ''
+            case 'rooms':
+                return `.{${I18n.t('rooms')}}`
+            case 'functions':
+                return `.{${I18n.t('functions')}}`
+            default:
+                return ''
+        }
+    }
+
+    const renderEnumCell = (id, name) => {
+        const device = devices.find(device => id === device.channelId);
+        if (!device[name]) {
+            return null;
+        }
+        return device[name].map(id => ({
+            icon: Utils.getObjectIcon(id, objects[id]),
+            name: Utils.getObjectName(objects, id, { language: I18n.getLanguage() }),
+            id
+        })).map(obj => <div className={classes.wrapperIconEnumCell} key={obj.id}>
+            {obj.icon && <Icon className={classes.enumIcon} src={obj.icon} alt={obj.id} />}
+            <div className={classes.nameEnumCell}>{obj.name}</div>
+        </div>);
+    }
+
+    const checkDeviceInObjects = (name, id) => {
+        const device = devices.find(device => id === device.channelId);
+        let newId = `${selectFolder}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        if (cloningMethod === 'rooms') {
+            if (device.rooms.length) {
+                newId = `${selectFolder}.${device.rooms[0].replace('enum.rooms.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            }
+        } else if (cloningMethod === 'functions') {
+            if (device.functions.length) {
+                newId = `${selectFolder}.${device.functions[0].replace('enum.functions.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            }
+        }
+        return !!objects[newId];
+    }
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
@@ -296,62 +537,113 @@ const ImporterDialog = ({
             open={open}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Importer  %s', item.title)}---> alias.0.{cloningMethod}</DialogTitle>
+            <DialogTitle>{I18n.t('Importer  %s', item.title)} ---> {selectFolder}{generateFolders()}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
+                <RenderNewItemDialog
+                    classes={classes}
+                    objects={objects}
+                    object={openEdit}
+                    checkDeviceInObjects={checkDeviceInObjects}
+                    onClose={bool => {
+                        setOpenEdit(false);
+                    }}
+                    open={openEdit} />
                 <div className={classes.divOids}>
                     <div className={clsx(classes.flex, classes.wrapperDevices)}>
+                        <TreeView
+                            themeType={Utils.getThemeType()}
+                            theme={theme(Utils.getThemeName())}
+                            objects={idsFolder}
+                            onAddNew={(name, parentId, cb) => addNewFolder(name, parentId, cb)}
+                            onSelect={id => setSelectFolder(id)}
+                            selected={selectFolder}
+                            displayFlex
+                        />
+                    </div>
+                    <div className={clsx(classes.flex, classes.wrapperCloning)}>
                         <div className={classes.header}>
                             <Checkbox
-                                defaultChecked
-                                indeterminate
-                            />
-                        </div>
-                        {arrayDevice.map(device => <div className={classes.deviceWrapper} key={device.id}>
-                            <Checkbox
-                                defaultChecked
-                            // indeterminate
-                            />
-                            <div className={classes.tableIcon}>
-                                <TypeIcon src={device.icon} className={classes.tableIconImg} type={device.role} />
-                            </div>
-                            <div className={classes.wrapperTitleAndId}>
-                                <div className={classes.fontStyle}>
-                                    {device.title}
-                                </div>
-                                <div className={classes.fontStyleId}>
-                                    {device.id}
-                                </div>
-                            </div>
-                            <Tooltip title={I18n.t('Edit folder')}>
-                                <IconButton
-                                >
-                                    <IconEdit />
-                                </IconButton>
-                            </Tooltip>
-                        </div>)}
-                    </div>
-                    <div className={classes.flex}>
-                        <FormControl className={classes.type}>
-                            <InputLabel>{I18n.t('cloning method')}</InputLabel>
-                            <Select
-                                className={classes.oidField}
-                                fullWidth
-                                value={cloningMethod}
-                                onChange={e => {
-                                    setCloningMethod(e.target.value);
+                                checked={arrayDevice.length === checkedSelect.length || ((arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0)}
+                                indeterminate={(arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0}
+                                onChange={() => {
+                                    if (arrayDevice.length === checkedSelect.length) {
+                                        setCheckedSelect([]);
+                                    } else {
+                                        const selectId = arrayDevice.map(device => device.id);
+                                        setCheckedSelect(selectId);
+                                    }
                                 }}
-                            >
-                                <MenuItem value={'flat'}>
-                                    {I18n.t('flat')}
-                                </MenuItem>
-                                <MenuItem value={'rooms'}>
-                                    {I18n.t('rooms')}
-                                </MenuItem>
-                                <MenuItem value={'functions'}>
-                                    {I18n.t('functions')}
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
+                            />
+                            <FormControl className={classes.type}>
+                                <InputLabel>{I18n.t('cloning method')}</InputLabel>
+                                <Select
+                                    className={classes.oidField}
+                                    fullWidth
+                                    value={cloningMethod}
+                                    onChange={e => {
+                                        setCloningMethod(e.target.value);
+                                    }}
+                                >
+                                    <MenuItem value={'flat'}>
+                                        {I18n.t('flat')}
+                                    </MenuItem>
+                                    <MenuItem value={'rooms'}>
+                                        {I18n.t('rooms')}
+                                    </MenuItem>
+                                    <MenuItem value={'functions'}>
+                                        {I18n.t('functions')}
+                                    </MenuItem>
+                                </Select>
+                            </FormControl>
+                        </div>
+                        <div className={classes.wrapperItems}>
+                            {arrayDevice.map(device => <div className={clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed)} key={device.id}>
+                                <div className={classes.wrapperNameAndId}>
+                                    <div className={classes.wrapperCheckbox}>
+                                        <Checkbox
+                                            disabled={checkDeviceInObjects(device.title, device.id)}
+                                            checked={checkedSelect.indexOf(device.id) !== -1}
+                                            onChange={() => {
+                                                const newArray = JSON.parse(JSON.stringify(checkedSelect));
+                                                const indexCurrent = checkedSelect.indexOf(device.id);
+                                                if (indexCurrent !== -1) {
+                                                    newArray.splice(indexCurrent, 1);
+                                                    setCheckedSelect(newArray);
+                                                } else {
+                                                    newArray.push(device.id);
+                                                    setCheckedSelect(newArray);
+                                                }
+                                            }}
+                                        />
+                                        <div className={classes.tableIcon}>
+                                            <TypeIcon src={device.icon} className={classes.tableIconImg} type={device.role} />
+                                        </div>
+                                        <div className={classes.wrapperTitleAndId}>
+                                            <div className={classes.fontStyle}>
+                                                {device.title}
+                                            </div>
+                                            <div className={classes.fontStyleId}>
+                                                {device.id}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Tooltip title={I18n.t('Edit folder')}>
+                                            <IconButton
+                                                onClick={() => setOpenEdit(device)}
+                                            >
+                                                <IconEdit />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                                <div className={classes.enumsWrapper}>
+                                    {renderEnumCell(device.id, 'functions')}
+                                    {renderEnumCell(device.id, 'rooms')}
+                                    {/* {checkDeviceInObjects(device.title, device.id)} */}
+                                </div>
+                            </div>)}
+                        </div>
                     </div>
                 </div>
             </DialogContent>
@@ -359,7 +651,7 @@ const ImporterDialog = ({
                 <Button
                     variant="contained"
                     autoFocus
-                    // disabled={JSON.stringify(dataEdit) === JSON.stringify(data)}
+                    disabled={!checkedSelect.length}
                     onClick={() => {
                         // onCloseModal();
                         onChangeCopy();
