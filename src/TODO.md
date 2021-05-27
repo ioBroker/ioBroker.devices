@@ -32,7 +32,7 @@
 - Do not search in parent if it is folder (only in devices/channels)
 
 ## Importer
-- OPen dialog.
+<!-- - OPen dialog.
   - 1. User can select adapters, with some detected devices
     - 1.1 all devices of this adapter are shown in the list (only not existing in aliases)  
   - 2. User can select devices by checkbox to clone into aliases
@@ -40,7 +40,7 @@
     - 2.2 user can set the ID and Smart Name of device in the table 
     - Do not show devices, that exists in aliases.
     - 2.3 User can select if the devices will be cloned flat or by rooms or by functions
-    - 2.4 All selected devices will be cloned into aliases.
+    - 2.4 All selected devices will be cloned into aliases. -->
 
   
 
