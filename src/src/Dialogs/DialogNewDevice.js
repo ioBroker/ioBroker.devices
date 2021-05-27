@@ -281,41 +281,6 @@ class DialogNewDevice extends React.Component {
         return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
-    addToEnum(enumId, id) {
-        this.props.socket.getObject(enumId)
-            .then(obj => {
-                if (obj && obj.common) {
-                    obj.common.members = obj.common.members || [];
-
-                    if (!obj.common.members.includes(id)) {
-                        obj.common.members.push(id);
-                        obj.common.members.sort();
-                        this.props.objects[enumId] = obj;
-                        return this.props.socket.setObject(enumId, obj);
-                    }
-                }
-            });
-    }
-
-    processTasks(tasks, cb) {
-        if (!tasks || !tasks.length) {
-            cb && cb();
-        } else {
-            const task = tasks.shift();
-            let promises = [];
-
-            if (task.enums) {
-                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
-            }
-            this.props.objects[task.id] = task.obj;
-            promises.push(this.props.socket.setObject(task.id, task.obj));
-
-            Promise.all(promises)
-                .then(() => setTimeout(() =>
-                    this.processTasks(tasks, cb), 0));
-        }
-    }
-
     onCopyDevice(newChannelId, cb) {
         // if this is device not from linkeddevice or from alias
         this.channelId = this.props.copyDevice.channelId;
@@ -335,7 +300,8 @@ class DialogNewDevice extends React.Component {
                     role: channelObj.common.role,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
-                type: 'channel'
+                type: 'channel',
+                native: channelObj.native || {}
             },
             enums: rooms.concat(functions)
         });
@@ -347,14 +313,16 @@ class DialogNewDevice extends React.Component {
             const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
             obj._id = newChannelId + '.' + state.name;
 
-            obj.native = {};
+            if (!obj.native) {
+                obj.native = {};
+            }
             if (!isAlias) {
                 obj.common.alias = { id: state.id };
             }
             tasks.push({ id: obj._id, obj });
         });
 
-        this.processTasks(tasks, cb);
+        this.props.processTasks(tasks, cb);
     }
 
     handleOk = () => {

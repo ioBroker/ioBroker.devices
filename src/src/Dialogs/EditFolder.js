@@ -55,7 +55,7 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
+const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice, updateObjects, processTasks }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [dataEdit, setDataEdit] = useState(data);
@@ -67,15 +67,18 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
         setArrayObjects(idsObject);
     }, [objects, data._id]);
 
-    const onClose = () => {
-        if (
-            (Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()))
-            !==
-            (Utils.getObjectNameFromObj(data, I18n.getLanguage()) === 'undefined' ? data.common.name[Object.keys(data.common.name)[0]] : Utils.getObjectNameFromObj(data, I18n.getLanguage()))) {
-            onChangeCopy(cb);
-        } else {
-            socket.setObject(dataEdit._id, dataEdit)
-                .then(cb)
+    const onClose = async (bool) => {
+        if (bool) {
+            if (
+                (Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()))
+                !==
+                (Utils.getObjectNameFromObj(data, I18n.getLanguage()) === 'undefined' ? data.common.name[Object.keys(data.common.name)[0]] : Utils.getObjectNameFromObj(data, I18n.getLanguage()))) {
+                onChangeCopy(cb);
+            } else {
+                await socket.setObject(dataEdit._id, dataEdit);
+                updateObjects(null, dataEdit._id, dataEdit);
+                cb && cb(true);
+            }
         }
         setOpen(false);
         if (node) {
@@ -97,48 +100,13 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
         };
 
         objects[obj._id] = obj;
-        await socket.setObject(id, obj).then(() => {
-            cb && cb()
-        });
-    }
-
-    const addToEnum = (enumId, id) => {
-        socket.getObject(enumId)
-            .then(obj => {
-                if (obj && obj.common) {
-                    obj.common.members = obj.common.members || [];
-
-                    if (!obj.common.members.includes(id)) {
-                        obj.common.members.push(id);
-                        obj.common.members.sort();
-                        objects[enumId] = obj;
-                        return socket.setObject(enumId, obj);
-                    }
-                }
-            });
-    }
-
-    const processTasks = (tasks, cb) => {
-        if (!tasks || !tasks.length) {
-            cb && cb();
-        } else {
-            const task = tasks.shift();
-            let promises = [];
-
-            if (task.enums) {
-                promises = task.enums.map(enumId => addToEnum(enumId, task.id))
-            }
-            objects[task.id] = task.obj;
-            promises.push(socket.setObject(task.id, task.obj));
-
-            Promise.all(promises)
-                .then(() => setTimeout(() =>
-                    processTasks(tasks, cb), 0));
-        }
+        await socket.setObject(id, obj);
+        updateObjects(null, id, obj);
+        cb && cb();
     }
 
     const onCopyDevice = (copyDevice, newChannelId, cb) => {
-        if (!copyDevice) {
+        if (!copyDevice && !copyDevice?.channelId) {
             return null
         }
         // if this is device not from linkeddevice or from alias
@@ -146,6 +114,9 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
         const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
 
         const channelObj = objects[channelId];
+        if (!channelObj?.common) {
+            return null
+        }
         const { functions, rooms, icon, states, color } = copyDevice;
         const tasks = [];
 
@@ -159,11 +130,12 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                     role: channelObj.common.role,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
-                type: 'channel'
+                type: 'channel',
+                native: channelObj.native || {}
             },
             enums: rooms.concat(functions)
         });
-        console.log(2222233444, tasks)
+
         states.forEach(state => {
             if (!state.id) {
                 return;
@@ -171,48 +143,58 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
             const obj = JSON.parse(JSON.stringify(objects[state.id]));
             obj._id = newChannelId + '.' + state.name;
 
-            obj.native = {};
+            if (!obj.native) {
+                obj.native = {};
+            }
             if (!isAlias) {
                 obj.common.alias = { id: state.id };
             }
             tasks.push({ id: obj._id, obj });
         });
         return new Promise((resolve) => {
-            processTasks(tasks, () => {
+            processTasks(tasks, async () => {
+                await cb();
                 resolve();
-                cb();
             });
         })
     }
 
-    const generateId = () =>{
-        if(typeof dataEdit.common.name !== 'string'){
+    const generateId = () => {
+        if (typeof dataEdit.common.name !== 'string') {
             return false;
-        }else if(!dataEdit.common.name){
+        } else if (!dataEdit.common.name) {
             return data._id;
         }
         let parts = data._id.split('.');
         parts.pop();
         parts = parts.join('.');
         parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-       return parts;
+        return parts;
 
     }
 
-    const onChangeCopy = () => {
+    const onChangeCopy = async () => {
         let parts = data._id.split('.');
         parts.pop();
         parts = parts.join('.');
-        parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-        arrayObjects.forEach(async el => {
+        parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        for (let i = 0; i < arrayObjects.length; i++) {
+            const el = arrayObjects[i];
             const newId = el._id.replace(data._id, parts);
             if (el.type === 'folder') {
-                addNewFolder(dataEdit.common, newId, () => socket.delObjects(el._id, true));
+                addNewFolder(dataEdit.common, newId)
+                await socket.delObjects(el._id, true);
+                updateObjects('delete', el._id);
             } else {
                 const device = devices.find(device => el._id === device.channelId);
-                await onCopyDevice(device, newId, () => deleteDevice(devices.indexOf(device)));
+                await onCopyDevice(device, newId, ()=>new Promise((resolve) => {
+                    deleteDevice(devices.indexOf(device), () => {
+                        resolve();
+                    });
+                }));
+
             }
-        })
+        }
         return cb && cb();
     }
 
@@ -238,7 +220,7 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                                     } else {
                                         cb(false);
                                     }
-                                    onClose();
+                                    onClose(true);
                                     ev.preventDefault();
                                 }
                             }}
@@ -313,7 +295,7 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                     autoFocus
                     disabled={JSON.stringify(dataEdit) === JSON.stringify(data) || !dataEdit.common.name || !!objects[generateId()]}
                     onClick={() => {
-                        onClose();
+                        onClose(true);
                         cb(dataEdit);
                     }}
                     startIcon={<IconCheck />}
@@ -323,7 +305,7 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
                 <Button
                     variant="contained"
                     onClick={() => {
-                        onClose();
+                        onClose(false);
                         cb(false);
                     }}
                     startIcon={<IconClose />}
@@ -335,11 +317,11 @@ const EditFolder = ({ cb, data, socket, devices, objects, deleteDevice }) => {
     </ThemeProvider>;
 }
 
-export const editFolderCallBack = (data, cb, socket, devices, objects, deleteDevice) => {
+export const editFolderCallBack = (data, cb, socket, devices, objects, deleteDevice, updateObjects, processTasks) => {
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';
         document.body.appendChild(node);
     }
-    return ReactDOM.render(<EditFolder deleteDevice={deleteDevice} objects={objects} socket={socket} devices={devices} data={data} cb={cb} />, node);
+    return ReactDOM.render(<EditFolder processTasks={processTasks} updateObjects={updateObjects} deleteDevice={deleteDevice} objects={objects} socket={socket} devices={devices} data={data} cb={cb} />, node);
 }

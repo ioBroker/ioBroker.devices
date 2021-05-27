@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+// import ReactDOM from 'react-dom';
 
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -160,6 +160,13 @@ const useStyles = makeStyles((theme) => ({
     },
     dialogNewForm: {
         margin: 10
+    },
+    emptyList: {
+        display: 'flex',
+        margin: 10,
+        padding: '0 10px',
+        opacity: 0.7,
+        fontWeight: 'bold'
     }
 }));
 
@@ -183,16 +190,11 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
                 <TextField
                     onKeyPress={(ev) => {
                         if (ev.key === 'Enter') {
-                            // if (this.state.addNewName) {
-                            //     const id = this.state.selected;
-                            //     onAddNew(this.state.addNewName, this.state.addNew.id,
-                            //         () => {
-                            //             this.toggleExpanded(id, true);
-                            //             this.setState({ addNew: null, addNewName: '' })
-                            //         })
-                            // } else {
-                            //     this.setState({ addNew: null, addNewName: '' })
-                            // }
+                            if (name && !error) {
+                                onClose(name);
+                            } else {
+                                onClose();
+                            }
                             ev.preventDefault();
                         }
                     }}
@@ -227,12 +229,15 @@ const ImporterDialog = ({
     onClose,
     item,
     socket,
+    open,
     devices,
     objects,
-    listItems
+    listItems,
+    updateObjects,
+    processTasks
 }) => {
     const classes = useStyles();
-    const [open, setOpen] = useState(true);
+    // const [open, setOpen] = useState(true);
     const [arrayDevice, setArrayDevice] = useState([]);
     const [cloningMethod, setCloningMethod] = useState('flat');
     const [idsFolder, setSdsFolder] = useState([]);
@@ -241,7 +246,6 @@ const ImporterDialog = ({
     const [openEdit, setOpenEdit] = useState(false);
 
     useEffect(() => {
-
         const ids = [];
         const getParentId = (id) => {
             const pos = id.lastIndexOf('.');
@@ -251,7 +255,6 @@ const ImporterDialog = ({
                 return '';
             }
         }
-
         const getLastPart = (id) => {
             const pos = id.lastIndexOf('.');
             if (pos !== -1) {
@@ -260,7 +263,6 @@ const ImporterDialog = ({
                 return id;
             }
         }
-
         const prefix = 'alias.0'
         Object.keys(objects).forEach(id => {
             if (id.startsWith(prefix) &&
@@ -292,7 +294,6 @@ const ImporterDialog = ({
             },
             type: 'folder'
         });
-
         stateIds[prefix] = {
             common: {
                 name: I18n.t('Root'),
@@ -301,61 +302,26 @@ const ImporterDialog = ({
             type: 'folder'
         };
         setSdsFolder(stateIds);
-    }, [objects])
+    }, [objects,listItems])
 
 
     useEffect(() => {
-        const newArray = listItems.filter(device => device.parent === item.id);
+        const originalIds = listItems.filter(el => el?.obj?.native?.originalId).map(el => el.obj.native.originalId)
+
+        const newArray = listItems.filter(device => device.parent === item.id && originalIds.indexOf(device.id) === -1);
         setArrayDevice(newArray);
         const selectId = newArray.map(device => device.id);
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
 
     const onCloseModal = (bool) => {
-        setOpen(false);
+        // setOpen(false);
         onClose(bool);
         if (node) {
             document.body.removeChild(node);
             node = null;
         }
     };
-
-
-
-    const addToEnum = (enumId, id) => {
-        socket.getObject(enumId)
-            .then(obj => {
-                if (obj && obj.common) {
-                    obj.common.members = obj.common.members || [];
-
-                    if (!obj.common.members.includes(id)) {
-                        obj.common.members.push(id);
-                        obj.common.members.sort();
-                        objects[enumId] = obj;
-                        return socket.setObject(enumId, obj);
-                    }
-                }
-            });
-    }
-
-    const processTasks = (tasks, cb) => {
-        if (!tasks || !tasks.length) {
-            cb && cb();
-        } else {
-            const task = tasks.shift();
-            let promises = [];
-
-            if (task.enums) {
-                promises = task.enums.map(enumId => addToEnum(enumId, task.id))
-            }
-            objects[task.id] = task.obj;
-            promises.push(socket.setObject(task.id, task.obj));
-
-            Promise.all(promises)
-                .then(() => setTimeout(() =>
-                    processTasks(tasks, cb), 0));
-        }
-    }
 
     const onCopyDevice = (copyDevice, newChannelId, originalId, cb) => {
         if (!copyDevice) {
@@ -386,7 +352,6 @@ const ImporterDialog = ({
             },
             enums: rooms.concat(functions)
         });
-        console.log(2222233444, tasks)
         states.forEach(state => {
             if (!state.id) {
                 return;
@@ -421,71 +386,72 @@ const ImporterDialog = ({
         };
 
         objects[obj._id] = obj;
-        await socket.setObject(id, obj).then(() => {
-            cb && cb()
+        await socket.setObject(id, obj);
+        updateObjects(null, id, obj);
+        cb && cb();
+    }
+
+    const addDevice = async (id, el, device, cb) => {
+        const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+        await onCopyDevice(device, newId, el.id, () => {
+            cb && cb();
         });
     }
 
-    const onChangeCopy = () => {
-        const arrayDeviceFunction = () => {
-            arrayDevice.forEach(async el => {
-                if (checkedSelect.indexOf(el.id) === -1 && checkDeviceInObjects(el.title, el.id)) {
-                    return;
-                }
-                const addDevice = async (id, cb) => {
-                    const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-                    await onCopyDevice(device, newId, el.id, () => {
-                        cb && cb();
-                    });
-                }
-                let newId = `${selectFolder}`;
-                const device = devices.find(device => el.id === device.channelId);
-                if (cloningMethod === 'rooms') {
-                    if (device.rooms.length) {
-                        newId = `${newId}.${device.rooms[0].replace('enum.rooms.', '')}`;
-                        if (!objects[newId]) {
-                            const newObjFolder = objects[device.rooms[0]];
-                            addNewFolder({
-                                objName: newObjFolder.common.name,
-                                color: newObjFolder.common.color,
-                                icon: newObjFolder.common.icon
-                            }, newId, () => addDevice(newId));
-                        } else {
-                            addDevice(newId);
-                        }
+    const arrayDeviceFunction = async (callBack) => {
+        for (let s = 0; s < arrayDevice.length; s++) {
+            const el = arrayDevice[s];
+            if (checkedSelect.indexOf(el.id) === -1 && checkDeviceInObjects(el.title, el.id)) {
+                continue;
+            }
+            let newId = `${selectFolder}`;
+            const device = devices.find(device => el.id === device.channelId);
+            if (cloningMethod === 'rooms') {
+                if (device.rooms.length) {
+                    newId = `${newId}.${device.rooms[0].replace('enum.rooms.', '')}`;
+                    if (!objects[newId]) {
+                        const newObjFolder = objects[device.rooms[0]];
+                        await addNewFolder({
+                            objName: newObjFolder.common.name,
+                            color: newObjFolder.common.color,
+                            icon: newObjFolder.common.icon
+                        }, newId);
+                        await addDevice(newId, el, device)
+                        continue;
                     }
-                } else if (cloningMethod === 'functions') {
-                    if (device.functions.length) {
-                        newId = `${newId}.${device.functions[0].replace('enum.functions.', '')}`;
-                        if (!objects[newId]) {
-                            const newObjFolder = objects[device.functions[0]];
-                            addNewFolder({
-                                objName: newObjFolder.common.name,
-                                color: newObjFolder.common.color,
-                                icon: newObjFolder.common.icon
-                            }, newId, () => addDevice(newId));
-                        } else {
-                            addDevice(newId);
-                        }
-                    }
-                } else {
-                    addDevice(newId);
                 }
-            })
-        }
+            } else if (cloningMethod === 'functions') {
+                if (device.functions.length) {
+                    newId = `${newId}.${device.functions[0].replace('enum.functions.', '')}`;
+                    if (!objects[newId]) {
+                        const newObjFolder = objects[device.functions[0]];
+                        await addNewFolder({
+                            objName: newObjFolder.common.name,
+                            color: newObjFolder.common.color,
+                            icon: newObjFolder.common.icon
+                        }, newId);
+                        await addDevice(newId, el, device)
+                        continue;
+                    }
+                }
+            }
+            await addDevice(newId, el, device);
 
-        if (!objects[selectFolder]) {
+        };
+        callBack && callBack(true);
+    }
+
+    const onChangeCopy = async () => {
+        if (!objects[selectFolder] && selectFolder !== 'alias.0') {
             let parts = selectFolder.split('.');
             parts = parts.pop();
-            addNewFolder({
+            await addNewFolder({
                 name: parts.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),
                 color: null,
                 icon: null
-            }, selectFolder, () => arrayDeviceFunction())
-        } else {
-            arrayDeviceFunction();
+            }, selectFolder)
         }
-        return onCloseModal(true);
+        arrayDeviceFunction(onCloseModal);
     }
 
     const generateFolders = () => {
@@ -503,7 +469,7 @@ const ImporterDialog = ({
 
     const renderEnumCell = (id, name) => {
         const device = devices.find(device => id === device.channelId);
-        if (!device[name]) {
+        if (!device || (device && !device[name])) {
             return null;
         }
         return device[name].map(id => ({
@@ -544,7 +510,17 @@ const ImporterDialog = ({
                     objects={objects}
                     object={openEdit}
                     checkDeviceInObjects={checkDeviceInObjects}
-                    onClose={bool => {
+                    onClose={name => {
+                        if (name) {
+                            const indexDevice = arrayDevice.indexOf(openEdit)
+                            if (indexDevice !== -1) {
+                                const newDevice = JSON.parse(JSON.stringify(openEdit));
+                                const newArrayDevice = JSON.parse(JSON.stringify(arrayDevice));
+                                newDevice.title = name;
+                                newArrayDevice[indexDevice] = newDevice;
+                                setArrayDevice(newArrayDevice);
+                            }
+                        }
                         setOpenEdit(false);
                     }}
                     open={openEdit} />
@@ -554,7 +530,7 @@ const ImporterDialog = ({
                             themeType={Utils.getThemeType()}
                             theme={theme(Utils.getThemeName())}
                             objects={idsFolder}
-                            onAddNew={(name, parentId, cb) => addNewFolder(name, parentId, cb)}
+                            onAddNew={(name, parentId, cb) => addNewFolder({ name, icon: null, color: null }, `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`, cb)}
                             onSelect={id => setSelectFolder(id)}
                             selected={selectFolder}
                             displayFlex
@@ -563,6 +539,7 @@ const ImporterDialog = ({
                     <div className={clsx(classes.flex, classes.wrapperCloning)}>
                         <div className={classes.header}>
                             <Checkbox
+                                disabled={!arrayDevice.length}
                                 checked={arrayDevice.length === checkedSelect.length || ((arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0)}
                                 indeterminate={(arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0}
                                 onChange={() => {
@@ -579,6 +556,7 @@ const ImporterDialog = ({
                                 <Select
                                     className={classes.oidField}
                                     fullWidth
+                                    disabled={!arrayDevice.length}
                                     value={cloningMethod}
                                     onChange={e => {
                                         setCloningMethod(e.target.value);
@@ -597,6 +575,9 @@ const ImporterDialog = ({
                             </FormControl>
                         </div>
                         <div className={classes.wrapperItems}>
+                            {!arrayDevice.length && <div className={classes.emptyList}>
+                                {I18n.t('The list of devices to copy is empty')}
+                            </div>}
                             {arrayDevice.map(device => <div className={clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed)} key={device.id}>
                                 <div className={classes.wrapperNameAndId}>
                                     <div className={classes.wrapperCheckbox}>
@@ -674,27 +655,29 @@ const ImporterDialog = ({
     </ThemeProvider>;
 }
 
-export const importerCallBack = (
-    onClose,
-    item,
-    socket,
-    devices,
-    objects,
-    listItems
-) => {
-    if (!node) {
-        node = document.createElement('div');
-        node.id = 'renderModal';
-        document.body.appendChild(node);
-    }
+// export const importerCallBack = (
+//     onClose,
+//     item,
+//     socket,
+//     devices,
+//     objects,
+//     listItems,
+//     updateObjects
+// ) => {
+//     if (!node) {
+//         node = document.createElement('div');
+//         node.id = 'renderModal';
+//         document.body.appendChild(node);
+//     }
 
-    return ReactDOM.render(<ImporterDialog
-        item={item}
-        socket={socket}
-        devices={devices}
-        objects={objects}
-        onClose={onClose}
-        listItems={listItems}
-    />, node);
-}
-// export default ImporterDialog;
+//     return ReactDOM.render(<ImporterDialog
+//         item={item}
+//         socket={socket}
+//         devices={devices}
+//         objects={objects}
+//         onClose={onClose}
+//         listItems={listItems}
+//         updateObjects={updateObjects}
+//     />, node);
+// }
+export default ImporterDialog;
