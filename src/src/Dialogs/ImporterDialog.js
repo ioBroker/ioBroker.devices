@@ -11,7 +11,7 @@ import {
     MenuItem,
     Select,
     TextField,
-    // TextField, 
+    // TextField,
     ThemeProvider,
     Tooltip
 } from '@material-ui/core';
@@ -210,51 +210,50 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
             setName(object.title)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [object])
-    return (
-        <Dialog
-            key="newDialog"
-            onClose={() => onClose()}
-            open={open}>
-            <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
-            <div className={classes.dialogNewForm} noValidate autoComplete="off">
-                <TextField
-                    onKeyPress={(ev) => {
-                        if (ev.key === 'Enter') {
-                            if (name && !error) {
-                                onClose(name);
-                            } else {
-                                onClose();
-                            }
-                            ev.preventDefault();
-                        }
-                    }}
-                    error={!!error}
-                    className={classes.dialogNewInput}
-                    autoFocus
-                    fullWidth
-                    label={I18n.t('Name')}
-                    value={name}
-                    onChange={e => setName(e.target.value)} />
-            </div>
-            <DialogActions>
-                <Button
-                    variant="contained"
-                    disabled={!!error || object.title === name}
-                    onClick={() => {
-                        onClose(name);
-                    }}
-                    startIcon={<IconCheck />}
-                    color="primary">{I18n.t('Apply')}</Button>
-                <Button
-                    variant="contained"
-                    onClick={() => onClose()}
-                    startIcon={<IconClose />}
-                >{I18n.t('Cancel')}</Button>
-            </DialogActions>
-        </Dialog>);
-}
+    }, [object]);
 
+    return <Dialog
+        key="newDialog"
+        onClose={() => onClose()}
+        open={open}>
+        <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
+        <div className={classes.dialogNewForm} noValidate autoComplete="off">
+            <TextField
+                onKeyPress={(ev) => {
+                    if (ev.key === 'Enter') {
+                        if (name && !error) {
+                            onClose(name);
+                        } else {
+                            onClose();
+                        }
+                        ev.preventDefault();
+                    }
+                }}
+                error={!!error}
+                className={classes.dialogNewInput}
+                autoFocus
+                fullWidth
+                label={I18n.t('Name')}
+                value={name}
+                onChange={e => setName(e.target.value)} />
+        </div>
+        <DialogActions>
+            <Button
+                variant="contained"
+                disabled={!!error || object.title === name}
+                onClick={() => {
+                    onClose(name);
+                }}
+                startIcon={<IconCheck />}
+                color="primary">{I18n.t('Apply')}</Button>
+            <Button
+                variant="contained"
+                onClick={() => onClose()}
+                startIcon={<IconClose />}
+            >{I18n.t('Cancel')}</Button>
+        </DialogActions>
+    </Dialog>;
+}
 
 const ImporterDialog = ({
     onClose,
@@ -287,7 +286,8 @@ const ImporterDialog = ({
             } else {
                 return '';
             }
-        }
+        };
+
         const getLastPart = (id) => {
             const pos = id.lastIndexOf('.');
             if (pos !== -1) {
@@ -295,8 +295,9 @@ const ImporterDialog = ({
             } else {
                 return id;
             }
-        }
-        const prefix = 'alias.0'
+        };
+
+        const prefix = 'alias.0';
         Object.keys(objects).forEach(id => {
             if (id.startsWith(prefix) &&
                 objects[id] &&
@@ -327,6 +328,7 @@ const ImporterDialog = ({
             },
             type: 'folder'
         });
+
         stateIds[prefix] = {
             common: {
                 name: I18n.t('Root'),
@@ -334,14 +336,14 @@ const ImporterDialog = ({
             },
             type: 'folder'
         };
-        setSdsFolder(stateIds);
-    }, [objects, listItems])
 
+        setSdsFolder(stateIds);
+    }, [objects, listItems]);
 
     useEffect(() => {
         const originalIds = listItems.filter(el => el?.obj?.native?.originalId).map(el => el.obj.native.originalId)
 
-        const newArray = listItems.filter(device => device.parent === item.id && originalIds.indexOf(device.id) === -1);
+        const newArray = listItems.filter(device => device.parent === item.id && !originalIds.includes(device.id));
         setArrayDevice(newArray);
         const selectId = newArray.map(device => device.id);
         setCheckedSelect(selectId);
@@ -385,6 +387,7 @@ const ImporterDialog = ({
             },
             enums: rooms.concat(functions)
         });
+
         states.forEach(state => {
             if (!state.id) {
                 return;
@@ -398,6 +401,7 @@ const ImporterDialog = ({
             }
             tasks.push({ id: obj._id, obj });
         });
+
         return new Promise((resolve) => {
             processTasks(tasks, () => {
                 resolve();

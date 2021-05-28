@@ -24,6 +24,7 @@
 // Version 0.1.6, 2019.08.14
 // Keep this file ES5 conform! No const, let, not lambdas => , no ..., no default values for arguments, no let [arg] = abc() and other modern stuff.
 
+// eslint-disable-next-line
 'use strict';
 
 var Types = {
@@ -690,7 +691,7 @@ function ChannelDetector() {
         de: [/toren/i, /tor/i],
         ru: [/ворота/i],
     };
-    
+
     var gateRoles = ['gate', 'value.gate', 'switch.gate', 'action.stop', 'button.stop'];
     function roleOrEnumGate(obj, enums) {
         return roleOrEnum(obj, enums, gateRoles, gateWords);
@@ -716,7 +717,7 @@ function ChannelDetector() {
 
     function getAllStatesInChannel(keys, channelId) {
         var list = [];
-        var reg = new RegExp('^' + channelId.replace(/([$^.)(\[\]{}])/g, '\\$1') + '\\.[^.]+$');
+        var reg = new RegExp('^' + channelId.replace(/([$^.)([\]{}])/g, '\\$1') + '\\.[^.]+$');
         keys.forEach(function(_id) {
             if (reg.test(_id)) list.push(_id);
         });
@@ -724,7 +725,7 @@ function ChannelDetector() {
     }
     function getAllStatesInDevice(keys, channelId) {
         var list = [];
-        var reg = new RegExp('^' + channelId.replace(/([$^.)(\[\]{}])/g, '\\$1') + '\\.[^.]+\\.[^.]+$');
+        var reg = new RegExp('^' + channelId.replace(/([$^.)([\]{}])/g, '\\$1') + '\\.[^.]+\\.[^.]+$');
         keys.forEach(function(_id) {
             if (reg.test(_id)) list.push(_id);
         });
@@ -1176,7 +1177,7 @@ function ChannelDetector() {
         var id                = options.id;
         var _keysOptional     = options._keysOptional;
         var _usedIdsOptional  = options._usedIdsOptional;
-        var ignoreIndicators  = options.ignoreIndicators;
+        // var ignoreIndicators  = options.ignoreIndicators;
 
         if (this.cache[id] !== undefined) {
             return this.cache[id];
