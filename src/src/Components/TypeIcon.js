@@ -39,6 +39,7 @@ import {FaFan as TypeIconAC} from 'react-icons/fa';
 import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
 import TypeIconVacuumCleaner from './icons/Cleaner';
 import IconAdapter from '@iobroker/adapter-react/Components/Icon';
+import Utils from '@iobroker/adapter-react/Components/Utils';
 
 const TYPE_ICONS = {
     [Types.airCondition]: TypeIconAC,
@@ -87,8 +88,91 @@ const defaultStyle = {
 };
 
 class TypeIcon extends Component {
+
+    constructor(props) {
+        super(props);
+        this.icon = null
+    }
+    async componentDidMount() {
+        // find all icons
+        if(!this.props.enumIDs && !this.props.objects){
+            return
+        }
+        const icons = [];
+        let changed = false;
+        const memberIds = this.props.enumIDs
+            if (memberIds) {
+                for (let i = 0; i < icons.length; i++) {
+                    if (!icons[i]) {
+                        // check the parent
+                        const channelId = Utils.getParentId(memberIds[i]);
+                        if (channelId && channelId.split('.').length > 2) {
+                            const channelObj = this.props.objects[channelId];
+                            if (channelObj && (channelObj.type === 'channel' || channelObj.type === 'device')) {
+                                if (channelObj.common?.icon) {
+                                    icons[i] = channelObj.common?.icon;
+                                    changed = true;
+                                } else {
+                                    // check the parent
+                                    const deviceId = Utils.getParentId(channelId);
+                                    if (deviceId && deviceId.split('.').length > 2) {
+                                        console.log('Get deviceId' + deviceId);
+                                        const deviceObj = await this.props.socket.getObject(deviceId);
+                                        if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device')) {
+                                            if (deviceObj.common?.icon) {
+                                                icons[i] = deviceObj.common?.icon;
+                                                changed = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        let imagePrefix = '.';
+
+        if (memberIds) {
+            const objects = this.props.objects;
+            for (let i = 0; i < icons.length; i++) {
+                const cIcon = icons[i];
+                const id = memberIds[i];
+
+                if (cIcon && !cIcon.startsWith('data:image/') && cIcon.includes('.')) {
+                    let instance;
+                    if (objects[id].type === 'instance' || objects[id].type === 'adapter') {
+                        icons[i] = `${imagePrefix}/adapter/${objects[id].common.name}/${cIcon}`;
+                    } else if (id && id.startsWith('system.adapter.')) {
+                        instance = id.split('.', 3);
+                        if (cIcon[0] === '/') {
+                            instance[2] += cIcon;
+                        } else {
+                            instance[2] += '/' + cIcon;
+                        }
+                        icons[i] = `${imagePrefix}/adapter/${instance[2]}`;
+                    } else {
+                        instance = id.split('.', 2);
+                        if (cIcon[0] === '/') {
+                            instance[0] += cIcon;
+                        } else {
+                            instance[0] += '/' + cIcon;
+                        }
+                        icons[i] = `${imagePrefix}/adapter/${instance[0]}`;
+                    }
+                }
+            }
+        }
+        if(changed){
+            this.icon = icons
+        }
+        // changed && this.setState({icons});
+    }
+
     render() {
-        if (this.props.src) {
+        console.log(112233,this.props.type)
+        if (!!this.props.src) {
             return <IconAdapter src={this.props.src} style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>;
         } else {
             const Icon = this.props.type && TYPE_ICONS[this.props.type];

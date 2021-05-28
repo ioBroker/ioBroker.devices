@@ -7,7 +7,7 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import {
     Checkbox,
-    DialogTitle, FormControl, IconButton, InputLabel, makeStyles,
+    DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, LinearProgress, makeStyles,
     MenuItem,
     Select,
     TextField,
@@ -28,6 +28,7 @@ import clsx from 'clsx';
 import TreeView from '../Components/TreeView';
 // import UploadImage from '../Components/UploadImage';
 import Icon from '@iobroker/adapter-react/Components/Icon';
+import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 
 let node = null;
 
@@ -80,7 +81,11 @@ const useStyles = makeStyles((theme) => ({
         display: 'flex',
         flexDirection: 'column',
         padding: 4,
-        margin: '2px 10px'
+        margin: '2px 10px',
+        '&:hover': {
+            background: '#6969694f',
+            borderRadius: 4
+        }
     },
     fontStyle: {
         padding: '0px 8px',
@@ -100,7 +105,11 @@ const useStyles = makeStyles((theme) => ({
         fontStyle: 'italic'
     },
     wrapperTitleAndId: {
-        alignSelf: 'center'
+        alignSelf: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        overflow: 'hidden'
     },
     tableIcon: {
         margin: 'auto 0'
@@ -111,6 +120,7 @@ const useStyles = makeStyles((theme) => ({
     },
     header: {
         display: 'flex',
+        flexDirection: 'column',
         background: '#00000057',
         margin: 10,
         padding: 4,
@@ -127,7 +137,8 @@ const useStyles = makeStyles((theme) => ({
     },
     wrapperCloning: {
         backgroundColor: '#FFFFFF10',
-        borderRadius: 3
+        borderRadius: 3,
+        flex: 2
     },
     wrapperNameAndId: {
         display: 'flex',
@@ -136,9 +147,12 @@ const useStyles = makeStyles((theme) => ({
     },
     wrapperCheckbox: {
         display: 'flex',
+        width: '100%'
     },
     enumsWrapper: {
         display: 'flex',
+        paddingLeft: 60,
+        overflow: 'hidden'
     },
     wrapperIconEnumCell: {
         display: 'flex',
@@ -167,6 +181,23 @@ const useStyles = makeStyles((theme) => ({
         padding: '0 10px',
         opacity: 0.7,
         fontWeight: 'bold'
+    },
+    enumsStyle: {
+        color: '#448dde',
+        opacity: 1
+    },
+    formControlLabel: {
+        marginLeft: 0,
+        opacity: 0.6
+    },
+    headerWrapElement: {
+        display: 'flex'
+    },
+    backgroundSilver: {
+        opacity: 0.5
+    },
+    startTheProcess: {
+        opacity: 0.5
     }
 }));
 
@@ -183,7 +214,7 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
     return (
         <Dialog
             key="newDialog"
-            onClose={onClose}
+            onClose={() => onClose()}
             open={open}>
             <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
             <div className={classes.dialogNewForm} noValidate autoComplete="off">
@@ -209,15 +240,15 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
             <DialogActions>
                 <Button
                     variant="contained"
-                    disabled={!!error}
+                    disabled={!!error || object.title === name}
                     onClick={() => {
                         onClose(name);
                     }}
                     startIcon={<IconCheck />}
-                    color="primary">{I18n.t('Edit')}</Button>
+                    color="primary">{I18n.t('Apply')}</Button>
                 <Button
                     variant="contained"
-                    onClick={onClose}
+                    onClick={() => onClose()}
                     startIcon={<IconClose />}
                 >{I18n.t('Cancel')}</Button>
             </DialogActions>
@@ -239,11 +270,13 @@ const ImporterDialog = ({
     const classes = useStyles();
     // const [open, setOpen] = useState(true);
     const [arrayDevice, setArrayDevice] = useState([]);
-    const [cloningMethod, setCloningMethod] = useState('flat');
+    const [cloningMethod, setCloningMethod] = useStateLocal('flat', 'importer.cloningMethod');
     const [idsFolder, setSdsFolder] = useState([]);
     const [selectFolder, setSelectFolder] = useState('alias.0');
     const [checkedSelect, setCheckedSelect] = useState([]);
     const [openEdit, setOpenEdit] = useState(false);
+    const [skipElement, setSkipElement] = useState(true);
+    const [startTheProcess, setStartTheProcess] = useState(false);
 
     useEffect(() => {
         const ids = [];
@@ -302,7 +335,7 @@ const ImporterDialog = ({
             type: 'folder'
         };
         setSdsFolder(stateIds);
-    }, [objects,listItems])
+    }, [objects, listItems])
 
 
     useEffect(() => {
@@ -332,7 +365,7 @@ const ImporterDialog = ({
         const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
 
         const channelObj = objects[channelId];
-        const { functions, rooms, icon, states, color } = copyDevice;
+        const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
 
         tasks.push({
@@ -342,7 +375,7 @@ const ImporterDialog = ({
                     name: channelObj.common.name,
                     color: color,
                     desc: channelObj.common.desc,
-                    role: channelObj.common.role,
+                    role: type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 native: {
@@ -401,7 +434,7 @@ const ImporterDialog = ({
     const arrayDeviceFunction = async (callBack) => {
         for (let s = 0; s < arrayDevice.length; s++) {
             const el = arrayDevice[s];
-            if (checkedSelect.indexOf(el.id) === -1 && checkDeviceInObjects(el.title, el.id)) {
+            if (checkedSelect.indexOf(el.id) === -1 || checkDeviceInObjects(el.title, el.id) || checkEnumsScip(el.id)) {
                 continue;
             }
             let newId = `${selectFolder}`;
@@ -476,7 +509,7 @@ const ImporterDialog = ({
             icon: Utils.getObjectIcon(id, objects[id]),
             name: Utils.getObjectName(objects, id, { language: I18n.getLanguage() }),
             id
-        })).map(obj => <div className={classes.wrapperIconEnumCell} key={obj.id}>
+        })).map(obj => <div className={clsx(classes.wrapperIconEnumCell, name === 'rooms' && classes.enumsStyle)} key={obj.id}>
             {obj.icon && <Icon className={classes.enumIcon} src={obj.icon} alt={obj.id} />}
             <div className={classes.nameEnumCell}>{obj.name}</div>
         </div>);
@@ -497,9 +530,25 @@ const ImporterDialog = ({
         return !!objects[newId];
     }
 
+    const checkEnumsScip = (id) => {
+        const device = devices.find(device => id === device.channelId);
+        if (cloningMethod === 'rooms' && skipElement) {
+            if (device.rooms.length) {
+                return false;
+            }
+            return true;
+        } else if (cloningMethod === 'functions' && skipElement) {
+            if (device.functions.length) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            onClose={onCloseModal}
+            // onClose={onCloseModal}
             open={open}
             classes={{ paper: classes.paper }}
         >
@@ -525,7 +574,7 @@ const ImporterDialog = ({
                     }}
                     open={openEdit} />
                 <div className={classes.divOids}>
-                    <div className={clsx(classes.flex, classes.wrapperDevices)}>
+                    <div className={clsx(classes.flex, classes.wrapperDevices, startTheProcess && classes.startTheProcess)}>
                         <TreeView
                             themeType={Utils.getThemeType()}
                             theme={theme(Utils.getThemeName())}
@@ -534,55 +583,68 @@ const ImporterDialog = ({
                             onSelect={id => setSelectFolder(id)}
                             selected={selectFolder}
                             displayFlex
+                            disabled={startTheProcess}
                         />
                     </div>
                     <div className={clsx(classes.flex, classes.wrapperCloning)}>
+                        {startTheProcess && <LinearProgress />}
                         <div className={classes.header}>
-                            <Checkbox
-                                disabled={!arrayDevice.length}
-                                checked={arrayDevice.length === checkedSelect.length || ((arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0)}
-                                indeterminate={(arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0}
-                                onChange={() => {
-                                    if (arrayDevice.length === checkedSelect.length) {
-                                        setCheckedSelect([]);
-                                    } else {
-                                        const selectId = arrayDevice.map(device => device.id);
-                                        setCheckedSelect(selectId);
-                                    }
-                                }}
-                            />
-                            <FormControl className={classes.type}>
-                                <InputLabel>{I18n.t('cloning method')}</InputLabel>
-                                <Select
-                                    className={classes.oidField}
-                                    fullWidth
-                                    disabled={!arrayDevice.length}
-                                    value={cloningMethod}
-                                    onChange={e => {
-                                        setCloningMethod(e.target.value);
+                            <div className={clsx(classes.headerWrapElement, startTheProcess && classes.startTheProcess)}>
+                                <Checkbox
+                                    disabled={!arrayDevice.length || startTheProcess}
+                                    checked={arrayDevice.length === checkedSelect.length || ((arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0)}
+                                    indeterminate={(arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0}
+                                    onChange={() => {
+                                        if (arrayDevice.length === checkedSelect.length) {
+                                            setCheckedSelect([]);
+                                        } else {
+                                            const selectId = arrayDevice.map(device => device.id);
+                                            setCheckedSelect(selectId);
+                                        }
                                     }}
-                                >
-                                    <MenuItem value={'flat'}>
-                                        {I18n.t('flat')}
-                                    </MenuItem>
-                                    <MenuItem value={'rooms'}>
-                                        {I18n.t('rooms')}
-                                    </MenuItem>
-                                    <MenuItem value={'functions'}>
-                                        {I18n.t('functions')}
-                                    </MenuItem>
-                                </Select>
-                            </FormControl>
+                                />
+                                <FormControl className={classes.type}>
+                                    <InputLabel>{I18n.t('cloning method')}</InputLabel>
+                                    <Select
+                                        className={classes.oidField}
+                                        fullWidth
+                                        disabled={!arrayDevice.length || startTheProcess}
+                                        value={cloningMethod}
+                                        onChange={e => {
+                                            setCloningMethod(e.target.value);
+                                        }}
+                                    >
+                                        <MenuItem value={'flat'}>
+                                            {I18n.t('flat')}
+                                        </MenuItem>
+                                        <MenuItem value={'rooms'}>
+                                            {I18n.t('rooms')}
+                                        </MenuItem>
+                                        <MenuItem value={'functions'}>
+                                            {I18n.t('functions')}
+                                        </MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </div>
+                            {cloningMethod !== 'flat' &&
+                                <FormControlLabel
+                                    className={classes.formControlLabel}
+                                    control={<Checkbox
+                                        checked={skipElement}
+                                        onChange={() => setSkipElement(!skipElement)}
+                                    />}
+                                    label={I18n.t('do not export devices without category')}
+                                />}
                         </div>
-                        <div className={classes.wrapperItems}>
+                        <div className={clsx(classes.wrapperItems, startTheProcess && classes.startTheProcess)}>
                             {!arrayDevice.length && <div className={classes.emptyList}>
                                 {I18n.t('The list of devices to copy is empty')}
                             </div>}
-                            {arrayDevice.map(device => <div className={clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed)} key={device.id}>
+                            {arrayDevice.map(device => <div className={clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed, checkEnumsScip(device.id) && classes.backgroundSilver)} key={device.id}>
                                 <div className={classes.wrapperNameAndId}>
                                     <div className={classes.wrapperCheckbox}>
                                         <Checkbox
-                                            disabled={checkDeviceInObjects(device.title, device.id)}
+                                            disabled={checkDeviceInObjects(device.title, device.id) || checkEnumsScip(device.id) || startTheProcess}
                                             checked={checkedSelect.indexOf(device.id) !== -1}
                                             onChange={() => {
                                                 const newArray = JSON.parse(JSON.stringify(checkedSelect));
@@ -607,14 +669,15 @@ const ImporterDialog = ({
                                                 {device.id}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <Tooltip title={I18n.t('Edit folder')}>
-                                            <IconButton
-                                                onClick={() => setOpenEdit(device)}
-                                            >
-                                                <IconEdit />
-                                            </IconButton>
+                                        <Tooltip title={I18n.t('Edit')}>
+                                            <div>
+                                                <IconButton
+                                                    onClick={() => setOpenEdit(device)}
+                                                    disabled={startTheProcess}
+                                                >
+                                                    <IconEdit />
+                                                </IconButton>
+                                            </div>
                                         </Tooltip>
                                     </div>
                                 </div>
@@ -632,17 +695,18 @@ const ImporterDialog = ({
                 <Button
                     variant="contained"
                     autoFocus
-                    disabled={!checkedSelect.length}
+                    disabled={!checkedSelect.length || startTheProcess}
                     onClick={() => {
-                        // onCloseModal();
+                        setStartTheProcess(true);
                         onChangeCopy();
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
-                    {I18n.t('Write')}
+                    {I18n.t('Import')}
                 </Button>
                 <Button
                     variant="contained"
+                    disabled={startTheProcess}
                     onClick={() => {
                         onCloseModal();
                     }}

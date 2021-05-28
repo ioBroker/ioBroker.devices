@@ -287,9 +287,8 @@ class DialogNewDevice extends React.Component {
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
 
         const channelObj = this.props.objects[this.channelId];
-        const { functions, rooms, icon, states, color } = this.props.copyDevice;
+        const { functions, rooms, icon, states, color, type } = this.props.copyDevice;
         const tasks = [];
-
         tasks.push({
             id: newChannelId,
             obj: {
@@ -297,7 +296,7 @@ class DialogNewDevice extends React.Component {
                     name: channelObj.common.name,
                     color: color,
                     desc: channelObj.common.desc,
-                    role: channelObj.common.role,
+                    role: type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 type: 'channel',

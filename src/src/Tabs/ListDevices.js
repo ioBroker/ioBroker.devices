@@ -28,8 +28,8 @@ import { FaInfoCircle as IconInfo } from 'react-icons/fa';
 import { MdDelete as IconDelete } from 'react-icons/md';
 import { MdModeEdit as IconEdit } from 'react-icons/md';
 
-import { FaRegFolder as IconCollapsed } from 'react-icons/fa';
-import { FaRegFolderOpen as IconExpanded } from 'react-icons/fa';
+// import { FaRegFolder as IconCollapsed } from 'react-icons/fa';
+// import { FaRegFolderOpen as IconExpanded } from 'react-icons/fa';
 import { FaPowerOff as IconOn } from 'react-icons/fa';
 import { FaThermometerHalf as IconTemperature } from 'react-icons/fa';
 import { FaLongArrowAltUp as IconUp } from 'react-icons/fa';
@@ -39,7 +39,7 @@ import { FaPalette as IconColor } from 'react-icons/fa';
 import { FaLightbulb as IconBulb } from 'react-icons/fa';
 import { FaLockOpen as IconLock } from 'react-icons/fa';
 import { FaThermometer as IconThermometer } from 'react-icons/fa';
-import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+// import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import { HiLink } from "react-icons/hi";
 
 import I18n from '@iobroker/adapter-react/i18n';
@@ -66,7 +66,7 @@ import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
 import clsx from 'clsx';
 import { deleteFolderCallBack } from '../Dialogs/DeleteFolder';
-import { editFolderCallBack } from '../Dialogs/EditFolder';
+import EditFolder from '../Dialogs/EditFolder';
 import Icon from '@iobroker/adapter-react/Components/Icon';
 import DvrIcon from '@material-ui/icons/Dvr';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
@@ -163,6 +163,7 @@ const prepareList = (data, root, objects) => {
             role: obj.role,
             obj: obj.obj,
             noEdit: !!obj?.noEdit,
+            showId: !!obj?.showId,
             importer: !!obj?.importer,
             originalId: obj?.native?.originalId || null,
             parent: parts.length > 2 ? parts.join('.') : null,
@@ -240,6 +241,7 @@ const prepareList = (data, root, objects) => {
                         type: 'folder',
                         obj: obj,
                         noEdit: !!obj?.noEdit,
+                        showId: !!obj?.showId,
                         originalId: obj?.native?.originalId || null,
                         importer: !!obj?.importer,
                         parent: parts.length >= 2 ? parts.join('.') : null
@@ -700,6 +702,7 @@ class ListDevices extends Component {
             iot: '',
             iotNoCommon: false,
             showImporterDialog: null,
+            showEditFolder: null,
             // onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
             onlyAliases: false,
             hideInfo: window.localStorage.getItem('Devices.hideInfo') ? JSON.parse(window.localStorage.getItem('Devices.hideInfo')) : true,
@@ -980,6 +983,7 @@ class ListDevices extends Component {
                 name: I18n.t('Automatically detected'),
                 nondeletable: true,
                 noEdit: true,
+                showId: true,
             },
             type: 'folder'
         };
@@ -1002,6 +1006,7 @@ class ListDevices extends Component {
                     },
                     noEdit: true,
                     importer: true,
+                    showId: true,
                     // obj:instances,
                     type: 'folder'
                 };
@@ -1033,6 +1038,7 @@ class ListDevices extends Component {
                     name: I18n.t('Linked devices'),
                     nondeletable: true,
                     noEdit: true,
+                    showId: true,
                     icon: <HiLink style={{ color: 'black' }} className={this.props.classes.iconCommon}
                     />
                 },
@@ -1654,17 +1660,19 @@ class ListDevices extends Component {
                     </ListItemIcon>
                     <Tooltip title={<div>
                         <div>{`${I18n.t("Name")}: ${title}`}</div>
-                        <div>{`${I18n.t("Id")}: ${item.id}`}</div>
+                        {!item.showId && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" &&
+                            <div>{`${I18n.t("Id")}: ${item.id}`}</div>
+                        }
                     </div>}>
                         <div className={this.props.classes.wrapperTitleAndId}>
                             <div
                                 style={Object.assign(serachStyle, this.getTextStyle(item))}
                                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
                             >{title}</div>
-                            <div
+                            {!item.showId && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div
                                 style={Object.assign(serachStyle, this.getTextStyle(item))}
                                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyleId)}
-                            >{item.id}</div>
+                            >{item.id}</div>}
                         </div>
                     </Tooltip>
                     {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
@@ -1731,9 +1739,15 @@ class ListDevices extends Component {
                 {!item.noEdit && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Edit folder')}>
                         <IconButton
-                            onClick={e => editFolderCallBack(item.obj, bool => {
-                                bool && this.detectDevices(true);
-                            }, this.props.socket, this.state.devices, this.objects, this.deleteDevice, this.updateObjects, this.processTasks)}
+                            onClick={_ => this.setState({ showEditFolder: item.obj })}
+                        // onClick={e => editFolderCallBack(item.obj, bool => {
+                        //     bool && this.detectDevices(true);
+                        // }, this.props.socket,
+                        //     this.state.devices,
+                        //     this.objects,
+                        //     this.deleteDevice,
+                        //     this.updateObjects,
+                        //     this.processTasks)}
                         >
                             <IconEdit />
                         </IconButton>
@@ -2019,10 +2033,18 @@ class ListDevices extends Component {
         } else {
             const task = tasks.shift();
             if (task.enums) {
-                task.enums.map(async enumId => await this.addToEnum(enumId, task.id))
+                for (let i = 0; i < task.enums.length; i++) {
+                    let enumId = task.enums[i];
+                    await this.addToEnum(enumId, task.id);
+                }
+                // task.enums.map(async enumId => await this.addToEnum(enumId, task.id))
             }
             this.objects[task.id] = task.obj;
-            await this.props.socket.setObject(task.id, task.obj);
+            try {
+                await this.props.socket.setObject(task.id, task.obj);
+            } catch (e) {
+                window.alert(e);
+            }
             this.processTasks(tasks, cb);
         }
     }
@@ -2043,7 +2065,7 @@ class ListDevices extends Component {
         }
 
         const channelObj = this.objects[channelId];
-        const { functions, rooms, icon, states, color } = copyDevice;
+        const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
 
         tasks.push({
@@ -2053,7 +2075,7 @@ class ListDevices extends Component {
                     name: channelObj.common.name,
                     color: color,
                     desc: channelObj.common.desc,
-                    role: channelObj.common.role,
+                    role: type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 native: channelObj.native || {},
@@ -2643,6 +2665,31 @@ class ListDevices extends Component {
             updateObjects={this.updateObjects}
         />
     }
+    // allBack(item.obj, bool => {
+    //     bool && this.detectDevices(true);
+    // }, this.props.socket,
+    //     this.state.devices,
+    //     this.objects,
+    //     this.deleteDevice,
+    //     this.updateObjects,
+    //     this.processTasks)}
+    renderEditFolder = () => {
+        if (!this.state.showEditFolder) return null;
+        return <EditFolder
+            processTasks={this.processTasks}
+            updateObjects={this.updateObjects}
+            deleteDevice={this.deleteDevice}
+            open={!!this.state.showEditFolder}
+            objects={this.objects}
+            socket={this.props.socket}
+            devices={this.state.devices}
+            data={this.state.showEditFolder}
+            closeCallBack={bool => {
+                bool && this.updateListItems();
+                this.setState({ showEditFolder: null })
+            }} />
+
+    }
 
     renderDeleteDialog() {
         if (this.state.deleteIndex === null) {
@@ -2833,6 +2880,7 @@ class ListDevices extends Component {
             {this.renderDeleteDialog()}
             {this.renderEditEnumDialog()}
             {this.renderImporterDialog()}
+            {this.renderEditFolder()}
         </Card>;
     }
 }

@@ -92,17 +92,18 @@ const styles = theme => ({
         height: 'calc(100% - 20px)'
     },
     iconStyle: {
-        minWidth: 40
+        minWidth: 25
     },
     buttonWrapper: {
+        display: 'flex',
         top: 0,
         background: theme.palette.type === 'light' ? '#0000000d' : '#ffffff12',
         marginBottom: 5
     },
     iconCommon: {
-        marginLeft: 5,
-        width: 20,
-        height: 20
+        marginRight: 5,
+        width: 15,
+        height: 15
     },
     fontStyle: {
         fontSize: 14,
@@ -123,7 +124,7 @@ const styles = theme => ({
             textOverflow: 'ellipsis',
         }
     },
-    displayFlex:{
+    displayFlex: {
         display: 'flex',
         flexDirection: 'column'
     }
@@ -303,22 +304,21 @@ class TreeView extends React.Component {
     componentDidUpdate(prevProps) {
         if (prevProps.selected !== this.props.selected) {
             this.setState({ selected: this.props.selected });
-            console.log(1111, this.props.selected)
         }
     }
 
-    generateId = () =>{
-        if(!this.state.addNewName){
+    generateId = () => {
+        if (!this.state.addNewName) {
             return true;
         }
         let parts = `${this.state.selected}.${this.state.addNewName.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-       return parts;
+        return parts;
 
     }
 
     renderNewItemDialog() {
         // const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
-        const error = this.generateId() === true ?true: this.props.objects[this.generateId()];
+        const error = this.generateId() === true ? true : this.props.objects[this.generateId()];
         return (
             <Dialog
                 key="newDialog" onClose={() => this.setState({ addNew: null })} open={!!this.state.addNew} className={this.props.classes.dialogNew}>
@@ -339,11 +339,11 @@ class TreeView extends React.Component {
                                 }
                                 ev.preventDefault();
                             }
-                        }} 
-                        error={!!error} 
-                        className={this.props.classes.dialogNewInput} autoFocus 
-                        label={I18n.t('Folder name')} 
-                        value={this.state.addNewName} 
+                        }}
+                        error={!!error}
+                        className={this.props.classes.dialogNewInput} autoFocus
+                        label={I18n.t('Folder name')}
+                        value={this.state.addNewName}
                         onChange={e => this.setState({ addNewName: e.target.value })} />
                 </form>
                 <DialogActions>
@@ -408,6 +408,9 @@ class TreeView extends React.Component {
     }
 
     toggleExpanded(id, onlyOpen) {
+        if(this.props.disabled){
+            return;
+        }
         const expanded = this.state.expanded.slice();
         const pos = expanded.indexOf(id);
         if (pos === -1) {
@@ -464,6 +467,9 @@ class TreeView extends React.Component {
     }
 
     onClick(item, e) {
+        if (this.props.disabled) {
+            return
+        }
         // window.localStorage.setItem('TreeView.selected', item.id);
         this.setState({ selected: item.id });
         this.props.onSelect && this.props.onSelect(item.id);
@@ -523,8 +529,8 @@ class TreeView extends React.Component {
         }
         iconStyle.color = "#448dde";
 
-        if(item.color){
-            iconStyle.color =item.color;
+        if (item.color) {
+            iconStyle.color = item.color;
         }
 
         const inner = <ListItem
@@ -541,13 +547,12 @@ class TreeView extends React.Component {
                 :
                 <Icon className={this.props.classes.itemIcon} alt={item.type} src={images[item.type] || images.def} />
             }</ListItemIcon>
+            {item.icon && <Icon className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
             <div
                 style={this.getTextStyle(item)}
                 className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
 
             >{title}</div>
-            {item.icon && <Icon className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
-
             <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction>
         </ListItem>;
 
@@ -570,25 +575,34 @@ class TreeView extends React.Component {
 
         return <Paper className={this.props.classes.buttonWrapper} position="sticky" color="default">
             {this.props.onAddNew && <Tooltip title={I18n.t('Create new folder')}>
-                <IconButton
-                    color="primary"
-                    onClick={() => this.setState({ addNew: this.state.listItems.find(it => it.id === this.state.selected) })}>
-                    <CreateNewFolderIcon />
-                </IconButton>
+                <div>
+                    <IconButton
+                        color="primary"
+                        disabled={this.props.disabled}
+                        onClick={() => this.setState({ addNew: this.state.listItems.find(it => it.id === this.state.selected) })}>
+                        <CreateNewFolderIcon />
+                    </IconButton>
+                </div>
             </Tooltip>}
             <Tooltip title={I18n.t('Expand all nodes')}>
-                <IconButton
-                    color="primary"
-                    onClick={() => this.onExpandAll()}>
-                    <IconFolderOpened />
-                </IconButton>
+                <div>
+                    <IconButton
+                        color="primary"
+                        disabled={this.props.disabled}
+                        onClick={() => this.onExpandAll()}>
+                        <IconFolderOpened />
+                    </IconButton>
+                </div>
             </Tooltip>
             <Tooltip title={I18n.t('Collapse all nodes')}>
-                <IconButton
-                    color="primary"
-                    onClick={() => this.onCollapseAll()}>
-                    <IconFolder />
-                </IconButton>
+                <div>
+                    <IconButton
+                        color="primary"
+                        disabled={this.props.disabled}
+                        onClick={() => this.onCollapseAll()}>
+                        <IconFolder />
+                    </IconButton>
+                </div>
             </Tooltip>
         </Paper>;
     }
@@ -598,7 +612,7 @@ class TreeView extends React.Component {
     }
 
     render() {
-        return <Paper className={clsx(this.props.classes.wrapperFoldersBlock,this.props.displayFlex && this.props.classes.displayFlex)}>
+        return <Paper className={clsx(this.props.classes.wrapperFoldersBlock, this.props.displayFlex && this.props.classes.displayFlex)}>
             {this.renderAddButton()}
             {this.renderTree()}
             {this.renderNewItemDialog()}
@@ -614,6 +628,7 @@ TreeView.propTypes = {
     themeType: PropTypes.string,
     root: PropTypes.string,
     onAddNew: PropTypes.func,
+    disabled: PropTypes.bool
 };
 
 export default withStyles(styles)(TreeView);
