@@ -55,7 +55,7 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const DialogEditFolder = ({ onClose, open, data, socket, devices, objects, deleteDevice, processTasks }) => {
+const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevice, processTasks }) => {
     const classes = useStyles();
     // const [open, setOpen] = useState(true);
     const [dataEdit, setDataEdit] = useState(JSON.parse(JSON.stringify(data)));
@@ -203,7 +203,7 @@ const DialogEditFolder = ({ onClose, open, data, socket, devices, objects, delet
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
             onClose={() => onCloseLocal()}
-            open={open}
+            open={true}
             classes={{ paper: classes.paper }}
         >
             <DialogTitle>{I18n.t('Edit folder %s', newId)}</DialogTitle>
@@ -317,14 +317,5 @@ const DialogEditFolder = ({ onClose, open, data, socket, devices, objects, delet
         </Dialog>
     </ThemeProvider>;
 }
-
-// export const editFolderCallBack = (data, cb, socket, devices, objects, deleteDevice, processTasks) => {
-//     if (!node) {
-//         node = document.createElement('div');
-//         node.id = 'renderModal';
-//         document.body.appendChild(node);
-//     }
-//     return ReactDOM.render(<EditFolder processTasks={processTasks}  deleteDevice={deleteDevice} objects={objects} socket={socket} devices={devices} data={data} cb={cb} />, node);
-// }
 
 export default DialogEditFolder;

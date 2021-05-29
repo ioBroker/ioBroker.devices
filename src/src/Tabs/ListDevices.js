@@ -880,6 +880,7 @@ class ListDevices extends Component {
 
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
+            this.editCreatedId = null;
             Router.doNavigate('list', 'edit', id);
         }
     }
@@ -2668,7 +2669,6 @@ class ListDevices extends Component {
         } else {
             return <DialogImporter
                 item={this.state.showImporterDialog}
-                open={!!this.state.showImporterDialog}
                 socket={this.props.socket}
                 devices={this.state.devices}
                 objects={this.objects}
@@ -2687,8 +2687,7 @@ class ListDevices extends Component {
         } else {
             return <DialogEditFolder
                 processTasks={this.processTasks}
-                deleteDevice={(index, devices) => this.deleteDevice(index, devices)}
-                open={!!this.state.showEditFolder}
+                deleteDevice={async (index, devices) => await this.deleteDevice(index, devices)}
                 objects={this.objects}
                 socket={this.props.socket}
                 devices={this.state.devices}

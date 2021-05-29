@@ -30,8 +30,6 @@ import TreeView from '../Components/TreeView';
 import Icon from '@iobroker/adapter-react/Components/Icon';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 
-let node = null;
-
 const useStyles = makeStyles((theme) => ({
     root: {
         backgroundColor: theme.palette.background.paper,
@@ -201,7 +199,6 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-
 const RenderNewItemDialog = ({ classes, object, onClose, open, checkDeviceInObjects }) => {
     const [name, setName] = useState(object.title);
     const error = !name || (object && checkDeviceInObjects(name, object.id));
@@ -222,12 +219,13 @@ const RenderNewItemDialog = ({ classes, object, onClose, open, checkDeviceInObje
             <TextField
                 onKeyPress={(ev) => {
                     if (ev.key === 'Enter') {
+                        ev.preventDefault();
+
                         if (name && !error) {
                             onClose(name);
                         } else {
                             onClose();
                         }
-                        ev.preventDefault();
                     }
                 }}
                 error={!!error}
@@ -242,9 +240,7 @@ const RenderNewItemDialog = ({ classes, object, onClose, open, checkDeviceInObje
             <Button
                 variant="contained"
                 disabled={!!error || object.title === name}
-                onClick={() => {
-                    onClose(name);
-                }}
+                onClick={() => onClose(name)}
                 startIcon={<IconCheck />}
                 color="primary">{I18n.t('Apply')}</Button>
             <Button
@@ -260,14 +256,12 @@ const DialogImporter = ({
     onClose,
     item,
     socket,
-    open,
     devices,
     objects,
     listItems,
     processTasks
 }) => {
     const classes = useStyles();
-    // const [open, setOpen] = useState(true);
     const [arrayDevice, setArrayDevice] = useState([]);
     const [cloningMethod, setCloningMethod] = useStateLocal('flat', 'importer.cloningMethod');
     const [idsFolder, setSdsFolder] = useState([]);
@@ -348,16 +342,6 @@ const DialogImporter = ({
         const selectId = newArray.map(device => device.id);
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
-
-    const onCloseModal = changed => {
-        // setOpen(false);
-        onClose(changed);
-
-        if (node) {
-            document.body.removeChild(node);
-            node = null;
-        }
-    };
 
     const onCopyDevice = async (copyDevice, newChannelId, originalId) => {
         if (!copyDevice) {
@@ -542,8 +526,8 @@ const DialogImporter = ({
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            onClose={() => onCloseModal()}
-            open={open}
+            onClose={() => onClose()}
+            open={true}
             classes={{ paper: classes.paper }}
         >
             <DialogTitle>{I18n.t('Importer  %s', item.title)} → {selectFolder}{generateFolders()}</DialogTitle>
@@ -693,7 +677,7 @@ const DialogImporter = ({
                     onClick={async () => {
                         setStartTheProcess(true);
                         await onChangeCopy();
-                        onCloseModal();
+                        onClose();
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
@@ -703,7 +687,7 @@ const DialogImporter = ({
                     variant="contained"
                     disabled={startTheProcess}
                     onClick={() =>
-                        onCloseModal()}
+                        onClose()}
                     startIcon={<IconClose />}
                     color="default">
                     {I18n.t('Close')}
@@ -713,27 +697,4 @@ const DialogImporter = ({
     </ThemeProvider>;
 }
 
-// export const importerCallBack = (
-//     onClose,
-//     item,
-//     socket,
-//     devices,
-//     objects,
-//     listItems,
-// ) => {
-//     if (!node) {
-//         node = document.createElement('div');
-//         node.id = 'renderModal';
-//         document.body.appendChild(node);
-//     }
-
-//     return ReactDOM.render(<ImporterDialog
-//         item={item}
-//         socket={socket}
-//         devices={devices}
-//         objects={objects}
-//         onClose={onClose}
-//         listItems={listItems}
-//     />, node);
-// }
 export default DialogImporter;
