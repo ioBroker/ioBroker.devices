@@ -12,11 +12,14 @@
 - Show devices in sub-folders according to adapter. Every adapter has own folder
 - Add feature: "Do not show dialog for 5 minutes" for delete dialog
 <!-- - Do not show id for "linked devices folder", "automatically detected" and instances in autodetected -->
+
 ## Folder control in new device dialog
 <!-- - Disable add new folder if empty or name is not unique -->
+
 ## Add new device dialog
 - Add to all states: SET/ACTION/POWER.... some icons //
 <!-- - Show icon of the folder before text -->
+- Remember last selected folder
 
 ## Set states
 

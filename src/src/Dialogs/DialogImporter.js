@@ -202,9 +202,10 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 
-const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDeviceInObjects }) => {
+const RenderNewItemDialog = ({ classes, object, onClose, open, checkDeviceInObjects }) => {
     const [name, setName] = useState(object.title);
     const error = !name || (object && checkDeviceInObjects(name, object.id));
+
     useEffect(() => {
         if (object && name !== object.title) {
             setName(object.title)
@@ -217,7 +218,7 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
         onClose={() => onClose()}
         open={open}>
         <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
-        <div className={classes.dialogNewForm} noValidate autoComplete="off">
+        <form className={classes.dialogNewForm} autoComplete="off">
             <TextField
                 onKeyPress={(ev) => {
                     if (ev.key === 'Enter') {
@@ -236,7 +237,7 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
                 label={I18n.t('Name')}
                 value={name}
                 onChange={e => setName(e.target.value)} />
-        </div>
+        </form>
         <DialogActions>
             <Button
                 variant="contained"
@@ -255,7 +256,7 @@ const RenderNewItemDialog = ({ classes, objects, object, onClose, open, checkDev
     </Dialog>;
 }
 
-const ImporterDialog = ({
+const DialogImporter = ({
     onClose,
     item,
     socket,
@@ -263,7 +264,6 @@ const ImporterDialog = ({
     devices,
     objects,
     listItems,
-    updateObjects,
     processTasks
 }) => {
     const classes = useStyles();
@@ -349,19 +349,21 @@ const ImporterDialog = ({
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
 
-    const onCloseModal = (bool) => {
+    const onCloseModal = changed => {
         // setOpen(false);
-        onClose(bool);
+        onClose(changed);
+
         if (node) {
             document.body.removeChild(node);
             node = null;
         }
     };
 
-    const onCopyDevice = (copyDevice, newChannelId, originalId, cb) => {
+    const onCopyDevice = async (copyDevice, newChannelId, originalId) => {
         if (!copyDevice) {
-            return null
+            return null;
         }
+
         // if this is device not from linkeddevice or from alias
         const channelId = copyDevice.channelId;
         const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
@@ -402,15 +404,10 @@ const ImporterDialog = ({
             tasks.push({ id: obj._id, obj });
         });
 
-        return new Promise((resolve) => {
-            processTasks(tasks, () => {
-                resolve();
-                cb();
-            });
-        })
-    }
+        await processTasks(tasks);
+    };
 
-    const addNewFolder = async (dataFolder, id, cb) => {
+    const addNewFolder = async (dataFolder, id) => {
         const obj = {
             _id: id,
             common: {
@@ -422,27 +419,26 @@ const ImporterDialog = ({
             type: 'folder'
         };
 
-        objects[obj._id] = obj;
         await socket.setObject(id, obj);
-        updateObjects(null, id, obj);
-        cb && cb();
-    }
+    };
 
-    const addDevice = async (id, el, device, cb) => {
+    const addDevice = async (id, el, device) => {
         const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-        await onCopyDevice(device, newId, el.id, () => {
-            cb && cb();
-        });
-    }
+        await onCopyDevice(device, newId, el.id);
+    };
 
-    const arrayDeviceFunction = async (callBack) => {
+    const arrayDeviceFunction = async () => {
         for (let s = 0; s < arrayDevice.length; s++) {
             const el = arrayDevice[s];
-            if (checkedSelect.indexOf(el.id) === -1 || checkDeviceInObjects(el.title, el.id) || checkEnumsScip(el.id)) {
+            if (checkedSelect.indexOf(el.id) === -1 ||
+                checkDeviceInObjects(el.title, el.id) ||
+                checkEnumsScip(el.id)
+            ) {
                 continue;
             }
             let newId = `${selectFolder}`;
             const device = devices.find(device => el.id === device.channelId);
+
             if (cloningMethod === 'rooms') {
                 if (device.rooms.length) {
                     newId = `${newId}.${device.rooms[0].replace('enum.rooms.', '')}`;
@@ -453,7 +449,7 @@ const ImporterDialog = ({
                             color: newObjFolder.common.color,
                             icon: newObjFolder.common.icon
                         }, newId);
-                        await addDevice(newId, el, device)
+                        await addDevice(newId, el, device);
                         continue;
                     }
                 }
@@ -467,16 +463,14 @@ const ImporterDialog = ({
                             color: newObjFolder.common.color,
                             icon: newObjFolder.common.icon
                         }, newId);
-                        await addDevice(newId, el, device)
+                        await addDevice(newId, el, device);
                         continue;
                     }
                 }
             }
             await addDevice(newId, el, device);
-
-        };
-        callBack && callBack(true);
-    }
+        }
+    };
 
     const onChangeCopy = async () => {
         if (!objects[selectFolder] && selectFolder !== 'alias.0') {
@@ -486,23 +480,23 @@ const ImporterDialog = ({
                 name: parts.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),
                 color: null,
                 icon: null
-            }, selectFolder)
+            }, selectFolder);
         }
-        arrayDeviceFunction(onCloseModal);
-    }
+        await arrayDeviceFunction();
+    };
 
     const generateFolders = () => {
         switch (cloningMethod) {
             case 'flat':
-                return ''
+                return '';
             case 'rooms':
-                return `.{${I18n.t('rooms')}}`
+                return `.{${I18n.t('rooms')}}`;
             case 'functions':
-                return `.{${I18n.t('functions')}}`
+                return `.{${I18n.t('functions')}}`;
             default:
-                return ''
+                return '';
         }
-    }
+    };
 
     const renderEnumCell = (id, name) => {
         const device = devices.find(device => id === device.channelId);
@@ -517,7 +511,7 @@ const ImporterDialog = ({
             {obj.icon && <Icon className={classes.enumIcon} src={obj.icon} alt={obj.id} />}
             <div className={classes.nameEnumCell}>{obj.name}</div>
         </div>);
-    }
+    };
 
     const checkDeviceInObjects = (name, id) => {
         const device = devices.find(device => id === device.channelId);
@@ -532,40 +526,35 @@ const ImporterDialog = ({
             }
         }
         return !!objects[newId];
-    }
+    };
 
     const checkEnumsScip = (id) => {
         const device = devices.find(device => id === device.channelId);
+
         if (cloningMethod === 'rooms' && skipElement) {
-            if (device.rooms.length) {
-                return false;
-            }
-            return true;
+            return !device.rooms.length;
         } else if (cloningMethod === 'functions' && skipElement) {
-            if (device.functions.length) {
-                return false;
-            }
-            return true;
+            return !device.functions.length;
+        } else {
+            return false;
         }
-        return false;
-    }
+    };
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            // onClose={onCloseModal}
+            onClose={() => onCloseModal()}
             open={open}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Importer  %s', item.title)} ---> {selectFolder}{generateFolders()}</DialogTitle>
+            <DialogTitle>{I18n.t('Importer  %s', item.title)} → {selectFolder}{generateFolders()}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <RenderNewItemDialog
                     classes={classes}
-                    objects={objects}
                     object={openEdit}
                     checkDeviceInObjects={checkDeviceInObjects}
                     onClose={name => {
                         if (name) {
-                            const indexDevice = arrayDevice.indexOf(openEdit)
+                            const indexDevice = arrayDevice.indexOf(openEdit);
                             if (indexDevice !== -1) {
                                 const newDevice = JSON.parse(JSON.stringify(openEdit));
                                 const newArrayDevice = JSON.parse(JSON.stringify(arrayDevice));
@@ -576,14 +565,15 @@ const ImporterDialog = ({
                         }
                         setOpenEdit(false);
                     }}
-                    open={openEdit} />
+                    open={openEdit}
+                />
                 <div className={classes.divOids}>
                     <div className={clsx(classes.flex, classes.wrapperDevices, startTheProcess && classes.startTheProcess)}>
                         <TreeView
                             themeType={Utils.getThemeType()}
                             theme={theme(Utils.getThemeName())}
                             objects={idsFolder}
-                            onAddNew={(name, parentId, cb) => addNewFolder({ name, icon: null, color: null }, `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`, cb)}
+                            onAddNew={async (name, parentId) => await addNewFolder({ name, icon: null, color: null }, `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`)}
                             onSelect={id => setSelectFolder(id)}
                             selected={selectFolder}
                             displayFlex
@@ -700,9 +690,10 @@ const ImporterDialog = ({
                     variant="contained"
                     autoFocus
                     disabled={!checkedSelect.length || startTheProcess}
-                    onClick={() => {
+                    onClick={async () => {
                         setStartTheProcess(true);
-                        onChangeCopy();
+                        await onChangeCopy();
+                        onCloseModal();
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
@@ -711,9 +702,8 @@ const ImporterDialog = ({
                 <Button
                     variant="contained"
                     disabled={startTheProcess}
-                    onClick={() => {
-                        onCloseModal();
-                    }}
+                    onClick={() =>
+                        onCloseModal()}
                     startIcon={<IconClose />}
                     color="default">
                     {I18n.t('Close')}
@@ -730,7 +720,6 @@ const ImporterDialog = ({
 //     devices,
 //     objects,
 //     listItems,
-//     updateObjects
 // ) => {
 //     if (!node) {
 //         node = document.createElement('div');
@@ -745,7 +734,6 @@ const ImporterDialog = ({
 //         objects={objects}
 //         onClose={onClose}
 //         listItems={listItems}
-//         updateObjects={updateObjects}
 //     />, node);
 // }
-export default ImporterDialog;
+export default DialogImporter;

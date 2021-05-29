@@ -55,47 +55,42 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, deleteDevice, updateObjects, processTasks }) => {
+const DialogEditFolder = ({ onClose, open, data, socket, devices, objects, deleteDevice, processTasks }) => {
     const classes = useStyles();
     // const [open, setOpen] = useState(true);
-    const [dataEdit, setDataEdit] = useState(data);
+    const [dataEdit, setDataEdit] = useState(JSON.parse(JSON.stringify(data)));
     const [arrayObjects, setArrayObjects] = useState([]);
     const [name, setName] = useState(Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()))
     const [newId, setId] = useState(data._id);
     const [startTheProcess, setStartTheProcess] = useState(false);
+
     useEffect(() => {
-        const idsObject = Object.keys(objects).filter((el) => el.includes(data._id))
-            .filter((id) => objects[id].type === 'folder' || objects[id].type === 'channel')
+        const idsObject = Object.keys(objects).filter(el => el === data._id || el.startsWith(data._id + '.'))
+            .filter(id => objects[id].type === 'folder' || objects[id].type === 'channel' || objects[id].type === 'device')
             .map(id => objects[id]);
+
         setArrayObjects(idsObject);
     }, [data._id, objects]);
 
-    const onClose = async (bool) => {
-        if (startTheProcess) {
-            return;
-        }
-        if (bool) {
+    function getNonEmptyName(obj) {
+        const lang = I18n.getLanguage();
+        const name = Utils.getObjectNameFromObj(obj, lang);
+        return name === 'undefined' ? obj.common.name[Object.keys(obj.common.name)[0]] : name
+    }
+
+    const onCloseLocal = async changed => {
+        if (!startTheProcess && changed) {
             setStartTheProcess(true);
-            if (
-                (Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()))
-                !==
-                (Utils.getObjectNameFromObj(data, I18n.getLanguage()) === 'undefined' ? data.common.name[Object.keys(data.common.name)[0]] : Utils.getObjectNameFromObj(data, I18n.getLanguage()))) {
-                return onChangeCopy(closeCallBack);
-            } else {
-                if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
-                    await socket.setObject(dataEdit._id, dataEdit);
-                    updateObjects(null, dataEdit._id, dataEdit);
-                    closeCallBack && closeCallBack(true);
-                    return
-                }
+
+            // If name and ID were changed
+            if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
+                await onChangeCopy();
+            } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
+                await socket.setObject(dataEdit._id, dataEdit);
             }
         }
-        closeCallBack && closeCallBack(false);
-        // setOpen(false);
-        // if (node) {
-        //     document.body.removeChild(node);
-        //     node = null;
-        // }
+
+        onClose();
     };
 
     const addNewFolder = async (dataFolder, id) => {
@@ -109,17 +104,12 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
             native: {},
             type: 'folder'
         };
-        objects[obj._id] = obj;
         await socket.setObject(id, obj);
-        updateObjects(null, id, obj);
-        return new Promise((resolve) => {
-            resolve();
-        })
     }
 
     const onCopyDevice = async (copyDevice, newChannelId, obj) => {
         if (!copyDevice && !copyDevice?.channelId) {
-            return null
+            return null;
         }
         // if this is device not from linkeddevice or from alias
         const channelId = copyDevice.channelId;
@@ -166,12 +156,8 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
             }
             tasks.push({ id: obj._id, obj });
         });
-        debugger
-        return new Promise((resolve) => {
-            processTasks(tasks, () => {
-                resolve();
-            });
-        })
+
+        await processTasks(tasks);
     }
 
     const generateId = () => {
@@ -188,44 +174,35 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
 
     }
 
-    const onChangeCopy = async (callBack) => {
+    const onChangeCopy = async () => {
+        let newDevices = JSON.parse(JSON.stringify(devices));
+
         let parts = data._id.split('.');
         parts.pop();
         parts = parts.join('.');
         parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        let promise = [];
+
+        let deleteFolderID = '';
         for (let i = 0; i < arrayObjects.length; i++) {
             const el = arrayObjects[i];
             const newId = el._id.replace(data._id, parts);
             if (el.type === 'folder') {
                 await addNewFolder(data._id === el._id ? dataEdit.common : el.common, newId);
-                // await socket.delObjects(el._id, true);
-                promise.push(socket.delObjects(el._id, true))
-                // updateObjects('delete', el._id);
+                deleteFolderID = el._id;
             } else {
-                const device = devices.find(device => el._id === device.channelId);
-                debugger
+                const device = newDevices.find(device => el._id === device.channelId);
                 await onCopyDevice(device, newId, el);
-                debugger
-                // promise.push(deleteDevice(devices.indexOf(device)));
-                await new Promise((resolve) => {
-                    deleteDevice(devices.indexOf(device), () => {
-                        resolve();
-                    });
-                })
-
+                newDevices = await deleteDevice(newDevices.indexOf(device));
             }
         }
-        await Promise.all(promise);
-        await new Promise((resolve) => {
-            resolve();
-            callBack && callBack();
-        })
+
+        // Delete folder and all object
+        deleteFolderID && (await socket.delObjects(deleteFolderID, true));
     }
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            // onClose={onClose}
+            onClose={() => onCloseLocal()}
             open={open}
             classes={{ paper: classes.paper }}
         >
@@ -245,7 +222,7 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
                                     // } else {
                                     //     cb(false);
                                     // }
-                                    onClose(true);
+                                    onCloseLocal(true);
                                     ev.preventDefault();
                                 }
                             }}
@@ -323,19 +300,15 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
                     variant="contained"
                     autoFocus
                     disabled={JSON.stringify(dataEdit) === JSON.stringify(data) || !dataEdit.common.name || !!objects[generateId()] || startTheProcess}
-                    onClick={() => {
-                        onClose(true);
-                    }}
+                    onClick={() => onCloseLocal(true)}
                     startIcon={<IconCheck />}
                     color="primary">
-                    {I18n.t('Write')}
+                    {I18n.t('Save')}
                 </Button>
                 <Button
                     variant="contained"
                     disabled={startTheProcess}
-                    onClick={() => {
-                        onClose(false);
-                    }}
+                    onClick={() => onCloseLocal(false)}
                     startIcon={<IconClose />}
                     color="default">
                     {I18n.t('Close')}
@@ -345,13 +318,13 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
     </ThemeProvider>;
 }
 
-// export const editFolderCallBack = (data, cb, socket, devices, objects, deleteDevice, updateObjects, processTasks) => {
+// export const editFolderCallBack = (data, cb, socket, devices, objects, deleteDevice, processTasks) => {
 //     if (!node) {
 //         node = document.createElement('div');
 //         node.id = 'renderModal';
 //         document.body.appendChild(node);
 //     }
-//     return ReactDOM.render(<EditFolder processTasks={processTasks} updateObjects={updateObjects} deleteDevice={deleteDevice} objects={objects} socket={socket} devices={devices} data={data} cb={cb} />, node);
+//     return ReactDOM.render(<EditFolder processTasks={processTasks}  deleteDevice={deleteDevice} objects={objects} socket={socket} devices={devices} data={data} cb={cb} />, node);
 // }
 
-export default EditFolder;
+export default DialogEditFolder;

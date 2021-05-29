@@ -348,26 +348,26 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
-    handleOk = isRefresh => {
-        const promises = [];
+    handleOk = async () => {
         if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
-            this.props.onSaveProperties && promises.push(this.props.onSaveProperties(this.state.changeProperties));
+            this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
         }
 
-        Promise.all(() => {
-            this.props.onClose && this.props.onClose({
-                ids: this.state.ids,
-                fx: this.fx,
-            }, isRefresh, () => {
-                if (this.state.changeProperties.name && this.state.initChangeProperties.name && this.state.initChangeProperties.name !== this.state.changeProperties.name) {
-                    let parts = this.channelId.split('.');
-                    parts.pop();
-                    parts = parts.join('.');
-                    parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-                    this.props.onCopyDevice(this.channelId, parts, () => { });
-                }
-            });
+        await this.props.onClose({
+            ids: this.state.ids,
+            fx: this.fx,
         });
+
+        if (this.state.changeProperties.name &&
+            this.state.initChangeProperties.name &&
+            this.state.initChangeProperties.name !== this.state.changeProperties.name
+        ) {
+            let parts = this.channelId.split('.');
+            parts.pop();
+            parts = parts.join('.');
+            parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            await this.props.onCopyDevice(this.channelId, parts);
+        }
     };
 
     showDeviceIcon() {
@@ -376,40 +376,32 @@ class DialogEditDevice extends React.Component {
         </div>;
     }
 
-    addToEnum(enumId, id) {
-        this.props.socket.getObject(enumId)
-            .then(obj => {
-                if (obj && obj.common) {
-                    obj.common.members = obj.common.members || [];
+    /*async addToEnum(enumId, id) {
+       const obj = await this.props.socket.getObject(enumId)
+       if (obj && obj.common) {
+           obj.common.members = obj.common.members || [];
 
-                    if (!obj.common.members.includes(id)) {
-                        obj.common.members.push(id);
-                        obj.common.members.sort();
-                        this.props.objects[enumId] = obj;
-                        return this.props.socket.setObject(enumId, obj);
-                    }
-                }
-            });
-    }
+           if (!obj.common.members.includes(id)) {
+               obj.common.members.push(id);
+               obj.common.members.sort();
+               await this.props.socket.setObject(enumId, obj);
+           }
+       }
+   }
 
-    processTasks(tasks, cb) {
-        if (!tasks || !tasks.length) {
-            cb && cb();
-        } else {
-            const task = tasks.shift();
-            let promises = [];
+   async processTasks(tasks) {
+       for (let t = 0; t < tasks.length; t++) {
+           const task = tasks[t];
+           if (task.enums) {
+               for (let m = 0; m < task.enums.length; m++) {
+                   await this.addToEnum(task.enums[i], task.id);
+               }
+           }
 
-            if (task.enums) {
-                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
-            }
-            this.props.objects[task.id] = task.obj;
-            promises.push(this.props.socket.setObject(task.id, task.obj));
-
-            Promise.all(promises)
-                .then(() => setTimeout(() =>
-                    this.processTasks(tasks, cb), 0));
-        }
-    }
+           this.props.objects[task.id] = task.obj;
+           await this.props.socket.setObject(task.id, task.obj);
+       }
+   }*/
 
     /*onCopyDevice(newChannelId, cb) {
         // if this is device not from linkeddevice or from alias
@@ -546,7 +538,9 @@ class DialogEditDevice extends React.Component {
             <DialogContent>
                 <div className={this.props.classes.divDialogContent}>
                     {fx.read !== undefined ? <div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Read')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
+                            {I18n.t('Read')}
+                        </div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxRead}
@@ -557,7 +551,9 @@ class DialogEditDevice extends React.Component {
                         />
                     </div> : null}
                     {fx.write !== undefined ? <div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Write')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
+                            {I18n.t('Write')}
+                        </div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxWrite}
@@ -906,9 +902,12 @@ class DialogEditDevice extends React.Component {
                         changeProperties={this.state.changeProperties}
                         onChange={(state, initState, disabledButton) => {
                             if (initState) {
-                                return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false });
+                                // TODO unclear! why immediately after setstate the settings are reseted
+                                return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false }, () =>
+                                    this.setState({ changeProperties: state, disabledButton }));
+                            } else {
+                                this.setState({ changeProperties: state, disabledButton });
                             }
-                            this.setState({ changeProperties: state, disabledButton });
                         }}
                     />
                 </TabPanel>
@@ -917,9 +916,9 @@ class DialogEditDevice extends React.Component {
                 <Button
                     variant="contained"
                     disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton}
-                    onClick={this.handleOk}
+                    onClick={async () => await this.handleOk()}
                     startIcon={<IconCheck />}
-                    color="primary">{I18n.t('Write')}</Button>
+                    color="primary">{I18n.t('Save')}</Button>
                 <Button
                     variant="contained"
                     onClick={this.handleClose}
