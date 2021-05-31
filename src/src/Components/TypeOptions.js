@@ -19,7 +19,7 @@ const TYPE_OPTIONS = {
     [Types.dimmer]: { alexa: true, alisa: false, google: false, material: true },
     [Types.door]: { alexa: false, alisa: false, google: true, material: false },
     [Types.fireAlarm]: { alexa: false, alisa: false, google: false, material: false },
-    [Types.floodAlarm]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.floodAlarm]: { alexa: true, alisa: true, google: true, material: true },
     [Types.gate]: { alexa: false, alisa: false, google: false, material: false },
     [Types.humidity]: { alexa: false, alisa: false, google: false, material: false },
     [Types.info]: { alexa: false, alisa: false, google: false, material: true },
@@ -42,7 +42,7 @@ const TYPE_OPTIONS = {
     [Types.volumeGroup]: { alexa: false, alisa: false, google: false, material: false },
     [Types.window]: { alexa: false, alisa: false, google: false, material: false },
     [Types.windowTilt]: { alexa: false, alisa: false, google: false, material: false },
-    [Types.weatherCurrent]: { alexa: false, alisa: true, google: true, material: false },
+    [Types.weatherCurrent]: { alexa: true, alisa: true, google: true, material: true },
     [Types.weatherForecast]: { alexa: false, alisa: false, google: true, material: true },
     [Types.warning]: { alexa: false, alisa: false, google: true, material: false },
 };

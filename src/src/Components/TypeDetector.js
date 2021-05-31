@@ -388,6 +388,52 @@ function ChannelDetector() {
             ],
             type: Types.gate
         },
+        floodAlarm: {
+            states: [
+                {role: /^switch(\.floodAlarm)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumFloodAlarm, name: 'SET',                 required: true, defaultRole: 'switch.floodAlarm'},
+                // optional
+                // {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
+                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumFloodAlarm,  name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
+                patternDirection,
+                patternWorking,
+                patternUnreach,
+                patternMaintain,
+                patternError
+            ],
+            type: Types.floodAlarm
+        },
+        weatherCurrent: {
+            states: [
+                {role: /^switch(\.weatherCurrent)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumWeatherCurrent, name: 'SET',                 required: true, defaultRole: 'switch.weatherCurrent'},
+                // optional
+                // {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
+                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumWeatherCurrent,  name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
+                patternDirection,
+                patternWorking,
+                patternUnreach,
+                patternMaintain,
+                patternError
+            ],
+            type: Types.weatherCurrent
+        },
+        camera: {
+            states: [
+                {role: /^switch(\.camera)?$/,                               indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET',                  required: true, defaultRole: 'switch.camera'},
+                // optional
+                {role: /^switch(\.autofocus)?$/,                            indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_AUTOFOCUS',        required: false, defaultRole: 'switch.autofocus'},
+                {role: /^switch(\.autowhitebalance)?$/,                     indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_AUTOWHITEBALANCE', required: false, defaultRole: 'switch.autowhitebalance'},
+                {role: /^switch(\.brightness)?$/,                           indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_BRIGHTNESS',       required: false, defaultRole: 'switch.brightness'},
+                {rrole: /^switch(\.nightmode)?$/,                           indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_NIGHTMODE',        required: false, defaultRole: 'switch.nightmode'},
+                {rrole: /^value(\.position)?|^value(\.ptz)?$/,              indicator: false, type: 'number',                 enums: roleOrEnumCamera,  name: 'ACTUAL',               required: false, defaultRole: 'value.ptz', defaultUnit: '%'},
+                {role: /^button\.stop$|^action\.stop$/,                     indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumGate,    name: 'STOP',                 required: false, noSubscribe: true, defaultRole: 'button.stop'},
+                patternDirection,
+                patternWorking,
+                patternUnreach,
+                patternMaintain,
+                patternError
+            ],
+            type: Types.camera
+        },
         lock: {
             states: [
                 {role: /^switch\.lock$/,                      indicator: false, type: 'boolean',  write: true,              name: 'SET',                 required: true, defaultRole: 'switch.lock'},
@@ -694,6 +740,42 @@ function ChannelDetector() {
     var gateRoles = ['gate', 'value.gate', 'switch.gate', 'action.stop', 'button.stop'];
     function roleOrEnumGate(obj, enums) {
         return roleOrEnum(obj, enums, gateRoles, gateWords);
+    }
+
+// -------------- CAMERA ------------------------------------------
+    var cameraWords = {
+        en: [/camera?/i],
+        de: [/kamera/i, /fotoapparat/i],
+        ru: [/камера/i],
+    };
+
+    var cameraRoles = ['camera', 'value.ptz', 'switch.camera', 'action.stop', 'button.stop', 'switch.nightmode', 'switch.brightness', 'switch.autowhitebalance', 'switch.autofocus'];
+    function roleOrEnumCamera(obj, enums) {
+        return roleOrEnum(obj, enums, cameraRoles, cameraWords);
+    }
+
+// -------------- FLOOD ALARM --------------------------------------
+    var floodAlarmWords = {
+        en: [/floodAlarm/i, /flood alarm/i, /alarm/i],
+        de: [/hochwasseralarm/i, /alarm/i],
+        ru: [/аварийная сигнализация/i, /сигнализация/i],
+    };
+
+    var floodAlarmRoles = ['floodAlarm', 'switch.floodAlarm', 'action.stop', 'button.stop'];
+    function roleOrEnumFloodAlarm(obj, enums) {
+        return roleOrEnum(obj, enums, floodAlarmRoles, floodAlarmWords);
+    }
+
+// -------------- WEATHER CURRENT ----------------------------------
+    var weatherCurrentWords = {
+        en: [/weatherCurrent/i, /weather current/i,  /weather/i],
+        de: [/wetterstrom/i, /wetter/i],
+        ru: [/погода/i, /текущая погода /i],
+    };
+
+    var weatherCurrentRoles = ['weatherCurrent', 'switch.weatherCurrent', 'action.stop', 'button.stop'];
+    function roleOrEnumWeatherCurrent(obj, enums) {
+        return roleOrEnum(obj, enums, weatherCurrentRoles, weatherCurrentWords);
     }
 
 // -------------- WINDOWS -----------------------------------------

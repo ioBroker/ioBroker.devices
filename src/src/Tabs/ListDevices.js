@@ -59,7 +59,7 @@ import {
     //  FormControl,
     InputAdornment,
     // InputLabel,
-    ListItemIcon, TextField, Tooltip
+    ListItemIcon, TextField, Tooltip, withWidth
 } from '@material-ui/core';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
@@ -72,6 +72,11 @@ import DvrIcon from '@material-ui/icons/Dvr';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import ImporterDialog from '../Dialogs/ImporterDialog';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import DragWrapper from '../Components/DragWrapper';
+import DropWrapper from '../Components/DropWrapper';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -625,7 +630,8 @@ const styles = theme => ({
         margin: '0 3px'
     },
     typeCellNameAndIcon: {
-        display: 'flex'
+        display: 'flex',
+        alignItems: 'center'
     },
     iconOpen: {
         transform: 'skew(147deg, 183deg) scale(0.5) translate(7px, 8px)'
@@ -970,7 +976,7 @@ class ListDevices extends Component {
                     name: objects[id] && objects[id].type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
                     nondeletable: true,
                     color: objects[id].common && objects[id].common.color ? objects[id].common.color : null,
-                    icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : null
+                    icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : this.searchIcon(id.channelId)
                 },
                 obj: objects[id],
                 type: objects[id].type,
@@ -1002,7 +1008,7 @@ class ListDevices extends Component {
                     common: {
                         name,
                         nondeletable: true,
-                        icon: instances?.common?.extIcon || null
+                        icon: instances?.common?.extIcon || this.searchIcon(device.channelId)
                     },
                     noEdit: true,
                     importer: true,
@@ -1021,7 +1027,7 @@ class ListDevices extends Component {
                     name: Utils.getObjectName(objects, device.channelId, { language }),
                     nondeletable: true,
                     color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId)
                 },
                 obj: objects[device.channelId],
                 type: objects[device.channelId]?.type,
@@ -1050,7 +1056,7 @@ class ListDevices extends Component {
                         name: Utils.getObjectName(objects, device.channelId, { language }),
                         nondeletable: true,
                         color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : null
+                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId)
                     },
                     obj: objects[device.channelId],
                     type: objects[device.channelId]?.type,
@@ -1225,7 +1231,8 @@ class ListDevices extends Component {
         device.roomsNames = rooms.map(id => Utils.getObjectNameFromObj(this.objects[id], null, { language: I18n.getLanguage() })).join(', ');
         device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
 
-        device.icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]);
+        device.icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]) || this.searchIcon(device.channelId);
+
         device.color = this.objects[channelId]?.common?.color || null;
         if (!device.icon) {
             const parts = device.channelId.split('.');
@@ -1233,9 +1240,69 @@ class ListDevices extends Component {
             const deviceId = parts.join('.');
 
             if (this.objects[deviceId] && (this.objects[deviceId].type === 'channel' || this.objects[deviceId].type === 'device')) {
-                device.icon = Utils.getObjectIcon(deviceId, this.objects[deviceId]);
+                device.icon = Utils.getObjectIcon(deviceId, this.objects[deviceId]) || this.searchIcon(device.channelId);
             }
         }
+    }
+
+    searchIcon = (channelId) => {
+        if (!this.objects) {
+            return null;
+        }
+        let icon = null;
+        if (channelId) {
+            // check the parent
+            if (channelId && channelId.split('.').length > 2) {
+                const channelObj = this.objects[channelId];
+                if (channelObj && (channelObj.type === 'channel' || channelObj.type === 'device')) {
+                    if (channelObj.common?.icon) {
+                        icon = channelObj.common?.icon;
+                    } else {
+                        // check the parent
+                        const deviceId = Utils.getParentId(channelId);
+                        if (deviceId && deviceId.split('.').length > 2) {
+                            console.log('Get deviceId' + deviceId);
+                            const deviceObj = this.objects[deviceId];
+                            if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device')) {
+                                if (deviceObj.common?.icon) {
+                                    icon = deviceObj.common?.icon;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let imagePrefix = '../..';
+
+        const objects = this.objects;
+        const cIcon = icon;
+        const id = channelId;
+
+        if (cIcon && !cIcon.startsWith('data:image/') && cIcon.includes('.')) {
+            let instance;
+            if (objects[id].type === 'instance' || objects[id].type === 'adapter') {
+                icon = `${imagePrefix}/adapter/${objects[id].common.name}/${cIcon}`;
+            } else if (id && id.startsWith('system.adapter.')) {
+                instance = id.split('.', 3);
+                if (cIcon[0] === '/') {
+                    instance[2] += cIcon;
+                } else {
+                    instance[2] += '/' + cIcon;
+                }
+                icon = `${imagePrefix}/adapter/${instance[2]}`;
+            } else {
+                instance = id.split('.', 2);
+                if (cIcon[0] === '/') {
+                    instance[0] += cIcon;
+                } else {
+                    instance[0] += '/' + cIcon;
+                }
+                icon = `${imagePrefix}/adapter/${instance[0]}`;
+            }
+        }
+        return icon;
     }
 
     addChanged(id, cb) {
@@ -1516,7 +1583,6 @@ class ListDevices extends Component {
             this.objects[id] = obj;
         }
         this.updateListItems();
-        console.log(112233, status, id, obj)
     }
 
     renderOneItem(items, item) {
@@ -1610,6 +1676,7 @@ class ListDevices extends Component {
         let index = null;
 
         const device = this.state.devices.find(el => el.channelId === item.id);
+        const deviceIdx = this.state.devices.indexOf(device);
         const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
 
@@ -1630,10 +1697,19 @@ class ListDevices extends Component {
         }
 
         let j = 0;
-        const inner = <TableRow
-            style={{ background: backgroundRow }}
+        const WrapperRow = item.type !== 'folder' ? DragWrapper : DropWrapper;
+        const inner = <WrapperRow
+            id={item.id}
+            // style={{ background: backgroundRow }}
+            updateObjects={this.updateObjects}
+            objects={this.objects}
+            deleteDevice={this.deleteDevice}
+            onCopyDevice={this.onCopyDevice}
+            deviceIdx={deviceIdx}
+            backgroundRow={backgroundRow}
             className={this.props.classes.hoverRow}
-            key={item.id} padding="default" >
+            key={item.id}
+            padding="default" >
             <TableCell
                 colSpan={3}
                 style={Object.assign({
@@ -1766,7 +1842,7 @@ class ListDevices extends Component {
                         </Tooltip> : <div className={classes.emptyBlock} />}
                 </div>}
             </TableCell>}
-        </TableRow>;
+        </WrapperRow>;
 
         const result = [inner];
 
@@ -2695,14 +2771,24 @@ class ListDevices extends Component {
         if (this.state.deleteIndex === null) {
             return;
         }
-
+        const time = window.localStorage.getItem('DeleteDeviceTime');
+        const fiveMin = 1000 * 60 * 5;
+        const index = this.state.deleteIndex;
+        if (time && new Date().getTime() - time < fiveMin) {
+            return this.setState({ deleteIndex: null }, () => {
+                this.deleteDevice(index);
+            })
+        }
         return <DialogConfirm
             title={I18n.t('Please confirm...')}
             text={I18n.t('Device and all states will be deleted. Are you sure?')}
             onClose={result => {
-                const index = this.state.deleteIndex;
-                this.setState({ deleteIndex: null }, () =>
-                    result && this.deleteDevice(index))
+                this.setState({ deleteIndex: null }, () => {
+                    if (result) {
+                        window.localStorage.setItem('DeleteDeviceTime', new Date().getTime());
+                        this.deleteDevice(index);
+                    }
+                })
             }}
         />;
     }
@@ -2765,30 +2851,33 @@ class ListDevices extends Component {
             return <CircularProgress key="alexaProgress" />;
         }
         const classes = this.props.classes;
-        return <Card key="list" className={classes.tab}>
-            <div className={classes.wrapperIcon}>
-                <div className={classes.icons}>
-                    <Tooltip title={I18n.t('Create new device with Aliases')}>
-                        <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
-                            <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
-                        </IconButton>
-                    </Tooltip>
-                    {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
-                        <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
-                            <IconAdd style={{ color: '#E67E22' }} />
-                        </IconButton>
-                    </Tooltip>}
-                    {/* <Tooltip title={I18n.t('Importer')}>
+        const small = this.props.width === 'xs' || this.props.width === 'sm';
+        return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
+            {/* <CustomDragLayer /> */}
+            <Card key="list" className={classes.tab}>
+                <div className={classes.wrapperIcon}>
+                    <div className={classes.icons}>
+                        <Tooltip title={I18n.t('Create new device with Aliases')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
+                                <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
+                            </IconButton>
+                        </Tooltip>
+                        {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
+                                <IconAdd style={{ color: '#E67E22' }} />
+                            </IconButton>
+                        </Tooltip>}
+                        {/* <Tooltip title={I18n.t('Importer')}>
                         <IconButton onClick={() => this.setState({ importer: true })}>
                             <ArrowDownwardIcon />
                         </IconButton>
                     </Tooltip> */}
-                    <Tooltip title={I18n.t('Refresh')}>
-                        <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
-                            {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
-                        </IconButton>
-                    </Tooltip>
-                    {/* <Tooltip title={I18n.t('Show only aliases')}>
+                        <Tooltip title={I18n.t('Refresh')}>
+                            <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
+                                {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
+                            </IconButton>
+                        </Tooltip>
+                        {/* <Tooltip title={I18n.t('Show only aliases')}>
                         <IconButton
                             color={this.state.onlyAliases ? 'primary' : 'inherit'}
                             onClick={() => {
@@ -2798,35 +2887,35 @@ class ListDevices extends Component {
                             <IconStar />
                         </IconButton>
                     </Tooltip> */}
-                    <Tooltip title={I18n.t('Hide info devices')}>
-                        <IconButton
-                            color={this.state.hideInfo ? 'primary' : 'inherit'}
-                            onClick={() => {
-                                window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
-                                this.setState({ hideInfo: !this.state.hideInfo });
-                            }}>
-                            <IconInfo />
-                        </IconButton>
-                    </Tooltip>
-
-                    {this.state.orderBy === 'IDs' &&
-                        <><Tooltip title={I18n.t('Expand all nodes')}>
+                        <Tooltip title={I18n.t('Hide info devices')}>
                             <IconButton
-                                color="primary"
-                                onClick={() => this.onExpandAll()}>
-                                <IconFolderOpened />
+                                color={this.state.hideInfo ? 'primary' : 'inherit'}
+                                onClick={() => {
+                                    window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
+                                    this.setState({ hideInfo: !this.state.hideInfo });
+                                }}>
+                                <IconInfo />
                             </IconButton>
                         </Tooltip>
-                            <Tooltip title={I18n.t('Collapse all nodes')}>
+
+                        {this.state.orderBy === 'IDs' &&
+                            <><Tooltip title={I18n.t('Expand all nodes')}>
                                 <IconButton
                                     color="primary"
-                                    onClick={() => this.onCollapseAll()}>
-                                    <IconFolder />
+                                    onClick={() => this.onExpandAll()}>
+                                    <IconFolderOpened />
                                 </IconButton>
-                            </Tooltip></>
-                    }
+                            </Tooltip>
+                                <Tooltip title={I18n.t('Collapse all nodes')}>
+                                    <IconButton
+                                        color="primary"
+                                        onClick={() => this.onCollapseAll()}>
+                                        <IconFolder />
+                                    </IconButton>
+                                </Tooltip></>
+                        }
 
-                    {/* <FormControl>
+                        {/* <FormControl>
                     <InputLabel>{I18n.t('Select')}</InputLabel>
                     <Select
                         className={classes.orderSelector}
@@ -2843,45 +2932,47 @@ class ListDevices extends Component {
                         <MenuItem value='types'>{I18n.t('Types')}</MenuItem>
                     </Select>
                 </FormControl> */}
-                    <div className={classes.amptyBlock} />
-                    <TextField
-                        inputRef={this.inputRef}
-                        label={I18n.t('Filter')}
-                        InputLabelProps={{ shrink: true }}
-                        defaultValue={this.filter}
-                        onChange={e => this.setFilter(e.target.value)}
-                        InputProps={{
-                            endAdornment: (
-                                this.filter ? <InputAdornment position="end">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            this.setFilter('');
-                                            this.inputRef.current.value = '';
-                                        }}
-                                    >
-                                        <IconClear />
-                                    </IconButton>
-                                </InputAdornment> : <div className={classes.emptyClear} />
-                            ),
-                        }}
-                    />
-                    <div className={classes.amptyBlock} />
-                    <div className={classes.wrapperName}>
-                        <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
-                        {I18n.t('Devices')}
+                        <div className={classes.amptyBlock} />
+                        <TextField
+                            inputRef={this.inputRef}
+                            label={I18n.t('Filter')}
+                            InputLabelProps={{ shrink: true }}
+                            defaultValue={this.filter}
+                            onChange={e => this.setFilter(e.target.value)}
+                            InputProps={{
+                                endAdornment: (
+                                    this.filter ? <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                                this.setFilter('');
+                                                this.inputRef.current.value = '';
+                                            }}
+                                        >
+                                            <IconClear />
+                                        </IconButton>
+                                    </InputAdornment> : <div className={classes.emptyClear} />
+                                ),
+                            }}
+                        />
+                        <div className={classes.amptyBlock} />
+                        <div className={classes.wrapperName}>
+                            <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
+                            {I18n.t('Devices')}
+                        </div>
                     </div>
                 </div>
-            </div>
-            {this.renderDevices()}
-            {this.renderMessage()}
-            {this.renderEditDialog()}
-            {this.renderAddDialog()}
-            {this.renderDeleteDialog()}
-            {this.renderEditEnumDialog()}
-            {this.renderImporterDialog()}
-            {this.renderEditFolder()}
-        </Card>;
+
+                {this.renderDevices()}
+                {this.renderMessage()}
+                {this.renderEditDialog()}
+                {this.renderAddDialog()}
+                {this.renderDeleteDialog()}
+                {this.renderEditEnumDialog()}
+                {this.renderImporterDialog()}
+                {this.renderEditFolder()}
+            </Card>
+        </DndProvider>;
     }
 }
 
@@ -2895,4 +2986,4 @@ ListDevices.propTypes = {
     themeType: PropTypes.string,
 };
 
-export default withStyles(styles)(ListDevices);
+export default withWidth()(withStyles(styles)(ListDevices));

@@ -28,12 +28,16 @@ const useStyles = makeStyles((theme) => ({
     },
     overflowHidden: {
         display: 'flex',
+        flexDirection:'column'
         // overflow: 'hidden'
     },
     pre: {
         overflow: 'auto',
         whiteSpace: 'pre-wrap',
         margin: 0
+    },
+    showDialog:{
+        marginTop:10
     }
 }));
 
@@ -58,6 +62,7 @@ const DeleteFolder = ({ cb }) => {
             <DialogTitle>{I18n.t('Please confirm...')}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 {I18n.t('Folder will be deleted. Are you sure?')}
+                <div className={classes.showDialog}>{I18n.t('Do not show dialog for 5 minutes')}</div>
             </DialogContent>
             <DialogActions>
                 <Button
@@ -65,6 +70,7 @@ const DeleteFolder = ({ cb }) => {
                     autoFocus
                     onClick={() => {
                         onClose();
+                        window.localStorage.setItem('DeleteFolderTime', new Date().getTime());
                         cb(true);
                     }}
                     startIcon={<IconCheck />}
@@ -87,6 +93,11 @@ const DeleteFolder = ({ cb }) => {
 }
 
 export const deleteFolderCallBack = cb => {
+    const time = window.localStorage.getItem('DeleteFolderTime');
+    const fiveMin = 1000 * 60 * 5;
+    if (time && new Date().getTime() - time < fiveMin) {
+       return cb(true);
+    }
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';

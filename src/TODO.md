@@ -9,8 +9,8 @@
 ## Edit device dialog
 
 ## List of devices
-- Show devices in sub-folders according to adapter. Every adapter has own folder
-- Add feature: "Do not show dialog for 5 minutes" for delete dialog
+<!-- - Show devices in sub-folders according to adapter. Every adapter has own folder -->
+<!-- - Add feature: "Do not show dialog for 5 minutes" for delete dialog -->
 <!-- - Do not show id for "linked devices folder", "automatically detected" and instances in autodetected -->
 ## Folder control in new device dialog
 <!-- - Disable add new folder if empty or name is not unique -->
@@ -23,11 +23,11 @@
 ## Types (type-detector)
 - Check all types that exist and could be created
     - url
-    - gate
-    - Unknown type!camera
-    - Unknown type!gate
-    - Unknown type!floodAlarm
-    - Unknown type!weatherCurrent
+    <!-- - gate -->
+    <!-- - Unknown type!camera -->
+    <!-- - Unknown type!gate -->
+    <!-- - Unknown type!floodAlarm
+    - Unknown type!weatherCurrent -->
 
 ## Functionality
 - Do not search in parent if it is folder (only in devices/channels)
@@ -47,7 +47,7 @@
        <!-- - Rename "EDIT" Button into "Apply" -->
        <!-- - Tooltip of "edit" button must be edit name -->
     <!-- - Rename "Write" button into "Import" -->
-    - Find icon of device: https://github.com/ioBroker/ioBroker.admin/blob/master/src-rx/src/components/Enums/EnumBlock.js#L178
+    <!-- - Find icon of device: https://github.com/ioBroker/ioBroker.admin/blob/master/src-rx/src/components/Enums/EnumBlock.js#L178 -->
 
   
 

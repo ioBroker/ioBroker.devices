@@ -166,7 +166,6 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
             }
             tasks.push({ id: obj._id, obj });
         });
-        debugger
         return new Promise((resolve) => {
             processTasks(tasks, () => {
                 resolve();
@@ -204,9 +203,7 @@ const EditFolder = ({ closeCallBack, open, data, socket, devices, objects, delet
                 // updateObjects('delete', el._id);
             } else {
                 const device = devices.find(device => el._id === device.channelId);
-                debugger
                 await onCopyDevice(device, newId, el);
-                debugger
                 // promise.push(deleteDevice(devices.indexOf(device)));
                 await new Promise((resolve) => {
                     deleteDevice(devices.indexOf(device), () => {

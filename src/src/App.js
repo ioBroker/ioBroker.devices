@@ -106,7 +106,8 @@ class App extends GenericApp {
                                 themeName={this.state.themeName}
                                 t={I18n.t} /> */}
             <Paper square elevation={0} className={this.props.classes.tabContent}>
-                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? <TabDevices
+                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? 
+                <TabDevices
                     theme={this.state.theme}
                     themeType={this.state.themeType}
                     key="options"
@@ -118,7 +119,8 @@ class App extends GenericApp {
                     instance={this.instance}
                     adapterName={this.adapterName}
                     onChange={(attr, value) => this.updateNativeValue(attr, value)}
-                /> : null}
+                /> 
+                : null}
 
             </Paper>
             {this.renderError()}
