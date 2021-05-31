@@ -154,7 +154,7 @@ class DialogNewDevice extends React.Component {
 
         this.prefix = this.props.prefix || 'alias.0';
 
-        while (this.props.objects[this.prefix + '.' + I18n.t('Device') + '_' + i]) {
+        while (this.props.objects[`${this.prefix}.${I18n.t('Device')}_${i}`]) {
             i++;
         }
 
@@ -231,6 +231,10 @@ class DialogNewDevice extends React.Component {
         };
     }
 
+    setStateAsync(newState) {
+        return new Promise(resolve => this.setState(newState, () => resolve()));
+    }
+
     renderSelectEnum(name, title) {
         const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
         const language = I18n.getLanguage();
@@ -281,7 +285,7 @@ class DialogNewDevice extends React.Component {
         return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
-    onCopyDevice(newChannelId, cb) {
+    async onCopyDevice(newChannelId) {
         // if this is device not from linkeddevice or from alias
         this.channelId = this.props.copyDevice.channelId;
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
@@ -289,6 +293,7 @@ class DialogNewDevice extends React.Component {
         const channelObj = this.props.objects[this.channelId];
         const { functions, rooms, icon, states, color, type } = this.props.copyDevice;
         const tasks = [];
+
         tasks.push({
             id: newChannelId,
             obj: {
@@ -321,41 +326,28 @@ class DialogNewDevice extends React.Component {
             tasks.push({ id: obj._id, obj });
         });
 
-        this.props.processTasks(tasks, cb);
+        await this.props.processTasks(tasks);
     }
 
-    handleOk = () => {
+    handleOk = async () => {
         // check if name is unique
         if (this.props.copyDevice) {
-            return this.onCopyDevice(this.generateId(), () => {
-                this.props.onChange()
-                this.props.onClose()
+            await this.onCopyDevice(this.generateId());
+            await this.props.onChange();
+            this.props.onClose();
+        } else {
+            this.props.onClose({
+                id: this.generateId(),
+                type: this.state.type,
+                name: this.state.name,
+                functions: this.state.functions,
+                icon: '',
+                states: [],
+                color: null,
+                rooms: this.state.rooms,
+                prefix: this.prefix
             });
-            // return this.props.onClose && this.props.onClose({
-            //     id: this.generateId(),
-            //     type: type,
-            //     name: this.state.name,
-            //     functions: functions,
-            //     rooms: rooms,
-            //     icon: icon,
-            //     color: color,
-            //     states: states,
-            //     prefix: this.prefix
-            // });
-
         }
-
-        this.props.onClose && this.props.onClose({
-            id: this.generateId(),
-            type: this.state.type,
-            name: this.state.name,
-            functions: this.state.functions,
-            icon: '',
-            states: [],
-            color: null,
-            rooms: this.state.rooms,
-            prefix: this.prefix
-        });
     }
 
     handleCancel = () => {
@@ -372,35 +364,30 @@ class DialogNewDevice extends React.Component {
         }
     }
 
-    addNewFolder(name, parentId, cb) {
+    async addNewFolder(name, parentId) {
         const id = `${parentId}.${name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         const obj = {
             _id: id,
-            common: {
-                name: { [I18n.getLanguage()]: name },
-            },
+            common: {name: { [I18n.getLanguage()]: name }},
             native: {},
             type: 'folder'
         };
 
-        this.props.objects[obj._id] = obj;
+        await this.props.processTasks([{id, obj}]);
 
         // create folder
-        this.props.socket.setObject(id, obj).then(() => {
-            const ids = JSON.parse(JSON.stringify(this.state.ids));
-            ids[id] = {
-                common: { name },
-                type: 'folder'
-            };
-            this.prefix = id;
-            this.setState({ ids, root: id }, () => cb && cb());
-        });
-
-        this.props.onChange('render')
+        const ids = JSON.parse(JSON.stringify(this.state.ids));
+        ids[id] = {
+            common: { name },
+            type: 'folder'
+        };
+        this.prefix = id;
+        await this.setStateAsync({ ids, root: id });
     }
 
     render() {
         const classes = this.props.classes;
+
         return <Dialog
             open={true}
             maxWidth="md"
@@ -411,14 +398,15 @@ class DialogNewDevice extends React.Component {
         >
             <DialogTitle className={classes.titleBackground}
                 classes={{ root: classes.titleColor }}
-                id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b></DialogTitle>
+                id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b>
+            </DialogTitle>
             <DialogContent className={classes.container}>
                 <div className={classes.treeDiv}>
                     <TreeView
                         themeType={this.props.themeType}
                         theme={this.props.theme}
                         objects={this.state.ids}
-                        onAddNew={(name, parentId, cb) => this.addNewFolder(name, parentId, cb)}
+                        onAddNew={async (name, parentId) => await this.addNewFolder(name, parentId)}
                         onSelect={id => this.setState({ root: id })}
                         selected={this.state.root}
                     />

@@ -7,6 +7,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
+import clsx from 'clsx';
+
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -25,14 +27,15 @@ import { MdHelpOutline } from 'react-icons/md';
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import TypeIcon from "../Components/TypeIcon";
+
 import { AppBar, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
-import DialogEditProperties from './DialogEditProperties';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
-import clsx from 'clsx';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
+import TypeIcon from '../Components/TypeIcon';
+
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
+import DialogEditProperties from './DialogEditProperties';
 
 const styles = theme => {
     return ({
@@ -222,7 +225,7 @@ const styles = theme => {
     })
 };
 
-const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
+// const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
@@ -243,6 +246,7 @@ function TabPanel(props) {
         </div>
     );
 }
+
 class DialogEditDevice extends React.Component {
     constructor(props) {
         super(props);
@@ -302,7 +306,7 @@ class DialogEditDevice extends React.Component {
             editFxFor: '',
             newChannelId: '',
             newChannelError: false,
-            showCopyDialog: false,
+            //showCopyDialog: false,
             disabledButton: false,
             extendedAvailable,
             tab: localStorage.getItem('EditDevice.tab') ? JSON.parse(localStorage.getItem('EditDevice.tab')) || 0 : 0,
@@ -344,22 +348,26 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
-    handleOk = isRefresh => {
+    handleOk = async () => {
         if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
-            this.props.onSaveProperties && this.props.onSaveProperties(this.state.changeProperties);
+            this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
         }
-        this.props.onClose && this.props.onClose({
+
+        await this.props.onClose({
             ids: this.state.ids,
             fx: this.fx,
-        }, isRefresh, () => {
-            if (this.state.changeProperties.name && this.state.initChangeProperties.name && this.state.initChangeProperties.name !== this.state.changeProperties.name) {
-                let parts = this.channelId.split('.');
-                parts.pop();
-                parts = parts.join('.');
-                parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-                this.props.onCopyDevice(this.channelId, parts, () => { })
-            }
         });
+
+        if (this.state.changeProperties.name &&
+            this.state.initChangeProperties.name &&
+            this.state.initChangeProperties.name !== this.state.changeProperties.name
+        ) {
+            let parts = this.channelId.split('.');
+            parts.pop();
+            parts = parts.join('.');
+            parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            await this.props.onCopyDevice(this.channelId, parts);
+        }
     };
 
     showDeviceIcon() {
@@ -368,42 +376,34 @@ class DialogEditDevice extends React.Component {
         </div>;
     }
 
-    addToEnum(enumId, id) {
-        this.props.socket.getObject(enumId)
-            .then(obj => {
-                if (obj && obj.common) {
-                    obj.common.members = obj.common.members || [];
+    /*async addToEnum(enumId, id) {
+       const obj = await this.props.socket.getObject(enumId)
+       if (obj && obj.common) {
+           obj.common.members = obj.common.members || [];
 
-                    if (!obj.common.members.includes(id)) {
-                        obj.common.members.push(id);
-                        obj.common.members.sort();
-                        this.props.objects[enumId] = obj;
-                        return this.props.socket.setObject(enumId, obj);
-                    }
-                }
-            });
-    }
+           if (!obj.common.members.includes(id)) {
+               obj.common.members.push(id);
+               obj.common.members.sort();
+               await this.props.socket.setObject(enumId, obj);
+           }
+       }
+   }
 
-    processTasks(tasks, cb) {
-        if (!tasks || !tasks.length) {
-            cb && cb();
-        } else {
-            const task = tasks.shift();
-            let promises = [];
+   async processTasks(tasks) {
+       for (let t = 0; t < tasks.length; t++) {
+           const task = tasks[t];
+           if (task.enums) {
+               for (let m = 0; m < task.enums.length; m++) {
+                   await this.addToEnum(task.enums[i], task.id);
+               }
+           }
 
-            if (task.enums) {
-                promises = task.enums.map(enumId => this.addToEnum(enumId, task.id))
-            }
-            this.props.objects[task.id] = task.obj;
-            promises.push(this.props.socket.setObject(task.id, task.obj));
+           this.props.objects[task.id] = task.obj;
+           await this.props.socket.setObject(task.id, task.obj);
+       }
+   }*/
 
-            Promise.all(promises)
-                .then(() => setTimeout(() =>
-                    this.processTasks(tasks, cb), 0));
-        }
-    }
-
-    onCopyDevice(newChannelId, cb) {
+    /*onCopyDevice(newChannelId, cb) {
         // if this is device not from linkeddevice or from alias
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
 
@@ -443,7 +443,7 @@ class DialogEditDevice extends React.Component {
         });
 
         this.processTasks(tasks, cb);
-    }
+    }*/
 
     renderHeader() {
         const classes = this.props.classes;
@@ -538,7 +538,9 @@ class DialogEditDevice extends React.Component {
             <DialogContent>
                 <div className={this.props.classes.divDialogContent}>
                     {fx.read !== undefined ? <div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Read')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
+                            {I18n.t('Read')}
+                        </div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxRead}
@@ -549,7 +551,9 @@ class DialogEditDevice extends React.Component {
                         />
                     </div> : null}
                     {fx.write !== undefined ? <div className={this.props.classes.funcDivEdit}>
-                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>{I18n.t('Write')}</div>
+                        <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
+                            {I18n.t('Write')}
+                        </div>
                         <TextField
                             fullWidth
                             defaultValue={this.fxWrite}
@@ -576,7 +580,7 @@ class DialogEditDevice extends React.Component {
         </Dialog>;
     }
 
-    renderCopyDialog() {
+    /*renderCopyDialog() {
         if (!this.state.showCopyDialog) {
             return;
         }
@@ -614,14 +618,14 @@ class DialogEditDevice extends React.Component {
                 <Button href="" disabled={this.state.newChannelError} onClick={() => {
                     // this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
                     this.setState({ showCopyDialog: false, newChannelId: '' }, () =>
-                        this.handleOk(true))
+                        this.handleOk(true));
                     // );
 
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button href="" onClick={() => this.setState({ showCopyDialog: false })}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>;
-    }
+    }*/
 
     onToggleTypeStates = (name) => {
         let stateDevice = this.state.ids[name];
@@ -768,7 +772,7 @@ class DialogEditDevice extends React.Component {
                         </Tooltip> : <div className={this.props.classes.emptyButton} />}
                     </div>
                 </div>
-            </>
+            </>;
         }
 
         return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
@@ -819,7 +823,7 @@ class DialogEditDevice extends React.Component {
     }
 
     renderVariables() {
-        return <div key="vars" className={this.props.classes.divOids + ' ' + this.props.classes.divCollapsed}>
+        return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
@@ -839,92 +843,94 @@ class DialogEditDevice extends React.Component {
     }
 
     render() {
-        return [
-            <Dialog
-                key="editDialog"
-                open={true}
-                maxWidth="md"
-                fullWidth={true}
-                onClose={() => this.handleClose()}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle className={this.props.classes.titleBackground}
-                    classes={{ root: this.props.classes.titleColor }}
-                    id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
-                <DialogContent className={this.props.classes.content}>
-                    <AppBar style={{ top: 0 }} position="sticky" color="default">
-                        <div className={this.props.classes.wrapperIconHead}>
-                            <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
-                            <span className={this.props.classes.deviceText}>{I18n.t('type-' + this.props.channelInfo.type)}</span>
-                        </div>
-                        <Tabs
-                            value={this.state.tab}
-                            className={this.props.classes.tab}
-                            classes={{
-                                indicator: this.props.classes.indicator
-                            }}
-                            onChange={(_, newTab) => this.setState({ tab: newTab }, () => {
-                                localStorage.setItem('EditDevice.tab', newTab);
-                            })}
-                            indicatorColor="primary"
-                            textColor="primary"
-                            variant="scrollable"
-                            scrollButtons="auto"
-                            aria-label="scrollable auto tabs example"
-                        >
-                            <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
-                            <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
-                        </Tabs>
-                    </AppBar>
-                    <TabPanel value={this.state.tab} index={1}>
-                        <div className={this.props.classes.divDialogContent}>
-                            {this.renderHeader()}
-                            {this.renderVariables()}
-                        </div>
-                    </TabPanel>
-                    <TabPanel value={this.state.tab} index={0}>
-                        <DialogEditProperties
-                            channelId={this.props.channelId}
-                            type={this.props.type}
-                            iot={this.props.iot}
-                            iotNoCommon={this.props.iotNoCommon}
-                            objects={this.props.objects}
-                            patterns={this.props.patterns}
-                            enumIDs={this.props.enumIDs}
-                            socket={this.props.socket}
-                            changeProperties={this.state.changeProperties}
-                            onChange={(state, initState, disabledButton) => {
-                                if (initState) {
-                                    return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false });
-                                }
+        return <Dialog
+            key="editDialog"
+            open={true}
+            maxWidth="md"
+            fullWidth={true}
+            onClose={() => this.handleClose()}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            {this.renderSelectDialog()}
+            {this.renderEditFxDialog()}
+            {/*this.renderCopyDialog()*/}
+            <DialogTitle className={this.props.classes.titleBackground}
+                classes={{ root: this.props.classes.titleColor }}
+                id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
+            <DialogContent className={this.props.classes.content}>
+                <AppBar style={{ top: 0 }} position="sticky" color="default">
+                    <div className={this.props.classes.wrapperIconHead}>
+                        <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
+                        <span className={this.props.classes.deviceText}>{I18n.t('type-' + this.props.channelInfo.type)}</span>
+                    </div>
+                    <Tabs
+                        value={this.state.tab}
+                        className={this.props.classes.tab}
+                        classes={{
+                            indicator: this.props.classes.indicator
+                        }}
+                        onChange={(_, newTab) => this.setState({ tab: newTab }, () => {
+                            localStorage.setItem('EditDevice.tab', newTab);
+                        })}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        aria-label="scrollable auto tabs example"
+                    >
+                        <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
+                        <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
+                    </Tabs>
+                </AppBar>
+                <TabPanel value={this.state.tab} index={1}>
+                    <div className={this.props.classes.divDialogContent}>
+                        {this.renderHeader()}
+                        {this.renderVariables()}
+                    </div>
+                </TabPanel>
+                <TabPanel value={this.state.tab} index={0}>
+                    <DialogEditProperties
+                        channelId={this.props.channelId}
+                        type={this.props.type}
+                        iot={this.props.iot}
+                        iotNoCommon={this.props.iotNoCommon}
+                        objects={this.props.objects}
+                        patterns={this.props.patterns}
+                        enumIDs={this.props.enumIDs}
+                        socket={this.props.socket}
+                        changeProperties={this.state.changeProperties}
+                        onChange={(state, initState, disabledButton) => {
+                            if (initState) {
+                                // TODO unclear! why immediately after setstate the settings are reseted
+                                return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false }, () =>
+                                    this.setState({ changeProperties: state, disabledButton }));
+                            } else {
                                 this.setState({ changeProperties: state, disabledButton });
-                            }}
-                        />
-                    </TabPanel>
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton}
-                        onClick={this.handleOk}
-                        startIcon={<IconCheck />}
-                        color="primary">{I18n.t('Write')}</Button>
-                    <Button
-                        variant="contained"
-                        onClick={this.handleClose}
-                        startIcon={<IconClose />}
-                    >{I18n.t('Cancel')}</Button>
-                </DialogActions>
-            </Dialog>,
-            this.renderSelectDialog(),
-            this.renderEditFxDialog(),
-            this.renderCopyDialog(),
-        ];
+                            }
+                        }}
+                    />
+                </TabPanel>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton}
+                    onClick={async () => await this.handleOk()}
+                    startIcon={<IconCheck />}
+                    color="primary">{I18n.t('Save')}</Button>
+                <Button
+                    variant="contained"
+                    onClick={this.handleClose}
+                    startIcon={<IconClose />}
+                >{I18n.t('Cancel')}</Button>
+            </DialogActions>
+        </Dialog>;
     }
 }
 
 DialogEditDevice.propTypes = {
+    channelId: PropTypes.string,
     onClose: PropTypes.func,
     patterns: PropTypes.object,
     channelInfo: PropTypes.object,
@@ -932,7 +938,9 @@ DialogEditDevice.propTypes = {
     enumIDs: PropTypes.array,
     states: PropTypes.object,
     socket: PropTypes.object,
-    themeType: PropTypes.string
+    themeType: PropTypes.string,
+    onCopyDevice: PropTypes.func,
+    onSaveProperties: PropTypes.func,
 };
 
 export default withStyles(styles)(DialogEditDevice);

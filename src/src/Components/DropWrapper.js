@@ -19,23 +19,20 @@ const DropWrapper = ({ updateObjects, objects, deleteDevice, onCopyDevice, id, c
             isOver: monitor.isOver(),
             canDrop: monitor.canDrop()
         }),
-        drop: (item) => {
+        drop: async (item) => {
             let parts = item.id.split('.');
             parts = parts.pop();
             setError(false);
-            onCopyDevice(item.id, `${id}.${parts}`, () => {
-                deleteDevice(item.deviceIdx, () => {
-                    updateObjects('delete', item.id);
-                });
-            })
+            await onCopyDevice(item.id, `${id}.${parts}`);
+            await deleteDevice(item.deviceIdx);
+            updateObjects('delete', item.id);
         },
         hover(item, monitor) {
             let parts = item.id.split('.');
             parts = parts.pop();
-            console.log(11223344,objects[`${id}.${parts}`])
             if (id?.includes('automatically_detected') || id?.includes('linked_devices') || objects[`${id}.${parts}`]) {
                 setError(true);
-            }else{
+            } else {
                 setError(false);
 
             }

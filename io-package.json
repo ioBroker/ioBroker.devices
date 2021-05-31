@@ -222,7 +222,7 @@
         ],
         "license": "MIT",
         "platform": "Javascript/Node.js",
-        "main": "main.js",
+        "connectionType": "local",
         "icon": "devices.png",
         "enabled": true,
         "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",

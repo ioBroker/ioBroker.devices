@@ -325,17 +325,15 @@ class TreeView extends React.Component {
                 <DialogTitle className={this.props.classes.addNewFolderTitle} >{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
                 <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
                     <TextField
-                        onKeyPress={(ev) => {
+                        onKeyPress={async ev => {
                             if (ev.key === 'Enter') {
                                 if (this.state.addNewName) {
                                     const id = this.state.selected;
-                                    this.props.onAddNew(this.state.addNewName, this.state.addNew.id,
-                                        () => {
-                                            this.toggleExpanded(id, true);
-                                            this.setState({ addNew: null, addNewName: '' })
-                                        })
+                                    await this.props.onAddNew(this.state.addNewName, this.state.addNew.id);
+                                    this.toggleExpanded(id, true);
+                                    this.setState({ addNew: null, addNewName: '' });
                                 } else {
-                                    this.setState({ addNew: null, addNewName: '' })
+                                    this.setState({ addNew: null, addNewName: '' });
                                 }
                                 ev.preventDefault();
                             }
@@ -350,12 +348,11 @@ class TreeView extends React.Component {
                     <Button
                         variant="contained"
                         disabled={!!error}
-                        onClick={() => {
+                        onClick={async () => {
                             const id = this.state.selected;
-                            this.props.onAddNew(this.state.addNewName, this.state.addNew.id, () => {
-                                this.toggleExpanded(id, true);
-                                this.setState({ addNew: null, addNewName: '' });
-                            })
+                            await this.props.onAddNew(this.state.addNewName, this.state.addNew.id);
+                            this.toggleExpanded(id, true);
+                            this.setState({ addNew: null, addNewName: '' });
                         }}
                         startIcon={<IconOK />}
                         color="primary">{I18n.t('Add')}</Button>
