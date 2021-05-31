@@ -389,20 +389,6 @@ function ChannelDetector() {
             ],
             type: Types.gate
         },
-        floodAlarm: {
-            states: [
-                {role: /^switch(\.floodAlarm)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumFloodAlarm, name: 'SET',                 required: true, defaultRole: 'switch.floodAlarm'},
-                // optional
-                // {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
-                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumFloodAlarm,  name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
-                patternDirection,
-                patternWorking,
-                patternUnreach,
-                patternMaintain,
-                patternError
-            ],
-            type: Types.floodAlarm
-        },
         weatherCurrent: {
             states: [
                 {role: /^switch(\.weatherCurrent)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumWeatherCurrent, name: 'SET',                 required: true, defaultRole: 'switch.weatherCurrent'},
@@ -419,17 +405,15 @@ function ChannelDetector() {
         },
         camera: {
             states: [
-                {role: /^switch(\.camera)?$/,                               indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET',                  required: true, defaultRole: 'switch.camera'},
+                {role: /^camera(\.\w+)?$/,                                  indicator: false, type: 'file',     name: 'FILE',                  required: true, defaultRole: 'camera'},
                 // optional
-                {role: /^switch(\.autofocus)?$/,                            indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_AUTOFOCUS',        required: false, defaultRole: 'switch.autofocus'},
-                {role: /^switch(\.autowhitebalance)?$/,                     indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_AUTOWHITEBALANCE', required: false, defaultRole: 'switch.autowhitebalance'},
-                {role: /^switch(\.brightness)?$/,                           indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_BRIGHTNESS',       required: false, defaultRole: 'switch.brightness'},
-                {rrole: /^switch(\.nightmode)?$/,                           indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumCamera,  name: 'SET_NIGHTMODE',        required: false, defaultRole: 'switch.nightmode'},
-                {rrole: /^value(\.position)?|^value(\.ptz)?$/,              indicator: false, type: 'number',                 enums: roleOrEnumCamera,  name: 'ACTUAL',               required: false, defaultRole: 'value.ptz', defaultUnit: '%'},
-                {role: /^button\.stop$|^action\.stop$/,                     indicator: false, type: 'boolean',  write: true,  enums: roleOrEnumGate,    name: 'STOP',                 required: false, noSubscribe: true, defaultRole: 'button.stop'},
-                patternDirection,
-                patternWorking,
+                {role: /^switch(\.camera)?\.autofocus$/,                          indicator: false, type: 'boolean',  write: true,  name: 'AUTOFOCUS',        required: false, defaultRole: 'switch.camera.autofocus'},
+                {role: /^switch(\.camera)?\.autowhitebalance$/,                   indicator: false, type: 'boolean',  write: true,  name: 'AUTOWHITEBALANCE', required: false, defaultRole: 'switch.camera.autowhitebalance'},
+                {role: /^switch(\.camera)?\.brightness$/,                         indicator: false, type: 'boolean',  write: true,  name: 'BRIGHTNESS',       required: false, defaultRole: 'switch.camera.brightness'},
+                {role: /^switch(\.camera)?\.nightmode$/,                          indicator: false, type: 'boolean',  write: true,  name: 'NIGHTMODE',        required: false, defaultRole: 'switch.camera.nightmode'},
+                {role: /^level(\.camera)?\.position$|^level(\.camera)?(\.ptz)$/,  indicator: false, type: 'number',   write: true,  name: 'PTZ',               required: false, defaultRole: 'level.camera.position'},
                 patternUnreach,
+                patternLowbat,
                 patternMaintain,
                 patternError
             ],
@@ -486,7 +470,7 @@ function ChannelDetector() {
         },
         fireAlarm: {
             states: [
-                {role: /^state?$|^sensor(\.alarm)?\.fire/,                        indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, channelRole: /^sensor(\.alarm)?\.fire$/, defaultRole: 'sensor.alarm.fire'},
+                {role: /^state(\.alarm)?\.fire$|^sensor(\.alarm)?\.fire/,                        indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, channelRole: /^sensor(\.alarm)?\.fire$/, defaultRole: 'sensor.alarm.fire'},
                 // optional
                 patternUnreach,
                 patternLowbat,
@@ -494,6 +478,17 @@ function ChannelDetector() {
                 patternError
             ],
             type: Types.fireAlarm
+        },
+        floodAlarm: {
+            states: [
+                {role: /^state(\.alarm)?\.flood$|^sensor(\.alarm)?\.flood/,                        indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, channelRole: /^sensor(\.alarm)?\.flood$/, defaultRole: 'sensor.alarm.flood'},
+                // optional
+                patternUnreach,
+                patternLowbat,
+                patternMaintain,
+                patternError
+            ],
+            type: Types.floodAlarm
         },
         door: {
             states: [
@@ -753,18 +748,6 @@ function ChannelDetector() {
     var cameraRoles = ['camera', 'value.ptz', 'switch.camera', 'action.stop', 'button.stop', 'switch.nightmode', 'switch.brightness', 'switch.autowhitebalance', 'switch.autofocus'];
     function roleOrEnumCamera(obj, enums) {
         return roleOrEnum(obj, enums, cameraRoles, cameraWords);
-    }
-
-// -------------- FLOOD ALARM --------------------------------------
-    var floodAlarmWords = {
-        en: [/floodAlarm/i, /flood alarm/i, /alarm/i],
-        de: [/hochwasseralarm/i, /alarm/i],
-        ru: [/аварийная сигнализация/i, /сигнализация/i],
-    };
-
-    var floodAlarmRoles = ['floodAlarm', 'switch.floodAlarm', 'action.stop', 'button.stop'];
-    function roleOrEnumFloodAlarm(obj, enums) {
-        return roleOrEnum(obj, enums, floodAlarmRoles, floodAlarmWords);
     }
 
 // -------------- WEATHER CURRENT ----------------------------------
