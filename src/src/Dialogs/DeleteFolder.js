@@ -5,7 +5,7 @@ import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import { DialogTitle, makeStyles, ThemeProvider } from '@material-ui/core';
+import { Checkbox, DialogTitle, FormControlLabel, makeStyles, ThemeProvider } from '@material-ui/core';
 
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
@@ -24,11 +24,13 @@ const useStyles = makeStyles((theme) => ({
         display: 'flex'
     },
     paper: {
-        maxWidth: 1000
+        maxWidth: 960,
+        width: 'calc(100% - 64px)'
     },
     overflowHidden: {
         display: 'flex',
-        flexDirection:'column'
+        flexDirection: 'column',
+        border: 'none'
         // overflow: 'hidden'
     },
     pre: {
@@ -36,14 +38,15 @@ const useStyles = makeStyles((theme) => ({
         whiteSpace: 'pre-wrap',
         margin: 0
     },
-    showDialog:{
-        marginTop:10
+    showDialog: {
+        marginTop: 10
     }
 }));
 
-const DeleteFolder = ({ cb }) => {
+const DeleteFolder = ({ cb, device }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
+    const [checked, setChecked] = useState(false);
 
     const onClose = () => {
         setOpen(false);
@@ -61,8 +64,13 @@ const DeleteFolder = ({ cb }) => {
         >
             <DialogTitle>{I18n.t('Please confirm...')}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
-                {I18n.t('Folder will be deleted. Are you sure?')}
-                <div className={classes.showDialog}>{I18n.t('Do not show dialog for 5 minutes')}</div>
+                {I18n.t(device ? 'Device and all states will be deleted. Are you sure?' : 'Folder will be deleted. Are you sure?')}
+                <div className={classes.showDialog}>
+                    <FormControlLabel
+                        control={<Checkbox checked={checked} onChange={e => setChecked(e.target.checked)} />}
+                        label={I18n.t('Do not show dialog for 5 minutes')}
+                    />
+                </div>
             </DialogContent>
             <DialogActions>
                 <Button
@@ -70,7 +78,9 @@ const DeleteFolder = ({ cb }) => {
                     autoFocus
                     onClick={() => {
                         onClose();
-                        window.localStorage.setItem('DeleteFolderTime', new Date().getTime());
+                        if (checked) {
+                            window.localStorage.setItem(device ? 'DeleteDeviceTime' : 'DeleteFolderTime', new Date().getTime());
+                        }
                         cb(true);
                     }}
                     startIcon={<IconCheck />}
@@ -92,16 +102,16 @@ const DeleteFolder = ({ cb }) => {
     </ThemeProvider>;
 }
 
-export const deleteFolderCallBack = cb => {
-    const time = window.localStorage.getItem('DeleteFolderTime');
+export const deleteFolderAndDeviceCallBack = (cb, device = false) => {
+    const time = window.localStorage.getItem(device ? 'DeleteDeviceTime' : 'DeleteFolderTime');
     const fiveMin = 1000 * 60 * 5;
     if (time && new Date().getTime() - time < fiveMin) {
-       return cb(true);
+        return cb(true);
     }
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';
         document.body.appendChild(node);
     }
-    return ReactDOM.render(<DeleteFolder cb={cb} />, node);
+    return ReactDOM.render(<DeleteFolder cb={cb} device={device} />, node);
 }

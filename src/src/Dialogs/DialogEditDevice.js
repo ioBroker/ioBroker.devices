@@ -28,7 +28,7 @@ import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 
-import { AppBar, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
+import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
@@ -306,6 +306,7 @@ class DialogEditDevice extends React.Component {
             editFxFor: '',
             newChannelId: '',
             newChannelError: false,
+            startTheProcess: false,
             //showCopyDialog: false,
             disabledButton: false,
             extendedAvailable,
@@ -349,6 +350,7 @@ class DialogEditDevice extends React.Component {
     }
 
     handleOk = async () => {
+        this.setState({ startTheProcess: true });
         if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
             this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
         }
@@ -368,6 +370,7 @@ class DialogEditDevice extends React.Component {
             parts = `${parts}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
             await this.props.onCopyDevice(this.channelId, parts);
         }
+        this.setState({ startTheProcess: false });
     };
 
     showDeviceIcon() {
@@ -457,7 +460,7 @@ class DialogEditDevice extends React.Component {
                         <IconCopy />
                     </IconButton>
                 </Tooltip>} */}
-                {this.state.extendedAvailable && <Tooltip title={I18n.t('Show hide indicators')}>
+                {this.state.extendedAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
                         style={this.state.extended ? { color: '#4dabf5' } : null}
                         onClick={() => {
@@ -700,7 +703,7 @@ class DialogEditDevice extends React.Component {
                             <TextField
                                 key={name}
                                 fullWidth
-                                disabled={!alias && !linkeddevices}
+                                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
                                 value={this.state.ids[name].read}
                                 className={clsx(this.props.classes.oidField, this.props.classes.width100)}
                                 style={{ paddingTop: 8 }}
@@ -736,7 +739,7 @@ class DialogEditDevice extends React.Component {
                             <TextField
                                 key={name}
                                 fullWidth
-                                disabled={!alias && !linkeddevices}
+                                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
                                 value={this.state.ids[name].write}
                                 className={clsx(this.props.classes.oidField, this.props.classes.width100)}
                                 style={{ paddingTop: 8 }}
@@ -751,7 +754,7 @@ class DialogEditDevice extends React.Component {
                                 helperText={`${props.join(', ')}`}
                                 margin="normal"
                             /> <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
                                     <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
                                         <IconEdit />
                                     </IconButton>
@@ -760,12 +763,12 @@ class DialogEditDevice extends React.Component {
                         </div>
                     </div>
                     <div className={this.props.classes.wrapperItemButtons}>
-                        {(alias || linkeddevices) && <Tooltip title={I18n.t('Use one state for read and write')}>
+                        {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
                             <IconButton color="primary" onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
-                        {alias && this.state.ids[name] ? <Tooltip title={I18n.t('Edit convert functions')}>
+                        {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
                             <IconButton onClick={() => this.setState({ editFxFor: name })}>
                                 <IconFunction />
                             </IconButton>
@@ -787,7 +790,7 @@ class DialogEditDevice extends React.Component {
             <TextField
                 key={name}
                 fullWidth
-                disabled={!alias && !linkeddevices}
+                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
                 value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
                 className={this.props.classes.oidField}
                 style={{ paddingTop: 8 }}
@@ -803,17 +806,17 @@ class DialogEditDevice extends React.Component {
                 margin="normal"
             />
             <div className={this.props.classes.wrapperItemButtons}>
-                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
                     <IconButton onClick={() => this.setState({ selectIdFor: name })}>
                         <IconEdit />
                     </IconButton>
                 </Tooltip>}
-                {(alias || linkeddevices) && <Tooltip title={I18n.t('Use differnet states for read and write')}>
+                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
                     <IconButton onClick={() => this.onToggleTypeStates(name)}>
                         <ImportExportIcon />
                     </IconButton>
                 </Tooltip>}
-                {alias && this.state.ids[name] ? <Tooltip title={I18n.t('Edit convert functions')}>
+                {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
                     <IconButton onClick={() => this.setState({ editFxFor: name })}>
                         <IconFunction />
                     </IconButton>
@@ -848,7 +851,6 @@ class DialogEditDevice extends React.Component {
             open={true}
             maxWidth="md"
             fullWidth={true}
-            onClose={() => this.handleClose()}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
@@ -860,6 +862,7 @@ class DialogEditDevice extends React.Component {
                 id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
             <DialogContent className={this.props.classes.content}>
                 <AppBar style={{ top: 0 }} position="sticky" color="default">
+                    {this.state.startTheProcess && <LinearProgress />}
                     <div className={this.props.classes.wrapperIconHead}>
                         <div className={this.props.classes.iconStyle}>{this.showDeviceIcon()}</div>
                         <span className={this.props.classes.deviceText}>{I18n.t('type-' + this.props.channelInfo.type)}</span>
@@ -879,8 +882,8 @@ class DialogEditDevice extends React.Component {
                         scrollButtons="auto"
                         aria-label="scrollable auto tabs example"
                     >
-                        <Tab label={I18n.t('General')} {...this.a11yProps(0)} />
-                        <Tab label={I18n.t('States')} {...this.a11yProps(1)} />
+                        <Tab disabled={this.state.startTheProcess} label={I18n.t('General')} {...this.a11yProps(0)} />
+                        <Tab disabled={this.state.startTheProcess} label={I18n.t('States')} {...this.a11yProps(1)} />
                     </Tabs>
                 </AppBar>
                 <TabPanel value={this.state.tab} index={1}>
@@ -892,6 +895,7 @@ class DialogEditDevice extends React.Component {
                 <TabPanel value={this.state.tab} index={0}>
                     <DialogEditProperties
                         channelId={this.props.channelId}
+                        disabled={this.state.startTheProcess}
                         type={this.props.type}
                         iot={this.props.iot}
                         iotNoCommon={this.props.iotNoCommon}
@@ -915,12 +919,13 @@ class DialogEditDevice extends React.Component {
             <DialogActions>
                 <Button
                     variant="contained"
-                    disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton}
+                    disabled={(JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) && JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) || this.state.disabledButton || this.state.startTheProcess}
                     onClick={async () => await this.handleOk()}
                     startIcon={<IconCheck />}
                     color="primary">{I18n.t('Save')}</Button>
                 <Button
                     variant="contained"
+                    disabled={this.state.startTheProcess}
                     onClick={this.handleClose}
                     startIcon={<IconClose />}
                 >{I18n.t('Cancel')}</Button>

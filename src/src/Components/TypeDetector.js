@@ -391,10 +391,27 @@ function ChannelDetector() {
         },
         weatherCurrent: {
             states: [
-                {role: /^switch(\.weatherCurrent)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumWeatherCurrent, name: 'SET',                 required: true, defaultRole: 'switch.weatherCurrent'},
+                {role: /^value(\.temperature)?$/,                     indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'TEMPERATURE',                 required: true, defaultRole: 'value.temperature', defaultUnit: '°C'},
+                {role: /^url(\.weatherIcon)?$/,                       indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'URL',                         required: true, defaultRole: 'url.temperature'},
                 // optional
-                // {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
-                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumWeatherCurrent,  name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
+                {role: /^value(\.DewPoint)?$/,                        indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'DEWPOINT',                                    defaultRole: 'value.dewpoint', defaultUnit: '°C'},
+                {role: /^value(\.HasPrecipitation)?$/,                indicator: false, type: 'boolean',               enums: roleOrEnumWeatherCurrent, name: 'HASPRECIPITATION',                            defaultRole: 'value.hasprecipitation'},
+                {role: /^date(\.LocalObservationDateTime)?$/,         indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'LOCALOBSERVATIONDATETIME',                    defaultRole: 'date.localobservationdatetime'},
+                {role: /^state(\.PrecipitationChance)?$/,             indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'PRECIPITATIONCHANCE',                         defaultRole: 'state.precipitationchance', min: 'number', max: 'number', defaultUnit: '%'},
+                {role: /^value(\.PrecipitationType)?$/,               indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'PRECIPITATIONTYPE',                           defaultRole: 'value.precipitationtype'},
+                {role: /^value(\.Pressure)?$/,                        indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'PRESSURE',                                    defaultRole: 'value.pressure', defaultUnit: 'mb'},
+                {role: /^value(\.PressureTendency)?$/,                indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'PRESSURETENDENCY',                            defaultRole: 'value.pressuretendency'},
+                {role: /^value(\.RealFeelTemperature)?$/,             indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'REALFEELTEMPERATURE',                         defaultRole: 'value.temperature.feelslike', defaultUnit: '°C'},
+                {role: /^value(\.RealFeelTemperatureShade)?$/,        indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'REALFEELTEMPERATURESHADE',                    defaultRole: 'value.realfeeltemperatureshade', defaultUnit: '°C'},
+                {role: /^value(\.RelativeHumidity)?$/,                indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'RELATIVEHUMIDITY',                            defaultRole: 'value.relativehumidity', defaultUnit: '%'},
+                {role: /^value(\.UVIndex)?$/,                         indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'UVINDEX',                                     defaultRole: 'value.uvindex'},
+                {role: /^value(\.UVIndexText)?$/,                     indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'UVINDEXTEXT',                                 defaultRole: 'value.uvindextext'},
+                {role: /^media.url(\.WeatherIconURL)?$/,              indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'WEATHERICONURL',                              defaultRole: 'media.url'},
+                {role: /^weather.icon(\.WeatherIconURLS)?$/,          indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'WEATHERICONURLS',                             defaultRole: 'weather.icon'},
+                {role: /^weather.state(\.WeatherText)?$/,             indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'WEATHERTEXT',                                 defaultRole: 'weather.state'},
+                {role: /^value(\.WindDirection)?$/,                   indicator: false, type: 'string',                enums: roleOrEnumWeatherCurrent, name: 'WINDDIRECTION',                               defaultRole: 'value.winddirection', defaultUnit: '°'},
+                {role: /^value(\.WindGust)?$/,                        indicator: false, type: 'number',                enums: roleOrEnumWeatherCurrent, name: 'WINDGUST',                                    defaultRole: 'value.windgust', defaultUnit: 'km/h'},
+                {role: /^value(\.WindSpeed)?$/,                       indicator: false, type: 'number',               enums: roleOrEnumWeatherCurrent, name: 'WINDSPEED',                                   defaultRole: 'value.windspeed', defaultUnit: 'km/h'},
                 patternDirection,
                 patternWorking,
                 patternUnreach,
@@ -405,7 +422,7 @@ function ChannelDetector() {
         },
         camera: {
             states: [
-                {role: /^camera(\.\w+)?$/,                                  indicator: false, type: 'file',     name: 'FILE',                  required: true, defaultRole: 'camera'},
+                {role: /^camera(\.\w+)?$/,                                        indicator: false, type: 'file',     name: 'FILE',                  required: true, defaultRole: 'camera'},
                 // optional
                 {role: /^switch(\.camera)?\.autofocus$/,                          indicator: false, type: 'boolean',  write: true,  name: 'AUTOFOCUS',        required: false, defaultRole: 'switch.camera.autofocus'},
                 {role: /^switch(\.camera)?\.autowhitebalance$/,                   indicator: false, type: 'boolean',  write: true,  name: 'AUTOWHITEBALANCE', required: false, defaultRole: 'switch.camera.autowhitebalance'},
@@ -736,18 +753,6 @@ function ChannelDetector() {
     var gateRoles = ['gate', 'value.gate', 'switch.gate', 'action.stop', 'button.stop'];
     function roleOrEnumGate(obj, enums) {
         return roleOrEnum(obj, enums, gateRoles, gateWords);
-    }
-
-// -------------- CAMERA ------------------------------------------
-    var cameraWords = {
-        en: [/camera?/i],
-        de: [/kamera/i, /fotoapparat/i],
-        ru: [/камера/i],
-    };
-
-    var cameraRoles = ['camera', 'value.ptz', 'switch.camera', 'action.stop', 'button.stop', 'switch.nightmode', 'switch.brightness', 'switch.autowhitebalance', 'switch.autofocus'];
-    function roleOrEnumCamera(obj, enums) {
-        return roleOrEnum(obj, enums, cameraRoles, cameraWords);
     }
 
 // -------------- WEATHER CURRENT ----------------------------------

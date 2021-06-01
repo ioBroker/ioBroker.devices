@@ -277,10 +277,10 @@ class TreeView extends React.Component {
         if (newExp) {
             this.state.expanded = newExp;
         }
-
+        console.log(11223344,this.props.selected,this.state.selected)
         // debounce search process
         this.filterTimer = null;
-        setTimeout(() => this.props.onSelect && this.props.onSelect(this.state.selected), 200);
+        // setTimeout(() => this.props.onSelect && this.props.onSelect(this.state.selected), 200);
     }
 
     handleOk() {

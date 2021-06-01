@@ -230,6 +230,7 @@ class DialogEditProperties extends React.PureComponent {
             value={this.state[name]}
             fullWidth
             multiple
+            disabled={this.props.disabled}
             renderValue={arrId => {
                 const newArr = arrId.map(id => {
                     return {
@@ -271,9 +272,13 @@ class DialogEditProperties extends React.PureComponent {
             } else {
                 smartName = obj.common.smartName;
             }
+        }else {
+            smartName = obj?.common?.smartName || '';
         }
-
         if (smartName && typeof smartName === 'object') {
+            if(smartName[language] === false || smartName.en === false){
+                return false;
+            }
             smartName = smartName[language] || smartName.en || '';
         }
         return smartName || '';
@@ -300,13 +305,14 @@ class DialogEditProperties extends React.PureComponent {
     }
 
     renderProperties() {
-        const classes = this.props.classes;
+        const { classes, disabled } = this.props;
         return <div className={classes.divOids}>
             <div className={classes.divOidField}>
                 <div className={classes.oidName} >{I18n.t('Name')}</div>
                 <TextField
                     key="_name"
                     fullWidth
+                    disabled={disabled}
                     value={this.state.name}
                     error={this.checkedName()}
                     className={classes.oidField}
@@ -321,9 +327,10 @@ class DialogEditProperties extends React.PureComponent {
                     control={
                         <Switch
                             className={classes.disableSwitch}
+                            disabled={disabled}
                             checked={this.state.smartName === false}
                             color="secondary"
-                            onChange={e => this.setState({ smartName: e.target.checked ? false : '' })}
+                            onChange={e => this.setState({ smartName: e.target.checked ? false : null })}
                         />
                     }
                     label={I18n.t('Hide this name from smart assistance')}
@@ -334,6 +341,7 @@ class DialogEditProperties extends React.PureComponent {
                 <TextField
                     key="_smartName"
                     fullWidth
+                    disabled={disabled}
                     placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
                     value={this.state.smartName}
                     className={classes.oidField}
@@ -355,6 +363,7 @@ class DialogEditProperties extends React.PureComponent {
                 <TextField
                     key="_color"
                     fullWidth
+                    disabled={disabled}
                     value={this.state.color}
                     style={{ width: 'calc(100% - 185px)' }}
                     onChange={e => this.setState({ color: e.target.value })}
@@ -363,6 +372,7 @@ class DialogEditProperties extends React.PureComponent {
                     key="_color1"
                     type="color"
                     style={{ width: 40 }}
+                    disabled={disabled}
                     value={this.state.color}
                     className={classes.oidField + ' ' + classes.colorButton}
                     onChange={e => this.setState({ color: e.target.value })}
@@ -372,6 +382,7 @@ class DialogEditProperties extends React.PureComponent {
             <UploadImage
                 crop
                 icons
+                disabled={disabled}
                 className={classes.sizeDropZone}
                 maxSize={256 * 1024}
                 icon={this.state.icon}
@@ -397,7 +408,8 @@ DialogEditProperties.propTypes = {
     channelId: PropTypes.string,
     objects: PropTypes.object,
     enumIDs: PropTypes.array,
-    socket: PropTypes.object
+    socket: PropTypes.object,
+    disabled: PropTypes.bool
 };
 
 export default withStyles(styles)(DialogEditProperties);

@@ -47,7 +47,7 @@ import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
-import DialogConfirm from '@iobroker/adapter-react/Dialogs/Confirm';
+// import DialogConfirm from '@iobroker/adapter-react/Dialogs/Confirm';
 import SmartGeneric from '../Devices/SmartGeneric';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
@@ -65,7 +65,7 @@ import {
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
 import clsx from 'clsx';
-import { deleteFolderCallBack } from '../Dialogs/DeleteFolder';
+import { deleteFolderAndDeviceCallBack } from '../Dialogs/DeleteFolder';
 import DialogEditFolder from '../Dialogs/DialogEditFolder';
 import Icon from '@iobroker/adapter-react/Components/Icon';
 import DvrIcon from '@material-ui/icons/Dvr';
@@ -634,7 +634,7 @@ const styles = theme => ({
         alignItems: 'center'
     },
     iconOpen: {
-        transform: 'skew(147deg, 183deg) scale(0.5) translate(7px, 8px)'
+        transform: 'skew(147deg, 183deg) scale(0.5) translate(-43px, 11px)'
     },
     hoverRow: {
         '&:hover:after': {
@@ -687,7 +687,7 @@ class ListDevices extends Component {
         this.state = {
             editId: location.dialog === 'edit' ? location.id : null,
             copyId: null,
-            deleteIndex: null,
+            // deleteIndex: null,
             deleteId: '',
             editEnum: null,
             listItems: [],
@@ -1008,10 +1008,10 @@ class ListDevices extends Component {
         ids.forEach(id => {
             stateIds[id] = {
                 common: {
-                    name: objects[id] && objects[id].type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
+                    name: objects[id]?.type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
                     nondeletable: true,
-                    color: objects[id].common && objects[id].common.color ? objects[id].common.color : null,
-                    icon: objects[id].common && objects[id].common.icon ? objects[id].common.icon : this.searchIcon(id.channelId)
+                    color: objects[id]?.common?.color || null,
+                    icon: objects[id]?.common?.icon || this.searchIcon(id.channelId)
                 },
                 obj: objects[id],
                 type: objects[id].type,
@@ -1291,19 +1291,25 @@ class ListDevices extends Component {
             // check the parent
             if (channelId && channelId.split('.').length > 2) {
                 const channelObj = this.objects[channelId];
-                if (channelObj && (channelObj.type === 'channel' || channelObj.type === 'device')) {
+                if (channelObj && (channelObj.type === 'channel' || channelObj.type === 'device' || channelObj.type === 'state')) {
                     if (channelObj.common?.icon) {
                         icon = channelObj.common?.icon;
                     } else {
                         // check the parent
                         const deviceId = Utils.getParentId(channelId);
                         if (deviceId && deviceId.split('.').length > 2) {
-                            console.log('Get deviceId' + deviceId);
-                            const deviceObj = this.objects[deviceId];
-                            if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device')) {
-                                if (deviceObj.common?.icon) {
-                                    icon = deviceObj.common?.icon;
+                            const arrayParent = deviceId.split('.');
+                            let parentId = deviceId;
+                            for (let i = 0; i < arrayParent.length - 2; i++) {
+                                console.log('Get deviceId' + parentId);
+                                const deviceObj = this.objects[parentId];
+                                if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device' || channelObj.type === 'state')) {
+                                    if (deviceObj.common?.icon) {
+                                        icon = deviceObj.common?.icon;
+                                        break;
+                                    }
                                 }
+                                parentId = Utils.getParentId(parentId);
                             }
                         }
                     }
@@ -1507,71 +1513,73 @@ class ListDevices extends Component {
         </div>;
     }
 
-    renderDevice(key, index, device, funcEnums, roomsEnums) {
-        device = device || this.state.devices[index];
+    // renderDevice(key, index, device, funcEnums, roomsEnums) {
+    //     device = device || this.state.devices[index];
 
-        const classes = this.props.classes;
-        const background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
-        const color = Utils.invertColor(background, true);
+    //     const classes = this.props.classes;
+    //     const background = this.objects[device.channelId] && this.objects[device.channelId].common && this.objects[device.channelId].common.color;
+    //     const color = Utils.invertColor(background, true);
 
-        let j = 0;
+    //     let j = 0;
 
-        const smartName = this.getSmartName(this.objects[device.channelId]);
+    //     const smartName = this.getSmartName(this.objects[device.channelId]);
 
-        return <TableRow
-            key={key}
-            className={classes.tableLine} padding="default" style={{ background }}>
-            <TableCell style={{ color }} className={classes.tableExpandIconCell} />
-            <TableCell style={{ color }} className={classes.tableIconCell}>
-                <div className={classes.tableIcon}>
-                    <TypeIcon style={{ color }} src={device.icon} className={classes.tableIconImg} type={device.type} />
-                </div>
-            </TableCell>
-            <TableCell style={{ color }} className={classes.tableNameCell}>{device.name}{smartName !== '' ? <div className={classes.tableSmartName}>{smartName || I18n.t('disabled')}</div> : null}</TableCell>
-            {this.state.windowWidth >= WIDTHS[4] ? <TableCell style={{ color }} className={classes.tableIdCell} title={device.channelId}>{device.channelId}</TableCell> : null}
-            {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
-            {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell> : null}
-            {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderTypeCell(device.type)}</TableCell> : null}
-            {this.state.windowWidth >= WIDTHS[0] ? <TableCell style={{ color }}>{device.usedStates}</TableCell> : null}
-            <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
-                <div className={classes.wrapperButton}>
-                    <Tooltip title={I18n.t('Edit states')}>
-                        <IconButton
-                            style={{ color }}
-                            // size="small"
-                            onClick={e => this.onEdit(device.channelId, e)}>
-                            <IconEdit />
-                        </IconButton>
-                    </Tooltip>
-                    {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
-                        <Tooltip title={I18n.t('Delete device with all states')}>
-                            <IconButton
-                                style={{ color }}
-                                // size="small"
-                                onClick={e => {
-                                    e.stopPropagation();
-                                    this.setState({ deleteIndex: index });
-                                }}>
-                                <IconDelete />
-                            </IconButton>
-                        </Tooltip> : <div className={classes.emptyBlock} />}
-                </div>
-            </TableCell>
-        </TableRow>;
-    }
+    //     return <TableRow
+    //         key={key}
+    //         className={classes.tableLine} padding="default" style={{ background }}>
+    //         <TableCell style={{ color }} className={classes.tableExpandIconCell} />
+    //         <TableCell style={{ color }} className={classes.tableIconCell}>
+    //             <div className={classes.tableIcon}>
+    //                 <TypeIcon style={{ color }} src={device.icon} className={classes.tableIconImg} type={device.type} />
+    //             </div>
+    //         </TableCell>
+    //         <TableCell style={{ color }} className={classes.tableNameCell}>{device.name}{smartName !== '' ? <div className={classes.tableSmartName}>{smartName || I18n.t('disabled')}</div> : null}</TableCell>
+    //         {this.state.windowWidth >= WIDTHS[4] ? <TableCell style={{ color }} className={classes.tableIdCell} title={device.channelId}>{device.channelId}</TableCell> : null}
+    //         {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
+    //         {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}</TableCell> : null}
+    //         {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell style={{ color }}>{this.renderTypeCell(device.type)}</TableCell> : null}
+    //         {this.state.windowWidth >= WIDTHS[0] ? <TableCell style={{ color }}>{device.usedStates}</TableCell> : null}
+    //         <TableCell align="right" style={{ color }} className={classes.buttonsCell}>
+    //             <div className={classes.wrapperButton}>
+    //                 <Tooltip title={I18n.t('Edit states')}>
+    //                     <IconButton
+    //                         style={{ color }}
+    //                         // size="small"
+    //                         onClick={e => this.onEdit(device.channelId, e)}>
+    //                         <IconEdit />
+    //                     </IconButton>
+    //                 </Tooltip>
+    //                 {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
+    //                     <Tooltip title={I18n.t('Delete device with all states')}>
+    //                         <IconButton
+    //                             style={{ color }}
+    //                             // size="small"
+    //                             onClick={e => {
+    //                                 e.stopPropagation();
+    //                                 this.setState({ deleteIndex: index });
+    //                             }}>
+    //                             <IconDelete />
+    //                         </IconButton>
+    //                     </Tooltip> : <div className={classes.emptyBlock} />}
+    //             </div>
+    //         </TableCell>
+    //     </TableRow>;
+    // }
 
     saveExpanded(expandedIDs) {
         window.localStorage.setItem('IDs.expanded', JSON.stringify(expandedIDs || this.state.expandedIDs));
     }
 
-    toggleExpanded(id) {
+    toggleExpanded(id, open) {
         const expandedIDs = this.state.expandedIDs.slice();
         const pos = expandedIDs.indexOf(id);
         if (pos === -1) {
             expandedIDs.push(id);
             expandedIDs.sort();
         } else {
-            expandedIDs.splice(pos, 1);
+            if (!open) {
+                expandedIDs.splice(pos, 1);
+            }
         }
         this.setState({ expandedIDs });
         this.saveExpanded(expandedIDs);
@@ -1731,6 +1739,7 @@ class ListDevices extends Component {
             objects={this.objects}
             deleteDevice={this.deleteDevice}
             onCopyDevice={this.onCopyDevice}
+            openFolder={() => this.toggleExpanded(item.id, true)}
             deviceIdx={deviceIdx}
             backgroundRow={backgroundRow}
             className={this.props.classes.hoverRow}
@@ -1753,8 +1762,8 @@ class ListDevices extends Component {
                                 <TypeIcon src={item.icon} style={{ color }} className={this.props.classes.tableIconImg} type={item.role} />
                             </div>}
                         {item.type === 'folder' && item.icon &&
-                            <div onClick={() => this.toggleExpanded(item.id)}>
-                                <Icon onClick={() => this.toggleExpanded(item.id)} className={clsx(this.props.classes.iconCommon, isExpanded && this.props.classes.iconOpen)} alt={item.type} src={item.icon} />
+                            <div className={clsx(isExpanded && this.props.classes.iconOpen)} onClick={() => this.toggleExpanded(item.id)}>
+                                <Icon className={this.props.classes.iconCommon} onClick={() => this.toggleExpanded(item.id)} alt={item.type} src={item.icon} />
                             </div>}
                     </ListItemIcon>
                     <Tooltip title={<div>
@@ -1807,11 +1816,10 @@ class ListDevices extends Component {
                     {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
                         <Tooltip title={I18n.t('Delete device with all states')}>
                             <IconButton
-                                // size="small"
-                                onClick={e => {
-                                    e.stopPropagation();
-                                    this.setState({ deleteIndex: index });
-                                }}>
+                                onClick={e =>
+                                    deleteFolderAndDeviceCallBack(result =>
+                                        result && this.deleteDevice(index), true)}
+                            >
                                 <IconDelete />
                             </IconButton>
                         </Tooltip> : <div className={classes.emptyBlock} />}
@@ -1854,8 +1862,8 @@ class ListDevices extends Component {
                         <Tooltip title={I18n.t('Delete folder')}>
                             <IconButton
                                 onClick={e =>
-                                    deleteFolderCallBack(result =>
-                                        result && this.props.socket.delObjects(item.id, true))}
+                                    deleteFolderAndDeviceCallBack(result =>
+                                        result && this.props.socket.delObjects(item.id, true), false)}
                             >
                                 <IconDelete />
                             </IconButton>
@@ -2224,8 +2232,9 @@ class ListDevices extends Component {
         await this.processTasks(tasks);
     }
 
-    async onEditFinished(device, data, refresh, cb) {
+    onEditFinished = async (data, refresh, cb) => {
         let somethingChanged = false;
+        const device = this.state.devices.find(({ channelId }) => channelId === this.state.editId);
         if (data) {
             // const device = this.state.devices[this.state.editIndex];
             const channelId = device.channelId;
@@ -2233,7 +2242,7 @@ class ListDevices extends Component {
             if (channelId.startsWith(ALIAS)) {
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
-                    const obj = await this.props.socket.getObject(state.id);
+                    const obj = this.objects[state.id];
                     if (state.id && obj && obj.common && obj.common.alias) {
                         if (data.ids[state.name] !== obj.common.alias.id ||
                             obj.common.alias.read !== data.fx[state.name].read ||
@@ -2244,7 +2253,7 @@ class ListDevices extends Component {
                                 await this.props.socket.delObject(state.id);
                             } else {
                                 // update state
-                                const stateObj = await this.props.socket.getObject(state.id);
+                                const stateObj = this.objects[state.id];
                                 stateObj.common = stateObj.common || {};
                                 stateObj.common.alias = stateObj.common.alias || {};
                                 stateObj.common.alias.id = data.ids[state.name];
@@ -2267,7 +2276,7 @@ class ListDevices extends Component {
                         // Object not yet exists or invalid
                         let stateObj;
                         try {
-                            stateObj = await this.props.socket.getObject(state.id);
+                            stateObj = await this.objects[state.id];
                         } catch (e) {
 
                         }
@@ -2328,7 +2337,7 @@ class ListDevices extends Component {
                 if (channelId.startsWith(LINKEDDEVICES)) {
                     for (let s = 0; s < device.states.length; s++) {
                         let state = device.states[s];
-                        const obj = await this.props.socket.getObject(state.id);
+                        const obj = this.objects[state.id];
                         let attrs;
                         if (state.id && obj && obj.common && obj.common.custom && (attrs = Object.keys(obj.common.custom).filter(id => id.startsWith(LINKEDDEVICES))).length) {
                             const attr = attrs[0];
@@ -2342,7 +2351,7 @@ class ListDevices extends Component {
                                     somethingChanged = true;
                                 } else {
                                     // update state
-                                    const stateObj = await this.props.socket.getObject(state.id);
+                                    const stateObj = this.objects[state.id];
                                     stateObj.common = stateObj.common || {};
                                     stateObj.common.custom = stateObj.common.custom || {};
                                     stateObj.common.custom[attr] = stateObj.common.custom[attr] || {};
@@ -2359,7 +2368,7 @@ class ListDevices extends Component {
                             // Object not yet exists or invalid
                             let stateObj;
                             try {
-                                stateObj = await this.props.socket.getObject(state.id);
+                                stateObj = this.objects[state.id];
                             } catch (e) {
 
                             }
@@ -2432,11 +2441,11 @@ class ListDevices extends Component {
         Router.doNavigate(null, '', '');
     }
 
-    async onSaveProperties(device, data) {
+    onSaveProperties = async data => {
         let somethingChanged = false;
+        const device = this.state.devices.find(({ channelId }) => channelId === this.state.editId);
         if (data) {
             const language = I18n.getLanguage();
-            // const device = this.state.devices[this.state.editIndex];
             const channelId = device.channelId;
             const oldName = Utils.getObjectNameFromObj(this.objects[channelId], null, { language });
 
@@ -2519,8 +2528,8 @@ class ListDevices extends Component {
                     await this.deleteDevice(this.state.devices.indexOf(copiedDevice));
                 }
             }}
-            onSaveProperties={data => this.onSaveProperties(device, data)}
-            onClose={(data, refresh, cb) => this.onEditFinished(device, data, refresh, cb)}
+            onSaveProperties={this.onSaveProperties}
+            onClose={this.onEditFinished}
         />;
     }
 
@@ -2787,34 +2796,34 @@ class ListDevices extends Component {
         }
     }
 
-    renderDeleteDialog() {
-        if (this.state.deleteIndex === null) {
-            return null;
-        } else {
-            const time = window.localStorage.getItem('DeleteDeviceTime');
-            const fiveMin = 1000 * 60 * 5;
-            const index = this.state.deleteIndex;
-            if (time && new Date().getTime() - time < fiveMin) {
-                return this.setState({ deleteIndex: null }, () => {
-                    this.deleteDevice(index);
-                })
-            }
-            return <DialogConfirm
-                title={I18n.t('Please confirm...')}
-                text={I18n.t('Device and all states will be deleted. Are you sure?')}
-                onClose={result => {
-                    const index = this.state.deleteIndex;
-                    this.setState({ deleteIndex: null }, async () => {
-                        if (result) {
-                            window.localStorage.setItem('DeleteDeviceTime', new Date().getTime());
-                            const devices = await this.deleteDevice(index);
-                            this.setState({ devices });
-                        }
-                    })
-                }}
-            />;
-        }
-    }
+    // renderDeleteDialog() {
+    //     if (this.state.deleteIndex === null) {
+    //         return null;
+    //     } else {
+    //         const time = window.localStorage.getItem('DeleteDeviceTime');
+    //         const fiveMin = 1000 * 60 * 5;
+    //         const index = this.state.deleteIndex;
+    //         if (time && new Date().getTime() - time < fiveMin) {
+    //             return this.setState({ deleteIndex: null }, () => {
+    //                 this.deleteDevice(index);
+    //             })
+    //         }
+    //         return <DialogConfirm
+    //             title={I18n.t('Please confirm...')}
+    //             text={I18n.t('Device and all states will be deleted. Are you sure?')}
+    //             onClose={result => {
+    //                 const index = this.state.deleteIndex;
+    //                 this.setState({ deleteIndex: null }, async () => {
+    //                     if (result) {
+    //                         window.localStorage.setItem('DeleteDeviceTime', new Date().getTime());
+    //                         const devices = await this.deleteDevice(index);
+    //                         this.setState({ devices });
+    //                     }
+    //                 })
+    //             }}
+    //         />;
+    //     }
+    // }
 
     renderEditEnumDialog() {
         if (!this.state.editEnum) {
@@ -2982,7 +2991,7 @@ class ListDevices extends Component {
                     {this.renderMessage()}
                     {this.renderEditDialog()}
                     {this.renderAddDialog()}
-                    {this.renderDeleteDialog()}
+                    {/* {this.renderDeleteDialog()} */}
                     {this.renderEditEnumDialog()}
                     {this.renderImporterDialog()}
                     {this.renderEditFolder()}

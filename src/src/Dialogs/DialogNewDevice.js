@@ -220,8 +220,15 @@ class DialogNewDevice extends React.Component {
         };
         const functionStorage = JSON.parse(window.localStorage.getItem('Devices.new.functions'));
         const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
+        let root =  window.localStorage.getItem('NewDeviceRoot');
+        if(root && this.props.prefix.includes('alias') === root.includes('alias') && !!this.props.objects[root]){
+
+        }else{
+            root = null;
+        }
+
         this.state = {
-            root: this.prefix,
+            root: root || this.prefix,
             name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
             notUnique: false,
             functions: !!roomsStorage && typeof functionStorage !== 'string' ? functionStorage : [],
@@ -333,7 +340,7 @@ class DialogNewDevice extends React.Component {
         // check if name is unique
         if (this.props.copyDevice) {
             await this.onCopyDevice(this.generateId());
-            await this.props.onChange();
+            // await this.props.onChange();
             this.props.onClose();
         } else {
             this.props.onClose({
@@ -407,7 +414,9 @@ class DialogNewDevice extends React.Component {
                         theme={this.props.theme}
                         objects={this.state.ids}
                         onAddNew={async (name, parentId) => await this.addNewFolder(name, parentId)}
-                        onSelect={id => this.setState({ root: id })}
+                        onSelect={id => this.setState({ root: id },()=>{
+                            window.localStorage.setItem('NewDeviceRoot',id);
+                        })}
                         selected={this.state.root}
                     />
                 </div>

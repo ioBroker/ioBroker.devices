@@ -6,24 +6,24 @@
 ## Edit folder
 
 ## Edit device dialog
-- Edit "read and write" Σ button must be hidden if no IDs defined and read/write IDs
-- Disable smart option does not work: https://github.com/ioBroker/ioBroker.devices/issues/51
+<!-- - Edit "read and write" Σ button must be hidden if no IDs defined and read/write IDs -->
+<!-- - Disable smart option does not work: https://github.com/ioBroker/ioBroker.devices/issues/51 -->
 - Smoke detector has wrong icon in devices
-- Save does not work
+<!-- - Save does not work -->
 
 ## List of devices
-- Add feature: "Do not show dialog for 5 minutes" for delete dialog
-- Linked devices folder in opened state does not modify icon. (skew and so on)
-- Move devices between folders (drag & drop)
-  - Add pseudo device root by start dragging and if no devices are in root.
-  - Try to detect folder for devices if mouse over the device
-  - Open folder for just dropped device
+<!-- - Add feature: "Do not show dialog for 5 minutes" for delete dialog -->
+<!-- - Linked devices folder in opened state does not modify icon. (skew and so on) -->
+<!-- - Move devices between folders (drag & drop) -->
+  <!-- - Add pseudo device root by start dragging and if no devices are in root. -->
+  <!-- - Try to detect folder for devices if mouse over the device -->
+  <!-- - Open folder for just dropped device -->
 
 ## Folder control in new device dialog
 
 ## Add new device dialog
 - Add to all states: SET/ACTION/POWER.... some icons //
-- Remember last selected folder
+<!-- - Remember last selected folder -->
 
 ## Set states
 - Add possibility to extend states with own states
@@ -43,7 +43,7 @@
 ## Functionality
 - Do not search in parent if it is folder (only in devices/channels)
 ## Importer
-- Find icon of device (hm-rpc.1.001F9A499D118C)
+<!-- - Find icon of device (hm-rpc.1.001F9A499D118C) -->
 
   
 
