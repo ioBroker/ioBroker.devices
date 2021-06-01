@@ -273,10 +273,14 @@ class DialogEditProperties extends React.PureComponent {
                 smartName = obj.common.smartName;
             }
         }else {
-            smartName = obj?.common?.smartName || '';
+            smartName = obj?.common?.smartName;
         }
+
+        if (smartName === false) {
+            return false;
+        } else
         if (smartName && typeof smartName === 'object') {
-            if(smartName[language] === false || smartName.en === false){
+            if (smartName[language] === false || smartName.en === false) {
                 return false;
             }
             smartName = smartName[language] || smartName.en || '';

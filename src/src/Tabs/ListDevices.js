@@ -1303,7 +1303,7 @@ class ListDevices extends Component {
                             for (let i = 0; i < arrayParent.length - 2; i++) {
                                 console.log('Get deviceId' + parentId);
                                 const deviceObj = this.objects[parentId];
-                                if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device' || channelObj.type === 'state')) {
+                                if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device')) {
                                     if (deviceObj.common?.icon) {
                                         icon = deviceObj.common?.icon;
                                         break;
@@ -2187,11 +2187,14 @@ class ListDevices extends Component {
         }
 
         const channelId = copyDevice.channelId;
-        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
-
-        if (!isAlias) {
+        if (channelId.startsWith('linkeddevices.')) {
             return;
         }
+        // const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
+
+        // if (!isAlias) {
+        //     return;
+        // }
 
         const channelObj = this.objects[channelId];
         const { functions, rooms, icon, states, color, type } = copyDevice;
@@ -2223,9 +2226,9 @@ class ListDevices extends Component {
             if (!obj.native) {
                 obj.native = {};
             }
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
+            // if (!isAlias) {
+            //     obj.common.alias = { id: state.id };
+            // }
             tasks.push({ id: obj._id, obj });
         });
 
@@ -2477,8 +2480,12 @@ class ListDevices extends Component {
                 }
                 obj.type = obj.type || 'channel';
 
-                this.setSmartName(obj, data.smartName, language);
-
+                if (data.smartName === false) {
+                    obj.common.smartName = false;
+                } else {
+                    this.setSmartName(obj, data.smartName, language);
+                }
+                
                 await this.props.socket.setObject(obj._id, obj);
                 somethingChanged = true;
             }

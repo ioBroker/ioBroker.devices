@@ -687,7 +687,7 @@ class DialogEditDevice extends React.Component {
         const IconsState = STATES_NAME_ICONS[name] || MdHelpOutline
 
         if (typeof this.state.ids[name] === 'object') {
-            return <>
+            return <div key={name}>
                 <div key={name} className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
                     <div className={this.props.classes.displayFlex}>
                         <div className={this.props.classes.displayFlexRow}>
@@ -775,7 +775,7 @@ class DialogEditDevice extends React.Component {
                         </Tooltip> : <div className={this.props.classes.emptyButton} />}
                     </div>
                 </div>
-            </>;
+            </div>;
         }
 
         return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
