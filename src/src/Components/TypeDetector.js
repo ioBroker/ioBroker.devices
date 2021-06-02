@@ -398,7 +398,7 @@ function ChannelDetector() {
                 {role: /^value(\.precipitationType)?$/,               indicator: false, type: 'number',                name: 'PRECIPITATIONTYPE',                           defaultRole: 'value.precipitationtype'},
                 {role: /^value(\.Pressure)?$/,                        indicator: false, type: 'number',                name: 'PRESSURE',                                    defaultRole: 'value.pressure', defaultUnit: 'mb'},
                 {role: /^value(\.PressureTendency)?$/,                indicator: false, type: 'string',                name: 'PRESSURETENDENCY',                            defaultRole: 'value.pressuretendency'},
-                {role: /^value\.temperature\.windchill?$/,              indicator: false, type: 'number',                name: 'REALFEELTEMPERATURE',                         defaultRole: 'value.temperature.feelslike', defaultUnit: '°C'},
+                {role: /^value\.temperature\.windchill?$/,            indicator: false, type: 'number',                name: 'REALFEELTEMPERATURE',                         defaultRole: 'value.temperature.feelslike', defaultUnit: '°C'},
                 {role: /^value(\.humidity)?$/,                        indicator: false, type: 'number',                name: 'RELATIVEHUMIDITY',                            defaultRole: 'value.relativehumidity', defaultUnit: '%'},
                 {role: /^value(\.UVIndex)?$/,                         indicator: false, type: 'number',                name: 'UVINDEX',                                     defaultRole: 'value.uvindex'},
                 {role: /^weather\.state?$/,                           indicator: false, type: 'string',                name: 'WEATHERTEXT',                                 defaultRole: 'weather.state'},
@@ -745,18 +745,6 @@ function ChannelDetector() {
     var gateRoles = ['gate', 'value.gate', 'switch.gate', 'action.stop', 'button.stop'];
     function roleOrEnumGate(obj, enums) {
         return roleOrEnum(obj, enums, gateRoles, gateWords);
-    }
-
-// -------------- WEATHER CURRENT ----------------------------------
-    var weatherCurrentWords = {
-        en: [/weatherCurrent/i, /weather current/i,  /weather/i],
-        de: [/wetterstrom/i, /wetter/i],
-        ru: [/погода/i, /текущая погода /i],
-    };
-
-    var weatherCurrentRoles = ['weatherCurrent', 'switch.weatherCurrent', 'action.stop', 'button.stop'];
-    function roleOrEnumWeatherCurrent(obj, enums) {
-        return roleOrEnum(obj, enums, weatherCurrentRoles, weatherCurrentWords);
     }
 
 // -------------- WINDOWS -----------------------------------------

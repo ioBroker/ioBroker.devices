@@ -1,17 +1,29 @@
+import Utils from '@iobroker/adapter-react/Components/Utils';
+import I18n from '@iobroker/adapter-react/i18n';
 import { TableRow } from '@material-ui/core';
 import React, { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
 const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, updateObjects, deviceIdx, id, children, style, className, key }) => {
     const ref = useRef(null);
-
+    const language = I18n.getLanguage();
     const [{ isDragging }, dragRef] = useDrag({
         type: 'box',
         item: { id, deviceIdx },
+        canDrag:()=>{
+            if(id?.includes('linked_devices') || id?.includes('linkeddevices.0')){
+                return false;
+            }
+            return true;
+        },
         end: async (item, monitor) => {
-            // console.log(11223344, id, item, monitor, monitor.didDrop(), monitor.getTargetIds(), monitor.getDropResult())
-            let parts = id.split('.');
-            parts = parts.pop();
+            let parts;
+            if (objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(objects, item.id, { language }).replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+            } else {
+                parts = item.id.split('.');
+                parts = parts.pop();
+            }
             const result = monitor.getDropResult();
             const targetId = monitor.getTargetIds();
             const didDrop = monitor.didDrop();
@@ -32,8 +44,13 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
     const [{ isOver, canDrop }, dropRef] = useDrop({
         accept: 'box',
         canDrop: (item) => {
-            let parts = item.id.split('.');
-            parts = parts.pop();
+            let parts;
+            if (objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(objects, item.id, { language }).replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+            } else {
+                parts = item.id.split('.');
+                parts = parts.pop();
+            }
             let partsId = id.split('.');
             partsId.pop();
             partsId = partsId.join('.');
@@ -48,8 +65,13 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
             canDrop: monitor.canDrop()
         }),
         drop: async (item) => {
-            let parts = item.id.split('.');
-            parts = parts.pop();
+            let parts;
+            if (objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(objects, item.id, { language }).replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+            } else {
+                parts = item.id.split('.');
+                parts = parts.pop();
+            }
             let partsId = id.split('.');
             partsId.pop();
             partsId = partsId.join('.');
@@ -62,8 +84,13 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
             }
         },
         hover(item, monitor) {
-            let parts = item.id.split('.');
-            parts = parts.pop();
+            let parts;
+            if (objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(objects, item.id, { language }).replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+            } else {
+                parts = item.id.split('.');
+                parts = parts.pop();
+            }
             let partsId = id.split('.');
             partsId.pop();
             partsId = partsId.join('.');

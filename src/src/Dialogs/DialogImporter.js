@@ -259,7 +259,7 @@ const DialogImporter = ({
     devices,
     objects,
     listItems,
-    processTasks
+    onCopyDevice
 }) => {
     const classes = useStyles();
     const [arrayDevice, setArrayDevice] = useState([]);
@@ -343,53 +343,53 @@ const DialogImporter = ({
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
 
-    const onCopyDevice = async (copyDevice, newChannelId, originalId) => {
-        if (!copyDevice) {
-            return null;
-        }
+    // const onCopyDevice = async (copyDevice, newChannelId, originalId) => {
+    //     if (!copyDevice) {
+    //         return null;
+    //     }
 
-        // if this is device not from linkeddevice or from alias
-        const channelId = copyDevice.channelId;
-        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
+    //     // if this is device not from linkeddevice or from alias
+    //     const channelId = copyDevice.channelId;
+    //     const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
 
-        const channelObj = objects[channelId];
-        const { functions, rooms, icon, states, color, type } = copyDevice;
-        const tasks = [];
+    //     const channelObj = objects[channelId];
+    //     const { functions, rooms, icon, states, color, type } = copyDevice;
+    //     const tasks = [];
 
-        tasks.push({
-            id: newChannelId,
-            obj: {
-                common: {
-                    name: channelObj.common.name,
-                    color: color,
-                    desc: channelObj.common.desc,
-                    role: type,
-                    icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
-                },
-                native: {
-                    originalId
-                },
-                type: 'channel'
-            },
-            enums: rooms.concat(functions)
-        });
+    //     tasks.push({
+    //         id: newChannelId,
+    //         obj: {
+    //             common: {
+    //                 name: channelObj.common.name,
+    //                 color: color,
+    //                 desc: channelObj.common.desc,
+    //                 role: type,
+    //                 icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
+    //             },
+    //             native: {
+    //                 originalId
+    //             },
+    //             type: 'channel'
+    //         },
+    //         enums: rooms.concat(functions)
+    //     });
 
-        states.forEach(state => {
-            if (!state.id) {
-                return;
-            }
-            const obj = JSON.parse(JSON.stringify(objects[state.id]));
-            obj._id = newChannelId + '.' + state.name;
+    //     states.forEach(state => {
+    //         if (!state.id) {
+    //             return;
+    //         }
+    //         const obj = JSON.parse(JSON.stringify(objects[state.id]));
+    //         obj._id = newChannelId + '.' + state.name;
 
-            obj.native = {};
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
-            tasks.push({ id: obj._id, obj });
-        });
+    //         obj.native = {};
+    //         if (!isAlias) {
+    //             obj.common.alias = { id: state.id };
+    //         }
+    //         tasks.push({ id: obj._id, obj });
+    //     });
 
-        await processTasks(tasks);
-    };
+    //     await processTasks(tasks);
+    // };
 
     const addNewFolder = async (dataFolder, id) => {
         const obj = {
@@ -406,9 +406,9 @@ const DialogImporter = ({
         await socket.setObject(id, obj);
     };
 
-    const addDevice = async (id, el, device) => {
+    const addDevice = async (id, el) => {
         const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
-        await onCopyDevice(device, newId, el.id);
+        await onCopyDevice(el.id, newId);
     };
 
     const arrayDeviceFunction = async () => {
@@ -433,7 +433,7 @@ const DialogImporter = ({
                             color: newObjFolder.common.color,
                             icon: newObjFolder.common.icon
                         }, newId);
-                        await addDevice(newId, el, device);
+                        await addDevice(newId, el);
                         continue;
                     }
                 }
@@ -447,12 +447,12 @@ const DialogImporter = ({
                             color: newObjFolder.common.color,
                             icon: newObjFolder.common.icon
                         }, newId);
-                        await addDevice(newId, el, device);
+                        await addDevice(newId, el);
                         continue;
                     }
                 }
             }
-            await addDevice(newId, el, device);
+            await addDevice(newId, el);
         }
     };
 

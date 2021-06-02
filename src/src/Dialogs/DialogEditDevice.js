@@ -31,11 +31,14 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
+import { MdDelete as IconDelete } from 'react-icons/md';
+import { MdAdd as IconAdd } from 'react-icons/md';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
 import TypeIcon from '../Components/TypeIcon';
 
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties from './DialogEditProperties';
+import { addStateCallBack } from './AddState';
 
 const styles = theme => {
     return ({
@@ -285,6 +288,56 @@ class DialogEditDevice extends React.Component {
             }
         });
 
+        const newDevices = Object.keys(this.props.objects)
+            .filter(key => key.includes(this.props.channelInfo.channelId) && !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
+            .map(key => {
+                const objOriginal = this.props.objects[key];
+                const obj = {
+                    defaultRole: objOriginal?.common?.role,
+                    id: objOriginal?._id,
+                    noType: true,
+                    name: objOriginal?.common?.name,
+                    type: objOriginal?.common?.type,
+                    write: objOriginal?.common?.write,
+                    indicator: false,
+                    required: false
+                };
+                return obj;
+            })
+            .filter(item => !this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(el => el.name === item.name));
+
+        newDevices.forEach(state => {
+            if (state.id) {
+                const obj = this.props.objects[state.id];
+                if (obj && obj.common && obj.common.alias) {
+                    ids[state.name] = obj.common.alias.id || '';
+                    this.fx[state.name] = {
+                        read: obj.common.alias.read || '',
+                        write: obj.common.alias.write || '',
+                    };
+                } else {
+                    this.fx[state.name] = { read: '', write: '' };
+                }
+                if (obj && obj.common && obj.common.custom) {
+                    const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
+                    if (attr && attr.length && obj.common.custom[attr] && obj.common.custom[attr].parentId) {
+                        ids[state.name] = obj.common.custom[attr].parentId;
+                    }
+                }
+
+                if (state.defaultRole && state.defaultRole.startsWith('button')) {
+                    delete this.fx[state.name].read;
+                }
+                if (!state.write ||
+                    (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
+                ) {
+                    delete this.fx[state.name].write;
+                }
+            } else {
+                this.fx[state.name] = { read: '', write: '' };
+            }
+        });
+
         this.channelId = this.props.channelInfo.channelId;
         let name = '';
         const channelObj = this.props.objects[this.channelId];
@@ -299,6 +352,7 @@ class DialogEditDevice extends React.Component {
             ids,
             idsInit: ids,
             name,
+            newDevices,
             extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
             expertMode: true,
             selectIdFor: '',
@@ -317,6 +371,58 @@ class DialogEditDevice extends React.Component {
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
             .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
+    }
+
+    componentDidUpdate(prevProps) {
+        // if (JSON.stringify(prevProps.objects) !== JSON.stringify(this.props.objects)) {
+        console.log(1122334455, this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole))
+
+        const newDevices = Object.keys(this.props.objects)
+            .filter(key => key.includes(this.props.channelInfo.channelId) && !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
+            .map(key => {
+                const objOriginal = this.props.objects[key];
+                const obj = {
+                    defaultRole: objOriginal?.common?.role,
+                    id: objOriginal?._id,
+                    noType: true,
+                    name: objOriginal?.common?.name,
+                    type: objOriginal?.common?.type,
+                    write: objOriginal?.common?.write,
+                    indicator: false,
+                    required: false
+                };
+                return obj;
+            })
+            .filter(item => !this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(el => el.name === item.name));
+
+        if (JSON.stringify(newDevices) !== JSON.stringify(this.state.newDevices)) {
+            newDevices.forEach(state => {
+                if (state.id && !this.fx[state.name]) {
+                    const obj = this.props.objects[state.id];
+                    if (obj && obj.common && obj.common.alias) {
+                        this.fx[state.name] = {
+                            read: obj.common.alias.read || '',
+                            write: obj.common.alias.write || '',
+                        };
+                    } else {
+                        this.fx[state.name] = { read: '', write: '' };
+                    }
+
+                    if (state.defaultRole && state.defaultRole.startsWith('button')) {
+                        delete this.fx[state.name].read;
+                    }
+                    if (!state.write ||
+                        (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
+                    ) {
+                        delete this.fx[state.name].write;
+                    }
+                } else {
+                    this.fx[state.name] = { read: '', write: '' };
+                }
+            });
+            this.setState({ newDevices });
+        }
+        // }
     }
 
     renderSelectDialog() {
@@ -349,16 +455,38 @@ class DialogEditDevice extends React.Component {
         this.props.onClose && this.props.onClose(null);
     }
 
+    updateNewState = async () => {
+        const array = this.state.newDevices.filter(item => Object.keys(this.state.ids).includes(item.name));
+        for (let i = 0; i < array.length; i++) {
+            const item = array[i];
+            const stateObj = this.props.objects[item.id];
+            stateObj.common = stateObj.common || {};
+            stateObj.common.alias = stateObj.common.alias || {};
+            stateObj.common.alias.id = this.state.ids[item.name];
+            if (!this.fx[item.name].read) {
+                delete stateObj.common.alias.read;
+            } else {
+                stateObj.common.alias.read = this.fx[item.name].read;
+            }
+            if (!this.fx[item.name].write) {
+                delete stateObj.common.alias.write;
+            } else {
+                stateObj.common.alias.write = this.fx[item.name].write;
+            }
+            await this.props.socket.setObject(stateObj._id, stateObj);
+        }
+    }
+
     handleOk = async () => {
         this.setState({ startTheProcess: true });
         if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
             this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
         }
-
         await this.props.onClose({
             ids: this.state.ids,
             fx: this.fx,
         });
+        await this.updateNewState();
 
         if (this.state.changeProperties.name &&
             this.state.initChangeProperties.name &&
@@ -470,8 +598,26 @@ class DialogEditDevice extends React.Component {
                         <IconExtended style={{ transform: !this.state.extended ? 'rotate(180deg)' : '' }} />
                     </IconButton>
                 </Tooltip>}
+                {this.state.extendedAvailable && !this.state.startTheProcess &&
+                    <Tooltip title={I18n.t('Add state')}>
+                        <IconButton
+                            onClick={() => addStateCallBack(
+                                this.props.updateObjects,
+                                this.props.objects,
+                                this.props.socket,
+                                this.channelId,
+                                this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole)
+                            )}>
+                            <IconAdd />
+                        </IconButton>
+                    </Tooltip>}
             </div>
         </div>;
+    }
+
+    onDelete = async (id) => {
+        await this.props.socket.delObject(id);
+        this.props.updateObjects('delete', id);
     }
 
     findRealDevice(prefix) {
@@ -645,7 +791,7 @@ class DialogEditDevice extends React.Component {
         this.setState({ ids: newIds });
     }
 
-    renderVariable(item, color) {
+    renderVariable(item, color = null) {
         if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
             return null;
         }
@@ -654,13 +800,15 @@ class DialogEditDevice extends React.Component {
         let pattern = this.pattern.states.find(state => state.name === item.name || state.name === dName);
         if (item.write) props.push('write');
         if (item.read) props.push('read');
-        if (pattern.defaultRole) {
+        if (pattern?.defaultRole) {
             props.push('role=' + pattern.defaultRole);
+        } else if (item.defaultRole) {
+            props.push('role=' + item.defaultRole);
         } else {
-            pattern.role && props.push('role=' + pattern.role.toString());
+            pattern?.role && props.push('role=' + pattern.role.toString());
         }
 
-        if (pattern.enums) {
+        if (pattern?.enums) {
             const type = this.props.channelInfo.type;
             if (type === 'dimmer' || type === 'light') {
                 props.push('enum light');
@@ -676,7 +824,7 @@ class DialogEditDevice extends React.Component {
         const titleTooltip = <div>
             <div>{`${I18n.t("Type")}: ${item.type || 'any'}`}</div>
             <div>{`${I18n.t("Write")}: ${!!item.write}`}</div>
-            <div>{`${I18n.t("Role")}: ${pattern.defaultRole || (pattern.role && pattern.role.toString()) || ''}`}</div>
+            <div>{`${I18n.t("Role")}: ${pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || ''}`}</div>
         </div>
 
         ////////////// ImportExportIcon
@@ -693,8 +841,8 @@ class DialogEditDevice extends React.Component {
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
-                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
+                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_read')}</div>
                                     </div>
@@ -719,7 +867,7 @@ class DialogEditDevice extends React.Component {
                                 margin="normal"
                             />
                             <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkeddevices) && <Tooltip title={I18n.t('Select ID')}>
+                                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
                                     <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
                                         <IconEdit />
                                     </IconButton>
@@ -729,8 +877,8 @@ class DialogEditDevice extends React.Component {
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
-                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
+                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_write')}</div>
                                     </div>
@@ -772,7 +920,12 @@ class DialogEditDevice extends React.Component {
                             <IconButton onClick={() => this.setState({ editFxFor: name })}>
                                 <IconFunction />
                             </IconButton>
-                        </Tooltip> : <div className={this.props.classes.emptyButton} />}
+                        </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                            <IconButton onClick={() => this.onDelete(item.id)}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip>}
                     </div>
                 </div>
             </div>;
@@ -781,8 +934,8 @@ class DialogEditDevice extends React.Component {
         return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
             <Tooltip title={titleTooltip}>
                 <div className={this.props.classes.wrapperOidName}>
-                    <IconsState style={{ color: color ? '#4dabf5' : null }} className={this.props.classes.oidNameIcon} />
-                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color: color ? '#4dabf5' : null }}>
+                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
+                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
                         {(item.required ? '*' : '') + name}
                     </div>
                 </div>
@@ -820,7 +973,12 @@ class DialogEditDevice extends React.Component {
                     <IconButton onClick={() => this.setState({ editFxFor: name })}>
                         <IconFunction />
                     </IconButton>
-                </Tooltip> : <div className={this.props.classes.emptyButton} />}
+                </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                    <IconButton onClick={() => this.onDelete(item.id)}>
+                        <IconDelete />
+                    </IconButton>
+                </Tooltip>}
             </div>
         </div>;
     }
@@ -828,13 +986,14 @@ class DialogEditDevice extends React.Component {
     renderVariables() {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
+            {this.state.newDevices.map(item => this.renderVariable(item, '#e67e229e'))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
                     <div className={this.props.classes.headerIndicatorsName}>{I18n.t('Indicators')}</div>
                     <div className={this.props.classes.headerIndicatorsLine} />
                 </div>}
-            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, true))}
+            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, '#4dabf5'))}
         </div>;
     }
 

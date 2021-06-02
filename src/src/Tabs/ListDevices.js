@@ -1743,7 +1743,7 @@ class ListDevices extends Component {
             deviceIdx={deviceIdx}
             backgroundRow={backgroundRow}
             className={this.props.classes.hoverRow}
-            key={item.id}
+            key={item.id || title}
             padding="default" >
             <TableCell
                 colSpan={3}
@@ -2187,35 +2187,41 @@ class ListDevices extends Component {
         }
 
         const channelId = copyDevice.channelId;
-        if (channelId.startsWith('linkeddevices.')) {
-            return;
-        }
-        // const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
+        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
 
         // if (!isAlias) {
-        //     return;
+        //      return;
         // }
 
         const channelObj = this.objects[channelId];
         const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
 
-        tasks.push({
+        const obj = {
             id: newChannelId,
             obj: {
                 common: {
                     name: channelObj.common.name,
-                    color: color,
+                    color,
                     desc: channelObj.common.desc,
                     role: type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
-                native: channelObj.native || {},
+                native: {},
                 type: 'channel'
             },
             enums: rooms.concat(functions)
-        });
+        }
+        if (!obj.obj.common.color) {
+            delete obj.obj.common.color;
+        }
 
+        if (!isAlias) {
+            obj.obj.native.originalId = id;
+        }
+
+        tasks.push(obj);
+        
         states.forEach(state => {
             if (!state.id) {
                 return;
@@ -2223,12 +2229,12 @@ class ListDevices extends Component {
             const obj = JSON.parse(JSON.stringify(this.objects[state.id]));
             obj._id = newChannelId + '.' + state.name;
 
-            if (!obj.native) {
-                obj.native = {};
+            obj.native = {};
+
+            if (!isAlias) {
+                 obj.common.alias = { id: state.id };
             }
-            // if (!isAlias) {
-            //     obj.common.alias = { id: state.id };
-            // }
+            
             tasks.push({ id: obj._id, obj });
         });
 
@@ -2526,6 +2532,7 @@ class ListDevices extends Component {
             patterns={this.patterns}
             themeType={this.props.themeType}
             processTasks={this.processTasks}
+            updateObjects={this.updateObjects}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
             onCopyDevice={async (id, newId) => {
@@ -2777,7 +2784,7 @@ class ListDevices extends Component {
                 socket={this.props.socket}
                 devices={this.state.devices}
                 objects={this.objects}
-                processTasks={this.processTasks}
+                onCopyDevice={this.onCopyDevice}
                 onClose={result =>
                     this.setState({ showImporterDialog: null }, () =>
                         result && this.detectDevices(true))}
