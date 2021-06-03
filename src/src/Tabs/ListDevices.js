@@ -177,45 +177,72 @@ const prepareList = (data, root, objects) => {
     }
 
     // Place all folder-less items at start
-    result.sort((a, b) => {
-        // without folders => always at start
-        // debugger
+    result
+    .sort((a, b) => {
+        if (a.title === b.title) return 0;
+        return a.title > b.title ? 1 : -1;
+    })
+    // .sort((a, b) => {
+    // without folders => always at start
+
+    // if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
+    // if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
+    // if (b.id === "alias.0.automatically_detected" && a.type === 'folder') return -1;
+    // if (a.id === "alias.0.linked_devices" && b.type === 'folder') return 1;
+    // if (b.id === "alias.0.linked_devices" && a.type !== 'folder') return -1;
+    // if (b.id === "alias.0.linked_devices" && a.type === 'folder') return -1;
+    // if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
+    //     if (a.title === b.title) return 0;
+    //     return a.title > b.title ? 1 : -1;
+    // } 
+    // else if (!a.parent && a.type !== 'folder') {
+    //     // return 1;
+    // } else if (!b.parent && b.type !== 'folder') {
+    //     // return -1;
+    // } else {
+    // common and global are always at the end
+    // if ((a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) &&
+    //     (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global'))) {
+    //     // if (a.title === b.title) return 0;
+    //     // return a.title > b.title ? 1 : -1;
+    // } else if (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) {
+    //     return 1;
+    // } else if (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global')) {
+    //     return -1;
+    // } else {
+    // if (a.type !== b.type) {
+    //     if (a.type === 'folder') return -1;
+    //     if (b.type === 'folder') return 1;
+    //     return 0;
+    // } else {
+    // if (a.title === b.title) return 0;
+    // return a.title > b.title ? 1 : -1;
+    // }
+    // }
+    // }
+
+    // })
+    .sort((a, b) => {
         if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
         if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
         if (b.id === "alias.0.automatically_detected" && a.type === 'folder') return -1;
         if (a.id === "alias.0.linked_devices" && b.type === 'folder') return 1;
         if (b.id === "alias.0.linked_devices" && a.type !== 'folder') return -1;
         if (b.id === "alias.0.linked_devices" && a.type === 'folder') return -1;
-
+        return 0
+    })
+    .sort((a, b) => {
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
-            if (a.id === b.id) return 0;
-            return a.id > b.id ? 1 : -1;
-        } else if (!a.parent && a.type !== 'folder') {
+            if (a.title === b.title) return 0;
+            return a.title > b.title ? 1 : -1;
+        }
+        else if (!a.parent && a.type !== 'folder') {
             return 1;
         } else if (!b.parent && b.type !== 'folder') {
             return -1;
-        } else {
-            // common and global are always at the end
-            if ((a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) &&
-                (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global'))) {
-                if (a.id === b.id) return 0;
-                return a.id > b.id ? 1 : -1;
-            } else if (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) {
-                return 1;
-            } else if (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global')) {
-                return -1;
-            } else {
-                if (a.type !== b.type) {
-                    if (a.type === 'folder') return -1;
-                    if (b.type === 'folder') return 1;
-                    return 0;
-                } else {
-                    if (a.id === b.id) return 0;
-                    return a.id > b.id ? 1 : -1;
-                }
-            }
         }
-    });
+        return 0
+    })
 
     // Fill all index
     result.forEach((item, i) => item.index = i);
@@ -2221,7 +2248,7 @@ class ListDevices extends Component {
         }
 
         tasks.push(obj);
-        
+
         states.forEach(state => {
             if (!state.id) {
                 return;
@@ -2232,9 +2259,9 @@ class ListDevices extends Component {
             obj.native = {};
 
             if (!isAlias) {
-                 obj.common.alias = { id: state.id };
+                obj.common.alias = { id: state.id };
             }
-            
+
             tasks.push({ id: obj._id, obj });
         });
 
@@ -2491,7 +2518,7 @@ class ListDevices extends Component {
                 } else {
                     this.setSmartName(obj, data.smartName, language);
                 }
-                
+
                 await this.props.socket.setObject(obj._id, obj);
                 somethingChanged = true;
             }

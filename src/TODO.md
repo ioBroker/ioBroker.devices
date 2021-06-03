@@ -9,15 +9,15 @@
 - Smoke detector has wrong icon in devices ?
 
 ## List of devices
-- Sort sometimes is wrong
+<!-- - Sort sometimes is wrong -->
 
 ## Folder control in new device dialog
 
 ## Add new device dialog
 
 ## Set states
-- Add state from other real state
-- Add to tooltip new line: Required: true
+<!-- - Add state from other real state -->
+<!-- - Add to tooltip new line: Required: true -->
 
 ## Types (type-detector)
 - Check all types that exist and could be created

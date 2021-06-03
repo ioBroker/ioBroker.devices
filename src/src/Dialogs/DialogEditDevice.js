@@ -356,6 +356,7 @@ class DialogEditDevice extends React.Component {
             extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
             expertMode: true,
             selectIdFor: '',
+            newState: false,
             selectIdPrefix: '',
             editFxFor: '',
             newChannelId: '',
@@ -375,8 +376,6 @@ class DialogEditDevice extends React.Component {
 
     componentDidUpdate(prevProps) {
         // if (JSON.stringify(prevProps.objects) !== JSON.stringify(this.props.objects)) {
-        console.log(1122334455, this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole))
-
         const newDevices = Object.keys(this.props.objects)
             .filter(key => key.includes(this.props.channelInfo.channelId) && !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
             .map(key => {
@@ -426,7 +425,7 @@ class DialogEditDevice extends React.Component {
     }
 
     renderSelectDialog() {
-        if (!this.state.selectIdFor) {
+        if (!this.state.selectIdFor && !this.state.newState) {
             return null;
         }
         const selected = this.state.selectIdPrefix ? this.state.ids[this.state.selectIdFor][this.state.selectIdPrefix] : this.state.ids[this.state.selectIdFor];
@@ -435,19 +434,34 @@ class DialogEditDevice extends React.Component {
             imagePrefix="../.."
             socket={this.props.socket}
             dialogName="devicesEdit"
-            title={I18n.t('Select for ') + this.state.selectIdFor}
+            title={this.state.newState ? I18n.t('Importer state') : I18n.t('Select for ') + this.state.selectIdFor}
             selected={selected || this.findRealDevice(this.state.selectIdPrefix)}
             statesOnly={true}
-            onOk={id => {
+            onOk={async id => {
                 const ids = JSON.parse(JSON.stringify(this.state.ids));
-                if (this.state.selectIdPrefix) {
-                    ids[this.state.selectIdFor][this.state.selectIdPrefix] = id;
+                if (!this.state.newState) {
+                    if (this.state.selectIdPrefix) {
+                        ids[this.state.selectIdFor][this.state.selectIdPrefix] = id;
+                    } else {
+                        ids[this.state.selectIdFor] = id;
+                    }
                 } else {
-                    ids[this.state.selectIdFor] = id;
+                    const isAlias = id.startsWith('alias.') || id.startsWith('linkeddevices.');
+                    const obj = JSON.parse(JSON.stringify(this.props.objects[id]));
+                    let parts = id.split('.');
+                    parts = parts.pop();
+                    obj._id = `${this.channelId}.${parts}`;
+                    obj.native = {};
+                    obj.common.name = parts;
+                    if (!isAlias) {
+                        obj.common.alias = { id };
+                    }
+                    this.props.updateObjects(null, `${this.channelId}.${parts}`, obj)
+                    await this.props.socket.setObject(`${this.channelId}.${parts}`, obj);
                 }
                 this.setState({ selectIdPrefix: '', selectIdFor: '', ids });
             }}
-            onClose={() => this.setState({ selectIdFor: '', selectIdPrefix: '' })}
+            onClose={() => this.setState({ selectIdFor: '', selectIdPrefix: '', newState: false })}
         />;
     }
 
@@ -608,6 +622,15 @@ class DialogEditDevice extends React.Component {
                                 this.channelId,
                                 this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole)
                             )}>
+                            <IconAdd />
+                        </IconButton>
+                    </Tooltip>}
+                {this.state.extendedAvailable && !this.state.startTheProcess &&
+                    <Tooltip title={I18n.t('Importer state')}>
+                        <IconButton
+                            style={{ color: '#e67e229e' }}
+                            onClick={() => this.setState({ newState: true })}
+                        >
                             <IconAdd />
                         </IconButton>
                     </Tooltip>}
@@ -821,10 +844,16 @@ class DialogEditDevice extends React.Component {
             }
         }
 
+        if (item.required) {
+            props.push('required')
+        }
+
+        const role = pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || '';
         const titleTooltip = <div>
+            {item.required && <div>{`${I18n.t("Required")}: true`}</div>}
             <div>{`${I18n.t("Type")}: ${item.type || 'any'}`}</div>
             <div>{`${I18n.t("Write")}: ${!!item.write}`}</div>
-            <div>{`${I18n.t("Role")}: ${pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || ''}`}</div>
+            {role && <div>{`${I18n.t("Role")}: ${pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || ''}`}</div>}
         </div>
 
         ////////////// ImportExportIcon
@@ -986,7 +1015,7 @@ class DialogEditDevice extends React.Component {
     renderVariables() {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
-            {this.state.newDevices.map(item => this.renderVariable(item, '#e67e229e'))}
+            {this.state.extendedAvailable && this.state.newDevices.map(item => this.renderVariable(item, '#e67e229e'))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
