@@ -233,21 +233,19 @@ const styles = theme => {
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`scrollable-auto-tabpanel-${index}`}
-            aria-labelledby={`scrollable-auto-tab-${index}`}
-            {...other}
-        >
-            {value === index && (
-                <Paper style={{ padding: `10px 20px` }} p={3}>
-                    <Typography variant="outlined" component="div">{children}</Typography>
-                </Paper>
-            )}
-        </div>
-    );
+    return <div
+        role="tabpanel"
+        hidden={value !== index}
+        id={`scrollable-auto-tabpanel-${index}`}
+        aria-labelledby={`scrollable-auto-tab-${index}`}
+        {...other}
+    >
+        {value === index && (
+            <Paper style={{ padding: `10px 20px` }} p={3}>
+                <Typography component="div">{children}</Typography>
+            </Paper>
+        )}
+    </div>;
 }
 
 class DialogEditDevice extends React.Component {
@@ -456,7 +454,6 @@ class DialogEditDevice extends React.Component {
                     if (!isAlias) {
                         obj.common.alias = { id };
                     }
-                    this.props.updateObjects(null, `${this.channelId}.${parts}`, obj)
                     await this.props.socket.setObject(`${this.channelId}.${parts}`, obj);
                 }
                 this.setState({ selectIdPrefix: '', selectIdFor: '', ids });
@@ -616,7 +613,7 @@ class DialogEditDevice extends React.Component {
                     <Tooltip title={I18n.t('Add state')}>
                         <IconButton
                             onClick={() => addStateCallBack(
-                                this.props.updateObjects,
+                                obj => obj && this.props.socket.setObject(obj._id, obj),
                                 this.props.objects,
                                 this.props.socket,
                                 this.channelId,
@@ -626,7 +623,7 @@ class DialogEditDevice extends React.Component {
                         </IconButton>
                     </Tooltip>}
                 {this.state.extendedAvailable && !this.state.startTheProcess &&
-                    <Tooltip title={I18n.t('Importer state')}>
+                    <Tooltip title={I18n.t('Import state')}>
                         <IconButton
                             style={{ color: '#e67e229e' }}
                             onClick={() => this.setState({ newState: true })}
@@ -640,7 +637,6 @@ class DialogEditDevice extends React.Component {
 
     onDelete = async (id) => {
         await this.props.socket.delObject(id);
-        this.props.updateObjects('delete', id);
     }
 
     findRealDevice(prefix) {
@@ -711,7 +707,7 @@ class DialogEditDevice extends React.Component {
                 <div className={this.props.classes.divDialogContent}>
                     {fx.read !== undefined ? <div className={this.props.classes.funcDivEdit}>
                         <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
-                            {I18n.t('Read')}
+                            {I18n.t('Read function')}
                         </div>
                         <TextField
                             fullWidth
@@ -724,7 +720,7 @@ class DialogEditDevice extends React.Component {
                     </div> : null}
                     {fx.write !== undefined ? <div className={this.props.classes.funcDivEdit}>
                         <div className={this.props.classes.funcEditName} style={{ fontWeight: 'bold' }}>
-                            {I18n.t('Write')}
+                            {I18n.t('Write function')}
                         </div>
                         <TextField
                             fullWidth
@@ -738,7 +734,7 @@ class DialogEditDevice extends React.Component {
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button href="" onClick={() => {
+                <Button variant="contained" onClick={() => {
                     this.setState({ editFxFor: '' });
                     if (this.fx[this.state.editFxFor].read !== undefined) {
                         this.fx[this.state.editFxFor].read = this.fxRead;
@@ -747,7 +743,7 @@ class DialogEditDevice extends React.Component {
                         this.fx[this.state.editFxFor].write = this.fxWrite;
                     }
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button href="" onClick={() => this.setState({ editFxFor: '' })}>{I18n.t('Cancel')}</Button>
+                <Button variant="contained" onClick={() => this.setState({ editFxFor: '' })}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>;
     }
@@ -850,10 +846,10 @@ class DialogEditDevice extends React.Component {
 
         const role = pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || '';
         const titleTooltip = <div>
-            {item.required && <div>{`${I18n.t("Required")}: true`}</div>}
-            <div>{`${I18n.t("Type")}: ${item.type || 'any'}`}</div>
-            <div>{`${I18n.t("Write")}: ${!!item.write}`}</div>
-            {role && <div>{`${I18n.t("Role")}: ${pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || ''}`}</div>}
+            {item.required && <div>{`${I18n.t('Required')}: true`}</div>}
+            <div>{`${I18n.t('Type')}: ${item.type || 'any'}`}</div>
+            <div>{`${I18n.t('Writable')}: ${!!item.write}`}</div>
+            {role && <div>{`${I18n.t('Role')}: ${pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || ''}`}</div>}
         </div>
 
         ////////////// ImportExportIcon

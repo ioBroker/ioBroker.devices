@@ -4,7 +4,7 @@ import { TableRow } from '@material-ui/core';
 import React, { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
-const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, updateObjects, deviceIdx, id, children, style, className, key }) => {
+const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, deviceIdx, id, children, style, className, key }) => {
     const ref = useRef(null);
     const language = I18n.getLanguage();
     const [{ isDragging }, dragRef] = useDrag({
@@ -32,11 +32,8 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
                 openFolder()
                 if (id.includes('alias.0')) {
                     await deleteDevice(item.deviceIdx);
-                    updateObjects('delete', id);
                 }
-
             }
-
         },
         collect: monitor => ({ isDragging: monitor.isDragging() }),
     });
@@ -80,7 +77,6 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
             openFolder()
             if (item.id.includes('alias.0')) {
                 await deleteDevice(item.deviceIdx);
-                updateObjects('delete', item.id);
             }
         },
         hover(item, monitor) {

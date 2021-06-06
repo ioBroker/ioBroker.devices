@@ -95,7 +95,7 @@ const DeleteFolder = ({ cb, device }) => {
                     }}
                     startIcon={<IconClose />}
                     color="default">
-                    {I18n.t('Close')}
+                    {I18n.t('Cancel')}
                 </Button>
             </DialogActions>
         </Dialog>

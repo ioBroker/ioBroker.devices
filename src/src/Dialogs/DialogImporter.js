@@ -530,7 +530,7 @@ const DialogImporter = ({
             open={true}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Importer  %s', item.title)} → {selectFolder}{generateFolders()}</DialogTitle>
+            <DialogTitle>{I18n.t('Importer')} {item.title} → {selectFolder}{generateFolders()}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <RenderNewItemDialog
                     classes={classes}

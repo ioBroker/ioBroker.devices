@@ -6,18 +6,18 @@
 ## Edit folder
 
 ## Edit device dialog
-- Smoke detector has wrong icon in devices ?
 
 ## List of devices
-<!-- - Sort sometimes is wrong -->
 
 ## Folder control in new device dialog
 
 ## Add new device dialog
 
 ## Set states
-<!-- - Add state from other real state -->
-<!-- - Add to tooltip new line: Required: true -->
+- Add state from other real state
+  - New state is not shown, because not detected
+  - Detected states must be combined with additional states
+  - If indicators are hidden, and new added state is indicator, it stays invisible.
 
 ## Types (type-detector)
 - Check all types that exist and could be created

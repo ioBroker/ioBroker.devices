@@ -379,8 +379,8 @@ function ChannelDetector() {
             states: [
                 {role: /^switch(\.gate)?$/,                   indicator: false, type: 'boolean',  write: true, enums: roleOrEnumGate, name: 'SET',                 required: true, defaultRole: 'switch.gate'},
                 // optional
-                {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
-                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumGate,  name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
+                {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',             required: false, defaultRole: 'value.blind', defaultUnit: '%'},
+                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumGate,  name: 'STOP',               required: false, noSubscribe: true, defaultRole: 'button.stop'},
                 patternDirection,
                 patternWorking,
                 patternUnreach,
@@ -392,19 +392,19 @@ function ChannelDetector() {
         weatherCurrent: {
             states: [
                 {role: /^value(\.temperature)?$/,                     indicator: false, type: 'number',                name: 'ACTUAL',                                      required: true, defaultRole: 'value.temperature', defaultUnit: '°C'},
-                {role: /^weather\.icon$/,                             indicator: false,                                name: 'ICON',                                        required: true, defaultRole: 'url'},
+                {role: /^weather\.icon$/,                             indicator: false,                                name: 'ICON',                                        required: true, defaultRole: 'weather.icon'},
                 // optional
-                {role: /^state(\.precipitationChance)?$/,             indicator: false, type: 'number',                name: 'PRECIPITATIONCHANCE',                         defaultRole: 'state.precipitationchance', min: 'number', max: 'number', defaultUnit: '%'},
-                {role: /^value(\.precipitationType)?$/,               indicator: false, type: 'number',                name: 'PRECIPITATIONTYPE',                           defaultRole: 'value.precipitationtype'},
-                {role: /^value(\.Pressure)?$/,                        indicator: false, type: 'number',                name: 'PRESSURE',                                    defaultRole: 'value.pressure', defaultUnit: 'mb'},
-                {role: /^value(\.PressureTendency)?$/,                indicator: false, type: 'string',                name: 'PRESSURETENDENCY',                            defaultRole: 'value.pressuretendency'},
-                {role: /^value\.temperature\.windchill?$/,            indicator: false, type: 'number',                name: 'REALFEELTEMPERATURE',                         defaultRole: 'value.temperature.feelslike', defaultUnit: '°C'},
-                {role: /^value(\.humidity)?$/,                        indicator: false, type: 'number',                name: 'RELATIVEHUMIDITY',                            defaultRole: 'value.relativehumidity', defaultUnit: '%'},
-                {role: /^value(\.UVIndex)?$/,                         indicator: false, type: 'number',                name: 'UVINDEX',                                     defaultRole: 'value.uvindex'},
-                {role: /^weather\.state?$/,                           indicator: false, type: 'string',                name: 'WEATHERTEXT',                                 defaultRole: 'weather.state'},
-                {role: /^value(\.WindDirection)?$/,                   indicator: false, type: 'string',                name: 'WINDDIRECTION',                               defaultRole: 'value.winddirection', defaultUnit: '°'},
-                {role: /^value(\.WindGust)?$/,                        indicator: false, type: 'number',                name: 'WINDGUST',                                    defaultRole: 'value.windgust', defaultUnit: 'km/h'},
-                {role: /^value(\.WindSpeed)?$/,                       indicator: false, type: 'number',                name: 'WINDSPEED',                                   defaultRole: 'value.windspeed', defaultUnit: 'km/h'},
+                {role: /^value\.precipitation\.chance$/,              indicator: false, type: 'number',                name: 'PRECIPITATION_CHANCE',                        defaultRole: 'value.precipitation.chance', defaultUnit: '%'},
+                {role: /^value\.precipitation\.type$/,                indicator: false, type: 'number',                name: 'PRECIPITATION_TYPE',                          defaultRole: 'value.precipitation.type', defaultStates: {0: 'NO', 1: 'RAIN', 2: 'SNOW', 3: 'HAIL'}},
+                {role: /^value\.pressure$/,                           indicator: false, type: 'number',                name: 'PRESSURE',                                    defaultRole: 'value.pressure', defaultUnit: 'mbar'},
+                {role: /^value\.pressure\.tendency$/,                 indicator: false, type: 'string',                name: 'PRESSURE_TENDENCY',                           defaultRole: 'value.pressure.tendency'},
+                {role: /^value\.temperature\.windchill$/,             indicator: false, type: 'number',                name: 'REAL_FEEL_TEMPERATURE',                       defaultRole: 'value.temperature.windchill', defaultUnit: '°C'},
+                {role: /^value.humidity$/,                            indicator: false, type: 'number',                name: 'HUMIDITY',                                    defaultRole: 'value.humidity', defaultUnit: '%'},
+                {role: /^value.uv$/,                                  indicator: false, type: 'number',                name: 'UV',                                          defaultRole: 'value.uv'},
+                {role: /^weather\.state$/,                            indicator: false, type: 'string',                name: 'WEATHER',                                     defaultRole: 'weather.state'},
+                {role: /^value\.direction\.wind$/,                    indicator: false, type: 'string',                name: 'WIND_DIRECTION',                              defaultRole: 'value.direction.wind', defaultUnit: '°'},
+                {role: /^value\.speed\.wind\.gust$/,                  indicator: false, type: 'number',                name: 'WIND_GUST',                                   defaultRole: 'value.speed.wind.gust', defaultUnit: 'km/h'},
+                {role: /^value\.speed\.wind$/,                        indicator: false, type: 'number',                name: 'WIND_SPEED',                                  defaultRole: 'value.speed.wind$', defaultUnit: 'km/h'},
                 patternLowbat,
                 patternUnreach,
                 patternMaintain,
@@ -414,13 +414,13 @@ function ChannelDetector() {
         },
         camera: {
             states: [
-                {role: /^camera(\.\w+)?$/,                                        indicator: false, type: 'file',     name: 'FILE',                  required: true, defaultRole: 'camera'},
+                {role: /^camera(\.\w+)?$/,                                        indicator: false, type: 'file',     name: 'FILE',                           required: true, defaultRole: 'camera'},
                 // optional
                 {role: /^switch(\.camera)?\.autofocus$/,                          indicator: false, type: 'boolean',  write: true,  name: 'AUTOFOCUS',        required: false, defaultRole: 'switch.camera.autofocus'},
                 {role: /^switch(\.camera)?\.autowhitebalance$/,                   indicator: false, type: 'boolean',  write: true,  name: 'AUTOWHITEBALANCE', required: false, defaultRole: 'switch.camera.autowhitebalance'},
                 {role: /^switch(\.camera)?\.brightness$/,                         indicator: false, type: 'boolean',  write: true,  name: 'BRIGHTNESS',       required: false, defaultRole: 'switch.camera.brightness'},
                 {role: /^switch(\.camera)?\.nightmode$/,                          indicator: false, type: 'boolean',  write: true,  name: 'NIGHTMODE',        required: false, defaultRole: 'switch.camera.nightmode'},
-                {role: /^level(\.camera)?\.position$|^level(\.camera)?(\.ptz)$/,  indicator: false, type: 'number',   write: true,  name: 'PTZ',               required: false, defaultRole: 'level.camera.position'},
+                {role: /^level(\.camera)?\.position$|^level(\.camera)?(\.ptz)$/,  indicator: false, type: 'number',   write: true,  name: 'PTZ',              required: false, defaultRole: 'level.camera.position'},
                 patternUnreach,
                 patternLowbat,
                 patternMaintain,

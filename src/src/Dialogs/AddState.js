@@ -76,7 +76,7 @@ const typeArray = [
     'boolean',
     'number',
     'file',
-]
+];
 
 const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
     const classes = useStyles();
@@ -142,9 +142,7 @@ const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
                             setRole(role);
                             setRoleInput(role);
                         }}
-                        onInputChange={(event, role) => {
-                            setRoleInput(role);
-                        }}
+                        onInputChange={(event, role) => setRoleInput(role)}
                         renderInput={params => <TextField
                             {...params}
                             label={I18n.t('Role')}
@@ -156,7 +154,6 @@ const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
                         <InputLabel>{I18n.t('Type')}</InputLabel>
                         <Select
                             fullWidth
-
                             value={type}
                             onChange={e => setType(e.target.value)}
                         >
@@ -228,7 +225,7 @@ const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
                             obj.common.read = checkedRead;
                             obj.common.write = checkedWrite;
                         }
-                        cb(null, `${channelId}.${name}`, obj);
+                        cb(obj);
                         await socket.setObject(`${channelId}.${name}`, obj);
                     }}
                     startIcon={<IconCheck />}
@@ -237,12 +234,10 @@ const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
                 </Button>
                 <Button
                     variant="contained"
-                    onClick={() => {
-                        onClose();
-                    }}
+                    onClick={() => onClose()}
                     startIcon={<IconClose />}
                     color="default">
-                    {I18n.t('Close')}
+                    {I18n.t('Cancel')}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -255,6 +250,7 @@ export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefau
         node.id = 'renderModal';
         document.body.appendChild(node);
     }
+
     return ReactDOM.render(
         <AddState
             arrayStateDefault={arrayStateDefault}

@@ -194,7 +194,7 @@ const prepareList = (data, root, objects) => {
     // if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
     //     if (a.title === b.title) return 0;
     //     return a.title > b.title ? 1 : -1;
-    // } 
+    // }
     // else if (!a.parent && a.type !== 'folder') {
     //     // return 1;
     // } else if (!b.parent && b.type !== 'folder') {
@@ -223,18 +223,21 @@ const prepareList = (data, root, objects) => {
 
     // })
     .sort((a, b) => {
-        if (a.id === "alias.0.automatically_detected" && b.type === 'folder') return 1;
-        if (b.id === "alias.0.automatically_detected" && a.type !== 'folder') return -1;
-        if (b.id === "alias.0.automatically_detected" && a.type === 'folder') return -1;
-        if (a.id === "alias.0.linked_devices" && b.type === 'folder') return 1;
-        if (b.id === "alias.0.linked_devices" && a.type !== 'folder') return -1;
-        if (b.id === "alias.0.linked_devices" && a.type === 'folder') return -1;
+        if (a.id === 'alias.0.automatically_detected' && b.type === 'folder') return 1;
+        if (b.id === 'alias.0.automatically_detected' && a.type !== 'folder') return -1;
+        if (b.id === 'alias.0.automatically_detected' && a.type === 'folder') return -1;
+        if (a.id === 'alias.0.linked_devices' && b.type === 'folder') return 1;
+        if (b.id === 'alias.0.linked_devices' && a.type !== 'folder') return -1;
+        if (b.id === 'alias.0.linked_devices' && a.type === 'folder') return -1;
         return 0
     })
     .sort((a, b) => {
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
-            if (a.title === b.title) return 0;
-            return a.title > b.title ? 1 : -1;
+            if (a.title === b.title) {
+                return 0;
+            } else {
+                return a.title > b.title ? 1 : -1;
+            }
         }
         else if (!a.parent && a.type !== 'folder') {
             return 1;
@@ -242,7 +245,7 @@ const prepareList = (data, root, objects) => {
             return -1;
         }
         return 0
-    })
+    });
 
     // Fill all index
     result.forEach((item, i) => item.index = i);
@@ -1328,7 +1331,6 @@ class ListDevices extends Component {
                             const arrayParent = deviceId.split('.');
                             let parentId = deviceId;
                             for (let i = 0; i < arrayParent.length - 2; i++) {
-                                console.log('Get deviceId' + parentId);
                                 const deviceObj = this.objects[parentId];
                                 if (deviceObj && (deviceObj.type === 'channel' || deviceObj.type === 'device')) {
                                     if (deviceObj.common?.icon) {
@@ -1494,13 +1496,13 @@ class ListDevices extends Component {
                 return this.state.hideInfo && deviceAllparams && deviceAllparams.type === Types.info;
             }
         } else
-            if (this.filter &&
-                !device.channelId.toLowerCase().includes(this.filter) &&
-                !device.name.toLowerCase().includes(this.filter)) {
-                return true;
-            } else {
-                return !!(this.state.hideInfo && device.type === Types.info);
-            }
+        if (this.filter &&
+            !device.channelId.toLowerCase().includes(this.filter) &&
+            !device.name.toLowerCase().includes(this.filter)) {
+            return true;
+        } else {
+            return !!(this.state.hideInfo && device.type === Types.info);
+        }
     }
 
     onEditEnum(values, enums, index) {
@@ -1520,13 +1522,12 @@ class ListDevices extends Component {
             className={this.props.classes.enumsEdit}
             focusVisibleClassName={this.props.classes.enumsEditFocusVisible}
         >{
-                objs.map(obj =>
-                    <div className={this.props.classes.wrapperIconEnumCell} key={obj.id}>
-                        {obj.icon && <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />}
-                        <div className={this.props.classes.nameEnumCell}>{obj.name}</div>
-                    </div>
-                )
-            }
+            objs.map(obj =>
+                <div className={this.props.classes.wrapperIconEnumCell} key={obj.id}>
+                    {obj.icon && <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />}
+                    <div className={this.props.classes.nameEnumCell}>{obj.name}</div>
+                </div>)
+        }
         </ButtonBase>;
     }
 
@@ -1536,7 +1537,7 @@ class ListDevices extends Component {
                 <TypeIcon className={this.props.classes.enumIcon} type={type} />
                 <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
             </div>
-            <div className={this.props.classes.iconWrapper}>{Object.keys(TYPE_OPTIONS[type]).map(key => TYPE_OPTIONS[type][key] ? <Icon className={this.props.classes.iconStyleType} src={ICONS_TYPE[key]} /> : <div key={key} className={this.props.classes.emptyIcon} />)}</div>
+            <div className={this.props.classes.iconWrapper}>{Object.keys(TYPE_OPTIONS[type]).map(key => TYPE_OPTIONS[type][key] ? <Icon key={key} className={this.props.classes.iconStyleType} src={ICONS_TYPE[key]} /> : <div key={key} className={this.props.classes.emptyIcon} />)}</div>
         </div>;
     }
 
@@ -1603,10 +1604,8 @@ class ListDevices extends Component {
         if (pos === -1) {
             expandedIDs.push(id);
             expandedIDs.sort();
-        } else {
-            if (!open) {
-                expandedIDs.splice(pos, 1);
-            }
+        } else if (!open) {
+            expandedIDs.splice(pos, 1);
         }
         this.setState({ expandedIDs });
         this.saveExpanded(expandedIDs);
@@ -1633,19 +1632,6 @@ class ListDevices extends Component {
 
             return style;
         }
-    }
-
-    updateObjects = (status, id, obj) => {
-        if (status === 'update') {
-
-        } else if (status === 'delete') {
-            if (this.objects[id]) {
-                delete this.objects[id];
-            }
-        } else {
-            this.objects[id] = obj;
-        }
-        this.updateListItems();
     }
 
     renderOneItem(items, item) {
@@ -1721,16 +1707,16 @@ class ListDevices extends Component {
         let backgroundRow = null;
 
         if (item.id === 'alias.0.automatically_detected') {
-            iconStyle.color = "#F1C40F";
-            backgroundRow = "#f1c40f33";
+            iconStyle.color = '#F1C40F';
+            backgroundRow = '#f1c40f33';
         } else
-            if (item.id === 'alias.0.linked_devices') {
-                iconStyle.color = "#E67E22"
-                backgroundRow = "#e67e2233";
-            } else
-                if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
-                    return;
-                }
+        if (item.id === 'alias.0.linked_devices') {
+            iconStyle.color = '#E67E22';
+            backgroundRow = '#e67e2233';
+        } else
+        if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
+            return;
+        }
 
         const classes = this.props.classes;
         let background = null;
@@ -1762,7 +1748,6 @@ class ListDevices extends Component {
         const inner = <WrapperRow
             id={item.id}
             // style={{ background: backgroundRow }}
-            updateObjects={this.updateObjects}
             objects={this.objects}
             deleteDevice={this.deleteDevice}
             onCopyDevice={this.onCopyDevice}
@@ -2216,10 +2201,6 @@ class ListDevices extends Component {
         const channelId = copyDevice.channelId;
         const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
 
-        // if (!isAlias) {
-        //      return;
-        // }
-
         const channelObj = this.objects[channelId];
         const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
@@ -2239,6 +2220,7 @@ class ListDevices extends Component {
             },
             enums: rooms.concat(functions)
         }
+
         if (!obj.obj.common.color) {
             delete obj.obj.common.color;
         }
@@ -2278,7 +2260,7 @@ class ListDevices extends Component {
             if (channelId.startsWith(ALIAS)) {
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
-                    const obj = this.objects[state.id];
+                    const obj = await this.props.socket.getObject(state.id);
                     if (state.id && obj && obj.common && obj.common.alias) {
                         if (data.ids[state.name] !== obj.common.alias.id ||
                             obj.common.alias.read !== data.fx[state.name].read ||
@@ -2289,7 +2271,7 @@ class ListDevices extends Component {
                                 await this.props.socket.delObject(state.id);
                             } else {
                                 // update state
-                                const stateObj = this.objects[state.id];
+                                const stateObj = await this.props.socket.getObject(state.id);
                                 stateObj.common = stateObj.common || {};
                                 stateObj.common.alias = stateObj.common.alias || {};
                                 stateObj.common.alias.id = data.ids[state.name];
@@ -2312,7 +2294,7 @@ class ListDevices extends Component {
                         // Object not yet exists or invalid
                         let stateObj;
                         try {
-                            stateObj = await this.objects[state.id];
+                            stateObj = await this.props.socket.getObject(state.id);
                         } catch (e) {
 
                         }
@@ -2349,16 +2331,16 @@ class ListDevices extends Component {
                         if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
                         } else
-                            if (state.min !== undefined) {
-                                common.min = 0;
-                            }
+                        if (state.min !== undefined) {
+                            common.min = 0;
+                        }
 
                         if (state.defaultMax !== undefined) {
                             common.max = state.defaultMax;
                         } else
-                            if (state.max !== undefined) {
-                                common.max = 100;
-                            }
+                        if (state.max !== undefined) {
+                            common.max = 100;
+                        }
 
                         if (state.defaultUnit) {
                             common.unit = state.defaultUnit;
@@ -2370,97 +2352,97 @@ class ListDevices extends Component {
                     }
                 }
             } else
-                if (channelId.startsWith(LINKEDDEVICES)) {
-                    for (let s = 0; s < device.states.length; s++) {
-                        let state = device.states[s];
-                        const obj = this.objects[state.id];
-                        let attrs;
-                        if (state.id && obj && obj.common && obj.common.custom && (attrs = Object.keys(obj.common.custom).filter(id => id.startsWith(LINKEDDEVICES))).length) {
-                            const attr = attrs[0];
-                            if (data.ids[state.name] !== obj.common.custom[attr].parentId ||
-                                !obj.common.custom[attr].enabled ||
-                                !obj.common.custom[attr].isLinked) {
-                                // update alias ID
-                                if (!state.required && !data.ids[state.name]) {
-                                    // delete state
-                                    await this.props.socket.delObject(state.id);
-                                    somethingChanged = true;
-                                } else {
-                                    // update state
-                                    const stateObj = this.objects[state.id];
-                                    stateObj.common = stateObj.common || {};
-                                    stateObj.common.custom = stateObj.common.custom || {};
-                                    stateObj.common.custom[attr] = stateObj.common.custom[attr] || {};
-                                    stateObj.common.custom[attr].parentId = data.ids[state.name];
-                                    stateObj.common.custom[attr].enabled = true;
-                                    stateObj.common.custom[attr].isLinked = true;
-                                    somethingChanged = true;
-                                    await this.props.socket.setObject(stateObj._id, stateObj);
-                                }
-                            } // else nothing changed
-                        } else if (data.ids[state.name]) {
-                            state.id = state.id || (channelId + '.' + state.name);
-
-                            // Object not yet exists or invalid
-                            let stateObj;
-                            try {
-                                stateObj = this.objects[state.id];
-                            } catch (e) {
-
+            if (channelId.startsWith(LINKEDDEVICES)) {
+                for (let s = 0; s < device.states.length; s++) {
+                    let state = device.states[s];
+                    const obj = await this.props.socket.getObject(state.id);
+                    let attrs;
+                    if (state.id && obj && obj.common && obj.common.custom && (attrs = Object.keys(obj.common.custom).filter(id => id.startsWith(LINKEDDEVICES))).length) {
+                        const attr = attrs[0];
+                        if (data.ids[state.name] !== obj.common.custom[attr].parentId ||
+                            !obj.common.custom[attr].enabled ||
+                            !obj.common.custom[attr].isLinked) {
+                            // update alias ID
+                            if (!state.required && !data.ids[state.name]) {
+                                // delete state
+                                await this.props.socket.delObject(state.id);
+                                somethingChanged = true;
+                            } else {
+                                // update state
+                                const stateObj = await this.props.socket.getObject(state.id);
+                                stateObj.common = stateObj.common || {};
+                                stateObj.common.custom = stateObj.common.custom || {};
+                                stateObj.common.custom[attr] = stateObj.common.custom[attr] || {};
+                                stateObj.common.custom[attr].parentId = data.ids[state.name];
+                                stateObj.common.custom[attr].enabled = true;
+                                stateObj.common.custom[attr].isLinked = true;
+                                somethingChanged = true;
+                                await this.props.socket.setObject(stateObj._id, stateObj);
                             }
-                            stateObj = stateObj || {};
-                            stateObj._id = state.id;
-                            stateObj.native = stateObj.native || {};
-                            stateObj.type = 'state';
-                            stateObj.common = stateObj.common || {};
-                            const common = stateObj.common;
-                            const attr = this.state.linkeddevices;
-                            common.custom = common.custom || {};
-                            common.custom[attr] = common.custom[attr] || {};
-                            common.custom[attr].parentId = data.ids[state.name];
-                            common.custom[attr].enabled = true;
-                            common.custom[attr].isLinked = true;
-                            common.custom[attr].parentType = 'mixed';
+                        } // else nothing changed
+                    } else if (data.ids[state.name]) {
+                        state.id = state.id || (channelId + '.' + state.name);
 
-                            common.name = common.name || state.name;
-                            common.role = state.defaultRole;
+                        // Object not yet exists or invalid
+                        let stateObj;
+                        try {
+                            stateObj = await this.props.socket.getObject(state.id);
+                        } catch (e) {
 
-                            if (state.read !== undefined) {
-                                common.read = state.read;
-                            }
-                            if (state.write !== undefined) {
-                                common.write = state.write;
-                            }
-
-                            if (state.defaultStates) {
-                                common.states = state.defaultStates;
-                            }
-                            common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
-
-                            if (state.defaultMin !== undefined) {
-                                common.min = state.defaultMin;
-                            } else
-                                if (state.min !== undefined) {
-                                    common.min = 0;
-                                }
-
-                            if (state.defaultMax !== undefined) {
-                                common.max = state.defaultMax;
-                            } else
-                                if (state.max !== undefined) {
-                                    common.max = 100;
-                                }
-
-                            if (state.defaultUnit) {
-                                common.unit = state.defaultUnit;
-                            } else if (state.unit) {
-                                common.unit = state.unit;
-                            }
-                            somethingChanged = true;
-                            await this.props.socket.setObject(stateObj._id, stateObj);
                         }
+                        stateObj = stateObj || {};
+                        stateObj._id = state.id;
+                        stateObj.native = stateObj.native || {};
+                        stateObj.type = 'state';
+                        stateObj.common = stateObj.common || {};
+                        const common = stateObj.common;
+                        const attr = this.state.linkeddevices;
+                        common.custom = common.custom || {};
+                        common.custom[attr] = common.custom[attr] || {};
+                        common.custom[attr].parentId = data.ids[state.name];
+                        common.custom[attr].enabled = true;
+                        common.custom[attr].isLinked = true;
+                        common.custom[attr].parentType = 'mixed';
+
+                        common.name = common.name || state.name;
+                        common.role = state.defaultRole;
+
+                        if (state.read !== undefined) {
+                            common.read = state.read;
+                        }
+                        if (state.write !== undefined) {
+                            common.write = state.write;
+                        }
+
+                        if (state.defaultStates) {
+                            common.states = state.defaultStates;
+                        }
+                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
+
+                        if (state.defaultMin !== undefined) {
+                            common.min = state.defaultMin;
+                        } else
+                        if (state.min !== undefined) {
+                            common.min = 0;
+                        }
+
+                        if (state.defaultMax !== undefined) {
+                            common.max = state.defaultMax;
+                        } else
+                        if (state.max !== undefined) {
+                            common.max = 100;
+                        }
+
+                        if (state.defaultUnit) {
+                            common.unit = state.defaultUnit;
+                        } else if (state.unit) {
+                            common.unit = state.unit;
+                        }
+                        somethingChanged = true;
+                        await this.props.socket.setObject(stateObj._id, stateObj);
                     }
                 }
+            }
         }
 
         // update expert mode if was changed
@@ -2559,7 +2541,6 @@ class ListDevices extends Component {
             patterns={this.patterns}
             themeType={this.props.themeType}
             processTasks={this.processTasks}
-            updateObjects={this.updateObjects}
             enumIDs={this.enumIDs}
             socket={this.props.socket}
             onCopyDevice={async (id, newId) => {
@@ -2569,8 +2550,8 @@ class ListDevices extends Component {
                     await this.deleteDevice(this.state.devices.indexOf(copiedDevice));
                 }
             }}
-            onSaveProperties={this.onSaveProperties}
-            onClose={this.onEditFinished}
+            onSaveProperties={data => this.onSaveProperties(data)}
+            onClose={(data, refresh, cb) => this.onEditFinished(data, refresh, cb)}
         />;
     }
 
@@ -2919,13 +2900,13 @@ class ListDevices extends Component {
 
     render() {
         if (this.state.loading) {
-            return <CircularProgress key="alexaProgress" />;
+            return <CircularProgress />;
         } else {
             const classes = this.props.classes;
             const small = this.props.width === 'xs' || this.props.width === 'sm';
 
             return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
-                <Card key="list" className={classes.tab}>
+                <Card className={classes.tab}>
                     <div className={classes.wrapperIcon}>
                         <div className={classes.icons}>
                             <Tooltip title={I18n.t('Create new device with Aliases')}>

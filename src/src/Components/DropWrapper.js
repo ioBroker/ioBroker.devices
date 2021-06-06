@@ -4,7 +4,7 @@ import { TableRow } from '@material-ui/core';
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 
-const DropWrapper = ({ openFolder, updateObjects, objects, deleteDevice, onCopyDevice, id, children, className, key, backgroundRow }) => {
+const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, children, className, key, backgroundRow }) => {
     const [error, setError] = useState(false);
     const language = I18n.getLanguage();
     const [{ isOver, canDrop }, drop] = useDrop({
@@ -16,10 +16,10 @@ const DropWrapper = ({ openFolder, updateObjects, objects, deleteDevice, onCopyD
                 parts = item.id.split('.');
                 parts = parts.pop();
             }
-            if (!id?.includes('alias.0') || id?.includes('automatically_detected') || id?.includes('linked_devices') || objects[`${id}.${parts}`]) {
-                return false;
-            }
-            return true;
+            return !(!id?.includes('alias.0') ||
+                id?.includes('automatically_detected') ||
+                id?.includes('linked_devices') ||
+                objects[`${id}.${parts}`]);
         },
         collect: (monitor) => ({
             handlerId: monitor.getHandlerId(),
@@ -39,7 +39,6 @@ const DropWrapper = ({ openFolder, updateObjects, objects, deleteDevice, onCopyD
             openFolder();
             if (item.id.includes('alias.0')) {
                 await deleteDevice(item.deviceIdx);
-                updateObjects('delete', item.id);
             }
         },
         hover(item, monitor) {
@@ -68,8 +67,9 @@ const DropWrapper = ({ openFolder, updateObjects, objects, deleteDevice, onCopyD
 
     return <TableRow
         className={className}
-        key={key}
-        padding="default" ref={drop} style={{ background, transition: 'background .3s' }}>
+        padding="default"
+        ref={drop}
+        style={{ background, transition: 'background .3s' }}>
         {children}
     </TableRow>;
 }

@@ -98,7 +98,7 @@ class TypeIcon extends Component {
 }
 
 TypeIcon.propTypes = {
-    type: PropTypes.string.isRequired,
+    type: PropTypes.string,
     style: PropTypes.object,
     src: PropTypes.string,
     className: PropTypes.string,

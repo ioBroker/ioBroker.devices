@@ -277,7 +277,6 @@ class TreeView extends React.Component {
         if (newExp) {
             this.state.expanded = newExp;
         }
-        console.log(11223344,this.props.selected,this.state.selected)
         // debounce search process
         this.filterTimer = null;
         // setTimeout(() => this.props.onSelect && this.props.onSelect(this.state.selected), 200);
@@ -327,6 +326,9 @@ class TreeView extends React.Component {
                     <TextField
                         onKeyPress={async ev => {
                             if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+
                                 if (this.state.addNewName) {
                                     const id = this.state.selected;
                                     await this.props.onAddNew(this.state.addNewName, this.state.addNew.id);
@@ -335,7 +337,6 @@ class TreeView extends React.Component {
                                 } else {
                                     this.setState({ addNew: null, addNewName: '' });
                                 }
-                                ev.preventDefault();
                             }
                         }}
                         error={!!error}
@@ -355,7 +356,8 @@ class TreeView extends React.Component {
                             this.setState({ addNew: null, addNewName: '' });
                         }}
                         startIcon={<IconOK />}
-                        color="primary">{I18n.t('Add')}</Button>
+                        color="primary"
+                    >{I18n.t('Add')}</Button>
                     <Button
                         variant="contained"
                         onClick={() => this.setState({ addNew: null, addNewName: '' })}

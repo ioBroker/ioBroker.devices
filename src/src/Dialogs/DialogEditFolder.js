@@ -275,7 +275,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                         />
                     </div>
                     <UploadImage
-                        crop
+                        crop={false}
                         icons
                         className={classes.sizeDropZone}
                         disabled={startTheProcess}

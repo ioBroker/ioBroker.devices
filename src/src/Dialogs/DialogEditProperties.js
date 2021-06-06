@@ -1,18 +1,18 @@
 /**
- * Copyright 2019 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2021 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
+import clsx from 'clsx';
 import { withStyles } from '@material-ui/core/styles';
 
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Switch from '@material-ui/core/Switch';
-import TypeIcon from '../Components/TypeIcon';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 
 import I18n from '@iobroker/adapter-react/i18n';
@@ -22,15 +22,6 @@ import Icon from '@iobroker/adapter-react/Components/Icon';
 import UploadImage from '../Components/UploadImage';
 
 const styles = theme => ({
-    header: {
-        width: '100%',
-        fontSize: 16,
-        fontWeight: 'bold',
-        textTransform: 'capitalize',
-        textAlign: 'center',
-        paddingBottom: 20,
-        color: '#000',
-    },
     divOidField: {
         width: '100%',
         display: 'block',
@@ -122,9 +113,9 @@ const styles = theme => ({
             opacity: 0.6,
         }
     },
-    sizeDropZone: {
-        height: 200,
-        maxWidth: 500,
+    dropZone: {
+        textAlign: 'left',
+        marginTop: theme.spacing(2),
     }
 });
 
@@ -196,14 +187,6 @@ class DialogEditProperties extends React.PureComponent {
         });
     }
 
-    renderHeader() {
-        const classes = this.props.classes;
-        return <div className={classes.header}>
-            <TypeIcon type={this.props.type} className={classes.tableIconImg} />
-            {this.props.type}
-        </div>;
-    }
-
     findRealDevice() {
         let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
         if (realParent) {
@@ -225,6 +208,7 @@ class DialogEditProperties extends React.PureComponent {
                 id: id
             }
         });
+
         return <Select
             className={this.props.classes.oidField}
             value={this.state[name]}
@@ -378,20 +362,18 @@ class DialogEditProperties extends React.PureComponent {
                     style={{ width: 40 }}
                     disabled={disabled}
                     value={this.state.color}
-                    className={classes.oidField + ' ' + classes.colorButton}
+                    className={clsx(classes.oidField, classes.colorButton)}
                     onChange={e => this.setState({ color: e.target.value })}
                     margin="normal"
                 />
             </div>
             <UploadImage
-                crop
-                icons
+                crop={false}
                 disabled={disabled}
-                className={classes.sizeDropZone}
+                className={classes.dropZone}
                 maxSize={256 * 1024}
                 icon={this.state.icon}
-                removeIconFunc={() => this.setState({ icon: '' })}
-                onChange={(base64) => this.setState({ icon: base64 })}
+                onChange={base64 => this.setState({ icon: base64 })}
                 t={I18n.t}
             />
         </div>;
@@ -400,7 +382,7 @@ class DialogEditProperties extends React.PureComponent {
     render() {
         return <div className={this.props.classes.divDialogContent}>
             {this.renderProperties()}
-        </div>
+        </div>;
     }
 }
 

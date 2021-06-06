@@ -221,9 +221,9 @@ class DialogNewDevice extends React.Component {
         const functionStorage = JSON.parse(window.localStorage.getItem('Devices.new.functions'));
         const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
         let root =  window.localStorage.getItem('NewDeviceRoot');
-        if(root && this.props.prefix.includes('alias') === root.includes('alias') && !!this.props.objects[root]){
+        if (root && this.props.prefix.includes('alias') === root.includes('alias') && !!this.props.objects[root]) {
 
-        }else{
+        } else {
             root = null;
         }
 

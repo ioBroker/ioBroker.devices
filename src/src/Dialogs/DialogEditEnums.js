@@ -119,8 +119,8 @@ class DialogEditEnums extends React.Component {
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button href="" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button href="" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
+                <Button variant="contained" onClick={() => this.handleOk()} color="primary" autoFocus>{I18n.t('Ok')}</Button>
+                <Button variant="contained" onClick={() => this.handleClose()}>{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>;
     }
