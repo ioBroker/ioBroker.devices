@@ -28,7 +28,7 @@ function build() {
 
 if (window.location.host !== 'localhost:3000') {
     Sentry.init({
-        dsn: "https://934e853b521248afabe9da038e6bf36e@sentry.iobroker.net/55",
+        dsn: 'https://3cedc5ceb5544e2e8248053c817fc98b@sentry.iobroker.net/131',
         integrations: [
             new SentryIntegrations.Dedupe()
         ]
@@ -40,4 +40,4 @@ build();
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.register();
+serviceWorker.unregister();

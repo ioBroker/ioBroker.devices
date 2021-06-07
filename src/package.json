@@ -1,6 +1,6 @@
 {
     "name": "devices-admin",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "private": true,
     "dependencies": {
         "@iobroker/adapter-react": "^1.6.26",

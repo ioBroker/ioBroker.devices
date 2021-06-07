@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "news": {
+            "1.0.1": {
+                "en": "Added sentry",
+                "de": "Wächter hinzugefügt",
+                "ru": "Добавлен часовой",
+                "pt": "Adicionado sentinela",
+                "nl": "schildwacht toegevoegd Added",
+                "fr": "Sentinelle ajoutée",
+                "it": "sentinella aggiunta",
+                "es": "Centinela agregado",
+                "pl": "Dodano wartownik",
+                "zh-cn": "添加哨兵"
+            },
             "1.0.0": {
                 "en": "Added new devices",
                 "de": "Neue Geräte hinzugefügt",
