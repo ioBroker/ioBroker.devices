@@ -162,5 +162,7 @@
   "Import": "Importeren",
   "Edit": "Bewerk",
   "Edit name \"%s\"": "Naam '%s' bewerken",
-  "Apply": "Van toepassing zijn"
+  "Apply": "Van toepassing zijn",
+  "Delete state": "Status verwijderen",
+  "Supported by \"%s\"": "Ondersteund door \"%s\""
 }

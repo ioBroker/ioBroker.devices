@@ -34,6 +34,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (bluefox) Added new devices
+
 ### 0.3.16 (2021-03-11)
 * (bluefox) Fixed the error for IDs with the strange characters 
 

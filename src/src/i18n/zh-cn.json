@@ -162,5 +162,7 @@
   "Import": "进口",
   "Edit": "编辑",
   "Edit name \"%s\"": "修改名称“%s”",
-  "Apply": "申请"
+  "Apply": "申请",
+  "Delete state": "删除状态",
+  "Supported by \"%s\"": "由“%s”支持"
 }

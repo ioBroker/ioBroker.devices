@@ -162,5 +162,7 @@
   "Import": "Importer",
   "Edit": "Éditer",
   "Edit name \"%s\"": "Modifier le nom \"%s\"",
-  "Apply": "Appliquer"
+  "Apply": "Appliquer",
+  "Delete state": "Supprimer l'état",
+  "Supported by \"%s\"": "Pris en charge par \"%s\""
 }

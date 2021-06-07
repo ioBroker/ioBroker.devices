@@ -17,28 +17,27 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
+import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
 
 import { MdEdit as IconEdit } from 'react-icons/md';
 import { MdFunctions as IconFunction } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
-// import { MdContentCopy as IconCopy } from 'react-icons/md';
 import { MdHelpOutline } from 'react-icons/md';
-
-import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
-import I18n from '@iobroker/adapter-react/i18n';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-
-import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 import { MdDelete as IconDelete } from 'react-icons/md';
 import { MdAdd as IconAdd } from 'react-icons/md';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
-import TypeIcon from '../Components/TypeIcon';
 
+import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
+import I18n from '@iobroker/adapter-react/i18n';
+import Utils from '@iobroker/adapter-react/Components/Utils';
+
+import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties from './DialogEditProperties';
 import { addStateCallBack } from './AddState';
+import { getChannelItems } from '../Components/helpers/search';
 
 const styles = theme => {
     return ({
@@ -60,12 +59,12 @@ const styles = theme => {
         oidName: {
             minWidth: 100,
             display: 'flex',
-            // alignItems: 'center',
             flexDirection: 'column',
             marginTop: 17,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            marginRight: 8,
         },
         oidField: {
             display: 'inline-block',
@@ -220,7 +219,12 @@ const styles = theme => {
         },
         oidNameIcon: {
             marginTop: 16,
-            marginRight: 3
+            marginRight: 3,
+            width: 24,
+            height: 24,
+        },
+        addedName: {
+            color: '#e67e229e'
         },
         helperText: {
             opacity: 0.2
@@ -286,55 +290,7 @@ class DialogEditDevice extends React.Component {
             }
         });
 
-        const newDevices = Object.keys(this.props.objects)
-            .filter(key => key.includes(this.props.channelInfo.channelId) && !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
-            .map(key => {
-                const objOriginal = this.props.objects[key];
-                const obj = {
-                    defaultRole: objOriginal?.common?.role,
-                    id: objOriginal?._id,
-                    noType: true,
-                    name: objOriginal?.common?.name,
-                    type: objOriginal?.common?.type,
-                    write: objOriginal?.common?.write,
-                    indicator: false,
-                    required: false
-                };
-                return obj;
-            })
-            .filter(item => !this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(el => el.name === item.name));
-
-        newDevices.forEach(state => {
-            if (state.id) {
-                const obj = this.props.objects[state.id];
-                if (obj && obj.common && obj.common.alias) {
-                    ids[state.name] = obj.common.alias.id || '';
-                    this.fx[state.name] = {
-                        read: obj.common.alias.read || '',
-                        write: obj.common.alias.write || '',
-                    };
-                } else {
-                    this.fx[state.name] = { read: '', write: '' };
-                }
-                if (obj && obj.common && obj.common.custom) {
-                    const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
-                    if (attr && attr.length && obj.common.custom[attr] && obj.common.custom[attr].parentId) {
-                        ids[state.name] = obj.common.custom[attr].parentId;
-                    }
-                }
-
-                if (state.defaultRole && state.defaultRole.startsWith('button')) {
-                    delete this.fx[state.name].read;
-                }
-                if (!state.write ||
-                    (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
-                ) {
-                    delete this.fx[state.name].write;
-                }
-            } else {
-                this.fx[state.name] = { read: '', write: '' };
-            }
-        });
+        const {addedStates} = this.updateFx(this.getAddedChannelStates(), ids);
 
         this.channelId = this.props.channelInfo.channelId;
         let name = '';
@@ -347,10 +303,10 @@ class DialogEditDevice extends React.Component {
         const extendedAvailable = !!(this.props.channelInfo.states.filter(item => item.indicator).length) && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
 
         this.state = {
-            ids,
-            idsInit: ids,
+            ids: ids,
+            idsInit: JSON.parse(JSON.stringify(ids)),
             name,
-            newDevices,
+            addedStates,
             extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
             expertMode: true,
             selectIdFor: '',
@@ -372,17 +328,15 @@ class DialogEditDevice extends React.Component {
             .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
     }
 
-    // componentWillReceiveProps(nextProps) {
-    //     console.log(nextProps.channelInfo.states);
-    // }
+    getAddedChannelStates() {
+        const channelIds = getChannelItems(this.props.objects, this.props.channelInfo.channelId);
 
-    componentDidUpdate(prevProps) {
-        // if (JSON.stringify(prevProps.objects) !== JSON.stringify(this.props.objects)) {
-        const newDevices = Object.keys(this.props.objects)
-            .filter(key => key.includes(this.props.channelInfo.channelId) && !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
+        // Add states, that could not be detected by type-detector
+        return channelIds
+            .filter(key => !this.props.channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state')
             .map(key => {
                 const objOriginal = this.props.objects[key];
-                const obj = {
+                return {
                     defaultRole: objOriginal?.common?.role,
                     id: objOriginal?._id,
                     noType: true,
@@ -392,38 +346,56 @@ class DialogEditDevice extends React.Component {
                     indicator: false,
                     required: false
                 };
-                return obj;
             })
             .filter(item => !this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(el => el.name === item.name));
+    }
 
-        if (JSON.stringify(newDevices) !== JSON.stringify(this.state.newDevices)) {
-            newDevices.forEach(state => {
-                if (state.id && !this.fx[state.name]) {
-                    const obj = this.props.objects[state.id];
-                    if (obj && obj.common && obj.common.alias) {
-                        this.fx[state.name] = {
-                            read: obj.common.alias.read || '',
-                            write: obj.common.alias.write || '',
-                        };
-                    } else {
-                        this.fx[state.name] = { read: '', write: '' };
-                    }
+    updateFx(addedStates, ids) {
+        const newIds = ids || JSON.parse(JSON.stringify(this.state.ids));
 
-                    if (state.defaultRole && state.defaultRole.startsWith('button')) {
-                        delete this.fx[state.name].read;
-                    }
-                    if (!state.write ||
-                        (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
-                    ) {
-                        delete this.fx[state.name].write;
-                    }
+        addedStates.forEach(state => {
+            if (state.id) {
+                const obj = this.props.objects[state.id];
+                if (obj && obj.common && obj.common.alias) {
+                    newIds[state.name] = obj.common.alias.id || '';
+                    this.fx[state.name] = this.fx[state.name] || {
+                        read: obj.common.alias.read || '',
+                        write: obj.common.alias.write || '',
+                    };
                 } else {
-                    this.fx[state.name] = { read: '', write: '' };
+                    this.fx[state.name] = this.fx[state.name] || { read: '', write: '' };
                 }
-            });
-            this.setState({ newDevices });
+                if (obj && obj.common && obj.common.custom) {
+                    const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
+                    if (attr && attr.length && obj.common.custom[attr] && obj.common.custom[attr].parentId) {
+                        newIds[state.name] = newIds[state.name] || obj.common.custom[attr].parentId;
+                    }
+                }
+
+                if (state.defaultRole && state.defaultRole.startsWith('button')) {
+                    delete this.fx[state.name].read;
+                }
+                if (!state.write ||
+                    (state.defaultRole && (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
+                ) {
+                    delete this.fx[state.name].write;
+                }
+            } else {
+                this.fx[state.name] = this.fx[state.name] || { read: '', write: '' };
+            }
+        });
+
+        return {addedStates, newIds};
+    }
+
+    UNSAFE_componentWillReceiveProps(nextProps) {
+        const addedStates = this.getAddedChannelStates();
+
+        if (JSON.stringify(addedStates) !== JSON.stringify(this.state.addedStates)) {
+            const {addedStates, newIds} = this.updateFx(this.getAddedChannelStates());
+
+            this.setState({ addedStates, ids: newIds });
         }
-        // }
     }
 
     renderSelectDialog() {
@@ -459,11 +431,11 @@ class DialogEditDevice extends React.Component {
                         obj.common.alias = { id };
                     }
                     await this.props.socket.setObject(`${this.channelId}.${parts}`, obj);
-                    const newObject = await this.props.socket.getObject(`${this.channelId}.${parts}`);
-                    this.props.objects[`${this.channelId}.${parts}`] = newObject;
-                    if (newObject.common) {
-                        ids[newObject.common.name] = newObject?.common?.alias?.id;
-                    }
+                    //const newObject = await this.props.socket.getObject(`${this.channelId}.${parts}`);
+                    //this.props.objects[`${this.channelId}.${parts}`] = newObject;
+                    //if (newObject.common) {
+                    //    ids[newObject.common.name] = newObject?.common?.alias?.id;
+                    //}
                 }
                 this.setState({ selectIdPrefix: '', selectIdFor: '', ids });
             }}
@@ -476,7 +448,7 @@ class DialogEditDevice extends React.Component {
     }
 
     updateNewState = async () => {
-        const array = this.state.newDevices.filter(item => Object.keys(this.state.ids).includes(item.name));
+        const array = this.state.addedStates.filter(item => Object.keys(this.state.ids).includes(item.name));
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
             const stateObj = this.props.objects[item.id];
@@ -527,87 +499,12 @@ class DialogEditDevice extends React.Component {
         </div>;
     }
 
-    /*async addToEnum(enumId, id) {
-       const obj = await this.props.socket.getObject(enumId)
-       if (obj && obj.common) {
-           obj.common.members = obj.common.members || [];
-
-           if (!obj.common.members.includes(id)) {
-               obj.common.members.push(id);
-               obj.common.members.sort();
-               await this.props.socket.setObject(enumId, obj);
-           }
-       }
-   }
-
-   async processTasks(tasks) {
-       for (let t = 0; t < tasks.length; t++) {
-           const task = tasks[t];
-           if (task.enums) {
-               for (let m = 0; m < task.enums.length; m++) {
-                   await this.addToEnum(task.enums[i], task.id);
-               }
-           }
-
-           this.props.objects[task.id] = task.obj;
-           await this.props.socket.setObject(task.id, task.obj);
-       }
-   }*/
-
-    /*onCopyDevice(newChannelId, cb) {
-        // if this is device not from linkeddevice or from alias
-        const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
-
-        if (!isAlias) {
-            return cb();
-        }
-
-        const channelObj = this.props.objects[this.channelId];
-        const tasks = [];
-        tasks.push({
-            id: newChannelId,
-            obj: {
-                common: {
-                    name: channelObj.common.name,
-                    color: channelObj.common.color,
-                    desc: channelObj.common.desc,
-                    role: channelObj.common.role,
-                    icon: channelObj.common.icon,
-                },
-                type: 'channel'
-            },
-            enums: this.props.channelInfo.rooms.concat(this.props.channelInfo.functions)
-        });
-
-        this.props.channelInfo.states.forEach(state => {
-            if (!state.id) {
-                return;
-            }
-            const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
-            obj._id = newChannelId + '.' + state.name;
-
-            obj.native = {};
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
-            tasks.push({ id: obj._id, obj });
-        });
-
-        this.processTasks(tasks, cb);
-    }*/
-
     renderHeader() {
         const classes = this.props.classes;
-        // const alias = this.props.channelInfo.channelId.startsWith('alias.');
 
         return <div className={classes.header}>
-            <div className={classes.divOids + ' ' + classes.headerButtons + ' ' + classes.divExtended} />
+            <div className={clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
             <div className={classes.menuWrapperIcons}>
-                {/* {!alias && <Tooltip title={I18n.t('Copy device into aliases')}>
-                    <IconButton onClick={() => this.setState({ showCopyDialog: true, newChannelId: '' })}>
-                        <IconCopy />
-                    </IconButton>
-                </Tooltip>} */}
                 {this.state.extendedAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
                         style={this.state.extended ? { color: '#4dabf5' } : null}
@@ -624,8 +521,7 @@ class DialogEditDevice extends React.Component {
                             onClick={() => addStateCallBack(
                                 async obj => {
                                     if (obj) {
-                                        const newObject = await this.props.socket.getObject(obj._id);
-                                        this.props.objects[obj._id] = newObject;
+                                        //this.props.objects[obj._id] = await this.props.socket.getObject(obj._id);
                                     }
                                 },
                                 this.props.objects,
@@ -651,7 +547,6 @@ class DialogEditDevice extends React.Component {
 
     onDelete = async (id) => {
         await this.props.socket.delObject(id);
-        delete this.props.objects[id];
     }
 
     findRealDevice(prefix) {
@@ -763,53 +658,6 @@ class DialogEditDevice extends React.Component {
         </Dialog>;
     }
 
-    /*renderCopyDialog() {
-        if (!this.state.showCopyDialog) {
-            return;
-        }
-
-        const ALIAS_PREFIX = 'alias.0.';
-
-        return <Dialog
-            key="copyDialog"
-            open={true}
-            maxWidth="sm"
-            fullWidth={true}
-            onClose={() => this.setState({ showCopyDialog: false })}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-        >
-            <DialogTitle className={this.props.classes.titleBackground}
-                classes={{ root: this.props.classes.titleColor }}
-                id="edit-device-dialog-title">{I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b></DialogTitle>
-            <DialogContent>
-                <div className={this.props.classes.divDialogContent}>
-                    <div className={this.props.classes.idEditName} style={{ fontWeight: 'bold' }}>{I18n.t('New device ID')} - {ALIAS_PREFIX}</div>
-                    <TextField
-                        fullWidth
-                        placeholder={I18n.t('...')}
-                        label={ALIAS_PREFIX + this.state.newChannelId}
-                        error={this.state.newChannelError}
-                        value={this.state.newChannelId}
-                        className={this.props.classes.idEdit}
-                        onChange={e => this.setState({ newChannelId: e.target.value.replace(FORBIDDEN_CHARS, '_'), newChannelError: !!this.props.objects[ALIAS_PREFIX + e.target.value.replace(FORBIDDEN_CHARS, '_')] })}
-                        margin="normal"
-                    />
-                </div>
-            </DialogContent>
-            <DialogActions>
-                <Button href="" disabled={this.state.newChannelError} onClick={() => {
-                    // this.onCopyDevice(ALIAS_PREFIX + this.state.newChannelId, () =>
-                    this.setState({ showCopyDialog: false, newChannelId: '' }, () =>
-                        this.handleOk(true));
-                    // );
-
-                }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button href="" onClick={() => this.setState({ showCopyDialog: false })}>{I18n.t('Cancel')}</Button>
-            </DialogActions>
-        </Dialog>;
-    }*/
-
     onToggleTypeStates = (name) => {
         let stateDevice = this.state.ids[name];
         if (typeof stateDevice === 'object') {
@@ -825,7 +673,33 @@ class DialogEditDevice extends React.Component {
         this.setState({ ids: newIds });
     }
 
-    renderVariable(item, color = null) {
+    static getStateIcon(name, role) {
+
+        // Get icon by role
+        if (role.includes('humidity')) {
+            return STATES_NAME_ICONS.HUMIDITY;
+        } else if (role.includes('temperature')) {
+            return STATES_NAME_ICONS.TEMPERATURE;
+        } else if (role.includes('water')) {
+            return STATES_NAME_ICONS.WATER;
+        } else if (role.includes('fire')) {
+            return STATES_NAME_ICONS.FIRE;
+        } else if (role.includes('smoke')) {
+            return STATES_NAME_ICONS.SMOKE;
+        } else if (role.includes('speed')) {
+            return STATES_NAME_ICONS.SPEED;
+        } else if (role.includes('brightness')) {
+            return STATES_NAME_ICONS.BRIGHTNESS;
+        } else if (role.includes('motion')) {
+            return STATES_NAME_ICONS.MOTION;
+        }  else if (role.includes('window')) {
+            return STATES_NAME_ICONS.WINDOW;
+        } else {
+            return STATES_NAME_ICONS[name] || MdHelpOutline;
+        }
+    }
+
+    renderVariable(item, isAdded, index) {
         if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
             return null;
         }
@@ -856,7 +730,7 @@ class DialogEditDevice extends React.Component {
         }
 
         if (item.required) {
-            props.push('required')
+            props.push('required');
         }
 
         const role = pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || '';
@@ -869,20 +743,24 @@ class DialogEditDevice extends React.Component {
 
         ////////////// ImportExportIcon
         const alias = this.channelId.startsWith('alias.');
-        const linkeddevices = this.channelId.startsWith('linkeddevices.');
+        const linkedDevices = this.channelId.startsWith('linkeddevices.');
         const name = item.name;
 
-        const IconsState = STATES_NAME_ICONS[name] || MdHelpOutline
+        // Get icon by role
+        const IconsState = DialogEditDevice.getStateIcon(name, role);
 
         if (typeof this.state.ids[name] === 'object') {
-            return <div key={name}>
-                <div key={name} className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+            return <div key={name + '_' + index}>
+                <div
+                    className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)}
+                    style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}
+                >
                     <div className={this.props.classes.displayFlex}>
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
-                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
+                                    <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
+                                    <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_read')}</div>
                                     </div>
@@ -891,7 +769,7 @@ class DialogEditDevice extends React.Component {
                             <TextField
                                 key={name}
                                 fullWidth
-                                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
+                                disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                 value={this.state.ids[name].read}
                                 className={clsx(this.props.classes.oidField, this.props.classes.width100)}
                                 style={{ paddingTop: 8 }}
@@ -900,14 +778,12 @@ class DialogEditDevice extends React.Component {
                                     ids[name].read = e.target.value;
                                     this.setState({ ids });
                                 }}
-                                FormHelperTextProps={{
-                                    className: this.props.classes.helperText
-                                }}
+                                FormHelperTextProps={{className: this.props.classes.helperText}}
                                 helperText={`${props.join(', ')}`}
                                 margin="normal"
                             />
                             <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                                {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
                                     <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
                                         <IconEdit />
                                     </IconButton>
@@ -917,8 +793,8 @@ class DialogEditDevice extends React.Component {
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
-                                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
+                                    <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
+                                    <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_write')}</div>
                                     </div>
@@ -927,7 +803,7 @@ class DialogEditDevice extends React.Component {
                             <TextField
                                 key={name}
                                 fullWidth
-                                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
+                                disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                 value={this.state.ids[name].write}
                                 className={clsx(this.props.classes.oidField, this.props.classes.width100)}
                                 style={{ paddingTop: 8 }}
@@ -936,13 +812,11 @@ class DialogEditDevice extends React.Component {
                                     ids[name].write = e.target.value;
                                     this.setState({ ids });
                                 }}
-                                FormHelperTextProps={{
-                                    className: this.props.classes.helperText
-                                }}
+                                FormHelperTextProps={{className: this.props.classes.helperText}}
                                 helperText={`${props.join(', ')}`}
                                 margin="normal"
                             /> <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                                {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
                                     <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
                                         <IconEdit />
                                     </IconButton>
@@ -951,7 +825,7 @@ class DialogEditDevice extends React.Component {
                         </div>
                     </div>
                     <div className={this.props.classes.wrapperItemButtons}>
-                        {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
+                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
                             <IconButton color="primary" onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
@@ -969,64 +843,63 @@ class DialogEditDevice extends React.Component {
                     </div>
                 </div>
             </div>;
-        }
-
-        return <div key={name} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
-            <Tooltip title={titleTooltip}>
-                <div className={this.props.classes.wrapperOidName}>
-                    <IconsState style={{ color }} className={this.props.classes.oidNameIcon} />
-                    <div className={this.props.classes.oidName} style={{ fontWeight: item.required ? 'bold' : null, color }}>
-                        {(item.required ? '*' : '') + name}
+        } else {
+            return <div key={name + '_' + index} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+                <Tooltip title={titleTooltip}>
+                    <div className={this.props.classes.wrapperOidName}>
+                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
+                        <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                            {(item.required ? '*' : '') + name}
+                        </div>
                     </div>
+                </Tooltip>
+                <TextField
+                    fullWidth
+                    disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
+                    value={alias || linkedDevices ? this.state.ids[name] || '' : item.id || ''}
+                    className={this.props.classes.oidField}
+                    style={{ paddingTop: 8 }}
+                    onChange={e => {
+                        const ids = JSON.parse(JSON.stringify(this.state.ids));
+                        ids[name] = e.target.value;
+                        this.setState({ ids });
+                    }}
+                    FormHelperTextProps={{
+                        className: this.props.classes.helperText
+                    }}
+                    helperText={props.join(', ')}
+                    margin="normal"
+                />
+                <div className={this.props.classes.wrapperItemButtons}>
+                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                        <IconButton onClick={() => this.setState({ selectIdFor: name })}>
+                            <IconEdit />
+                        </IconButton>
+                    </Tooltip>}
+                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
+                        <IconButton onClick={() => this.onToggleTypeStates(name)}>
+                            <ImportExportIcon />
+                        </IconButton>
+                    </Tooltip>}
+                    {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
+                        <IconButton onClick={() => this.setState({ editFxFor: name })}>
+                            <IconFunction />
+                        </IconButton>
+                    </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                    {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                        <IconButton onClick={() => this.onDelete(item.id)}>
+                            <IconDelete />
+                        </IconButton>
+                    </Tooltip>}
                 </div>
-            </Tooltip>
-            <TextField
-                key={name}
-                fullWidth
-                disabled={(!alias && !linkeddevices) || this.state.startTheProcess}
-                value={alias || linkeddevices ? this.state.ids[name] || '' : item.id || ''}
-                className={this.props.classes.oidField}
-                style={{ paddingTop: 8 }}
-                onChange={e => {
-                    const ids = JSON.parse(JSON.stringify(this.state.ids));
-                    ids[name] = e.target.value;
-                    this.setState({ ids });
-                }}
-                FormHelperTextProps={{
-                    className: this.props.classes.helperText
-                }}
-                helperText={props.join(', ')}
-                margin="normal"
-            />
-            <div className={this.props.classes.wrapperItemButtons}>
-                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                    <IconButton onClick={() => this.setState({ selectIdFor: name })}>
-                        <IconEdit />
-                    </IconButton>
-                </Tooltip>}
-                {(alias || linkeddevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
-                    <IconButton onClick={() => this.onToggleTypeStates(name)}>
-                        <ImportExportIcon />
-                    </IconButton>
-                </Tooltip>}
-                {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                    <IconButton onClick={() => this.setState({ editFxFor: name })}>
-                        <IconFunction />
-                    </IconButton>
-                </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
-                {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                    <IconButton onClick={() => this.onDelete(item.id)}>
-                        <IconDelete />
-                    </IconButton>
-                </Tooltip>}
-            </div>
-        </div>;
+            </div>;
+        }
     }
 
     renderVariables() {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
-            {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map(item => this.renderVariable(item))}
-            {this.state.extendedAvailable && this.state.newDevices.map(item => this.renderVariable(item, '#e67e229e'))}
+            {this.props.channelInfo.states.filter((item, i) => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, false, i))}
+            {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, true, i))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
@@ -1055,7 +928,6 @@ class DialogEditDevice extends React.Component {
         >
             {this.renderSelectDialog()}
             {this.renderEditFxDialog()}
-            {/*this.renderCopyDialog()*/}
             <DialogTitle className={this.props.classes.titleBackground}
                 classes={{ root: this.props.classes.titleColor }}
                 id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
@@ -1105,7 +977,7 @@ class DialogEditDevice extends React.Component {
                         changeProperties={this.state.changeProperties}
                         onChange={(state, initState, disabledButton) => {
                             if (initState) {
-                                // TODO unclear! why immediately after setstate the settings are reseted
+                                // TODO unclear! why immediately after setstate the settings are reset
                                 return this.setState({ initChangeProperties: initState, changeProperties: initState, disabledButton: false }, () =>
                                     this.setState({ changeProperties: state, disabledButton }));
                             } else {

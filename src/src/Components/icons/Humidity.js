@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const Humidity = props => (
   <svg viewBox="0 0 511.448 511.448" {...props}>

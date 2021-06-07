@@ -329,8 +329,11 @@ function ChannelDetector() {
                 // optional
                 {role: /temperature(\..*)?$/,          indicator: false,     write: false, type: 'number',    searchInParent: true,                           name: 'ACTUAL',             required: false, defaultRole: 'value.temperature', defaultUnit: '°C'},
                 {role: /humidity(\..*)?$/,             indicator: false,     write: false, type: 'number',    searchInParent: true,                           name: 'HUMIDITY',           required: false, defaultRole: 'value.humidity', defaultUnit: '%'},
-                {role: /^switch\.boost(\..*)?$/,       indicator: false,     write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'BOOST',              required: false, defaultRole: 'switch.boost'},
+                {role: /^switch(\.mode)?\.boost(\..*)?$/, indicator: false,  write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'BOOST',              required: false, defaultRole: 'switch.mode.boost'},
                 {role: /^switch\.power$/,              indicator: false,     write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'POWER',              required: false, defaultRole: 'switch.power'},
+                {role: /^switch(\.mode)?\.party$/,     indicator: false,     write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'PARTY',              required: false, defaultRole: 'switch.mode.party'},
+                {role: /^switch$/,                     indicator: false,     write: true,  type: 'boolean',   searchInParent: true,                           name: 'POWER',              required: false},
+                {role: /^level(\.mode)?\.thermostat$/, indicator: false,     write: true,  type: 'number',    searchInParent: true,                           name: 'MODE',               required: false, defaultRole: 'level.mode.thermostat', defaultStates: {0: 'AUTO', 1: 'MANUAL'}},
                 patternWorking,
                 patternUnreach,
                 patternLowbat,
@@ -447,7 +450,7 @@ function ChannelDetector() {
             states: [
                 {role: /^state\.motion$|^sensor\.motion$/,                   indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, defaultRole: 'sensor.motion'},
                 // optional
-                {role: /brightness$/,                                        indicator: false, type: 'number',  name: 'SECOND',     required: false, defaultRole: 'value.brightness'},
+                {role: /brightness$/,                                        indicator: false, type: 'number',  name: 'SECOND',     required: false, defaultRole: 'value.brightness', defaultUnit: 'lux'},
                 patternUnreach,
                 patternLowbat,
                 patternMaintain,

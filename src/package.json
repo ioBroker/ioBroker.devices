@@ -11,7 +11,7 @@
         "@sentry/integrations": "^6.4.1",
         "del": "^6.0.0",
         "gulp": "^4.0.2",
-        "iobroker.type-detector": "^1.0.9",
+        "iobroker.type-detector": "^1.0.10",
         "react": "^17.0.2",
         "react-color": "^2.19.3",
         "react-cropper": "^2.1.7",
