@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "0.3.16",
+        "version": "1.0.0",
         "news": {
+            "1.0.0": {
+                "en": "Added new devices",
+                "de": "Neue Geräte hinzugefügt",
+                "ru": "Добавлены новые устройства",
+                "pt": "Novos dispositivos adicionados",
+                "nl": "Nieuwe apparaten toegevoegd",
+                "fr": "Ajout de nouveaux appareils",
+                "it": "Aggiunti nuovi dispositivi",
+                "es": "Nuevos dispositivos agregados",
+                "pl": "Dodano nowe urządzenia",
+                "zh-cn": "添加了新设备"
+            },
             "0.3.16": {
                 "en": "Fixed the error for IDs with the strange characters",
                 "de": "Der Fehler für IDs mit den seltsamen Zeichen wurde behoben",
