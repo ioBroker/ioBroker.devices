@@ -1,5 +1,4 @@
 # General
-- (bf) provide supported list in google, alexa, alisa, material,
 
 ## Linked devices
 
