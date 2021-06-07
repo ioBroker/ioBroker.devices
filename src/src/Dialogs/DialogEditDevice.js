@@ -372,6 +372,10 @@ class DialogEditDevice extends React.Component {
             .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
     }
 
+    // componentWillReceiveProps(nextProps) {
+    //     console.log(nextProps.channelInfo.states);
+    // }
+
     componentDidUpdate(prevProps) {
         // if (JSON.stringify(prevProps.objects) !== JSON.stringify(this.props.objects)) {
         const newDevices = Object.keys(this.props.objects)
@@ -455,6 +459,11 @@ class DialogEditDevice extends React.Component {
                         obj.common.alias = { id };
                     }
                     await this.props.socket.setObject(`${this.channelId}.${parts}`, obj);
+                    const newObject = await this.props.socket.getObject(`${this.channelId}.${parts}`);
+                    this.props.objects[`${this.channelId}.${parts}`] = newObject;
+                    if (newObject.common) {
+                        ids[newObject.common.name] = newObject?.common?.alias?.id;
+                    }
                 }
                 this.setState({ selectIdPrefix: '', selectIdFor: '', ids });
             }}
@@ -613,7 +622,12 @@ class DialogEditDevice extends React.Component {
                     <Tooltip title={I18n.t('Add state')}>
                         <IconButton
                             onClick={() => addStateCallBack(
-                                obj => obj && this.props.socket.setObject(obj._id, obj),
+                                async obj => {
+                                    if (obj) {
+                                        const newObject = await this.props.socket.getObject(obj._id);
+                                        this.props.objects[obj._id] = newObject;
+                                    }
+                                },
                                 this.props.objects,
                                 this.props.socket,
                                 this.channelId,
@@ -637,6 +651,7 @@ class DialogEditDevice extends React.Component {
 
     onDelete = async (id) => {
         await this.props.socket.delObject(id);
+        delete this.props.objects[id];
     }
 
     findRealDevice(prefix) {

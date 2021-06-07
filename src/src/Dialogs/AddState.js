@@ -225,8 +225,8 @@ const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
                             obj.common.read = checkedRead;
                             obj.common.write = checkedWrite;
                         }
-                        cb(obj);
                         await socket.setObject(`${channelId}.${name}`, obj);
+                        cb(obj);
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
