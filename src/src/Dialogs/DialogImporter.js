@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// import ReactDOM from 'react-dom';
+import clsx from 'clsx';
 
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -11,23 +11,21 @@ import {
     MenuItem,
     Select,
     TextField,
-    // TextField,
     ThemeProvider,
     Tooltip
 } from '@material-ui/core';
 
+import { MdModeEdit as IconEdit } from 'react-icons/md';
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import theme from '@iobroker/adapter-react/Theme';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import TypeIcon from '../Components/TypeIcon';
-import { MdModeEdit as IconEdit } from 'react-icons/md';
-import clsx from 'clsx';
-import TreeView from '../Components/TreeView';
-// import UploadImage from '../Components/UploadImage';
 import Icon from '@iobroker/adapter-react/Components/Icon';
+
+import TypeIcon from '../Components/TypeIcon';
+import TreeView from '../Components/TreeView';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 
 const useStyles = makeStyles((theme) => ({
@@ -342,54 +340,6 @@ const DialogImporter = ({
         const selectId = newArray.map(device => device.id);
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
-
-    // const onCopyDevice = async (copyDevice, newChannelId, originalId) => {
-    //     if (!copyDevice) {
-    //         return null;
-    //     }
-
-    //     // if this is device not from linkeddevice or from alias
-    //     const channelId = copyDevice.channelId;
-    //     const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
-
-    //     const channelObj = objects[channelId];
-    //     const { functions, rooms, icon, states, color, type } = copyDevice;
-    //     const tasks = [];
-
-    //     tasks.push({
-    //         id: newChannelId,
-    //         obj: {
-    //             common: {
-    //                 name: channelObj.common.name,
-    //                 color: color,
-    //                 desc: channelObj.common.desc,
-    //                 role: type,
-    //                 icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
-    //             },
-    //             native: {
-    //                 originalId
-    //             },
-    //             type: 'channel'
-    //         },
-    //         enums: rooms.concat(functions)
-    //     });
-
-    //     states.forEach(state => {
-    //         if (!state.id) {
-    //             return;
-    //         }
-    //         const obj = JSON.parse(JSON.stringify(objects[state.id]));
-    //         obj._id = newChannelId + '.' + state.name;
-
-    //         obj.native = {};
-    //         if (!isAlias) {
-    //             obj.common.alias = { id: state.id };
-    //         }
-    //         tasks.push({ id: obj._id, obj });
-    //     });
-
-    //     await processTasks(tasks);
-    // };
 
     const addNewFolder = async (dataFolder, id) => {
         const obj = {

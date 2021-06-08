@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2021 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -36,7 +36,7 @@ import Utils from '@iobroker/adapter-react/Components/Utils';
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties from './DialogEditProperties';
-import { addStateCallBack } from './AddState';
+import { addStateCallBack } from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
 
 const styles = theme => {

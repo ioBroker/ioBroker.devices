@@ -78,7 +78,7 @@ const typeArray = [
     'file',
 ];
 
-const AddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
+const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [role, setRole] = useState(null);
@@ -252,7 +252,7 @@ export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefau
     }
 
     return ReactDOM.render(
-        <AddState
+        <DialogAddState
             arrayStateDefault={arrayStateDefault}
             channelId={channelId}
             socket={socket}

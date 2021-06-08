@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-// import ReactDOM from 'react-dom';
 
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -13,9 +12,8 @@ import IconCheck from '@material-ui/icons/Check';
 import I18n from '@iobroker/adapter-react/i18n';
 import theme from '@iobroker/adapter-react/Theme';
 import Utils from '@iobroker/adapter-react/Components/Utils';
-import UploadImage from '../Components/UploadImage';
 
-// let node = null;
+import UploadImage from '../Components/UploadImage';
 
 const useStyles = makeStyles((theme) => ({
     root: {

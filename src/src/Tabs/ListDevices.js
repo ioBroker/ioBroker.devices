@@ -57,7 +57,7 @@ import DialogNew from '../Dialogs/DialogNewDevice';
 import SmartGeneric from '../Devices/SmartGeneric';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
-import { deleteFolderAndDeviceCallBack } from '../Dialogs/DeleteFolder';
+import { deleteFolderAndDeviceCallBack } from '../Dialogs/DialogDeleteFolder';
 import DialogEditFolder from '../Dialogs/DialogEditFolder';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import DragWrapper from '../Components/DragWrapper';

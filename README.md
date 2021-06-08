@@ -22,11 +22,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.**
 
 ## ToDo
-- clone existing device into linkeddevices/alias/javascript
-- add icons for all states of channels
 - add descriptions for states
-- show errors for google/alisa/alexa
-- detect if js-controller 2.0 installed
 
 <!--
 	Placeholder for the next version (at the beginning of the line):

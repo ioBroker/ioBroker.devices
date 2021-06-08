@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2020 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2021 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -24,9 +24,10 @@ import IconCheck from '@material-ui/icons/Check';
 import { Types } from 'iobroker.type-detector';
 import I18n from '@iobroker/adapter-react/i18n';
 import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
+import Icon from '@iobroker/adapter-react/Components/Icon';
+
 import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
-import Icon from '@iobroker/adapter-react/Components/Icon';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 
 const styles = theme => ({

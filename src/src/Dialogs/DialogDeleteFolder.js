@@ -43,7 +43,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const DeleteFolder = ({ cb, device }) => {
+const DialogDeleteFolder = ({ cb, device }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [checked, setChecked] = useState(false);
@@ -113,5 +113,5 @@ export const deleteFolderAndDeviceCallBack = (cb, device = false) => {
         node.id = 'renderModal';
         document.body.appendChild(node);
     }
-    return ReactDOM.render(<DeleteFolder cb={cb} device={device} />, node);
+    return ReactDOM.render(<DialogDeleteFolder cb={cb} device={device} />, node);
 }
