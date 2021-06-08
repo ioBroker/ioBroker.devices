@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 bluefox <dogafox@gmail.com>
+ * Copyright 2018-2021 bluefox <dogafox@gmail.com>
  *
  * The MIT License (MIT)
  *
@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  **/
-// Version 0.1.6, 2019.08.14
+// Version 1.0.10, 2021.06.07
 // Keep this file ES5 conform! No const, let, not lambdas => , no ..., no default values for arguments, no let [arg] = abc() and other modern stuff.
 
 // eslint-disable-next-line
@@ -32,6 +32,7 @@ var Types = {
 
     airCondition: 'airCondition',
     blind: 'blind',
+    blindButtons: 'blindButton',
     button: 'button',
     buttonSensor: 'buttonSensor',
     camera: 'camera',
@@ -69,6 +70,15 @@ var Types = {
     warning: 'warning'
 };
 
+var SharedPatterns = {
+    working:   {role: /^indicator\.working$/,                 indicator: true,                                            name: 'WORKING',            required: false, defaultRole: 'indicator.working'},
+    unreach:   {role: /^indicator(\.maintenance)?\.unreach$/, indicator: true,  type: 'boolean',                          name: 'UNREACH',            required: false, defaultRole: 'indicator.maintenance.unreach'},
+    lowbat:    {role: /^indicator(\.maintenance)?\.lowbat$|^indicator(\.maintenance)?\.battery/,  indicator: true,  type: 'boolean',  name: 'LOWBAT', required: false, defaultRole: 'indicator.maintenance.lowbat'},
+    maintain:  {role: /^indicator\.maintenance$/,             indicator: true,  type: 'boolean',                          name: 'MAINTAIN',           required: false, defaultRole: 'indicator.maintenance'},
+    error:     {role: /^indicator\.error$/,                   indicator: true,                                            name: 'ERROR',              required: false, defaultRole: 'indicator.error'},
+    direction: {role: /^indicator\.direction$/,               indicator: true,                                            name: 'DIRECTION',          required: false, defaultRole: 'indicator.direction'},
+    reachable: {role: /^indicator\.reachable$/,               indicator: true,  type: 'boolean',                          name: 'CONNECTED',          required: false, defaultRole: 'indicator.reachable', inverted: true},
+};
 // Description of flags
 // role - RegEx to detect role
 // channelRole - RegEx to detect channel role of state
@@ -95,14 +105,6 @@ function ChannelDetector() {
     if (!(this instanceof ChannelDetector)) {
         return new ChannelDetector();
     }
-
-    var patternWorking   = {role: /^indicator\.working$/,                 indicator: true,                                            name: 'WORKING',            required: false, defaultRole: 'indicator.working'};
-    var patternUnreach   = {role: /^indicator(\.maintenance)?\.unreach$/, indicator: true,  type: 'boolean',                          name: 'UNREACH',            required: false, defaultRole: 'indicator.maintenance.unreach'};
-    var patternLowbat    = {role: /^indicator(\.maintenance)?\.lowbat$|^indicator(\.maintenance)?\.battery/,  indicator: true,  type: 'boolean',  name: 'LOWBAT', required: false, defaultRole: 'indicator.maintenance.lowbat'};
-    var patternMaintain  = {role: /^indicator\.maintenance$/,             indicator: true,  type: 'boolean',                          name: 'MAINTAIN',           required: false, defaultRole: 'indicator.maintenance'};
-    var patternError     = {role: /^indicator\.error$/,                   indicator: true,                                            name: 'ERROR',              required: false, defaultRole: 'indicator.error'};
-    var patternDirection = {role: /^indicator\.direction$/,               indicator: true,                                            name: 'DIRECTION',          required: false, defaultRole: 'indicator.direction'};
-    var patternReachable = {role: /^indicator\.reachable$/,               indicator: true,  type: 'boolean',                          name: 'CONNECTED',          required: false, defaultRole: 'indicator.reachable', inverted: true};
 
     var patterns = {
         mediaPlayer: {
@@ -137,10 +139,10 @@ function ChannelDetector() {
                 {role: /^media.mute?$/,                 indicator: false,                   type: 'boolean',                               write: true,       name: 'MUTE',           required: false, notSingle: true, noSubscribe: true,   defaultRole: 'media.mute'},
                 // Ignore following states of chromecast
                 {stateName: /\.paused$|\.playerState$/, indicator: false,                                                                                     name: 'IGNORE',         required: false, multiple: true,  noSubscribe: true},
-                patternReachable,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.reachable,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.media
         },
@@ -207,11 +209,11 @@ function ChannelDetector() {
                 {role: /^switch\.light$/,                                 indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false,  defaultRole: 'switch.light'},
                 {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false,  defaultRole: 'switch.light'},
                 {role: /^state(\.light)?$/,                               indicator: false, type: 'boolean', write: false,          name: 'ON_ACTUAL',     required: false,  defaultRole: 'state.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.rgb
         },
@@ -227,11 +229,11 @@ function ChannelDetector() {
                 {role: /^level\.color\.temperature$/,                     indicator: false, type: 'number',  write: true,           name: 'TEMPERATURE',   required: false,  defaultUnit: '°K'},
                 {role: /^switch\.light$/,                                 indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false,  defaultRole: 'switch.light'},
                 {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.rgb
         },
@@ -245,11 +247,11 @@ function ChannelDetector() {
                 {role: /^switch\.light$/,                                 indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false,  defaultRole: 'switch.light'},
                 {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false,  defaultRole: 'switch.light'},
                 {role: /^state(\.light)?$/,                               indicator: false, type: 'boolean', write: false,          name: 'ON_ACTUAL',     required: false,  defaultRole: 'state.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.rgbSingle
         },
@@ -263,11 +265,11 @@ function ChannelDetector() {
                 {role: /^switch\.light$/,                                 indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false, defaultRole: 'switch.light'},
                 {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false, defaultRole: 'switch.light'},
                 {role: /^state(\.light)?$/,                               indicator: false, type: 'boolean', write: false,          name: 'ON_ACTUAL',     required: false,  defaultRole: 'state.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.hue
         },
@@ -278,12 +280,12 @@ function ChannelDetector() {
                 {role: /^level\.brightness$/,                             indicator: false, type: 'number',  write: true,           name: 'BRIGHTNESS',    required: false},
                 {role: /^level\.color\.saturation$/,                      indicator: false, type: 'number',  write: true,           name: 'SATURATION',    required: false},
                 {role: /^switch\.light$/,                                 indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false, defaultRole: 'switch.light'},
-                {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false, defaultRole: 'switch.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                {role: /^switch$/,                                        indicator: false, type: 'boolean', write: true,           name: 'ON',            required: false},
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.ct
         },
@@ -317,9 +319,9 @@ function ChannelDetector() {
                 {role: /humidity(\..*)?$/,             indicator: false,     write: false, type: 'number',    searchInParent: true,                           name: 'HUMIDITY',           required: false, defaultRole: 'value.humidity',        defaultUnit: '%'},
                 {role: /^switch\.boost(\..*)?$/,       indicator: false,     write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'BOOST',              required: false, defaultRole: 'switch.boost'},
                 {role: /swing$/,                       indicator: false,     write: true,  type: 'number',    searchInParent: true,                           name: 'SWING',              required: false, defaultRole: 'level.mode.swing',      defaultStates: {0: 'AUTO', 1: 'HORIZONTAL', 2: 'STATIONARY', 3: 'VERTICAL'}},
-                patternUnreach,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.airCondition
         },
@@ -334,11 +336,11 @@ function ChannelDetector() {
                 {role: /^switch(\.mode)?\.party$/,     indicator: false,     write: true,  type: ['boolean', 'number'],   searchInParent: true,               name: 'PARTY',              required: false, defaultRole: 'switch.mode.party'},
                 {role: /^switch$/,                     indicator: false,     write: true,  type: 'boolean',   searchInParent: true,                           name: 'POWER',              required: false},
                 {role: /^level(\.mode)?\.thermostat$/, indicator: false,     write: true,  type: 'number',    searchInParent: true,                           name: 'MODE',               required: false, defaultRole: 'level.mode.thermostat', defaultStates: {0: 'AUTO', 1: 'MANUAL'}},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.thermostat
         },
@@ -356,10 +358,10 @@ function ChannelDetector() {
                 {role: /^switch\.pause$/,              indicator: false,     write: true,  type: 'boolean',               searchInParent: true,               name: 'PAUSE',              required: false, defaultRole: 'switch.pause'},
                 {role: /^indicator(\.maintenance)?\.waste$|^indicator(\.alarm)?\.waste/,  indicator: true,  type: 'boolean',                                  name: 'WASTE_ALARM',        required: false, defaultRole: 'indicator.maintenance.waste'},
                 {role: /^indicator(\.maintenance)?\.water$|^indicator(\.alarm)?\.water/,  indicator: true,  type: 'boolean',                                  name: 'WATER_ALARM',        required: false, defaultRole: 'indicator.maintenance.water'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.vacuumCleaner
         },
@@ -368,15 +370,43 @@ function ChannelDetector() {
                 {role: /^level(\.blind)?$/,                   indicator: false, type: 'number',  write: true, enums: roleOrEnumBlind, name: 'SET',                 required: true, defaultRole: 'level.blind', defaultUnit: '%'},
                 // optional
                 {role: /^value(\.blind)?$/,                   indicator: false, type: 'number',               enums: roleOrEnumBlind, name: 'ACTUAL',              required: false, defaultRole: 'value.blind', defaultUnit: '%'},
-                {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'STOP',                required: false, noSubscribe: true, defaultRole: 'button.stop'},
-                patternDirection,
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                {role: /^button(\.blind)?\.stop$|^action\.stop$/, indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'STOP',            required: false, noSubscribe: true, defaultRole: 'button.blind.stop'},
+                {role: /^button(\.blind)?\.open$/,            indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'OPEN',                required: false, noSubscribe: true, defaultRole: 'button.blind.open'},
+                {role: /^button(\.blind)?\.close$/,           indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'CLOSE',               required: false, noSubscribe: true, defaultRole: 'button.blind.close'},
+                {role: /^level\.tilt$/,                       indicator: false, type: 'number',  write: true, enums: roleOrEnumBlind, name: 'TILT_SET',            required: false, defaultRole: 'level.open.tilt'},
+                {role: /^value\.tilt$/,                       indicator: false, type: 'number',               enums: roleOrEnumBlind, name: 'TILT_ACTUAL',         required: false, defaultRole: 'value.open.tilt'},
+                {role: /^button\.stop\.tilt$/,                indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_STOP',           required: false, noSubscribe: true, defaultRole: 'button.tilt.stop'},
+                {role: /^button\.open\.tilt$/,                indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_OPEN',           required: false, noSubscribe: true, defaultRole: 'button.tilt.open'},
+                {role: /^button\.close\.tilt$/,               indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_CLOSE',          required: false, noSubscribe: true, defaultRole: 'button.tilt.close'},
+                SharedPatterns.direction,
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.blind
+        },
+        blindButtons: {
+            states: [
+                // blinds with no percentage setting / reading but buttons for up/down and stop:
+                {role: /^button\.stop(\.blind)?$|^action\.stop$/, indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'STOP',            required: true,  noSubscribe: true, defaultRole: 'button.blind.stop'},
+                {role: /^button\.open(\.blind)?$/,            indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'OPEN',                required: true,  noSubscribe: true, defaultRole: 'button.blind.open'},
+                {role: /^button\.close(\.blind)?$/,           indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'CLOSE',               required: true,  noSubscribe: true, defaultRole: 'button.blind.close'},
+                //optional tilt:
+                {role: /^level\.tilt$/,                       indicator: false, type: 'number',  write: true, enums: roleOrEnumBlind, name: 'TILT_SET',            required: false, defaultRole: 'level.open.tilt'},
+                {role: /^value\.tilt$/,                       indicator: false, type: 'number',               enums: roleOrEnumBlind, name: 'TILT_ACTUAL',         required: false, defaultRole: 'value.open.tilt'},
+                {role: /^button\.stop\.tilt$/,                indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_STOP',           required: false, noSubscribe: true, defaultRole: 'button.tilt.stop'},
+                {role: /^button\.open\.tilt$/,                indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_OPEN',           required: false, noSubscribe: true, defaultRole: 'button.tilt.open'},
+                {role: /^button\.close\.tilt$/,               indicator: false, type: 'boolean', write: true, enums: roleOrEnumBlind, name: 'TILT_CLOSE',          required: false, noSubscribe: true, defaultRole: 'button.tilt.close'},
+                SharedPatterns.direction,
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
+            ],
+            type: Types.blindButtons
         },
         gate: {
             states: [
@@ -384,11 +414,11 @@ function ChannelDetector() {
                 // optional
                 {role: /^value(\.position)?|^value(\.gate)?$/,indicator: false, type: 'number',                enums: roleOrEnumGate,  name: 'ACTUAL',             required: false, defaultRole: 'value.blind', defaultUnit: '%'},
                 {role: /^button\.stop$|^action\.stop$/,       indicator: false, type: 'boolean', write: true,  enums: roleOrEnumGate,  name: 'STOP',               required: false, noSubscribe: true, defaultRole: 'button.stop'},
-                patternDirection,
-                patternWorking,
-                patternUnreach,
-                patternMaintain,
-                patternError
+                SharedPatterns.direction,
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.gate
         },
@@ -408,10 +438,10 @@ function ChannelDetector() {
                 {role: /^value\.direction\.wind$/,                    indicator: false, type: 'string',                name: 'WIND_DIRECTION',                              defaultRole: 'value.direction.wind', defaultUnit: '°'},
                 {role: /^value\.speed\.wind\.gust$/,                  indicator: false, type: 'number',                name: 'WIND_GUST',                                   defaultRole: 'value.speed.wind.gust', defaultUnit: 'km/h'},
                 {role: /^value\.speed\.wind$/,                        indicator: false, type: 'number',                name: 'WIND_SPEED',                                  defaultRole: 'value.speed.wind$', defaultUnit: 'km/h'},
-                patternLowbat,
-                patternUnreach,
-                patternMaintain,
-                patternError
+                SharedPatterns.lowbat,
+                SharedPatterns.unreach,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.weatherCurrent
         },
@@ -424,10 +454,10 @@ function ChannelDetector() {
                 {role: /^switch(\.camera)?\.brightness$/,                         indicator: false, type: 'boolean',  write: true,  name: 'BRIGHTNESS',       required: false, defaultRole: 'switch.camera.brightness'},
                 {role: /^switch(\.camera)?\.nightmode$/,                          indicator: false, type: 'boolean',  write: true,  name: 'NIGHTMODE',        required: false, defaultRole: 'switch.camera.nightmode'},
                 {role: /^level(\.camera)?\.position$|^level(\.camera)?(\.ptz)$/,  indicator: false, type: 'number',   write: true,  name: 'PTZ',              required: false, defaultRole: 'level.camera.position'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.camera
         },
@@ -437,12 +467,12 @@ function ChannelDetector() {
                 // optional
                 {role: /^state$/,                             indicator: false, type: 'boolean',  write: false,             name: 'ACTUAL',              required: false, defaultRole: 'state'},
                 {                                             indicator: false, type: 'boolean',  write: true, read: false, name: 'OPEN',                required: false, noSubscribe: true, defaultRole: 'button'},
-                patternDirection,
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.direction,
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.lock
         },
@@ -451,10 +481,10 @@ function ChannelDetector() {
                 {role: /^state\.motion$|^sensor\.motion$/,                   indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, defaultRole: 'sensor.motion'},
                 // optional
                 {role: /brightness$/,                                        indicator: false, type: 'number',  name: 'SECOND',     required: false, defaultRole: 'value.brightness', defaultUnit: 'lux'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.motion
         },
@@ -462,10 +492,10 @@ function ChannelDetector() {
             states: [
                 {role: /^state(\.window)?$|^sensor(\.window)?/,                   indicator: false, type: 'boolean', enums: roleOrEnumWindow, name: 'ACTUAL',     required: true, defaultRole: 'sensor.window'},
                 // optional
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.window
         },
@@ -473,10 +503,10 @@ function ChannelDetector() {
             states: [
                 {role: /^state?$|^value(\.window)?$/,                             indicator: false, type: 'number',  enums: roleOrEnumWindow, name: 'ACTUAL',     required: true, defaultRole: 'value.window'},
                 // optional
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.windowTilt
         },
@@ -484,10 +514,10 @@ function ChannelDetector() {
             states: [
                 {role: /^state(\.alarm)?\.fire$|^sensor(\.alarm)?\.fire/,                        indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, channelRole: /^sensor(\.alarm)?\.fire$/, defaultRole: 'sensor.alarm.fire'},
                 // optional
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.fireAlarm
         },
@@ -495,10 +525,10 @@ function ChannelDetector() {
             states: [
                 {role: /^state(\.alarm)?\.flood$|^sensor(\.alarm)?\.flood/,                        indicator: false, type: 'boolean', name: 'ACTUAL',     required: true, channelRole: /^sensor(\.alarm)?\.flood$/, defaultRole: 'sensor.alarm.flood'},
                 // optional
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.floodAlarm
         },
@@ -506,10 +536,10 @@ function ChannelDetector() {
             states: [
                 {role: /^state?$|^state(\.door)?$|^sensor(\.door)?/,              indicator: false, type: 'boolean', write: false, enums: roleOrEnumDoor, name: 'ACTUAL',     required: true, defaultRole: 'sensor.door'},
                 // optional
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.door
         },
@@ -520,11 +550,11 @@ function ChannelDetector() {
                 {role: /^value(\.dimmer)?$/,                   indicator: false, type: 'number',  write: false,      enums: roleOrEnumLight, name: 'ACTUAL',      required: false, defaultRole: 'value.dimmer', defaultUnit: '%'},
                 {role: /^switch(\.light)?$|^state$/,           indicator: false, type: 'boolean', write: true,       enums: roleOrEnumLight, name: 'ON_SET',      required: false, defaultRole: 'switch.light'},
                 {role: /^switch(\.light)?$|^state$/,           indicator: false, type: 'boolean', write: false,      enums: roleOrEnumLight, name: 'ON_ACTUAL',   required: false, defaultRole: 'switch.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.dimmer
         },
@@ -533,11 +563,11 @@ function ChannelDetector() {
                 {role: /^switch(\.light)?$|^state$/,           indicator: false, type: 'boolean', write: true,       enums: roleOrEnumLight, name: 'SET',         required: true,  defaultRole: 'switch.light'},
                 // optional
                 {role: /^switch(\.light)?$|^state$/,           indicator: false, type: 'boolean', write: false,      enums: roleOrEnumLight, name: 'ACTUAL',      required: false, defaultRole: 'switch.light'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.light
         },
@@ -547,11 +577,11 @@ function ChannelDetector() {
                 // optional
                 {role: /^value\.volume$/,                   indicator: false, type: 'number',  min: 'number', max: 'number', write: false,      name: 'ACTUAL',      required: false,  defaultRole: 'value.volume'},
                 {role: /^media\.mute$/,                     indicator: false, type: 'boolean',                               write: true,       name: 'MUTE',        required: false,  defaultRole: 'media.mute'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.volume
         },
@@ -562,10 +592,10 @@ function ChannelDetector() {
                 {role: /^value\.gps\.elevation$/,                  indicator: false, type: 'number',  write: false,      name: 'ELEVATION',     required: false,  defaultRole: 'value.gps.elevation'},
                 {role: /^value\.radius$|value\.gps\.radius$/,      indicator: false, type: 'number',  write: false,      name: 'RADIUS',        required: false,  defaultRole: 'value.gps.radius'},
                 {role: /^value\.accuracy$|^value\.gps\.accuracy$/, indicator: false, type: 'number',  write: false,      name: 'ACCURACY',      required: false,  defaultRole: 'value.gps.accuracy'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.location
         },
@@ -577,10 +607,10 @@ function ChannelDetector() {
                 {role: /^value\.gps\.elevation$/,                  indicator: false, type: 'number',  write: false,      name: 'ELEVATION',     required: false,  defaultRole: 'value.gps.elevation'},
                 {role: /^value\.radius$|value\.gps\.radius$/,      indicator: false, type: 'number',  write: false,      name: 'RADIUS',        required: false,  defaultRole: 'value.gps.radius'},
                 {role: /^value\.accuracy$|^value\.gps\.accuracy$/, indicator: false, type: 'number',  write: false,      name: 'ACCURACY',      required: false,  defaultRole: 'value.gps.accuracy'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.location
         },
@@ -589,11 +619,11 @@ function ChannelDetector() {
                 {role: /^level\.volume\.group?$/,            indicator: false, type: 'number',  min: 'number', max: 'number', write: true,       name: 'SET',         required: true,  defaultRole: 'level.volume.group'},
                 {role: /^value\.volume\.group$/,             indicator: false, type: 'number',  min: 'number', max: 'number', write: false,      name: 'ACTUAL',      required: false, defaultRole: 'value.volume.group'},
                 {role: /^media\.mute\.group$/,               indicator: false, type: 'boolean',                               write: true,       name: 'MUTE',        required: false, defaultRole: 'media.mute.group'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.volumeGroup
         },
@@ -601,11 +631,11 @@ function ChannelDetector() {
             states: [
                 {role: /^level(\..*)?$/,                   indicator: false, type: 'number',  min: 'number', max: 'number', write: true,       name: 'SET',         required: true, defaultRole: 'level', defaultUnit: '%'},
                 {role: /^value(\..*)?$/,                   indicator: false, type: 'number',  min: 'number', max: 'number', write: false,      name: 'ACTUAL',      required: false, defaultRole: 'value'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.slider
         },
@@ -613,21 +643,21 @@ function ChannelDetector() {
             states: [
                 {role: /^switch$|^state$|^switch\.active$/,           indicator: false, type: 'boolean', write: true,       name: 'SET',         required: true, defaultRole: 'switch'},
                 {role: /^state$|^state\.active$/,                     indicator: false, type: 'boolean', write: false,      name: 'ACTUAL',      required: false, defaultRole: 'switch'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.socket
         },
         button: {
             states: [
                 {role: /^button(\.[.\w]+)?$|^action(\.[.\w]+)?$/,           indicator: false, type: 'boolean', read: false, write: true,       name: 'SET',         required: true, noSubscribe: true, defaultRole: 'button'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.button
         },
@@ -636,10 +666,10 @@ function ChannelDetector() {
                 {role: /^button(\.[.\w]+)?$/,           indicator: false, type: 'boolean', read: true, write: false,       name: 'PRESS',         required: true,  defaultRole: 'button.press'},
                 // optional
                 {role: /^button\.long/,                 indicator: false, type: 'boolean', read: true, write: false,       name: 'PRESS_LONG',    required: false, defaultRole: 'button.long'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.buttonSensor
         },
@@ -647,41 +677,41 @@ function ChannelDetector() {
             states: [
                 {role: /temperature$/,             indicator: false, write: false, type: 'number',  name: 'ACTUAL',     required: true,  defaultRole: 'value.temperature', defaultUnit: '°C'},
                 {role: /humidity$/,                indicator: false, write: false, type: 'number',  name: 'SECOND',     required: false, defaultRole: 'value.humidity', defaultUnit: '%'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.temperature
         },
         humidity: {
             states: [
                 {role: /humidity$/,                indicator: false, write: false, type: 'number',  name: 'ACTUAL',     required: true, defaultRole: 'value.humidity', defaultUnit: '%'},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.humidity
         },
         image: {
             states: [
                 {role: /\.icon$|^icon$|^icon\.|\.icon\.|\.chart\.url\.|\.chart\.url$|^url.icon$/, indicator: false, write: false, type: 'string', name: 'URL', required: true},
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.image
         },
         info: {
             states: [
                 {                                  indicator: false,                                 name: 'ACTUAL',         required: true, multiple: true, noDeviceDetection: true, ignoreRole: /\.inhibit$/, defaultRole: 'state'},
-                patternWorking,
-                patternUnreach,
-                patternLowbat,
-                patternMaintain,
-                patternError
+                SharedPatterns.working,
+                SharedPatterns.unreach,
+                SharedPatterns.lowbat,
+                SharedPatterns.maintain,
+                SharedPatterns.error
             ],
             type: Types.info
         }
@@ -1039,175 +1069,193 @@ function ChannelDetector() {
         return found;
     };
 
+    function getChannelStates(objects, id, keys) {
+        switch (objects[id].type) {
+            case 'state':
+                return [id];
+
+            case 'device':
+                var result = getAllStatesInDevice(keys, id);
+                if (result.length) {
+                    return result;
+                }
+
+                // if no states, it may be device without channels
+                return getAllStatesInChannel(keys, id);
+
+            default:
+                // channel
+                return getAllStatesInChannel(keys, id);
+        }
+    }
+
+    function patternIsAllowed(pattern, allowedTypes, excludedTypes) {
+        if (!pattern) {
+            return false;
+        } else
+        if (allowedTypes && allowedTypes.indexOf(pattern.type) === -1) {
+            return false;
+        } else {
+            return !excludedTypes || excludedTypes.indexOf(pattern.type) === -1;
+        }
+    }
+
+    function allRequiredStatesFound(context) {
+        if (!context.result) {
+            return false;
+        }
+
+        var states = context.result.states;
+
+        for (var a = 0; a < states.length; a++) {
+            if (states[a] instanceof Array) {
+                // one of
+                for (var b = 0; b < states[a].length; b++) {
+                    if (states[a][b].required && states[a].id) {
+                        return true;
+                    }
+                }
+
+                return false;
+            } else {
+                if (states[a].required && !states[a].id) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     this._detectNext = function (options) {
         var objects           = options.objects;
         var id                = options.id;
         var keys              = options._keysOptional;
         var usedIds           = options._usedIdsOptional;
         var ignoreIndicators  = options.ignoreIndicators;
-        var allowedTypes      = options.allowedTypes;
-        var excludedTypes     = options.excludedTypes;
 
         if (!usedIds) {
             usedIds = [];
             options._usedIdsOptional = usedIds;
         }
 
-        if (objects[id] && objects[id].common) {
-            var channelStates;
+        if (!objects[id] || !objects[id].common) {
+            return null;
+        }
 
-            if (objects[id].type === 'state') {
-                channelStates = [id];
-            } else if (objects[id].type === 'device') {
-                channelStates = getAllStatesInDevice(keys, id);
-                // if no states, it may be device without channels
-                if (!channelStates.length) {
-                    channelStates = getAllStatesInChannel(keys, id);
-                }
-            } else { // channel
-                channelStates = getAllStatesInChannel(keys, id);
+        var context = {
+            objects:            objects,
+            channelStates:      getChannelStates(objects, id, keys),
+            usedIds:            usedIds,
+            ignoreIndicators:   ignoreIndicators
+        };
+
+        for (var pattern in patterns) {
+            if (
+                !patternIsAllowed(
+                    patterns[pattern],
+                    options.allowedTypes,
+                    options.excludedTypes
+                )
+            ) {
+                continue;
             }
 
-            /*if (id.indexOf('yeelight-2.0.color-') !== -1) {
-                console.log('aaa');
-            }*/
-            var context = {
-                objects:            objects,
-                channelStates:      channelStates,
-                usedIds:            usedIds,
-                ignoreIndicators:   ignoreIndicators
-            };
+            context.result = null;
 
-            for (var pattern in patterns) {
-                if (!patterns.hasOwnProperty(pattern) ||
-                    (allowedTypes && allowedTypes.indexOf(patterns[pattern].type) === -1) ||
-                    (excludedTypes && excludedTypes.indexOf(patterns[pattern].type) !== -1)
-                ) continue;
-                context.result = null;
+            var _usedIds = [];
+            context.pattern = pattern;
+            context._usedIds = _usedIds;
+            patterns[pattern].states.forEach(function (state) {
+                var found = false;
 
-                /*if (pattern === 'hue' && id.indexOf('yeelight-2.0.color-') !== -1) {
-                    console.log(pattern);
-                }*/
-
-                var _usedIds = [];
-                context.pattern = pattern;
-                context._usedIds = _usedIds;
-                patterns[pattern].states.forEach(function (state) {
-                    var found = false;
-
-                    if (state.name === 'ON') {
-                        //console.log('ON');
-                    }
-
-                    // one of following
-                    if (state instanceof Array) {
-                        for (var s = 0; s < state.length; s++) {
-                            context.state = state[s];
-                            if (this._testOneState(context)) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            context.result = null;
-                            return false;
-                        }
-                    } else {
-                        context.state = state;
+                // one of following
+                if (state instanceof Array) {
+                    for (var s = 0; s < state.length; s++) {
+                        context.state = state[s];
                         if (this._testOneState(context)) {
                             found = true;
-                        }
-                        if (state.required && !found) {
-                            context.result = null;
-                            return false;
+                            break;
                         }
                     }
-                }.bind(this));
-
-                // if all required states found?
-                var allRequiredFound = true;
-                if (context.result) {
-                    for (var a = 0; a < context.result.states.length; a++) {
-                        if (context.result.states[a] instanceof Array) {
-                            // one of
-                            var oneOf = false;
-                            for (var b = 0; b < context.result.states[a].length; b++) {
-                                if (context.result.states[a][b].required && context.result.states[a].id) {
-                                    oneOf = true;
-                                    break;
-                                }
-                            }
-                            if (!oneOf) {
-                                allRequiredFound = false;
-                                break;
-                            }
-                        } else {
-                            if (context.result.states[a].required && !context.result.states[a].id) {
-                                allRequiredFound = false;
-                                break;
-                            }
-                        }
+                    if (!found) {
+                        context.result = null;
+                        return false;
                     }
                 } else {
-                    allRequiredFound = false;
+                    context.state = state;
+                    if (this._testOneState(context)) {
+                        found = true;
+                    }
+                    if (state.required && !found) {
+                        context.result = null;
+                        return false;
+                    }
                 }
+            }.bind(this));
 
+            if (!allRequiredStatesFound(context)) {
+                continue;
+            }
 
-                if (allRequiredFound) {
-                    _usedIds.forEach(function (id) {usedIds.push(id);});
-                    // context.result.id = id;
-                    //this.cache[id] = context.result;
-                    var deviceStates;
+            _usedIds.forEach(function (id) {
+                usedIds.push(id);
+            });
 
-                    if (pattern === 'info') {
-                        //console.log('AA');
+            var deviceStates;
+
+            // looking for indicators and special states
+            if (objects[id].type !== 'device') {
+                // get device name
+                var deviceId = getParentId(id);
+                if (
+                    objects[deviceId] &&
+                    (objects[deviceId].type === 'channel' ||
+                        objects[deviceId].type === 'device')
+                ) {
+                    deviceStates = getAllStatesInDevice(keys, deviceId);
+                    if (deviceStates) {
+                        deviceStates.forEach(function (_id) {
+                            context.result.states.forEach(function (state, i) {
+                                if (
+                                    !state.id &&
+                                    (state.indicator || state.searchInParent) &&
+                                    !state.noDeviceDetection
+                                ) {
+                                    if (this._applyPattern(objects, _id, state.original)) {
+                                        context.result.states[i].id = _id;
+                                    }
+                                }
+                            }.bind(this));
+                        }.bind(this));
                     }
-
-                    // looking for indicators and special states
-                    if (objects[id].type !== 'device') {
-                        // get device name
-                        var deviceId = getParentId(id);
-                        if (objects[deviceId] && (objects[deviceId].type === 'channel' || objects[deviceId].type === 'device')) {
-                            deviceStates = getAllStatesInDevice(keys, deviceId);
-                            if (deviceStates) {
-                                deviceStates.forEach(function (_id) {
-                                    context.result.states.forEach(function (state, i) {
-                                        if (!state.id && (state.indicator || state.searchInParent) && !state.noDeviceDetection) {
-                                            if (this._applyPattern(objects, _id, state.original)) {
-                                                context.result.states[i].id = _id;
-                                            }
-                                        }
-                                    }.bind(this));
-                                }.bind(this));
-                            }
-                        }
-                    }
-                    context.result.states.forEach(function (state) {
-                        if (state.name.indexOf('%d') !== -1 && state.role && state.id) {
-                            var m = state.role.exec(context.objects[state.id].common.role);
-                            if (m) {
-                                state.name = state.name.replace('%d', m[1]);
-                            }
-                        }
-                        if (state.role) {
-                            delete state.role;
-                        }
-                        if (state.enums) {
-                            delete state.enums;
-                        }
-                        if (state.original) {
-                            if (state.original.icon) {
-                                state.icon = state.original.icon;
-                            }
-                            delete state.original;
-                        }
-                    });
-
-                    return context.result;
                 }
             }
+            context.result.states.forEach(function (state) {
+                if (state.name.indexOf('%d') !== -1 && state.role && state.id) {
+                    var m = state.role.exec(
+                        context.objects[state.id].common.role
+                    );
+                    if (m) {
+                        state.name = state.name.replace('%d', m[1]);
+                    }
+                }
+                if (state.role) {
+                    delete state.role;
+                }
+                if (state.enums) {
+                    delete state.enums;
+                }
+                if (state.original) {
+                    if (state.original.icon) {
+                        state.icon = state.original.icon;
+                    }
+                    delete state.original;
+                }
+            });
+
+            return context.result;
         }
-        return null;
     };
 
     /**
@@ -1242,15 +1290,15 @@ function ChannelDetector() {
             options._keysOptional = _keysOptional;
         }
 
-        var result  = [];
         if (_usedIdsOptional) {
             _usedIdsOptional = [];
             options._usedIdsOptional = _usedIdsOptional;
         }
 
+        var result = [];
         var detected;
 
-        while((detected = this._detectNext(options))) {
+        while ((detected = this._detectNext(options))) {
             result.push(detected);
         }
 
@@ -1277,7 +1325,7 @@ function ChannelDetector() {
         return copyPatterns;
     };
 
-    (function _constructor (that) {
+    (function _constructor(that) {
         that.enums = null;
         that.cache = {};
     })(this);

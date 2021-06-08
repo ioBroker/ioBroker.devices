@@ -4,7 +4,7 @@ import { TableRow } from '@material-ui/core';
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 
-const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, children, className, key, backgroundRow }) => {
+const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, children, className, backgroundRow, onClick }) => {
     const [error, setError] = useState(false);
     const language = I18n.getLanguage();
     const [{ isOver, canDrop }, drop] = useDrop({
@@ -69,7 +69,9 @@ const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, chil
         className={className}
         padding="default"
         ref={drop}
-        style={{ background, transition: 'background .3s' }}>
+        onClick={e => onClick(e)}
+        style={{ background, transition: 'background .3s' }}
+    >
         {children}
     </TableRow>;
 }

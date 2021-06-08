@@ -10,7 +10,7 @@ import { MdError as IconError } from 'react-icons/md';
 import { MdDirections } from 'react-icons/md';
 import { AiOutlineAppstoreAdd } from 'react-icons/ai';
 import { BiLastPage } from 'react-icons/bi';
-import {FaCompressArrowsAlt, FaRunning} from 'react-icons/fa';
+import {FaCompressArrowsAlt, FaRunning, FaSun} from 'react-icons/fa';
 import { FaCompress } from 'react-icons/fa';
 import { FaVolumeMute } from 'react-icons/fa';
 import { GiLaserPrecision } from 'react-icons/gi';
@@ -35,6 +35,7 @@ import { GiTreeSwing } from 'react-icons/gi';
 import { GiSpeedometer } from 'react-icons/gi';
 import WindowTilted from './icons/WindowTilted';
 import MaterialIcon from './icons/Material';
+import {FiPower, HiOutlineLightBulb} from "react-icons/all";
 
 const TYPE_OPTIONS = {
     [Types.airCondition]:    { alexa: false, alisa: true,  google: false, material: false },
@@ -127,6 +128,9 @@ export const STATES_NAME_ICONS = {
     'SMOKE': WiSmoke,
     'SWING': GiTreeSwing,
     'SPEED': GiSpeedometer,
+    'DIMMER': HiOutlineLightBulb,
+    'ON': FiPower,
+    'COLOR_TEMP': FaSun,
 }
 
 export default TYPE_OPTIONS;

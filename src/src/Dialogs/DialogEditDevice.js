@@ -678,7 +678,9 @@ class DialogEditDevice extends React.Component {
         // Get icon by role
         if (role.includes('humidity')) {
             return STATES_NAME_ICONS.HUMIDITY;
-        } else if (role.includes('temperature')) {
+        } else if (role.includes('color.temperature')) {
+            return STATES_NAME_ICONS.COLOR_TEMP;
+        }  else if (role.includes('temperature')) {
             return STATES_NAME_ICONS.TEMPERATURE;
         } else if (role.includes('water')) {
             return STATES_NAME_ICONS.WATER;

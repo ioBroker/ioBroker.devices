@@ -34,6 +34,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### 1.0.2 (2021-06-08)
+* (bluefox) Fixed some GUI errors
+
 ### 1.0.1 (2021-06-07)
 * (bluefox) Added sentry
 

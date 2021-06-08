@@ -1,4 +1,11 @@
 # General
+- Mobile
+- Move create folder button into main menu
+- Allow selection of folder or device
+
+## List of devices
+-  
+
 
 ## Linked devices
 
@@ -6,7 +13,7 @@
 
 ## Edit device dialog
 
-## List of devices
+
 
 ## Folder control in new device dialog
 

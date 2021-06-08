@@ -21,7 +21,7 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import ButtonBase from '@material-ui/core/ButtonBase';
-import {Card, InputAdornment, ListItemIcon, TextField, Tooltip, withWidth} from '@material-ui/core';
+import {Toolbar, InputAdornment, ListItemIcon, TextField, Tooltip, withWidth} from '@material-ui/core';
 
 import { MdAdd as IconAdd } from 'react-icons/md';
 import { MdRefresh as IconRefresh } from 'react-icons/md';
@@ -124,26 +124,19 @@ function getLastPart(id) {
     }
 }
 
-const prepareList = (data, root, objects, keys) => {
+const prepareList = (data, root, objects) => {
     const result = [];
     const ids = Object.keys(data);
     root = root || '';
 
     // place common and global scripts at the end
-    ids.sort((a, b) => {
-        if ((a === 'script.js.common' || a === 'script.js.global') && (b === 'script.js.common' || b === 'script.js.global')) {
-            return a > b ? 1 : -1;
-        } else if (a === 'script.js.common' || a === 'script.js.global' || b === 'script.js.common' || b === 'script.js.global') {
-            return 1;
-        } else {
-            return a > b ? 1 : -1;
-        }
-    });
+    ids.sort();
 
     for (let i = 0; i < ids.length; i++) {
         const obj = data[ids[i]];
         const parts = ids[i].split('.');
         parts.pop();
+
         result.push({
             id: obj.obj?._id || ids[i],
             title: Utils.getObjectName(data, ids[i], { language: I18n.getLanguage() }),
@@ -178,7 +171,9 @@ const prepareList = (data, root, objects, keys) => {
             if (a.id === 'alias.0.linked_devices' && b.type === 'folder') return 1;
             if (b.id === 'alias.0.linked_devices' && a.type !== 'folder') return -1;
             if (b.id === 'alias.0.linked_devices' && a.type === 'folder') return -1;
-
+            return 0
+        })
+        .sort((a, b) => {
             if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
                 if (a.title === b.title) {
                     return 0;
@@ -191,7 +186,7 @@ const prepareList = (data, root, objects, keys) => {
             } else if (!b.parent && b.type !== 'folder') {
                 return -1;
             }
-            return 0;
+            return 0
         });
 
     // Fill all index
@@ -505,16 +500,8 @@ const styles = theme => ({
         },
     },
     enumsEditFocusVisible: {},
-    wrapperIcon: {
-        margin: '5px 0',
-        display: 'flex'
-    },
     emptyClear: {
         width: 32
-    },
-    icons: {
-        display: 'flex',
-        width: '100%'
     },
     wrapperButton: {
         marginRight: 10,
@@ -628,6 +615,9 @@ const styles = theme => ({
             background: '#ffffff36',
             pointerEvents: 'none'
         }
+    },
+    selected: {
+        background: theme.palette.type === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
     }
 });
 
@@ -655,11 +645,19 @@ class ListDevices extends Component {
             expandedIDs = null;
         }
 
-        // if (expanded === null) {
-        //     expanded = [];
-        //     listItems.forEach(item =>
-        //         expanded.includes(item.parent) && expanded.push(item.parent));
-        // }
+        const selected = window.localStorage.getItem('Devices.selected') || '';
+        if (expandedIDs && selected) {
+            // be sure, that selected element is visible
+            const parts = selected.split('.');
+            let id = parts[0] + '.' + parts[1];
+            for (let i = 2; i < parts.length; i++) {
+                id += '.' + parts[i];
+                if (!expandedIDs.includes(id)) {
+                    expandedIDs.push(id);
+                }
+            }
+            expandedIDs.sort();
+        }
 
         this.state = {
             editId: location.dialog === 'edit' ? location.id : null,
@@ -682,6 +680,7 @@ class ListDevices extends Component {
             orderBy: window.localStorage.getItem('Devices.orderBy') || 'IDs',
             lastChanged: '',
             linkeddevices: '',
+            selected,
             iot: '',
             iotNoCommon: false,
             showImporterDialog: null,
@@ -746,6 +745,13 @@ class ListDevices extends Component {
         window.addEventListener('resize', this.onResize, false);
         this.props.socket.subscribeObject('*', this.onObjectChanged);
         window.addEventListener('hashchange', this.onHashChange, false);
+
+        setTimeout(() => {
+            const el = document.getElementById('td_' + this.state.selected);
+            if (el) {
+                el.scrollIntoView({block: 'center'});
+            }
+        }, 300);
     }
 
     componentWillUnmount() {
@@ -763,6 +769,11 @@ class ListDevices extends Component {
         if (location.dialog === 'edit' && location.id && location.id !== this.state.editId) {
             this.setState({ editId: location.id });
         }
+    }
+
+    onSelect(selected) {
+        this.setState({selected});
+        window.localStorage.setItem('Devices.selected', selected);
     }
 
     onObjectChanged = (id, obj) => {
@@ -1027,7 +1038,7 @@ class ListDevices extends Component {
             });
         }
 
-        return prepareList(stateIds, null, this.object, keys);
+        return prepareList(stateIds, null, objects);
     }
 
     updateEnumsForOneDevice(device, funcEnums, roomsEnums) {
@@ -1286,26 +1297,11 @@ class ListDevices extends Component {
     }
 
     getTextStyle(item) {
-        if (item.type !== 'folder') {
-            return {
-                //width: 130,
-                // width: `calc(100% - ${this.state.width > 350 ? 210 : 165}px)`,
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                // flex: 'none',
-                padding: '0 16px 0 16px'
-            };
-        } else {
-            const style = {
-                whiteSpace: 'nowrap',
-                padding: '0 16px 0 16px'
-            };
-            if (item.id === this.state.selected) {
-                style.fontWeight = 'bold'
-            }
-
-            return style;
-        }
+        return {
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            padding: '0 16px 0 16px'
+        };
     }
 
     renderOneItem(items, item) {
@@ -1341,10 +1337,9 @@ class ListDevices extends Component {
 
         const style = Object.assign({
             paddingLeft: depthPx,
-            // borderRadius: 3,
             cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
             opacity: item.filteredPartly ? 0.5 : 1,
-        }, item.id === this.state.selected ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' } : {});
+        });
 
         let isExpanded = false;
         if (children && children.length) {
@@ -1367,9 +1362,6 @@ class ListDevices extends Component {
             searchStyle.opacity = 0.5;
         }
 
-        if (item.id === this.state.selected) {
-            iconStyle.opacity = 1;
-        }
         if (this.filter && childrenFilter.length && item.type === 'folder') {
             searchStyle.opacity = 0.5;
             iconStyle.opacity = 0.5;
@@ -1393,8 +1385,8 @@ class ListDevices extends Component {
         }
 
         const classes = this.props.classes;
-        let background = null;
-        let color = null;
+        let background;
+        let color;
         let index = null;
 
         const device = this.state.devices.find(el => el.channelId === item.id);
@@ -1413,29 +1405,32 @@ class ListDevices extends Component {
 
         if (background && item.type === 'folder') {
             iconStyle.color = background;
-            // background = null;
-            // color = null;
         }
 
         let j = 0;
-        const WrapperRow = item.type !== 'folder' ? DragWrapper : DropWrapper;
+        const WrapperRow = item.type === 'folder' ? DropWrapper : DragWrapper;
         const inner = <WrapperRow
             id={item.id}
-            // style={{ background: backgroundRow }}
             objects={this.objects}
             deleteDevice={this.deleteDevice}
             onCopyDevice={this.onCopyDevice}
             openFolder={() => this.toggleExpanded(item.id, true)}
             deviceIdx={deviceIdx}
             backgroundRow={backgroundRow}
-            className={this.props.classes.hoverRow}
+            className={Utils.clsx(this.props.classes.hoverRow, this.state.selected === item.id && this.props.classes.selected)}
             key={item.id || title}
-            padding="default" >
+            padding="default"
+            onClick={() => this.onSelect(item.id)}
+        >
             <TableCell
+                id={'td_' + item.id}
                 colSpan={3}
                 style={Object.assign({ maxWidth: 300 }, style)}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
-                className={Utils.clsx(item.type === 'folder' ? this.props.classes.folder : this.props.classes.element, this.state.reorder && this.props.classes.reorder)}
+                className={Utils.clsx(
+                    item.type === 'folder' ? this.props.classes.folder : this.props.classes.element,
+                    this.state.reorder && this.props.classes.reorder
+                )}
             >
                 <div className={classes.displayFlex}>
                     <ListItemIcon className={this.props.classes.iconStyle}>
@@ -1461,19 +1456,16 @@ class ListDevices extends Component {
                         <div className={this.props.classes.wrapperTitleAndId}>
                             <div
                                 style={Object.assign(searchStyle, this.getTextStyle(item))}
-                                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+                                className={clsx(this.props.classes.fontStyle)}
                             >{title}</div>
                             {!item.showId && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div
                                 style={Object.assign(searchStyle, this.getTextStyle(item))}
-                                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyleId)}
+                                className={clsx(this.props.classes.fontStyleId)}
                             >{item.id}</div>}
                         </div>
                     </Tooltip>
-                    {/* <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction> */}
                 </div>
             </TableCell>
-            {/* <TableCell  /> */}
-            {/* <TableCell style={{ color }} className={classes.tableNameCell}>{item.id}</TableCell> */}
             {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
 
             {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
@@ -1484,18 +1476,12 @@ class ListDevices extends Component {
             {device && <TableCell align="right" className={classes.buttonsCell}>
                 <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Copy device')}>
-                        <IconButton
-                            // size="small"
-                            onClick={e => this.onCopy(item.id, e)}
-                        >
+                        <IconButton onClick={e => this.onCopy(item.id, e)}>
                             <FileCopyIcon />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title={I18n.t('Edit states')}>
-                        <IconButton
-                            // size="small"
-                            onClick={e => this.onEdit(item.id, e)}
-                        >
+                        <IconButton onClick={e => this.onEdit(item.id, e)}>
                             <IconEdit />
                         </IconButton>
                     </Tooltip>
@@ -1531,16 +1517,7 @@ class ListDevices extends Component {
                     </div>}
                 {!item.noEdit && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Edit folder')}>
-                        <IconButton
-                            onClick={_ => this.setState({ showEditFolder: item.obj })}
-                        // onClick={e => editFolderCallBack(item.obj, bool => {
-                        //     bool && this.detectDevices(true);
-                        // }, this.props.socket,
-                        //     this.state.devices,
-                        //     this.objects,
-                        //     this.deleteDevice,
-                        //     this.processTasks)}
-                        >
+                        <IconButton onClick={_ => this.setState({ showEditFolder: item.obj })}>
                             <IconEdit />
                         </IconButton>
                     </Tooltip>
@@ -1574,131 +1551,7 @@ class ListDevices extends Component {
     }
 
     renderDevices() {
-        // let result = [];
         const classes = this.props.classes;
-        // const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
-        // const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
-
-        // if (this.state.orderBy === 'functions' || this.state.orderBy === 'rooms') {
-        //     const enums = [];
-        //     for (let i = 0; i < this.enumIDs.length; i++) {
-        //         const id = this.enumIDs[i];
-        //         if (id.startsWith('enum.' + this.state.orderBy + '.')) {
-        //             enums.push(id);
-
-        //             // find any device for this function
-        //             if (this.state.devices.find(device => !this.isFilteredOut(device) && device[this.state.orderBy].includes(id))) {
-        //                 const isExpanded = this.state.expanded.includes(id);
-        //                 const icon = Utils.getObjectIcon(id, this.objects[id]);
-
-        //                 let j = 0;
-        //                 // add group
-        //                 result.push(<TableRow
-        //                     key={id}
-        //                     className={classes.tableGroup}
-        //                     onClick={() => this.onToggle(id)}
-        //                     padding="none"
-        //                 >
-        //                     <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
-        //                     <TableCell className={classes.tableIconCell}>{icon ? <img src={icon} alt="" className={classes.tableGroupIcon} /> : null}</TableCell>
-        //                     <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{Utils.getObjectNameFromObj(this.objects[id], null, { language: I18n.getLanguage() })}</TableCell>
-        //                     <TableCell />
-        //                     {this.state.windowWidth >= WIDTHS[4] ? <TableCell /> : null}
-        //                     {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                     {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                     {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                     {this.state.windowWidth >= WIDTHS[0] ? <TableCell /> : null}
-        //                     <TableCell className={classes.buttonsCell} />
-        //                 </TableRow>);
-
-        //                 if (isExpanded) {
-        //                     const devices = [];
-
-        //                     this.state.devices.forEach((device, i) =>
-        //                         device[this.state.orderBy].includes(id) && !this.isFilteredOut(device) && devices.push(this.renderDevice(id + '_' + i, i, device, funcEnums, roomsEnums)));
-
-        //                     result.push(devices);
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     // No group
-        //     if (this.state.devices.find(device => !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].includes(id)))) {
-        //         let j = 0;
-        //         const isExpanded = this.state.expanded.includes('no_group');
-        //         // add group
-        //         result.push(<TableRow
-        //             key="no_group"
-        //             className={classes.tableGroup}
-        //             onClick={() => this.onToggle('no_group')}
-        //             padding="none">
-        //             <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
-        //             <TableCell className={classes.tableIconCell} />
-        //             <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('no_group')}</TableCell>
-        //             <TableCell />
-        //             {this.state.windowWidth >= WIDTHS[4] ? <TableCell /> : null}
-        //             {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //             {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //             {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //             {this.state.windowWidth >= WIDTHS[0] ? <TableCell /> : null}
-        //             <TableCell className={classes.buttonsCell} />
-        //         </TableRow>);
-
-        //         if (isExpanded) {
-        //             const devices = [];
-        //             this.state.devices.forEach((device, i) =>
-        //                 !this.isFilteredOut(device) && !enums.find(id => device[this.state.orderBy].includes(id)) && devices.push(this.renderDevice('no_group_' + i, i, device, funcEnums, roomsEnums)));
-
-        //             result.push(devices);
-        //         }
-        //     }
-        // } else
-        //     if (this.state.orderBy === 'types') {
-        //         const types = [];
-        //         this.state.devices.forEach(device => !this.isFilteredOut(device) && !types.includes(device.type) && types.push(device.type));
-        //         types.sort();
-
-        //         types.forEach(type => {
-        //             const isExpanded = this.state.expanded.includes(type);
-        //             let j = 0;
-        //             // add group
-        //             result.push(<TableRow
-        //                 key={type}
-        //                 className={classes.tableGroup}
-        //                 onClick={() => this.onToggle(type)}
-        //                 padding="default"
-        //             >
-        //                 <TableCell className={classes.tableExpandIconCell}>{isExpanded ? <IconExpanded className={classes.tableExpandIcon} /> : <IconCollapsed className={classes.tableExpandIcon} />}</TableCell>
-        //                 <TableCell className={classes.tableIconCell}><TypeIcon className={classes.tableIconImg} type={type} /></TableCell>
-        //                 <TableCell className={classes.tableGroupCell + ' ' + classes.tableNameCell}>{I18n.t('type-' + type)}</TableCell>
-        //                 <TableCell />
-        //                 {this.state.windowWidth >= WIDTHS[4] ? <TableCell /> : null}
-        //                 {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                 {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                 {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell /> : null}
-        //                 {this.state.windowWidth >= WIDTHS[0] ? <TableCell /> : null}
-        //                 <TableCell className={classes.buttonsCell} />
-        //             </TableRow>);
-
-        //             if (isExpanded) {
-        //                 // find all devices for this type
-        //                 const devices = [];
-        //                 this.state.devices.forEach((device, i) =>
-        //                     !this.isFilteredOut(device) && device.type === type && devices.push(this.renderDevice('type_' + i, i, device, funcEnums, roomsEnums)));
-
-        //                 result.push(devices);
-        //             }
-        //         });
-        //     } else if (this.state.orderBy === 'IDs') {
-        //         result = this.renderAllItems(this.state.listItems);
-        //     } else {
-        //         for (let i = 0; i < this.state.devices.length; i++) {
-        //             if (!this.isFilteredOut(this.state.devices[i])) {
-        //                 result.push(this.renderDevice('dev_' + i, i, this.state.devices[i], funcEnums, roomsEnums));
-        //             }
-        //         }
-        //     }
 
         let j = 0;
 
@@ -1709,7 +1562,6 @@ class ListDevices extends Component {
                         <TableCell className={classes.tableExpandIconCell} />
                         <TableCell className={classes.tableIconCell} />
                         <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>{I18n.t('Name')}</TableCell>
-                        {/* <TableCell /> */}
                         {this.state.orderBy !== 'IDs' && this.state.windowWidth >= WIDTHS[4] ? <TableCell className={classes.headerCell}>{I18n.t('ID')}</TableCell> : null}
                         {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{I18n.t('Function')}</TableCell> : null}
                         {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{I18n.t('Room')}</TableCell> : null}
@@ -1721,8 +1573,6 @@ class ListDevices extends Component {
                 <TableBody>{this.renderAllItems(this.state.listItems)}</TableBody>
             </Table>
         </Paper>;
-
-        //return (<div key="listDevices" className={classes.columnDiv}>{result}</div>);
     }
 
     onExpand(group) {
@@ -2580,118 +2430,85 @@ class ListDevices extends Component {
             const small = this.props.width === 'xs' || this.props.width === 'sm';
 
             return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
-                <Card className={classes.tab}>
-                    <div className={classes.wrapperIcon}>
-                        <div className={classes.icons}>
-                            <Tooltip title={I18n.t('Create new device with Aliases')}>
-                                <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
-                                    <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
-                                </IconButton>
-                            </Tooltip>
-                            {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
-                                <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
-                                    <IconAdd style={{ color: '#E67E22' }} />
-                                </IconButton>
-                            </Tooltip>}
-                            <Tooltip title={I18n.t('Refresh')}>
-                                <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
-                                    {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
-                                </IconButton>
-                            </Tooltip>
-                            {/* <Tooltip title={I18n.t('Show only aliases')}>
-                        <IconButton
-                            color={this.state.onlyAliases ? 'primary' : 'inherit'}
-                            onClick={() => {
-                                window.localStorage.setItem('Devices.onlyAliases', this.state.onlyAliases ? 'false' : 'true');
-                                this.setState({ onlyAliases: !this.state.onlyAliases });
-                            }}>
-                            <IconStar />
-                        </IconButton>
-                    </Tooltip> */}
-                            <Tooltip title={I18n.t('Hide info devices')}>
-                                <IconButton
-                                    color={this.state.hideInfo ? 'primary' : 'inherit'}
-                                    onClick={() => {
-                                        window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
-                                        this.setState({ hideInfo: !this.state.hideInfo });
-                                    }}>
-                                    <IconInfo />
-                                </IconButton>
-                            </Tooltip>
+                <div className={classes.tab}>
+                    <Toolbar variant="dense">
+                        <Tooltip title={I18n.t('Create new device with Aliases')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
+                                <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
+                            </IconButton>
+                        </Tooltip>
+                        {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
+                            <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
+                                <IconAdd style={{ color: '#E67E22' }} />
+                            </IconButton>
+                        </Tooltip>}
+                        <Tooltip title={I18n.t('Refresh')}>
+                            <IconButton onClick={() => this.detectDevices()} disabled={this.state.browse}>
+                                {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Hide info devices')}>
+                            <IconButton
+                                color={this.state.hideInfo ? 'primary' : 'inherit'}
+                                onClick={() => {
+                                    window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
+                                    this.setState({ hideInfo: !this.state.hideInfo });
+                                }}>
+                                <IconInfo />
+                            </IconButton>
+                        </Tooltip>
 
-                            {this.state.orderBy === 'IDs' &&
-                                <><Tooltip title={I18n.t('Expand all nodes')}>
-                                    <IconButton
-                                        color="primary"
-                                        onClick={() => this.onExpandAll()}>
-                                        <IconFolderOpened />
-                                    </IconButton>
-                                </Tooltip>
-                                    <Tooltip title={I18n.t('Collapse all nodes')}>
+                        <Tooltip title={I18n.t('Expand all nodes')}>
+                            <IconButton
+                                color="primary"
+                                onClick={() => this.onExpandAll()}>
+                                <IconFolderOpened />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Collapse all nodes')}>
+                            <IconButton
+                                color="primary"
+                                onClick={() => this.onCollapseAll()}>
+                                <IconFolder />
+                            </IconButton>
+                        </Tooltip>
+                        <TextField
+                            margin="dense"
+                            inputRef={this.inputRef}
+                            placeholder={I18n.t('Filter')}
+                            InputLabelProps={{ shrink: true }}
+                            defaultValue={this.filter}
+                            onChange={e => this.setFilter(e.target.value)}
+                            InputProps={{
+                                endAdornment: (
+                                    this.filter ? <InputAdornment position="end">
                                         <IconButton
-                                            color="primary"
-                                            onClick={() => this.onCollapseAll()}>
-                                            <IconFolder />
+                                            size="small"
+                                            onClick={() => {
+                                                this.setFilter('');
+                                                this.inputRef.current.value = '';
+                                            }}
+                                        >
+                                            <IconClear />
                                         </IconButton>
-                                    </Tooltip></>
-                            }
-
-                            {/* <FormControl>
-                    <InputLabel>{I18n.t('Select')}</InputLabel>
-                    <Select
-                        className={classes.orderSelector}
-                        value={this.state.orderBy}
-                        onChange={e => {
-                            this.setState({ orderBy: e.target.value });
-                            window.localStorage.setItem('Devices.orderBy', e.target.value);
-                        }}
-                    >
-                        <MenuItem value='names'>{I18n.t('Names')}</MenuItem>
-                        <MenuItem value='IDs'>{I18n.t('IDs')}</MenuItem>
-                        <MenuItem value='functions'>{I18n.t('Functions')}</MenuItem>
-                        <MenuItem value='rooms'>{I18n.t('Rooms')}</MenuItem>
-                        <MenuItem value='types'>{I18n.t('Types')}</MenuItem>
-                    </Select>
-                </FormControl> */}
-                            <div className={classes.emptyBlockFlex} />
-                            <TextField
-                                inputRef={this.inputRef}
-                                label={I18n.t('Filter')}
-                                InputLabelProps={{ shrink: true }}
-                                defaultValue={this.filter}
-                                onChange={e => this.setFilter(e.target.value)}
-                                InputProps={{
-                                    endAdornment: (
-                                        this.filter ? <InputAdornment position="end">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => {
-                                                    this.setFilter('');
-                                                    this.inputRef.current.value = '';
-                                                }}
-                                            >
-                                                <IconClear />
-                                            </IconButton>
-                                        </InputAdornment> : <div className={classes.emptyClear} />
-                                    ),
-                                }}
-                            />
-                            <div className={classes.emptyBlockFlex} />
-                            <div className={classes.wrapperName}>
-                                <DvrIcon color={this.state.themeName !== "colored" ? "primary" : "inherit"} style={{ marginRight: 5 }} />
-                                {I18n.t('Devices')}
-                            </div>
+                                    </InputAdornment> : <div className={classes.emptyClear} />
+                                ),
+                            }}
+                        />
+                        <div className={classes.emptyBlockFlex} />
+                        <div className={classes.wrapperName}>
+                            <DvrIcon color={this.state.themeName !== 'colored' ? 'primary' : 'inherit'} style={{ marginRight: 5 }} />
+                            {I18n.t('Devices')}
                         </div>
-                    </div>
+                    </Toolbar>
                     {this.renderDevices()}
                     {this.renderMessage()}
                     {this.renderEditDialog()}
                     {this.renderAddDialog()}
-                    {/* {this.renderDeleteDialog()} */}
                     {this.renderEditEnumDialog()}
                     {this.renderImporterDialog()}
                     {this.renderEditFolder()}
-                </Card>
+                </div>
             </DndProvider>;
         }
     }

@@ -4,7 +4,7 @@ import { TableRow } from '@material-ui/core';
 import React, { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
-const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, deviceIdx, id, children, style, className, key }) => {
+const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, deviceIdx, id, children, style, className, onClick }) => {
     const ref = useRef(null);
     const language = I18n.getLanguage();
     const [{ isDragging }, dragRef] = useDrag({
@@ -111,7 +111,7 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
 
     return <TableRow
         className={className}
-        key={key}
+        onClick={isDragging ? null : e => onClick(e)}
         padding="default"
         ref={ref}
         style={{ ...style, opacity, background }}>

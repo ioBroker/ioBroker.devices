@@ -14,8 +14,8 @@ import TabDevices from './Tabs/ListDevices';
 const styles = theme => ({
     root: {},
     tabContent: {
-        padding: 10,
-        height: 'calc(100% - 20px)',
+        //padding: 10,
+        height: '100%',
         overflow: 'auto',
     },
     wrapperMenu: {
@@ -106,7 +106,7 @@ class App extends GenericApp {
                                 themeName={this.state.themeName}
                                 t={I18n.t} /> */}
             <Paper square elevation={0} className={this.props.classes.tabContent}>
-                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ? 
+                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ?
                 <TabDevices
                     theme={this.state.theme}
                     themeType={this.state.themeType}
@@ -119,7 +119,7 @@ class App extends GenericApp {
                     instance={this.instance}
                     adapterName={this.adapterName}
                     onChange={(attr, value) => this.updateNativeValue(attr, value)}
-                /> 
+                />
                 : null}
 
             </Paper>

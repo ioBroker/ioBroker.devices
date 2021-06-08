@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "news": {
+            "1.0.2": {
+                "en": "Fixed some GUI errors",
+                "de": "Einige GUI-Fehler behoben",
+                "ru": "Исправлены некоторые ошибки графического интерфейса.",
+                "pt": "Corrigidos alguns erros de GUI",
+                "nl": "Enkele GUI-fouten opgelost",
+                "fr": "Correction de quelques erreurs d'interface graphique",
+                "it": "Risolti alcuni errori della GUI",
+                "es": "Se corrigieron algunos errores de GUI",
+                "pl": "Naprawiono niektóre błędy GUI",
+                "zh-cn": "修复了一些 GUI 错误"
+            },
             "1.0.1": {
                 "en": "Added sentry",
                 "de": "Wächter hinzugefügt",
