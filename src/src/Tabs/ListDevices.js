@@ -54,7 +54,7 @@ import Icon from '@iobroker/adapter-react/Components/Icon';
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
-import SmartGeneric from '../Devices/SmartGeneric';
+import LocalUtils from '../Components/helpers/LocalUtils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
 import { deleteFolderAndDeviceCallBack } from '../Dialogs/DialogDeleteFolder';
@@ -1085,7 +1085,7 @@ class ListDevices extends Component {
         device.functionsNames = functions.map(id => Utils.getObjectNameFromObj(this.objects[id], null, { language: I18n.getLanguage() })).join(', ');
         device.rooms = rooms;
         device.roomsNames = rooms.map(id => Utils.getObjectNameFromObj(this.objects[id], null, { language: I18n.getLanguage() })).join(', ');
-        device.name = SmartGeneric.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
+        device.name = LocalUtils.getObjectName(this.objects, device.channelId, null, null, this.enumIDs);
 
         device.icon = Utils.getObjectIcon(device.channelId, this.objects[device.channelId]) || this.searchIcon(device.channelId);
 

@@ -271,7 +271,7 @@ const DialogImporter = ({
 
     useEffect(() => {
         const ids = [];
-        const getParentId = (id) => {
+        const getParentId = id => {
             const pos = id.lastIndexOf('.');
             if (pos !== -1) {
                 return id.substring(0, pos);
