@@ -30,7 +30,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### 1.0.3 (2021-06-08)
+### 1.0.4 (2021-06-08)
 * (bluefox) Fixed some GUI errors
 
 ### 1.0.1 (2021-06-07)

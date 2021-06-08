@@ -1784,8 +1784,8 @@ class ListDevices extends Component {
             if (channelId.startsWith(ALIAS)) {
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
-                    const obj = await this.props.socket.getObject(state.id);
-                    if (state.id && obj && obj.common && obj.common.alias) {
+                    const obj = state.id ? (await this.props.socket.getObject(state.id)) : null;
+                    if (obj?.common?.alias) {
                         if (data.ids[state.name] !== obj.common.alias.id ||
                             obj.common.alias.read !== data.fx[state.name].read ||
                             obj.common.alias.write !== data.fx[state.name].write) {
