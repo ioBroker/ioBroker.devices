@@ -58,7 +58,7 @@ const styles = theme => {
         },
         oidName: {
             minWidth: 100,
-            display: 'flex',
+            display: 'block',
             flexDirection: 'column',
             marginTop: 17,
             whiteSpace: 'nowrap',
@@ -70,7 +70,7 @@ const styles = theme => {
             display: 'inline-block',
             marginTop: 0,
             marginBottom: 0,
-            width: 'calc(100% - 185px)',
+            width: '100%',
         },
         colorButton: {
             '&>div': {
@@ -166,7 +166,8 @@ const styles = theme => {
         },
         wrapperItemButtons: {
             display: 'flex',
-            margin: 'auto 0'
+            margin: 'auto 0',
+            marginLeft: 'auto'
         },
         emptyButton: {
             width: 48,
@@ -216,6 +217,8 @@ const styles = theme => {
         },
         wrapperOidName: {
             display: 'flex',
+            alignItems: 'center',
+            overflow: 'hidden'
         },
         oidNameIcon: {
             marginTop: 16,
@@ -226,16 +229,103 @@ const styles = theme => {
         addedName: {
             color: '#e67e229e'
         },
+        indicators: {
+            color: '#4dabf5'
+        },
         helperText: {
             opacity: 0.2
-        }
+        },
+        titleHead: {
+            '& h2': {
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+            }
+        },
+        deviceIconStyle: {
+            marginTop: 4,
+            marginLeft: 4,
+            width: 32,
+            height: 32,
+        },
+        '@media screen and (max-width: 650px)': {
+            deviceIconStyle: {
+                width: 20,
+                height: 20
+            },
+            deviceText: {
+                fontSize: 12
+            },
+            smallButton: {
+                width: 20,
+                height: 20,
+                padding: 1,
+                margin: 2
+            },
+            emptyButton: {
+                width: 24,
+                height: 24
+            },
+            wrapperItemButtons: {
+                marginLeft: 'auto'
+            },
+            wrapperOidName: {
+
+            },
+            oidField: {
+                '& p': {
+                    fontSize: 7
+                },
+                '& input': {
+                    fontSize: 11
+                }
+            },
+            oidNameIcon: {
+                width: 10,
+                height: 10,
+                marginTop: 0
+            },
+            oidName: {
+                fontSize: 12,
+                minWidth: 60,
+                marginTop: 0,
+                maxWidth: 150,
+                display: 'block',
+                textOverflow: 'ellipsis'
+            },
+        },
+        wrapperButtonsAndOidField: {
+            display: 'flex',
+            flex: 1
+        },
+        wrapperTabPanel: {
+            padding: `10px 20px`
+        },
+        '@media screen and (max-width: 450px)': {
+            divOidField: {
+                flexDirection: 'column'
+            },
+            oidField: {
+                paddingTop: '0 !important'
+            },
+            oidName: {
+                maxWidth: 'max-content'
+            },
+            wrapperTabPanel: {
+                padding: `10px 10px`
+            },
+        },
+        '@media screen and (max-width: 360px)': {
+            wrapperTitleAndId: {
+                maxWidth: 120
+            },
+        },
     })
 };
 
 // const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
 function TabPanel(props) {
-    const { children, value, index, ...other } = props;
+    const { children, value, index, classes, ...other } = props;
 
     return <div
         role="tabpanel"
@@ -245,7 +335,7 @@ function TabPanel(props) {
         {...other}
     >
         {value === index && (
-            <Paper style={{ padding: `10px 20px` }} p={3}>
+            <Paper className={classes.wrapperTabPanel} p={3}>
                 <Typography component="div">{children}</Typography>
             </Paper>
         )}
@@ -290,7 +380,7 @@ class DialogEditDevice extends React.Component {
             }
         });
 
-        const {addedStates} = this.updateFx(this.getAddedChannelStates(), ids);
+        const { addedStates } = this.updateFx(this.getAddedChannelStates(), ids);
 
         this.channelId = this.props.channelInfo.channelId;
         let name = '';
@@ -385,14 +475,14 @@ class DialogEditDevice extends React.Component {
             }
         });
 
-        return {addedStates, newIds};
+        return { addedStates, newIds };
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
         const addedStates = this.getAddedChannelStates();
 
         if (JSON.stringify(addedStates) !== JSON.stringify(this.state.addedStates)) {
-            const {addedStates, newIds} = this.updateFx(this.getAddedChannelStates());
+            const { addedStates, newIds } = this.updateFx(this.getAddedChannelStates());
 
             this.setState({ addedStates, ids: newIds });
         }
@@ -495,7 +585,7 @@ class DialogEditDevice extends React.Component {
 
     showDeviceIcon() {
         return <div className={this.props.classes.icon}>
-            <TypeIcon type={this.props.channelInfo.type} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
+            <TypeIcon className={this.props.classes.deviceIconStyle} type={this.props.channelInfo.type} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
         </div>;
     }
 
@@ -680,7 +770,7 @@ class DialogEditDevice extends React.Component {
             return STATES_NAME_ICONS.HUMIDITY;
         } else if (role.includes('color.temperature')) {
             return STATES_NAME_ICONS.COLOR_TEMP;
-        }  else if (role.includes('temperature')) {
+        } else if (role.includes('temperature')) {
             return STATES_NAME_ICONS.TEMPERATURE;
         } else if (role.includes('water')) {
             return STATES_NAME_ICONS.WATER;
@@ -694,14 +784,14 @@ class DialogEditDevice extends React.Component {
             return STATES_NAME_ICONS.BRIGHTNESS;
         } else if (role.includes('motion')) {
             return STATES_NAME_ICONS.MOTION;
-        }  else if (role.includes('window')) {
+        } else if (role.includes('window')) {
             return STATES_NAME_ICONS.WINDOW;
         } else {
             return STATES_NAME_ICONS[name] || MdHelpOutline;
         }
     }
 
-    renderVariable(item, isAdded, index) {
+    renderVariable(item, isAddedName, index) {
         if (!item.id && !this.channelId.startsWith('alias.') && !this.channelId.startsWith('linkeddevices.')) {
             return null;
         }
@@ -761,87 +851,97 @@ class DialogEditDevice extends React.Component {
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
-                                    <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                                    <div className={this.props.classes.wrapperOidNameIcon}>
+                                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                                    </div>
+                                    <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_read')}</div>
                                     </div>
                                 </div>
                             </Tooltip>
-                            <TextField
-                                key={name}
-                                fullWidth
-                                disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
-                                value={this.state.ids[name].read}
-                                className={clsx(this.props.classes.oidField, this.props.classes.width100)}
-                                style={{ paddingTop: 8 }}
-                                onChange={e => {
-                                    const ids = JSON.parse(JSON.stringify(this.state.ids));
-                                    ids[name].read = e.target.value;
-                                    this.setState({ ids });
-                                }}
-                                FormHelperTextProps={{className: this.props.classes.helperText}}
-                                helperText={`${props.join(', ')}`}
-                                margin="normal"
-                            />
-                            <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                    <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
-                                        <IconEdit />
-                                    </IconButton>
-                                </Tooltip>}
+
+                            <div className={this.props.classes.wrapperButtonsAndOidField}>
+                                <TextField
+                                    key={name}
+                                    fullWidth
+                                    disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
+                                    value={this.state.ids[name].read}
+                                    className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                    style={{ paddingTop: 8 }}
+                                    onChange={e => {
+                                        const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                        ids[name].read = e.target.value;
+                                        this.setState({ ids });
+                                    }}
+                                    FormHelperTextProps={{ className: this.props.classes.helperText }}
+                                    helperText={`${props.join(', ')}`}
+                                    margin="normal"
+                                />
+                                <div className={this.props.classes.wrapperItemButtons}>
+                                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                                        <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
+                                            <IconEdit />
+                                        </IconButton>
+                                    </Tooltip>}
+                                </div>
                             </div>
                         </div>
                         <div className={this.props.classes.displayFlexRow}>
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
-                                    <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
-                                    <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                                    <div className={this.props.classes.wrapperOidNameIcon}>
+                                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                                    </div>
+                                    <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_write')}</div>
                                     </div>
                                 </div>
                             </Tooltip>
-                            <TextField
-                                key={name}
-                                fullWidth
-                                disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
-                                value={this.state.ids[name].write}
-                                className={clsx(this.props.classes.oidField, this.props.classes.width100)}
-                                style={{ paddingTop: 8 }}
-                                onChange={e => {
-                                    const ids = JSON.parse(JSON.stringify(this.state.ids));
-                                    ids[name].write = e.target.value;
-                                    this.setState({ ids });
-                                }}
-                                FormHelperTextProps={{className: this.props.classes.helperText}}
-                                helperText={`${props.join(', ')}`}
-                                margin="normal"
-                            /> <div className={this.props.classes.wrapperItemButtons}>
-                                {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                    <IconButton onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
-                                        <IconEdit />
-                                    </IconButton>
-                                </Tooltip>}
+
+                            <div className={this.props.classes.wrapperButtonsAndOidField}>
+                                <TextField
+                                    key={name}
+                                    fullWidth
+                                    disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
+                                    value={this.state.ids[name].write}
+                                    className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                    style={{ paddingTop: 8 }}
+                                    onChange={e => {
+                                        const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                        ids[name].write = e.target.value;
+                                        this.setState({ ids });
+                                    }}
+                                    FormHelperTextProps={{ className: this.props.classes.helperText }}
+                                    helperText={`${props.join(', ')}`}
+                                    margin="normal"
+                                /> <div className={this.props.classes.wrapperItemButtons}>
+                                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                                        <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
+                                            <IconEdit />
+                                        </IconButton>
+                                    </Tooltip>}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div className={this.props.classes.wrapperItemButtons}>
-                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
-                            <IconButton color="primary" onClick={() => this.onToggleTypeStates(name)}>
-                                <ImportExportIcon />
-                            </IconButton>
-                        </Tooltip>}
-                        {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                            <IconButton onClick={() => this.setState({ editFxFor: name })}>
-                                <IconFunction />
-                            </IconButton>
-                        </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
-                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                            <IconButton onClick={() => this.onDelete(item.id)}>
-                                <IconDelete />
-                            </IconButton>
-                        </Tooltip>}
+                        <div className={this.props.classes.wrapperItemButtons}>
+                            {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
+                                <IconButton className={this.props.classes.smallButton} color="primary" onClick={() => this.onToggleTypeStates(name)}>
+                                    <ImportExportIcon />
+                                </IconButton>
+                            </Tooltip>}
+                            {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
+                                <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
+                                    <IconFunction />
+                                </IconButton>
+                            </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                            {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                                <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
+                                    <IconDelete />
+                                </IconButton>
+                            </Tooltip>}
+                        </div>
                     </div>
                 </div>
             </div>;
@@ -849,50 +949,54 @@ class DialogEditDevice extends React.Component {
             return <div key={name + '_' + index} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
                 <Tooltip title={titleTooltip}>
                     <div className={this.props.classes.wrapperOidName}>
-                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAdded && this.props.classes.addedName)} />
-                        <div className={clsx(this.props.classes.oidName, isAdded && this.props.classes.addedName)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                        <div className={this.props.classes.wrapperOidNameIcon}>
+                            <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                        </div>
+                        <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                             {(item.required ? '*' : '') + name}
                         </div>
                     </div>
                 </Tooltip>
-                <TextField
-                    fullWidth
-                    disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
-                    value={alias || linkedDevices ? this.state.ids[name] || '' : item.id || ''}
-                    className={this.props.classes.oidField}
-                    style={{ paddingTop: 8 }}
-                    onChange={e => {
-                        const ids = JSON.parse(JSON.stringify(this.state.ids));
-                        ids[name] = e.target.value;
-                        this.setState({ ids });
-                    }}
-                    FormHelperTextProps={{
-                        className: this.props.classes.helperText
-                    }}
-                    helperText={props.join(', ')}
-                    margin="normal"
-                />
-                <div className={this.props.classes.wrapperItemButtons}>
-                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                        <IconButton onClick={() => this.setState({ selectIdFor: name })}>
-                            <IconEdit />
-                        </IconButton>
-                    </Tooltip>}
-                    {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
-                        <IconButton onClick={() => this.onToggleTypeStates(name)}>
-                            <ImportExportIcon />
-                        </IconButton>
-                    </Tooltip>}
-                    {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                        <IconButton onClick={() => this.setState({ editFxFor: name })}>
-                            <IconFunction />
-                        </IconButton>
-                    </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
-                    {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                        <IconButton onClick={() => this.onDelete(item.id)}>
-                            <IconDelete />
-                        </IconButton>
-                    </Tooltip>}
+                <div className={this.props.classes.wrapperButtonsAndOidField}>
+                    <TextField
+                        fullWidth
+                        disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
+                        value={alias || linkedDevices ? this.state.ids[name] || '' : item.id || ''}
+                        className={this.props.classes.oidField}
+                        style={{ paddingTop: 8 }}
+                        onChange={e => {
+                            const ids = JSON.parse(JSON.stringify(this.state.ids));
+                            ids[name] = e.target.value;
+                            this.setState({ ids });
+                        }}
+                        FormHelperTextProps={{
+                            className: this.props.classes.helperText
+                        }}
+                        helperText={props.join(', ')}
+                        margin="normal"
+                    />
+                    <div className={this.props.classes.wrapperItemButtons}>
+                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name })}>
+                                <IconEdit />
+                            </IconButton>
+                        </Tooltip>}
+                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onToggleTypeStates(name)}>
+                                <ImportExportIcon />
+                            </IconButton>
+                        </Tooltip>}
+                        {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
+                                <IconFunction />
+                            </IconButton>
+                        </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip>}
+                    </div>
                 </div>
             </div>;
         }
@@ -900,15 +1004,15 @@ class DialogEditDevice extends React.Component {
 
     renderVariables() {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
-            {this.props.channelInfo.states.filter((item, i) => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, false, i))}
-            {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, true, i))}
+            {this.props.channelInfo.states.filter((item, i) => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
+            {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
                     <div className={this.props.classes.headerIndicatorsName}>{I18n.t('Indicators')}</div>
                     <div className={this.props.classes.headerIndicatorsLine} />
                 </div>}
-            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, '#4dabf5'))}
+            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, 'indicators'))}
         </div>;
     }
 
@@ -930,7 +1034,7 @@ class DialogEditDevice extends React.Component {
         >
             {this.renderSelectDialog()}
             {this.renderEditFxDialog()}
-            <DialogTitle className={this.props.classes.titleBackground}
+            <DialogTitle className={this.props.classes.titleHead}
                 classes={{ root: this.props.classes.titleColor }}
                 id="edit-device-dialog-title">{I18n.t('Edit device')} <b>{this.channelId}</b></DialogTitle>
             <DialogContent className={this.props.classes.content}>
@@ -959,13 +1063,13 @@ class DialogEditDevice extends React.Component {
                         <Tab disabled={this.state.startTheProcess} label={I18n.t('States')} {...this.a11yProps(1)} />
                     </Tabs>
                 </AppBar>
-                <TabPanel value={this.state.tab} index={1}>
+                <TabPanel classes={this.props.classes} value={this.state.tab} index={1}>
                     <div className={this.props.classes.divDialogContent}>
                         {this.renderHeader()}
                         {this.renderVariables()}
                     </div>
                 </TabPanel>
-                <TabPanel value={this.state.tab} index={0}>
+                <TabPanel classes={this.props.classes} value={this.state.tab} index={0}>
                     <DialogEditProperties
                         channelId={this.props.channelId}
                         disabled={this.state.startTheProcess}

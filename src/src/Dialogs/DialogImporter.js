@@ -194,6 +194,50 @@ const useStyles = makeStyles((theme) => ({
     },
     startTheProcess: {
         opacity: 0.5
+    },
+    '@media screen and (max-width: 650px)': {
+        divOids: {
+            flexDirection: 'column'
+        },
+        wrapperDevices: {
+            height: 200,
+            width: '100%',
+            display: 'block',
+            flex: 'auto',
+            margin: '10px 0'
+        },
+        overflowHidden: {
+            overflowY: 'auto',
+            padding: 10
+        },
+        wrapperCloning:{
+            flex: 'auto',
+            overflow: 'auto'
+        },
+        flex:{
+            overflow: 'initial'
+        },
+        formControlLabel:{
+            '& span':{
+                fontSize:10,
+            }
+        },
+        header:{
+            margin: 0
+        },
+        deviceWrapper:{
+            margin:'2px 0'
+        },
+        fontStyle:{
+            fontSize:10,
+        },
+        fontStyleId:{
+            fontSize:8,
+        },
+        nameEnumCell:{
+            fontSize: 7,
+            marginLeft: 2
+        }
     }
 }));
 

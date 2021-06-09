@@ -26,7 +26,7 @@ import I18n from '@iobroker/adapter-react/i18n';
 import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
 import Icon from '@iobroker/adapter-react/Components/Icon';
 
-import TreeView from '../Components/TreeView';
+// import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 
@@ -409,7 +409,7 @@ class DialogNewDevice extends React.Component {
                 id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b>
             </DialogTitle>
             <DialogContent className={classes.container}>
-                <div className={classes.treeDiv}>
+                {/* <div className={classes.treeDiv}>
                     <TreeView
                         themeType={this.props.themeType}
                         theme={this.props.theme}
@@ -420,7 +420,7 @@ class DialogNewDevice extends React.Component {
                         })}
                         selected={this.state.root}
                     />
-                </div>
+                </div> */}
                 <div className={classes.blockFields}>
                     <TextField
                         fullWidth

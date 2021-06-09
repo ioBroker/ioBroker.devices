@@ -53,14 +53,35 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevice, processTasks }) => {
+const emptyObj = {
+    _id: '',
+    common: {
+        name: '',
+        color: null,
+        icon: null
+    },
+    native: {},
+    type: 'folder'
+};
+
+const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevice, processTasks, selected, newFolder }) => {
     const classes = useStyles();
-    // const [open, setOpen] = useState(true);
-    const [dataEdit, setDataEdit] = useState(JSON.parse(JSON.stringify(data)));
+    const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
     const [arrayObjects, setArrayObjects] = useState([]);
     const [name, setName] = useState(Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined' ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]] : Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()))
-    const [newId, setId] = useState(data._id);
     const [startTheProcess, setStartTheProcess] = useState(false);
+
+    const checkIdSelected = (newPart = selected) => {
+        if (objects[newPart]?.type && objects[newPart]?.type !== 'folder') {
+            let parts = newPart.split('.');
+            parts.pop();
+            parts = parts.join('.');
+            return checkIdSelected(parts);
+        }
+        return newPart
+    }
+    
+    const [newId, setId] = useState(newFolder ? checkIdSelected() : data?._id);
 
     useEffect(() => {
         const idsObject = Object.keys(objects).filter(el => el === data._id || el.startsWith(data._id + '.'))
@@ -68,7 +89,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             .map(id => objects[id]);
 
         setArrayObjects(idsObject);
-    }, [data._id, objects]);
+    }, [data?._id, objects]);
 
     function getNonEmptyName(obj) {
         const lang = I18n.getLanguage();
@@ -79,12 +100,19 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
     const onCloseLocal = async changed => {
         if (!startTheProcess && changed) {
             setStartTheProcess(true);
+            if (newFolder) {
+                const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
+                newDataEdit._id = newId;
+                await socket.setObject(newDataEdit._id, newDataEdit);
+            } else {
+                // If name and ID were changed
+                if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
 
-            // If name and ID were changed
-            if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
-                await onChangeCopy();
-            } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
-                await socket.setObject(dataEdit._id, dataEdit);
+                    await onChangeCopy();
+                } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
+
+                    await socket.setObject(dataEdit._id, dataEdit);
+                }
             }
         }
 
@@ -159,17 +187,22 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
     }
 
     const generateId = () => {
-        if (typeof dataEdit.common.name !== 'string') {
+        if (typeof dataEdit?.common?.name !== 'string') {
             return false;
-        } else if (!dataEdit.common.name) {
+        } else if (!dataEdit?.common?.name) {
             return data._id;
         }
-        let parts = data._id.split('.');
-        parts.pop();
-        parts = parts.join('.');
+
+        let parts;
+        if (newFolder) {
+            parts = checkIdSelected();
+        } else {
+            parts = data._id.split('.');
+            parts.pop();
+            parts = parts.join('.');
+        }
         parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
         return parts;
-
     }
 
     const onChangeCopy = async () => {
@@ -204,7 +237,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             open={true}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Edit folder %s', newId)}</DialogTitle>
+            <DialogTitle>{I18n.t(!newFolder ? 'Edit folder %s' : 'Add new folder %s', newId)}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <div className={classes.divOids}>
                     <div className={classes.divOidField}>
@@ -226,16 +259,22 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             }}
                             value={name}
                             className={classes.oidField}
-                            error={!!objects[generateId()]}
+                            error={!!objects[generateId()] || !name}
                             disabled={startTheProcess}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.name = e.target.value;
                                 setDataEdit(newDataEdit);
 
-                                let parts = data._id.split('.');
-                                parts.pop();
-                                parts = parts.join('.');
+                                let parts;
+                                if (newFolder) {
+                                    parts = checkIdSelected()
+                                } else {
+                                    parts = data._id.split('.');
+                                    parts.pop();
+                                    parts = parts.join('.');
+                                }
+
                                 parts = `${parts}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
                                 setName(e.target.value);
                                 setId(parts);
@@ -249,7 +288,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             key="_color"
                             disabled={startTheProcess}
                             // fullWidth
-                            value={dataEdit.common.color}
+                            value={dataEdit?.common?.color}
                             style={{ width: 'calc(100% - 40px)' }}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
@@ -262,7 +301,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             type="color"
                             style={{ width: 40 }}
                             disabled={startTheProcess}
-                            value={dataEdit.common.color}
+                            value={dataEdit?.common?.color}
                             className={classes.oidField + ' ' + classes.colorButton}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
@@ -278,7 +317,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                         className={classes.sizeDropZone}
                         disabled={startTheProcess}
                         maxSize={256 * 1024}
-                        icon={dataEdit.common.icon}
+                        icon={dataEdit?.common?.icon}
                         removeIconFunc={e => {
                             const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                             newDataEdit.common.icon = '';
@@ -314,6 +353,11 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             </DialogActions>
         </Dialog>
     </ThemeProvider>;
+}
+
+DialogEditFolder.defaultProps = {
+    data: emptyObj,
+    selected: 'alias.0'
 }
 
 export default DialogEditFolder;

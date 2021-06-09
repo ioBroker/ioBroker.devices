@@ -116,6 +116,42 @@ const styles = theme => ({
     dropZone: {
         textAlign: 'left',
         marginTop: theme.spacing(2),
+    },
+    wrapperColorFields:{
+        display: 'flex',
+        width: '100%'
+    },
+    '@media screen and (max-width: 650px)': {
+        oidName: {
+            fontSize: 11
+        },
+        oidField: {
+            '& input': {
+                fontSize: 12
+            },
+            '& p': {
+                fontSize: 7
+            },
+        },
+        renderValueCurrent: {
+            fontSize: 12
+        },
+        enumIcon: {
+            width: 14,
+            height: 14,
+            marginRight: 5
+        },
+        disableSwitchLabel: {
+            '& span': {
+                fontSize: 11
+            }
+        },
+        wrapperColorFields:{
+            flexDirection: 'column'
+        },
+        colorButton:{
+            marginLeft:0
+        }
     }
 });
 
@@ -256,19 +292,19 @@ class DialogEditProperties extends React.PureComponent {
             } else {
                 smartName = obj.common.smartName;
             }
-        }else {
+        } else {
             smartName = obj?.common?.smartName;
         }
 
         if (smartName === false) {
             return false;
         } else
-        if (smartName && typeof smartName === 'object') {
-            if (smartName[language] === false || smartName.en === false) {
-                return false;
+            if (smartName && typeof smartName === 'object') {
+                if (smartName[language] === false || smartName.en === false) {
+                    return false;
+                }
+                smartName = smartName[language] || smartName.en || '';
             }
-            smartName = smartName[language] || smartName.en || '';
-        }
         return smartName || '';
     }
 
@@ -348,24 +384,26 @@ class DialogEditProperties extends React.PureComponent {
             </div>
             <div className={classes.divOidField}>
                 <div className={classes.oidName} >{I18n.t('Color')}</div>
-                <TextField
-                    key="_color"
-                    fullWidth
-                    disabled={disabled}
-                    value={this.state.color}
-                    style={{ width: 'calc(100% - 185px)' }}
-                    onChange={e => this.setState({ color: e.target.value })}
-                />
-                <TextField
-                    key="_color1"
-                    type="color"
-                    style={{ width: 40 }}
-                    disabled={disabled}
-                    value={this.state.color}
-                    className={clsx(classes.oidField, classes.colorButton)}
-                    onChange={e => this.setState({ color: e.target.value })}
-                    margin="normal"
-                />
+                <div className={classes.wrapperColorFields}>
+                    <TextField
+                        key="_color"
+                        fullWidth
+                        disabled={disabled}
+                        value={this.state.color}
+                        // style={{ width: 'calc(100% - 185px)' }}
+                        onChange={e => this.setState({ color: e.target.value })}
+                    />
+                    <TextField
+                        key="_color1"
+                        type="color"
+                        style={{ width: 40 }}
+                        disabled={disabled}
+                        value={this.state.color}
+                        className={clsx(classes.oidField, classes.colorButton)}
+                        onChange={e => this.setState({ color: e.target.value })}
+                        margin="normal"
+                    />
+                </div>
             </div>
             <UploadImage
                 crop={false}
