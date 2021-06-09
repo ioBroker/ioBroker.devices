@@ -228,6 +228,19 @@ class DialogNewDevice extends React.Component {
             root = null;
         }
 
+        if((this.props.selected.startsWith('alias') && this.props.prefix.startsWith('alias.0'))){
+            const checkIdSelected = (newPart = this.props.selected) => {
+                if (this.props.objects[newPart]?.type && this.props.objects[newPart]?.type !== 'folder') {
+                    let parts = newPart.split('.');
+                    parts.pop();
+                    parts = parts.join('.');
+                    return checkIdSelected(parts);
+                }
+                return newPart
+            }
+            root = checkIdSelected();
+        }
+
         this.state = {
             root: root || this.prefix,
             name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
@@ -485,6 +498,10 @@ class DialogNewDevice extends React.Component {
             </DialogActions>
         </Dialog>;
     }
+}
+
+DialogNewDevice.defaultProps = {
+    selected: 'alias.0'
 }
 
 DialogNewDevice.propTypes = {

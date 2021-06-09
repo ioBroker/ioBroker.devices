@@ -825,7 +825,7 @@ class ListDevices extends Component {
     }
 
     onSelect(selected) {
-        if (!selected.startsWith('alias.0.automatically_detected') && selected.startsWith('alias.0')) {
+        if (!selected.startsWith('alias.0.automatically_detected') && selected.startsWith('alias.0') && !selected.startsWith('alias.0.linked_devices')) {
             this.setState({ selected });
             window.localStorage.setItem('Devices.selected', selected);
         }
@@ -2368,6 +2368,7 @@ class ListDevices extends Component {
                 socket={this.props.socket}
                 processTasks={this.processTasks}
                 enumIDs={this.enumIDs}
+                selected={this.state.selected}
                 prefix={this.state.showAddDialog}
                 copyDevice={this.state.copyId ? this.state.devices.find(el => el.channelId === this.state.copyId) || null : null}
                 onClose={options =>
