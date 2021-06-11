@@ -981,7 +981,7 @@ class DialogEditDevice extends React.Component {
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
-                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use differnet states for read and write')}>
+                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use different states for read and write')}>
                             <IconButton className={this.props.classes.smallButton} onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
