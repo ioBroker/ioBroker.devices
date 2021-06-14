@@ -68,6 +68,21 @@ const useStyles = makeStyles((theme) => ({
     },
     minMax: {
         display: 'flex'
+    },
+    overflowText:{
+        '& h2':{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+        }
+    },
+    '@media screen and (max-width: 450px)': {
+        paper: {
+            maxWidth: 960,
+            width: 'calc(100% - 12px)',
+            height: 'calc(100% - 12px)',
+            maxHeight:'calc(100% - 12px)',
+            margin: 0
+        }
     }
 }));
 
@@ -78,7 +93,7 @@ const typeArray = [
     'file',
 ];
 
-const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) => {
+const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, editState }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [role, setRole] = useState(null);
@@ -91,6 +106,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
     const [checkedWrite, setCheckedWrite] = useState(true);
     const [min, setMin] = useState(0);
     const [max, setMax] = useState(100);
+    const [step, setStep] = useState(0);
 
     useEffect(() => {
         let rolesArr = [];
@@ -105,7 +121,25 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
             }
         });
         setRoles(rolesArr.sort());
-    }, [objects])
+        if (editState) {
+            const newObj = objects[editState];
+            if (newObj) {
+                setType(newObj.common.type);
+                setRole(newObj.common.role);
+                setName(newObj.common.name);
+                if (newObj.common.type === 'number') {
+                    setMin(newObj.common.min);
+                    setMax(newObj.common.max);
+                    setUnit(newObj.common.unit);
+
+                }
+                if (newObj.common.type !== 'file') {
+                    setCheckedRead(newObj.common.read);
+                    setCheckedWrite(newObj.common.write);
+                }
+            }
+        }
+    }, [editState, objects])
 
     const onClose = () => {
         setOpen(false);
@@ -121,13 +155,13 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
             open={open}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t('Add state %s', `${channelId}.${name}`)}</DialogTitle>
+            <DialogTitle className={classes.overflowText}>{I18n.t(editState ? 'Edit state %s' : 'Add state %s', `${channelId}.${name}`)}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <Paper className={classes.showDialog} style={{ padding: `10px 20px` }} p={3}>
                     <TextField
                         fullWidth
                         value={name}
-                        error={!name || objects[`${channelId}.${name}`] || arrayStateDefault.find(item => item.name === name)}
+                        error={!name || (objects[`${channelId}.${name}`] && editState !== `${channelId}.${name}`) || arrayStateDefault.find(item => item.name === name)}
                         className={classes.nameField}
                         label={I18n.t('Name')}
                         onChange={e => setName(e.target.value?.toUpperCase())}
@@ -192,9 +226,17 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
                             fullWidth
                             value={max}
                             type="number"
-                            className={classes.maxField}
+                            className={classes.minField}
                             label={I18n.t('Max')}
                             onChange={e => setMax(e.target.value)}
+                        />
+                        <TextField
+                            fullWidth
+                            value={step}
+                            type="number"
+                            className={classes.maxField}
+                            label={I18n.t('Step')}
+                            onChange={e => setStep(e.target.value)}
                         />
                     </div>}
                 </Paper>
@@ -203,7 +245,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
                 <Button
                     variant="contained"
                     autoFocus
-                    disabled={!name || objects[`${channelId}.${name}`] || arrayStateDefault.find(item => item.name === name)}
+                    disabled={!name || (objects[`${channelId}.${name}`] && !editState) || (editState && editState !== `${channelId}.${name}` && objects[`${channelId}.${name}`]) || arrayStateDefault.find(item => item.name === name)}
                     onClick={async () => {
                         onClose();
                         let obj = {
@@ -215,11 +257,18 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
                             },
                             type: 'state'
                         };
+                        if(editState){
+                            obj = objects[editState];
+                            obj._id = `${channelId}.${name}`;
+                            obj.common.name = name;
+                            obj.common.role = roleInput;
+                            obj.common.type = type;
+                        }
                         if (type === 'number') {
                             obj.common.min = min;
                             obj.common.max = max;
                             obj.common.unit = unit;
-
+                            obj.common.step = step;
                         }
                         if (type !== 'file') {
                             obj.common.read = checkedRead;
@@ -230,7 +279,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
-                    {I18n.t('Add')}
+                    {I18n.t(editState ? 'Save' : 'Add')}
                 </Button>
                 <Button
                     variant="contained"
@@ -244,7 +293,11 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault }) =
     </ThemeProvider>;
 }
 
-export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefault) => {
+DialogAddState.defaultProps = {
+    editState: null
+};
+
+export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefault, editState) => {
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';
@@ -258,5 +311,6 @@ export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefau
             socket={socket}
             objects={objects}
             cb={cb}
+            editState={editState}
         />, node);
 }

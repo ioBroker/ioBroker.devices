@@ -29,6 +29,7 @@ import Icon from '@iobroker/adapter-react/Components/Icon';
 // import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
+import { Checkbox, FormControlLabel } from '@material-ui/core';
 
 const styles = theme => ({
     header: {
@@ -221,14 +222,14 @@ class DialogNewDevice extends React.Component {
         };
         const functionStorage = JSON.parse(window.localStorage.getItem('Devices.new.functions'));
         const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
-        let root =  window.localStorage.getItem('NewDeviceRoot');
+        let root = window.localStorage.getItem('NewDeviceRoot');
         if (root && this.props.prefix.includes('alias') === root.includes('alias') && !!this.props.objects[root]) {
 
         } else {
             root = null;
         }
 
-        if((this.props.selected.startsWith('alias') && this.props.prefix.startsWith('alias.0'))){
+        if ((this.props.selected.startsWith('alias') && this.props.prefix.startsWith('alias.0'))) {
             const checkIdSelected = (newPart = this.props.selected) => {
                 if (this.props.objects[newPart]?.type && this.props.objects[newPart]?.type !== 'folder') {
                     let parts = newPart.split('.');
@@ -241,14 +242,19 @@ class DialogNewDevice extends React.Component {
             root = checkIdSelected();
         }
 
+        if(root?.startsWith('alias.0.automatically_detected') || root?.startsWith('alias.0.linked_devices')){
+            root = this.prefix;
+        }
+
         this.state = {
-            root: root || this.prefix,
+            root: root?.startsWith(this.prefix) ? root : this.prefix,
             name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
             notUnique: false,
             functions: !!roomsStorage && typeof functionStorage !== 'string' ? functionStorage : [],
             rooms: !!roomsStorage && typeof roomsStorage !== 'string' ? roomsStorage : [],
             type: window.localStorage.getItem('Devices.newType') || 'light',
-            ids: stateIds
+            ids: stateIds,
+            rootCheck: (root || this.prefix) === this.prefix ? this.prefix : null
         };
     }
 
@@ -389,12 +395,12 @@ class DialogNewDevice extends React.Component {
         const id = `${parentId}.${name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         const obj = {
             _id: id,
-            common: {name: { [I18n.getLanguage()]: name }},
+            common: { name: { [I18n.getLanguage()]: name } },
             native: {},
             type: 'folder'
         };
 
-        await this.props.processTasks([{id, obj}]);
+        await this.props.processTasks([{ id, obj }]);
 
         // create folder
         const ids = JSON.parse(JSON.stringify(this.state.ids));
@@ -434,7 +440,21 @@ class DialogNewDevice extends React.Component {
                         selected={this.state.root}
                     />
                 </div> */}
+
                 <div className={classes.blockFields}>
+                    <FormControlLabel
+                        disabled={this.state.rootCheck === this.state.root}
+                        control={<Checkbox checked={this.state.rootCheck} onChange={() => {
+                            let newRootCheck = null;
+                            let newRoot = this.state.rootCheck;
+                            if (!this.state.rootCheck) {
+                                newRootCheck = this.state.root;
+                                newRoot = this.prefix;
+                            }
+                            this.setState({ rootCheck: newRootCheck, root: newRoot })
+                        }} />}
+                        label={I18n.t('Add to root')}
+                    />
                     <TextField
                         fullWidth
                         autoFocus={!!this.props.copyDevice}

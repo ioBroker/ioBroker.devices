@@ -4,7 +4,7 @@ import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import { DialogTitle, makeStyles, TextField, ThemeProvider } from '@material-ui/core';
+import { Checkbox, DialogTitle, FormControlLabel, makeStyles, TextField, ThemeProvider } from '@material-ui/core';
 
 import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
@@ -78,10 +78,11 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             parts = parts.join('.');
             return checkIdSelected(parts);
         }
-        return newPart
+        return newPart?.startsWith('alias.0') ? newPart : 'alias.0'
     }
-    
+
     const [newId, setId] = useState(newFolder ? checkIdSelected() : data?._id);
+    const [rootCheck, setRootCheck] = useState(newId === 'alias.0' ? 'alias.0' : null);
 
     useEffect(() => {
         const idsObject = Object.keys(objects).filter(el => el === data._id || el.startsWith(data._id + '.'))
@@ -102,7 +103,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             setStartTheProcess(true);
             if (newFolder) {
                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
-                newDataEdit._id = newId;
+                newDataEdit._id = `${newId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
                 await socket.setObject(newDataEdit._id, newDataEdit);
             } else {
                 // If name and ID were changed
@@ -195,7 +196,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
 
         let parts;
         if (newFolder) {
-            parts = checkIdSelected();
+            parts = newId;
         } else {
             parts = data._id.split('.');
             parts.pop();
@@ -237,9 +238,23 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             open={true}
             classes={{ paper: classes.paper }}
         >
-            <DialogTitle>{I18n.t(!newFolder ? 'Edit folder %s' : 'Add new folder %s', newId)}</DialogTitle>
+            <DialogTitle>{I18n.t(!newFolder ? 'Edit folder %s' : 'Add new folder %s', newId)}{name && newFolder ? `.${name}` : ''}</DialogTitle>
             <DialogContent className={classes.overflowHidden} dividers>
                 <div className={classes.divOids}>
+                    {newFolder && <FormControlLabel
+                        disabled={rootCheck === newId}
+                        control={<Checkbox checked={rootCheck} onChange={() => {
+                            let newRootCheck = null;
+                            let newRoot = rootCheck;
+                            if (!rootCheck) {
+                                newRootCheck = newId;
+                                newRoot = 'alias.0';
+                            }
+                            setRootCheck(newRootCheck);
+                            setId(newRoot);
+                        }} />}
+                        label={I18n.t('Add to root')}
+                    />}
                     <div className={classes.divOidField}>
                         <div className={classes.oidName} >{I18n.t('Name')}</div>
                         <TextField
@@ -266,18 +281,17 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                                 newDataEdit.common.name = e.target.value;
                                 setDataEdit(newDataEdit);
 
-                                let parts;
-                                if (newFolder) {
-                                    parts = checkIdSelected()
-                                } else {
+                                if (!newFolder) {
+                                    let parts;
                                     parts = data._id.split('.');
                                     parts.pop();
                                     parts = parts.join('.');
+                                    parts = `${parts}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+                                    setId(parts);
                                 }
 
-                                parts = `${parts}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
                                 setName(e.target.value);
-                                setId(parts);
+
                             }}
                             margin="normal"
                         />

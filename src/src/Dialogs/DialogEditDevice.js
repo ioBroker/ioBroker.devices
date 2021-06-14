@@ -60,7 +60,7 @@ const styles = theme => {
             minWidth: 100,
             display: 'block',
             flexDirection: 'column',
-            marginTop: 17,
+            // marginTop: 17,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -221,7 +221,7 @@ const styles = theme => {
             overflow: 'hidden'
         },
         oidNameIcon: {
-            marginTop: 16,
+            // marginTop: 16,
             marginRight: 3,
             width: 24,
             height: 24,
@@ -299,8 +299,15 @@ const styles = theme => {
         },
         wrapperTabPanel: {
             padding: `10px 20px`
+        }, mobileWidth: {
         },
         '@media screen and (max-width: 450px)': {
+            mobileWidth: {
+                margin: 0,
+                width: 'calc(100% - 12px)',
+                height: 'calc(100% - 12px)',
+                maxHeight: 'calc(100% - 12px)'
+            },
             divOidField: {
                 flexDirection: 'column'
             },
@@ -591,13 +598,13 @@ class DialogEditDevice extends React.Component {
 
     renderHeader() {
         const classes = this.props.classes;
-
+        const checkIndicators = this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(obj => this.state.ids[obj.name]);
         return <div className={classes.header}>
             <div className={clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
             <div className={classes.menuWrapperIcons}>
                 {this.state.extendedAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
-                        style={this.state.extended ? { color: '#4dabf5' } : null}
+                        style={{ color: this.state.extended ? '#4dabf5' : null, border: checkIndicators && !this.state.extended ? '1px solid #4dabf5' : null }}
                         onClick={() => {
                             window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
                             this.setState({ extended: !this.state.extended });
@@ -925,23 +932,47 @@ class DialogEditDevice extends React.Component {
                                 </div>
                             </div>
                         </div>
-                        <div className={this.props.classes.wrapperItemButtons}>
-                            {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
-                                <IconButton className={this.props.classes.smallButton} color="primary" onClick={() => this.onToggleTypeStates(name)}>
-                                    <ImportExportIcon />
-                                </IconButton>
-                            </Tooltip>}
-                            {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                                <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
-                                    <IconFunction />
-                                </IconButton>
-                            </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
-                            {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                                <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
-                                    <IconDelete />
-                                </IconButton>
-                            </Tooltip>}
-                        </div>
+                    </div>
+                    <div className={this.props.classes.wrapperItemButtons}>
+                        {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
+                            <IconButton className={this.props.classes.smallButton} color="primary" onClick={() => this.onToggleTypeStates(name)}>
+                                <ImportExportIcon />
+                            </IconButton>
+                        </Tooltip>}
+                        {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
+                                <IconFunction />
+                            </IconButton>
+                        </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                        {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
+                            <IconButton className={clsx(this.props.classes.smallButton, this.props.classes.addedName)}
+                                onClick={() => addStateCallBack(
+                                    async obj => {
+                                        if (obj) {
+                                            if (obj.common.name !== name) {
+                                                this.onDelete(item.id);
+                                                const newIds = JSON.parse(JSON.stringify(this.state.ids));
+                                                const newVAlue = newIds[name];
+                                                delete newIds[name];
+                                                newIds[obj.common.name] = newVAlue;
+                                                this.setState({ids:newIds});
+                                            }
+                                        }
+                                    },
+                                    this.props.objects,
+                                    this.props.socket,
+                                    this.channelId,
+                                    this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole),
+                                    item.id
+                                )}>
+                                <IconEdit />
+                            </IconButton>
+                        </Tooltip>}
+                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
+                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
+                                <IconDelete />
+                            </IconButton>
+                        </Tooltip>}
                     </div>
                 </div>
             </div>;
@@ -991,6 +1022,30 @@ class DialogEditDevice extends React.Component {
                                 <IconFunction />
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
+                        {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
+                            <IconButton className={clsx(this.props.classes.smallButton, this.props.classes.addedName)}
+                                onClick={() => addStateCallBack(
+                                    async obj => {
+                                        if (obj) {
+                                            if (obj.common.name !== name) {
+                                                this.onDelete(item.id);
+                                                const newIds = JSON.parse(JSON.stringify(this.state.ids));
+                                                const newVAlue = newIds[name];
+                                                delete newIds[name];
+                                                newIds[obj.common.name] = newVAlue;
+                                                this.setState({ids:newIds});
+                                            }
+                                        }
+                                    },
+                                    this.props.objects,
+                                    this.props.socket,
+                                    this.channelId,
+                                    this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole),
+                                    item.id
+                                )}>
+                                <IconEdit />
+                            </IconButton>
+                        </Tooltip>}
                         {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
                             <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
                                 <IconDelete />
@@ -1029,6 +1084,7 @@ class DialogEditDevice extends React.Component {
             open={true}
             maxWidth="md"
             fullWidth={true}
+            classes={{ paper: this.props.classes.mobileWidth }}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >

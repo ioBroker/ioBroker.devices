@@ -825,10 +825,12 @@ class ListDevices extends Component {
     }
 
     onSelect(selected) {
-        if (!selected.startsWith('alias.0.automatically_detected') && selected.startsWith('alias.0') && !selected.startsWith('alias.0.linked_devices')) {
             this.setState({ selected });
             window.localStorage.setItem('Devices.selected', selected);
-        }
+    }
+
+    disabledButtons = () =>{
+        return this.state.selected.startsWith('alias.0.automatically_detected') ||  this.state.selected.startsWith('alias.0.linked_devices') || !this.state.selected.startsWith('alias.0')
     }
 
     onObjectChanged = (id, obj) => {
@@ -1834,6 +1836,14 @@ class ListDevices extends Component {
 
             obj.native = {};
 
+            if(obj?.common?.custom){
+                delete obj.common.custom;
+            }
+
+            if(obj?.common?.smartName){
+                delete obj.common.smartName;
+            }
+
             if (!isAlias) {
                 obj.common.alias = { id: state.id };
             }
@@ -2507,9 +2517,13 @@ class ListDevices extends Component {
                     <Toolbar variant="dense">
                         <div className={classes.wrapperHeadButtons}>
                         <Tooltip title={I18n.t('Create new device with Aliases')}>
-                            <IconButton onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
-                                <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
-                            </IconButton>
+                            <div>
+                                <IconButton 
+                                        disabled={this.disabledButtons()}
+                                        onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
+                                    <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
+                                </IconButton>
+                            </div>
                         </Tooltip>
                         {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
                             <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
@@ -2532,11 +2546,14 @@ class ListDevices extends Component {
                             </IconButton>
                         </Tooltip>
                         <Tooltip title={I18n.t('Create new folder')}>
-                            <IconButton
-                                color="primary"
-                                onClick={_ => this.setState({ newFolder: true })}>
-                                <CreateNewFolderIcon />
-                            </IconButton>
+                            <div>
+                                <IconButton
+                                    color="primary"
+                                    disabled={this.disabledButtons()}
+                                    onClick={_ => this.setState({ newFolder: true })}>
+                                    <CreateNewFolderIcon />
+                                </IconButton>
+                            </div>
                         </Tooltip>
                         <Tooltip title={I18n.t('Expand all nodes')}>
                             <IconButton
