@@ -131,7 +131,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                     setMin(newObj.common.min);
                     setMax(newObj.common.max);
                     setUnit(newObj.common.unit);
-
+                    setStep(newObj.common.step);
                 }
                 if (newObj.common.type !== 'file') {
                     setCheckedRead(newObj.common.read);
@@ -265,10 +265,10 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             obj.common.type = type;
                         }
                         if (type === 'number') {
-                            obj.common.min = min;
-                            obj.common.max = max;
+                            obj.common.min = parseFloat(min.toString().replace(',', '.'));
+                            obj.common.max = parseFloat(max.toString().replace(',', '.'));
                             obj.common.unit = unit;
-                            obj.common.step = step;
+                            obj.common.step =  parseFloat(step.toString().replace(',', '.'));
                         }
                         if (type !== 'file') {
                             obj.common.read = checkedRead;

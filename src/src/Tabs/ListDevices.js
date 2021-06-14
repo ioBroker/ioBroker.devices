@@ -69,6 +69,8 @@ const colorOn = '#aba613';
 const colorOff = '#444';
 const colorSet = '#00c6ff';
 const colorRead = '#00bc00';
+const colorLinkedDevices = '#2cbd1c';
+const colorNativeDevices = '#F1C40F';
 
 const actionsMapping = {
     turnOn: { color: colorOn, icon: IconOn, desc: 'Turn on' },
@@ -246,7 +248,7 @@ const prepareList = (data, root, objects) => {
 const WIDTHS = [
     1350,
     1050,
-    1050,
+    950,
     1250,
     600,
     500,
@@ -1436,12 +1438,12 @@ class ListDevices extends Component {
         let backgroundRow = null;
 
         if (item.id === 'alias.0.automatically_detected') {
-            iconStyle.color = '#F1C40F';
-            backgroundRow = '#f1c40f33';
+            iconStyle.color = colorNativeDevices;
+            backgroundRow = colorNativeDevices + '33';
         } else
             if (item.id === 'alias.0.linked_devices') {
-                iconStyle.color = '#E67E22';
-                backgroundRow = '#e67e2233';
+                iconStyle.color = colorLinkedDevices;
+                backgroundRow = colorLinkedDevices + '33';
             } else
                 if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
                     return;
@@ -2527,7 +2529,7 @@ class ListDevices extends Component {
                         </Tooltip>
                         {this.state.linkeddevices && <Tooltip title={I18n.t('Create new device with LinkedDevices')}>
                             <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
-                                <IconAdd style={{ color: '#E67E22' }} />
+                                <IconAdd style={{ color: colorLinkedDevices }} />
                             </IconButton>
                         </Tooltip>}
                         <Tooltip title={I18n.t('Refresh')}>
