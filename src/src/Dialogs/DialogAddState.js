@@ -107,6 +107,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
     const [min, setMin] = useState(0);
     const [max, setMax] = useState(100);
     const [step, setStep] = useState(0);
+    const [checkedStates, setCheckedStates] = useState(false);
 
     useEffect(() => {
         let rolesArr = [];
@@ -120,7 +121,9 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                 }
             }
         });
+
         setRoles(rolesArr.sort());
+
         if (editState) {
             const newObj = objects[editState];
             if (newObj) {
@@ -132,6 +135,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                     setMax(newObj.common.max);
                     setUnit(newObj.common.unit);
                     setStep(newObj.common.step);
+                    setCheckedStates(!!newObj.common.states);
                 }
                 if (newObj.common.type !== 'file') {
                     setCheckedRead(newObj.common.read);
@@ -191,7 +195,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             value={type}
                             onChange={e => setType(e.target.value)}
                         >
-                            {typeArray.map(key => <MenuItem key={key} value={key}>{I18n.t(key)}</MenuItem>)}
+                            {typeArray.map(key => <MenuItem key={key} value={key}>{key}</MenuItem>)}
                         </Select>
                     </FormControl>
                     {type !== 'file' &&
@@ -238,6 +242,10 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             label={I18n.t('Step')}
                             onChange={e => setStep(e.target.value)}
                         />
+                        <FormControlLabel
+                            control={<Checkbox checked={checkedStates} onChange={e => setCheckedStates(e.target.checked)} />}
+                            label={I18n.t('Value=>String')}
+                        />
                     </div>}
                 </Paper>
             </DialogContent>
@@ -257,8 +265,8 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             },
                             type: 'state'
                         };
-                        if(editState){
-                            obj = objects[editState];
+                        if (editState){
+                            obj = JSON.parse(JSON.stringify(objects[editState]));
                             obj._id = `${channelId}.${name}`;
                             obj.common.name = name;
                             obj.common.role = roleInput;
@@ -268,7 +276,14 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             obj.common.min = parseFloat(min.toString().replace(',', '.'));
                             obj.common.max = parseFloat(max.toString().replace(',', '.'));
                             obj.common.unit = unit;
-                            obj.common.step =  parseFloat(step.toString().replace(',', '.'));
+                            if (step || step === 0) {
+                                obj.common.step = parseFloat(step.toString().replace(',', '.'));
+                            }
+                            if (checkedStates) {
+                                obj.common.states = obj.common.states || {};
+                            } else if (obj.common.states) {
+                               delete obj.common.states;
+                            }
                         }
                         if (type !== 'file') {
                             obj.common.read = checkedRead;

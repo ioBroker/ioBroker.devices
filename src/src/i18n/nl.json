@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Naam '%s' bewerken",
   "Apply": "Van toepassing zijn",
   "Delete state": "Status verwijderen",
-  "Supported by \"%s\"": "Ondersteund door \"%s\""
+  "Supported by \"%s\"": "Ondersteund door \"%s\"",
+  "Readable": "Leesbaar",
+  "Add to root": "Toevoegen aan root",
+  "number": "aantal",
+  "boolean": "booleaans",
+  "string": "draad",
+  "file": "het dossier",
+  "Edit state %s": "Bewerk staat %s",
+  "type-blindButtons": "Jaloezie bestuurd door knoppen"
 }

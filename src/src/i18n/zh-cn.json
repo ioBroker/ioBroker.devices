@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "修改名称“%s”",
   "Apply": "申请",
   "Delete state": "删除状态",
-  "Supported by \"%s\"": "由“%s”支持"
+  "Supported by \"%s\"": "由“%s”支持",
+  "Readable": "可读",
+  "Add to root": "添加到根",
+  "number": "数字",
+  "boolean": "布尔值",
+  "string": "细绳",
+  "file": "文件",
+  "Edit state %s": "编辑状态 %s",
+  "type-blindButtons": "由按钮控制的百叶窗"
 }

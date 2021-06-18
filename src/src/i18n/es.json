@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Editar el nombre \"%s\"",
   "Apply": "Solicitar",
   "Delete state": "Eliminar estado",
-  "Supported by \"%s\"": "Compatible con \"%s\""
+  "Supported by \"%s\"": "Compatible con \"%s\"",
+  "Readable": "Legible",
+  "Add to root": "Agregar a la raíz",
+  "number": "número",
+  "boolean": "booleano",
+  "string": "cuerda",
+  "file": "expediente",
+  "Edit state %s": "Editar estado %s",
+  "type-blindButtons": "Persiana controlada por botones"
 }

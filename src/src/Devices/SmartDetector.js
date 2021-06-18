@@ -5,7 +5,7 @@
  *
  **/
 
-import ChannelDetector from './TypeDetector';
+import ChannelDetector from 'iobroker.type-detector';
 
 class IOBChannelDetector {
     constructor() {

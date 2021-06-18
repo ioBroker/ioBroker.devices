@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Editar o nome \"%s\"",
   "Apply": "Aplicar",
   "Delete state": "Apagar estado",
-  "Supported by \"%s\"": "Suportado por \"%s\""
+  "Supported by \"%s\"": "Suportado por \"%s\"",
+  "Readable": "Legível",
+  "Add to root": "Adicionar à raiz",
+  "number": "número",
+  "boolean": "boleano",
+  "string": "fragmento",
+  "file": "Arquivo",
+  "Edit state %s": "Editar estado %s",
+  "type-blindButtons": "Blind controlado por botões"
 }

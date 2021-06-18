@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Modifica nome \"%s\"",
   "Apply": "Applicare",
   "Delete state": "Elimina stato",
-  "Supported by \"%s\"": "Supportato da \"%s\""
+  "Supported by \"%s\"": "Supportato da \"%s\"",
+  "Readable": "Leggibile",
+  "Add to root": "Aggiungi alla radice",
+  "number": "numero",
+  "boolean": "booleano",
+  "string": "corda",
+  "file": "file",
+  "Edit state %s": "Modifica stato %s",
+  "type-blindButtons": "Tenda controllata da pulsanti"
 }

@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Edytuj nazwę „%s”",
   "Apply": "Zastosować",
   "Delete state": "Usuń stan",
-  "Supported by \"%s\"": "Obsługiwane przez „%s”"
+  "Supported by \"%s\"": "Obsługiwane przez „%s”",
+  "Readable": "Czytelny",
+  "Add to root": "Dodaj do katalogu głównego",
+  "number": "numer",
+  "boolean": "logiczne",
+  "string": "strunowy",
+  "file": "plik",
+  "Edit state %s": "Edytuj stan %s",
+  "type-blindButtons": "Roleta sterowana przyciskami"
 }

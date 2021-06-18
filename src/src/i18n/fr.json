@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Modifier le nom \"%s\"",
   "Apply": "Appliquer",
   "Delete state": "Supprimer l'état",
-  "Supported by \"%s\"": "Pris en charge par \"%s\""
+  "Supported by \"%s\"": "Pris en charge par \"%s\"",
+  "Readable": "Lisible",
+  "Add to root": "Ajouter à la racine",
+  "number": "numéro",
+  "boolean": "booléen",
+  "string": "chaîne",
+  "file": "déposer",
+  "Edit state %s": "Modifier l'état %s",
+  "type-blindButtons": "Store contrôlé par des boutons"
 }

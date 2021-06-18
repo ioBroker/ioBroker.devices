@@ -301,7 +301,7 @@ class DialogNewDevice extends React.Component {
                 }}
             >
                 {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
+                    {obj.icon ? <Icon key={obj.id} className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                     {obj.name}
                 </MenuItem>)}
             </Select>
@@ -428,19 +428,6 @@ class DialogNewDevice extends React.Component {
                 id="edit-device-dialog-title">{I18n.t('Create new device')}: <b>{this.generateId()}</b>
             </DialogTitle>
             <DialogContent className={classes.container}>
-                {/* <div className={classes.treeDiv}>
-                    <TreeView
-                        themeType={this.props.themeType}
-                        theme={this.props.theme}
-                        objects={this.state.ids}
-                        onAddNew={async (name, parentId) => await this.addNewFolder(name, parentId)}
-                        onSelect={id => this.setState({ root: id },()=>{
-                            window.localStorage.setItem('NewDeviceRoot',id);
-                        })}
-                        selected={this.state.root}
-                    />
-                </div> */}
-
                 <div className={classes.blockFields}>
                     <FormControlLabel
                         disabled={this.state.rootCheck === this.state.root}

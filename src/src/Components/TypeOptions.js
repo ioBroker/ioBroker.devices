@@ -13,7 +13,7 @@ import { BiLastPage } from 'react-icons/bi';
 import {FaCompressArrowsAlt, FaRunning, FaSun} from 'react-icons/fa';
 import { FaCompress } from 'react-icons/fa';
 import { FaVolumeMute } from 'react-icons/fa';
-import { GiLaserPrecision } from 'react-icons/gi';
+import {GiElectricalResistance, GiLaserPrecision} from 'react-icons/gi';
 import { AiOutlineRadiusBottomleft } from 'react-icons/ai';
 import { AiOutlineColumnHeight } from 'react-icons/ai';
 import { AiOutlineColumnWidth } from 'react-icons/ai';
@@ -22,7 +22,7 @@ import { FaToggleOn } from 'react-icons/fa';
 import { FaDoorOpen } from 'react-icons/fa';
 import { MdGpsFixed } from 'react-icons/md';
 import { GiStopSign } from 'react-icons/gi';
-import { IoIosWater } from 'react-icons/io';
+import {IoIosColorPalette, IoIosWater} from 'react-icons/io';
 import { GiNuclearWaste } from 'react-icons/gi';
 import { AiFillPauseCircle } from 'react-icons/ai';
 import { GiMatterStates } from 'react-icons/gi';
@@ -33,9 +33,11 @@ import { SiBoost } from 'react-icons/si';
 import {WiDaySunny, WiFire, WiHumidity, WiSmoke, WiThermometer} from 'react-icons/wi';
 import { GiTreeSwing } from 'react-icons/gi';
 import { GiSpeedometer } from 'react-icons/gi';
+import { GiElectric, GiLightningFrequency } from 'react-icons/gi';
+import { FcElectricalSensor } from 'react-icons/fc';
 import WindowTilted from './icons/WindowTilted';
 import MaterialIcon from './icons/Material';
-import {FiPower, HiOutlineLightBulb} from "react-icons/all";
+import {FiPower, HiOutlineLightBulb, ImPower} from 'react-icons/all';
 
 const TYPE_OPTIONS = {
     [Types.airCondition]:    { alexa: false, alisa: true,  google: false, material: false },
@@ -131,6 +133,12 @@ export const STATES_NAME_ICONS = {
     'DIMMER': HiOutlineLightBulb,
     'ON': FiPower,
     'COLOR_TEMP': FaSun,
+    ELECTRIC_POWER: ImPower,
+    CURRENT: GiElectric,
+    VOLTAGE: GiElectricalResistance,
+    CONSUMPTION: FcElectricalSensor,
+    FREQUENCY: GiLightningFrequency,
+    HUE: IoIosColorPalette,
 }
 
 export default TYPE_OPTIONS;

@@ -27,6 +27,7 @@ import IconClose from '@material-ui/icons/Close';
 import IconCheck from '@material-ui/icons/Check';
 import { MdDelete as IconDelete } from 'react-icons/md';
 import { MdAdd as IconAdd } from 'react-icons/md';
+import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
@@ -38,296 +39,289 @@ import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties from './DialogEditProperties';
 import { addStateCallBack } from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
+import DialogEditStates from './DialogEditStates';
 
-const styles = theme => {
-    return ({
-        header: {
-            width: '100%',
-            fontSize: 16,
-            textTransform: 'capitalize',
-            textAlign: 'center',
-            paddingBottom: 20,
-            color: '#000',
-        },
-        divOidField: {
-            width: '100%',
-            display: 'flex',
-            paddingTop: 5,
-            paddingBottom: 5,
-            height: 69,
-        },
-        oidName: {
-            minWidth: 100,
-            display: 'block',
-            flexDirection: 'column',
-            // marginTop: 17,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
+const styles = theme => ({
+    header: {
+        width: '100%',
+        fontSize: 16,
+        textTransform: 'capitalize',
+        textAlign: 'center',
+        paddingBottom: 20,
+        color: '#000',
+    },
+    divOidField: {
+        width: '100%',
+        display: 'flex',
+        paddingTop: 5,
+        paddingBottom: 5,
+        height: 69,
+    },
+    oidName: {
+        minWidth: 100,
+        display: 'block',
+        flexDirection: 'column',
+        // marginTop: 17,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        marginRight: 8,
+    },
+    oidField: {
+        display: 'inline-block',
+        marginTop: 0,
+        marginBottom: 0,
+        width: '100%',
+    },
+    colorButton: {
+        '&>div': {
+            width: '100%'
+        }
+    },
+    divOids: {
+        display: 'inline-block',
+        verticalAlign: 'top',
+        width: '100%',
+    },
+    divDevice: {
+        color: theme.palette.type === 'light' ? 'black' : 'white',
+        display: 'inline-block',
+        width: 100,
+        verticalAlign: 'top',
+        fontWeight: 'bold',
+        whiteSpace: 'nowrap',
+        lineHeight: '32px',
+    },
+    divIndicators: {
+        display: 'inline-block',
+        verticalAlign: 'top',
+    },
+    menuWrapperIcons: {
+        display: 'flex'
+    },
+    divExtended: {
+        width: 'calc(50% - 55px)',
+    },
+    divDialogContent: {
+        fontSize: '1rem',
+        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+    },
+    buttonPen: {
+        color: '#ffffff',
+    },
+    headerButtons: {
+        textAlign: 'right'
+    },
+    headerButton: {
+        float: 'right',
+        marginLeft: 3,
+    },
+    enumIcon: {
+        width: 24,
+        height: 24
+    },
+    funcDivEdit: {
+        width: '100%'
+    },
+    funcEditName: {
+        display: 'inline-block',
+        width: 85
+    },
+    funcEdit: {
+        display: 'inline-block',
+        marginTop: 0,
+        marginBottom: 0,
+        width: 'calc(100% - 85px)',
+    },
+    idEditName: {
+        display: 'inline-block',
+        width: 200
+    },
+    idEdit: {
+        width: 'calc(100% - 200px)',
+        display: 'inline-block',
+        marginTop: 0,
+        marginBottom: 0,
+    },
+    icon: {
+        color: theme.palette.type === 'light' ? 'black' : 'white',
+        display: 'inline-block',
+        verticalAlign: 'middle'
+    },
+    deviceText: {
+        verticalAlign: 'middle'
+    },
+    wrapperIconHead: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        fontWeight: 900,
+        marginTop: 5
+    },
+    iconStyle: {
+        marginRight: 7
+    },
+    content: {
+        paddingTop: 0
+    },
+    wrapperItemButtons: {
+        display: 'flex',
+        margin: 'auto 0',
+        marginLeft: 'auto'
+    },
+    emptyButton: {
+        width: 48,
+        height: 48
+    },
+    tab: {
+        '& .Mui-selected': {
+            color: theme.name === 'colored' && 'black'
+        }
+    },
+    indicator: {
+        backgroundColor: theme.name === 'colored' && 'black'
+    },
+    divOidFieldObj: {
+        height: 140
+    },
+    displayFlex: {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%'
+    },
+    displayFlexRow: {
+        display: 'flex',
+
+    },
+    width100: {
+        width: '100%'
+    },
+    stateSubCategory: {
+        fontSize: 12,
+        opacity: .6
+    },
+    wrapperHeaderIndicators: {
+        display: 'flex',
+        padding: 30
+    },
+    headerIndicatorsLine: {
+        flexGrow: 1,
+        borderTop: '1px solid #4dabf5',
+        margin: '0 10px',
+        marginTop: 11,
+        opacity: 0.8
+    },
+    headerIndicatorsName: {
+        color: '#4dabf5',
+        fontSize: 18
+    },
+    wrapperOidName: {
+        display: 'flex',
+        alignItems: 'center',
+        overflow: 'hidden'
+    },
+    oidNameIcon: {
+        // marginTop: 16,
+        marginRight: 3,
+        width: 24,
+        height: 24,
+    },
+    addedName: {
+        color: '#e67e229e'
+    },
+    indicators: {
+        color: '#4dabf5'
+    },
+    helperText: {
+        opacity: 0.2
+    },
+    titleHead: {
+        '& h2': {
             textOverflow: 'ellipsis',
-            marginRight: 8,
+            overflow: 'hidden'
+        }
+    },
+    deviceIconStyle: {
+        marginTop: 4,
+        marginLeft: 4,
+        width: 32,
+        height: 32,
+    },
+    '@media screen and (max-width: 650px)': {
+        deviceIconStyle: {
+            width: 20,
+            height: 20
         },
-        oidField: {
-            display: 'inline-block',
-            marginTop: 0,
-            marginBottom: 0,
-            width: '100%',
+        deviceText: {
+            fontSize: 12
         },
-        colorButton: {
-            '&>div': {
-                width: '100%'
-            }
-        },
-        divOids: {
-            display: 'inline-block',
-            verticalAlign: 'top',
-            width: '100%',
-        },
-        divDevice: {
-            color: theme.palette.type === 'light' ? 'black' : 'white',
-            display: 'inline-block',
-            width: 100,
-            verticalAlign: 'top',
-            fontWeight: 'bold',
-            whiteSpace: 'nowrap',
-            lineHeight: '32px',
-        },
-        divIndicators: {
-            display: 'inline-block',
-            verticalAlign: 'top',
-        },
-        menuWrapperIcons: {
-            display: 'flex'
-        },
-        divExtended: {
-            width: 'calc(50% - 55px)',
-        },
-        divDialogContent: {
-            fontSize: '1rem',
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-        },
-        buttonPen: {
-            color: '#ffffff',
-        },
-        headerButtons: {
-            textAlign: 'right'
-        },
-        headerButton: {
-            float: 'right',
-            marginLeft: 3,
-        },
-        enumIcon: {
+        emptyButton: {
             width: 24,
             height: 24
         },
-        funcDivEdit: {
-            width: '100%'
-        },
-        funcEditName: {
-            display: 'inline-block',
-            width: 85
-        },
-        funcEdit: {
-            display: 'inline-block',
-            marginTop: 0,
-            marginBottom: 0,
-            width: 'calc(100% - 85px)',
-        },
-        idEditName: {
-            display: 'inline-block',
-            width: 200
-        },
-        idEdit: {
-            width: 'calc(100% - 200px)',
-            display: 'inline-block',
-            marginTop: 0,
-            marginBottom: 0,
-        },
-        icon: {
-            color: theme.palette.type === 'light' ? 'black' : 'white',
-            display: 'inline-block',
-            verticalAlign: 'middle'
-        },
-        deviceText: {
-            verticalAlign: 'middle'
-        },
-        wrapperIconHead: {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            fontWeight: 900,
-            marginTop: 5
-        },
-        iconStyle: {
-            marginRight: 7
-        },
-        content: {
-            paddingTop: 0
-        },
         wrapperItemButtons: {
-            display: 'flex',
-            margin: 'auto 0',
             marginLeft: 'auto'
         },
-        emptyButton: {
-            width: 48,
-            height: 48
-        },
-        tab: {
-            '& .Mui-selected': {
-                color: theme.name === 'colored' && 'black'
-            }
-        },
-        indicator: {
-            backgroundColor: theme.name === 'colored' && 'black'
-        },
-        divOidFieldObj: {
-            height: 140
-        },
-        displayFlex: {
-            display: 'flex',
-            flexDirection: 'column',
-            width: '100%'
-        },
-        displayFlexRow: {
-            display: 'flex',
+        wrapperOidName: {
 
         },
-        width100: {
-            width: '100%'
-        },
-        stateSubCategory: {
-            fontSize: 12,
-            opacity: .6
-        },
-        wrapperHeaderIndicators: {
-            display: 'flex',
-            padding: 30
-        },
-        headerIndicatorsLine: {
-            flexGrow: 1,
-            borderTop: '1px solid #4dabf5',
-            margin: '0 10px',
-            marginTop: 11,
-            opacity: 0.8
-        },
-        headerIndicatorsName: {
-            color: '#4dabf5',
-            fontSize: 18
-        },
-        wrapperOidName: {
-            display: 'flex',
-            alignItems: 'center',
-            overflow: 'hidden'
+        oidField: {
+            '& p': {
+                fontSize: 7
+            },
+            '& input': {
+                fontSize: 11
+            }
         },
         oidNameIcon: {
-            // marginTop: 16,
-            marginRight: 3,
-            width: 24,
-            height: 24,
+            width: 10,
+            height: 10,
+            marginTop: 0
         },
-        addedName: {
-            color: '#e67e229e'
+        oidName: {
+            fontSize: 12,
+            minWidth: 60,
+            marginTop: 0,
+            maxWidth: 150,
+            display: 'block',
+            textOverflow: 'ellipsis'
         },
-        indicators: {
-            color: '#4dabf5'
+    },
+    wrapperButtonsAndOidField: {
+        display: 'flex',
+        flex: 1
+    },
+    wrapperTabPanel: {
+        padding: `10px 20px`
+    }, mobileWidth: {
+    },
+    '@media screen and (max-width: 450px)': {
+        mobileWidth: {
+            margin: 0,
+            width: 'calc(100% - 12px)',
+            height: 'calc(100% - 12px)',
+            maxHeight: 'calc(100% - 12px)'
         },
-        helperText: {
-            opacity: 0.2
+        divOidField: {
+            flexDirection: 'column'
         },
-        titleHead: {
-            '& h2': {
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-            }
+        oidField: {
+            paddingTop: '0 !important'
         },
-        deviceIconStyle: {
-            marginTop: 4,
-            marginLeft: 4,
-            width: 32,
-            height: 32,
-        },
-        '@media screen and (max-width: 650px)': {
-            deviceIconStyle: {
-                width: 20,
-                height: 20
-            },
-            deviceText: {
-                fontSize: 12
-            },
-            smallButton: {
-                width: 20,
-                height: 20,
-                padding: 1,
-                margin: 2
-            },
-            emptyButton: {
-                width: 24,
-                height: 24
-            },
-            wrapperItemButtons: {
-                marginLeft: 'auto'
-            },
-            wrapperOidName: {
-
-            },
-            oidField: {
-                '& p': {
-                    fontSize: 7
-                },
-                '& input': {
-                    fontSize: 11
-                }
-            },
-            oidNameIcon: {
-                width: 10,
-                height: 10,
-                marginTop: 0
-            },
-            oidName: {
-                fontSize: 12,
-                minWidth: 60,
-                marginTop: 0,
-                maxWidth: 150,
-                display: 'block',
-                textOverflow: 'ellipsis'
-            },
-        },
-        wrapperButtonsAndOidField: {
-            display: 'flex',
-            flex: 1
+        oidName: {
+            maxWidth: 'max-content'
         },
         wrapperTabPanel: {
-            padding: `10px 20px`
-        }, mobileWidth: {
+            padding: `10px 10px`
         },
-        '@media screen and (max-width: 450px)': {
-            mobileWidth: {
-                margin: 0,
-                width: 'calc(100% - 12px)',
-                height: 'calc(100% - 12px)',
-                maxHeight: 'calc(100% - 12px)'
-            },
-            divOidField: {
-                flexDirection: 'column'
-            },
-            oidField: {
-                paddingTop: '0 !important'
-            },
-            oidName: {
-                maxWidth: 'max-content'
-            },
-            wrapperTabPanel: {
-                padding: `10px 10px`
-            },
+    },
+    '@media screen and (max-width: 360px)': {
+        wrapperTitleAndId: {
+            maxWidth: 120
         },
-        '@media screen and (max-width: 360px)': {
-            wrapperTitleAndId: {
-                maxWidth: 120
-            },
-        },
-    })
-};
+    },
+});
 
 // const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
@@ -354,6 +348,7 @@ class DialogEditDevice extends React.Component {
         super(props);
         const ids = {};
         this.fx = {};
+        const states = {};
 
         this.props.channelInfo.states.forEach(state => {
             if (state.id) {
@@ -364,9 +359,13 @@ class DialogEditDevice extends React.Component {
                         read: obj.common.alias.read || '',
                         write: obj.common.alias.write || '',
                     };
+                    if (obj.common.states) {
+                        states[state.name] = JSON.parse(JSON.stringify(obj.common.states));
+                    }
                 } else {
                     this.fx[state.name] = { read: '', write: '' };
                 }
+
                 if (obj && obj.common && obj.common.custom) {
                     const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
                     if (attr && attr.length && obj.common.custom[attr] && obj.common.custom[attr].parentId) {
@@ -387,7 +386,7 @@ class DialogEditDevice extends React.Component {
             }
         });
 
-        const { addedStates } = this.updateFx(this.getAddedChannelStates(), ids);
+        const { addedStates } = this.updateFx(this.getAddedChannelStates(), ids, states);
 
         this.channelId = this.props.channelInfo.channelId;
         let name = '';
@@ -413,16 +412,50 @@ class DialogEditDevice extends React.Component {
             newChannelId: '',
             newChannelError: false,
             startTheProcess: false,
-            //showCopyDialog: false,
             disabledButton: false,
             extendedAvailable,
             tab: localStorage.getItem('EditDevice.tab') ? JSON.parse(localStorage.getItem('EditDevice.tab')) || 0 : 0,
             initChangeProperties: {},
-            changeProperties: {}
+            changeProperties: {},
+            editStates: null,
+            states,
         };
 
         this.pattern = this.props.patterns[Object.keys(this.props.patterns)
             .find(type => this.props.patterns[type].type === this.props.channelInfo.type)];
+    }
+
+    renderEditStates() {
+        if (!this.state.editStates) {
+            return null;
+        } else {
+            return <DialogEditStates
+                states={this.state.states[this.state.editStates]}
+                onClose={states => {
+                    if (states) {
+                        const name = this.state.editStates;
+                        const newStates = JSON.parse(JSON.stringify(this.state.states));
+                        newStates[name] = states;
+                        let id;
+                        if (this.state.ids[name]) {
+                            id = this.state.ids[name];
+                        } else {
+                            const added = this.state.addedStates.find(item => item.name === name);
+                            id = added.id;
+                        }
+
+                        this.setState({editStates: null, states: newStates}, () =>
+                            this.props.socket.getObject(id)
+                                .then(obj => {
+                                    obj.common.states = states;
+                                    this.props.socket.setObject(obj._id, obj);
+                                }));
+                    } else {
+                        this.setState({editStates: null});
+                    }
+                }}
+            />
+        }
     }
 
     getAddedChannelStates() {
@@ -441,14 +474,19 @@ class DialogEditDevice extends React.Component {
                     type: objOriginal?.common?.type,
                     write: objOriginal?.common?.write,
                     indicator: false,
-                    required: false
+                    required: false,
+                    states: objOriginal?.common?.states ? JSON.parse(JSON.stringify(objOriginal.common.states)) : undefined,
                 };
             })
-            .filter(item => !this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(el => el.name === item.name));
+            .filter(item => !this.props.channelInfo.states
+                .filter(item => item.defaultRole)
+                .find(el => el.name === item.name)
+            );
     }
 
-    updateFx(addedStates, ids) {
+    updateFx(addedStates, ids, states) {
         const newIds = ids || JSON.parse(JSON.stringify(this.state.ids));
+        const newStates = states || JSON.parse(JSON.stringify(this.state.states));
 
         addedStates.forEach(state => {
             if (state.id) {
@@ -477,21 +515,36 @@ class DialogEditDevice extends React.Component {
                 ) {
                     delete this.fx[state.name].write;
                 }
+                if (state.states) {
+                    newStates[state.name] = state.states;
+                } else if (newStates[state.name]) {
+                    delete newStates[state.name];
+                }
             } else {
                 this.fx[state.name] = this.fx[state.name] || { read: '', write: '' };
             }
         });
 
-        return { addedStates, newIds };
+        return { addedStates, newIds, newStates };
     }
 
     UNSAFE_componentWillReceiveProps(nextProps) {
         const addedStates = this.getAddedChannelStates();
+        const newStates = JSON.parse(JSON.stringify(this.state.states));
 
-        if (JSON.stringify(addedStates) !== JSON.stringify(this.state.addedStates)) {
-            const { addedStates, newIds } = this.updateFx(this.getAddedChannelStates());
+        addedStates.forEach(state => {
+            if (state.states) {
+                newStates[state.name] = state.states;
+            } else if (newStates[state.name]) {
+                delete newStates[state.name];
+            }
+        });
 
-            this.setState({ addedStates, ids: newIds });
+        if (JSON.stringify(addedStates) !== JSON.stringify(this.state.addedStates) ||
+            JSON.stringify(newStates) !== JSON.stringify(this.state.states)) {
+            const { newIds, newStates } = this.updateFx(addedStates);
+
+            this.setState({ addedStates, ids: newIds, states: newStates });
         }
     }
 
@@ -574,6 +627,7 @@ class DialogEditDevice extends React.Component {
         await this.props.onClose({
             ids: this.state.ids,
             fx: this.fx,
+            states: this.states,
         });
         await this.updateNewState();
 
@@ -674,7 +728,7 @@ class DialogEditDevice extends React.Component {
             return {
                 name: Utils.getObjectName(this.props.objects, id, { language }),
                 icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                id: id
+                id
             }
         });
 
@@ -755,7 +809,7 @@ class DialogEditDevice extends React.Component {
         </Dialog>;
     }
 
-    onToggleTypeStates = (name) => {
+    onToggleTypeStates = name => {
         let stateDevice = this.state.ids[name];
         if (typeof stateDevice === 'object') {
             stateDevice = stateDevice.read;
@@ -771,7 +825,6 @@ class DialogEditDevice extends React.Component {
     }
 
     static getStateIcon(name, role) {
-
         // Get icon by role
         if (role.includes('humidity')) {
             return STATES_NAME_ICONS.HUMIDITY;
@@ -867,7 +920,6 @@ class DialogEditDevice extends React.Component {
                                     </div>
                                 </div>
                             </Tooltip>
-
                             <div className={this.props.classes.wrapperButtonsAndOidField}>
                                 <TextField
                                     key={name}
@@ -887,7 +939,7 @@ class DialogEditDevice extends React.Component {
                                 />
                                 <div className={this.props.classes.wrapperItemButtons}>
                                     {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                        <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
+                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
                                             <IconEdit />
                                         </IconButton>
                                     </Tooltip>}
@@ -906,7 +958,6 @@ class DialogEditDevice extends React.Component {
                                     </div>
                                 </div>
                             </Tooltip>
-
                             <div className={this.props.classes.wrapperButtonsAndOidField}>
                                 <TextField
                                     key={name}
@@ -923,9 +974,10 @@ class DialogEditDevice extends React.Component {
                                     FormHelperTextProps={{ className: this.props.classes.helperText }}
                                     helperText={`${props.join(', ')}`}
                                     margin="normal"
-                                /> <div className={this.props.classes.wrapperItemButtons}>
+                                />
+                                <div className={this.props.classes.wrapperItemButtons}>
                                     {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                        <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
+                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
                                             <IconEdit />
                                         </IconButton>
                                     </Tooltip>}
@@ -935,26 +987,26 @@ class DialogEditDevice extends React.Component {
                     </div>
                     <div className={this.props.classes.wrapperItemButtons}>
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
-                            <IconButton className={this.props.classes.smallButton} color="primary" onClick={() => this.onToggleTypeStates(name)}>
+                            <IconButton size="small"  color="primary" onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
                         {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
+                            <IconButton size="small"  onClick={() => this.setState({ editFxFor: name })}>
                                 <IconFunction />
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton className={clsx(this.props.classes.smallButton, this.props.classes.addedName)}
+                            <IconButton size="small" className={clsx(this.props.classes.addedName)}
                                 onClick={() => addStateCallBack(
                                     async obj => {
                                         if (obj) {
                                             if (obj.common.name !== name) {
                                                 this.onDelete(item.id);
                                                 const newIds = JSON.parse(JSON.stringify(this.state.ids));
-                                                const newVAlue = newIds[name];
+                                                const newValue = newIds[name];
                                                 delete newIds[name];
-                                                newIds[obj.common.name] = newVAlue;
+                                                newIds[obj.common.name] = newValue;
                                                 this.setState({ids:newIds});
                                             }
                                         }
@@ -968,8 +1020,13 @@ class DialogEditDevice extends React.Component {
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
+                        {this.state.states[name] && !this.state.startTheProcess && <Tooltip title={I18n.t('Edit states')}>
+                            <IconButton size="small" onClick={() => this.setState({editStates: name})}>
+                                <IconEditStates />
+                            </IconButton>
+                        </Tooltip>}
                         {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
+                            <IconButton size="small"  onClick={() => this.onDelete(item.id)}>
                                 <IconDelete />
                             </IconButton>
                         </Tooltip>}
@@ -992,7 +1049,7 @@ class DialogEditDevice extends React.Component {
                     <TextField
                         fullWidth
                         disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
-                        value={alias || linkedDevices ? this.state.ids[name] || '' : item.id || ''}
+                        value={(alias || linkedDevices) ? this.state.ids[name] || '' : item.id || ''}
                         className={this.props.classes.oidField}
                         style={{ paddingTop: 8 }}
                         onChange={e => {
@@ -1008,31 +1065,31 @@ class DialogEditDevice extends React.Component {
                     />
                     <div className={this.props.classes.wrapperItemButtons}>
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ selectIdFor: name })}>
+                            <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name })}>
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use different states for read and write')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onToggleTypeStates(name)}>
+                            <IconButton size="small"  onClick={() => this.onToggleTypeStates(name)}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
                         {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.setState({ editFxFor: name })}>
+                            <IconButton size="small"  onClick={() => this.setState({ editFxFor: name })}>
                                 <IconFunction />
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton className={clsx(this.props.classes.smallButton, this.props.classes.addedName)}
+                            <IconButton size="small" className={this.props.classes.addedName}
                                 onClick={() => addStateCallBack(
                                     async obj => {
                                         if (obj) {
                                             if (obj.common.name !== name) {
                                                 this.onDelete(item.id);
                                                 const newIds = JSON.parse(JSON.stringify(this.state.ids));
-                                                const newVAlue = newIds[name];
+                                                const newValue = newIds[name];
                                                 delete newIds[name];
-                                                newIds[obj.common.name] = newVAlue;
+                                                newIds[obj.common.name] = newValue;
                                                 this.setState({ids:newIds});
                                             }
                                         }
@@ -1046,8 +1103,13 @@ class DialogEditDevice extends React.Component {
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
+                        {this.state.states[item.name] && !this.state.startTheProcess && <Tooltip title={I18n.t('Edit states')}>
+                            <IconButton size="small" onClick={() => this.setState({editStates: item.name})}>
+                                <IconEditStates />
+                            </IconButton>
+                        </Tooltip>}
                         {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                            <IconButton className={this.props.classes.smallButton} onClick={() => this.onDelete(item.id)}>
+                            <IconButton size="small"  onClick={() => this.onDelete(item.id)}>
                                 <IconDelete />
                             </IconButton>
                         </Tooltip>}
@@ -1059,7 +1121,7 @@ class DialogEditDevice extends React.Component {
 
     renderVariables() {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
-            {this.props.channelInfo.states.filter((item, i) => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
+            {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
             {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
             {this.state.extended && this.state.extendedAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
@@ -1163,6 +1225,7 @@ class DialogEditDevice extends React.Component {
                     startIcon={<IconClose />}
                 >{I18n.t('Cancel')}</Button>
             </DialogActions>
+            {this.renderEditStates()}
         </Dialog>;
     }
 }

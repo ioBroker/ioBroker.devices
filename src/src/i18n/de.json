@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Namen \"%s\" bearbeiten",
   "Apply": "Anwenden",
   "Delete state": "Zustand löschen",
-  "Supported by \"%s\"": "Unterstützt von \"%s\""
+  "Supported by \"%s\"": "Unterstützt von \"%s\"",
+  "Readable": "Lesbar",
+  "Add to root": "Zu root hinzufügen",
+  "number": "Nummer",
+  "boolean": "boolesch",
+  "string": "Schnur",
+  "file": "Datei",
+  "Edit state %s": "Zustand %s bearbeiten",
+  "type-blindButtons": "Jalousie über Tasten gesteuert"
 }

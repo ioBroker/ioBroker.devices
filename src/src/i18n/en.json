@@ -164,5 +164,13 @@
   "Edit name \"%s\"": "Edit name \"%s\"",
   "Apply": "Apply",
   "Delete state": "Delete state",
-  "Supported by \"%s\"": "Supported by \"%s\""
+  "Supported by \"%s\"": "Supported by \"%s\"",
+  "Readable": "Readable",
+  "Add to root": "Add to root",
+  "number": "number",
+  "boolean": "boolean",
+  "string": "string",
+  "file": "file",
+  "Edit state %s": "Edit state %s",
+  "type-blindButtons": "Blind controlled by buttons"
 }
