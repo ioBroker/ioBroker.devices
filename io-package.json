@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.4",
+        "version": "1.0.5",
         "news": {
+            "1.0.5": {
+                "en": "Implemented the edit of `states` parameter",
+                "de": "Die Bearbeitung des Parameters `states` implementiert",
+                "ru": "Реализовано редактирование параметра `States`",
+                "pt": "Implementado a edição do parâmetro `states`",
+                "nl": "De bewerking van de parameter 'states' geïmplementeerd",
+                "fr": "Implémentation de la modification du paramètre `states`",
+                "it": "Implementata la modifica del parametro `states`",
+                "es": "Se implementó la edición del parámetro `states`",
+                "pl": "Zaimplementowano edycję parametru `states`",
+                "zh-cn": "实现了`states`参数的编辑"
+            },
             "1.0.4": {
                 "en": "Fixed some GUI errors",
                 "de": "Einige GUI-Fehler behoben",
@@ -220,18 +232,6 @@
                 "zh-cn": "允许克隆设备"
             },
             "0.1.7": {
-                "en": "initial release",
-                "de": "Erstveröffentlichung",
-                "ru": "Начальная версия",
-                "pt": "lançamento inicial",
-                "nl": "Eerste uitgave",
-                "fr": "Première version",
-                "it": "Versione iniziale",
-                "es": "Versión inicial",
-                "pl": "Pierwsze wydanie",
-                "zh-cn": "首次出版"
-            },
-            "0.1.2": {
                 "en": "initial release",
                 "de": "Erstveröffentlichung",
                 "ru": "Начальная версия",
