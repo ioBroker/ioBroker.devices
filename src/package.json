@@ -1,9 +1,10 @@
 {
     "name": "devices-admin",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "private": true,
     "dependencies": {
-        "@iobroker/adapter-react": "^1.6.28",
+        "@iobroker/adapter-react": "^1.6.29",
+        "iobroker.type-detector": "^1.0.13",
         "@material-ui/core": "^4.11.4",
         "@material-ui/icons": "^4.11.2",
         "@material-ui/lab": "^4.0.0-alpha.58",
@@ -11,7 +12,6 @@
         "@sentry/integrations": "^6.7.2",
         "del": "^6.0.0",
         "gulp": "^4.0.2",
-        "iobroker.type-detector": "^1.0.12",
         "react": "^17.0.2",
         "react-color": "^2.19.3",
         "react-cropper": "^2.1.7",

@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "L'appareil et tous les états seront supprimés. Êtes-vous sûr?",
   "Do not show dialog for 5 minutes": "Ne pas afficher la boîte de dialogue pendant 5 minutes",
   "Delete": "Effacer",
-  "Write": "",
+  "Write": "Écrivez",
   "General": "Général",
   "Edit read/write functions": "Modifier les fonctions de lecture/écriture",
   "Read function": "Lis",
@@ -172,5 +172,7 @@
   "string": "chaîne",
   "file": "déposer",
   "Edit state %s": "Modifier l'état %s",
-  "type-blindButtons": "Store contrôlé par des boutons"
+  "type-blindButtons": "Store contrôlé par des boutons",
+  "Select for \"%s\"": "Sélectionnez pour \"%s\"",
+  "Select predefined icon": ""
 }

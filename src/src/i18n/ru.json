@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Устройство и все состояния будут удалены. Подтвердить?",
   "Do not show dialog for 5 minutes": "Не показывать диалог в течение 5 минут",
   "Delete": "Удалить",
-  "Write": "",
+  "Write": "Писать",
   "General": "Общее",
   "Edit read/write functions": "Редактировать функции чтения / записи",
   "Read function": "Читать",
@@ -172,5 +172,7 @@
   "string": "нить",
   "file": "файл",
   "Edit state %s": "Изменить состояние %s",
-  "type-blindButtons": "Жалюзи управляются кнопками"
+  "type-blindButtons": "Жалюзи управляются кнопками",
+  "Select for \"%s\"": "Выбрать для \"%s\"",
+  "Select predefined icon": ""
 }

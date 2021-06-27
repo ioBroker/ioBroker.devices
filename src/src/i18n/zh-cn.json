@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "设备和所有状态将被删除。你确定吗？",
   "Do not show dialog for 5 minutes": "5 分钟内不显示对话框",
   "Delete": "删除",
-  "Write": "",
+  "Write": "写",
   "General": "一般的",
   "Edit read/write functions": "编辑读/写功能",
   "Read function": "读",
@@ -172,5 +172,7 @@
   "string": "细绳",
   "file": "文件",
   "Edit state %s": "编辑状态 %s",
-  "type-blindButtons": "由按钮控制的百叶窗"
+  "type-blindButtons": "由按钮控制的百叶窗",
+  "Select for \"%s\"": "选择“%s”",
+  "Select predefined icon": ""
 }

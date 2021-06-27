@@ -10,7 +10,7 @@
 
 ## Add new device dialog
 ## Set states
-- (BF) Verify Read/write functions with current value
+- Verify Read/write functions with current value
 
 ## Types (type-detector)
 - !Automatically convert % to lowBattery alarm (adapter must be modified!)

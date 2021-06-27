@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Gerät und alle Zustände werden gelöscht. Bist du sicher?",
   "Do not show dialog for 5 minutes": "Dialog 5 Minuten lang nicht anzeigen",
   "Delete": "Löschen",
-  "Write": "",
+  "Write": "Schreiben",
   "General": "Allgemein",
   "Edit read/write functions": "Lese-/Schreibfunktionen bearbeiten",
   "Read function": "Lesen",
@@ -172,5 +172,7 @@
   "string": "Schnur",
   "file": "Datei",
   "Edit state %s": "Zustand %s bearbeiten",
-  "type-blindButtons": "Jalousie über Tasten gesteuert"
+  "type-blindButtons": "Jalousie über Tasten gesteuert",
+  "Select for \"%s\"": "Auswählen für \"%s\"",
+  "Select predefined icon": ""
 }

@@ -220,12 +220,17 @@ class DialogNewDevice extends React.Component {
             },
             type: 'folder'
         };
-        const functionStorage = JSON.parse(window.localStorage.getItem('Devices.new.functions'));
-        const roomsStorage = JSON.parse(window.localStorage.getItem('Devices.new.rooms'));
-        let root = window.localStorage.getItem('NewDeviceRoot');
-        if (root && this.props.prefix.includes('alias') === root.includes('alias') && !!this.props.objects[root]) {
+        let functions = [];
+        let rooms = [];
+        try {
+            functions = JSON.parse(window.localStorage.getItem('Devices.new.functions') || '[]');
+            rooms = JSON.parse(window.localStorage.getItem('Devices.new.rooms') || '[]');
+        } catch (e) {
 
-        } else {
+        }
+
+        let root = window.localStorage.getItem('NewDeviceRoot');
+        if (!root || this.props.prefix.includes('alias') !== root.includes('alias') || !this.props.objects[root]) {
             root = null;
         }
 
@@ -242,7 +247,7 @@ class DialogNewDevice extends React.Component {
             root = checkIdSelected();
         }
 
-        if(root?.startsWith('alias.0.automatically_detected') || root?.startsWith('alias.0.linked_devices')){
+        if (root?.startsWith('alias.0.automatically_detected') || root?.startsWith('alias.0.linked_devices')){
             root = this.prefix;
         }
 
@@ -250,8 +255,8 @@ class DialogNewDevice extends React.Component {
             root: root?.startsWith(this.prefix) ? root : this.prefix,
             name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
             notUnique: false,
-            functions: !!roomsStorage && typeof functionStorage !== 'string' ? functionStorage : [],
-            rooms: !!roomsStorage && typeof roomsStorage !== 'string' ? roomsStorage : [],
+            functions,
+            rooms,
             type: window.localStorage.getItem('Devices.newType') || 'light',
             ids: stateIds,
             rootCheck: (root || this.prefix) === this.prefix ? this.prefix : null
@@ -286,7 +291,7 @@ class DialogNewDevice extends React.Component {
                             icon: Utils.getObjectIcon(id, this.props.objects[id]),
                             id: id
                         }
-                    }) : []
+                    }) : [];
                     return <div className={this.props.classes.renderValueWrapper}>
                         {newArr.map(obj => <div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
                             {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
@@ -301,7 +306,7 @@ class DialogNewDevice extends React.Component {
                 }}
             >
                 {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                    {obj.icon ? <Icon key={obj.id} className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
+                    {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                     {obj.name}
                 </MenuItem>)}
             </Select>

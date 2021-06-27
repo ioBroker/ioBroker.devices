@@ -93,7 +93,7 @@ const typeArray = [
     'file',
 ];
 
-const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, editState }) => {
+const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefault, editState }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [role, setRole] = useState(null);
@@ -290,7 +290,7 @@ const DialogAddState = ({ cb, objects, socket, channelId, arrayStateDefault, edi
                             obj.common.write = checkedWrite;
                         }
                         await socket.setObject(`${channelId}.${name}`, obj);
-                        cb(obj);
+                        callback && callback(obj);
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
@@ -312,7 +312,7 @@ DialogAddState.defaultProps = {
     editState: null
 };
 
-export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefault, editState) => {
+export const addStateCallBack = (callback, objects, socket, channelId, arrayStateDefault, editState) => {
     if (!node) {
         node = document.createElement('div');
         node.id = 'renderModal';
@@ -325,7 +325,7 @@ export const addStateCallBack = (cb, objects, socket, channelId, arrayStateDefau
             channelId={channelId}
             socket={socket}
             objects={objects}
-            cb={cb}
+            callback={callback}
             editState={editState}
         />, node);
 }

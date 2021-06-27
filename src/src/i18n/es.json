@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Se eliminarán el dispositivo y todos los estados. ¿Está seguro?",
   "Do not show dialog for 5 minutes": "No mostrar el diálogo durante 5 minutos",
   "Delete": "Borrar",
-  "Write": "",
+  "Write": "Escribir",
   "General": "General",
   "Edit read/write functions": "Editar funciones de lectura / escritura",
   "Read function": "Leer",
@@ -172,5 +172,7 @@
   "string": "cuerda",
   "file": "expediente",
   "Edit state %s": "Editar estado %s",
-  "type-blindButtons": "Persiana controlada por botones"
+  "type-blindButtons": "Persiana controlada por botones",
+  "Select for \"%s\"": "Seleccionar para \"%s\"",
+  "Select predefined icon": ""
 }

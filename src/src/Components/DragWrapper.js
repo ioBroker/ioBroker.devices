@@ -11,10 +11,8 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
         type: 'box',
         item: { id, deviceIdx },
         canDrag:()=>{
-            if(id?.includes('linked_devices') || id?.includes('linkeddevices.0')){
-                return false;
-            }
-            return true;
+            return !id?.includes('linked_devices') && !id?.includes('linkeddevices.0');
+
         },
         end: async (item, monitor) => {
             let parts;
@@ -94,7 +92,6 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
                 setError(true);
             } else {
                 setError(false);
-
             }
         }
     });

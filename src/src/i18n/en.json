@@ -172,5 +172,7 @@
   "string": "string",
   "file": "file",
   "Edit state %s": "Edit state %s",
-  "type-blindButtons": "Blind controlled by buttons"
+  "type-blindButtons": "Blind controlled by buttons",
+  "Select for \"%s\"": "Select for \"%s\"",
+  "Select predefined icon": "Select predefined icon"
 }

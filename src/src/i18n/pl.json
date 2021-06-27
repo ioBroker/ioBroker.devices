@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Urządzenie i wszystkie stany zostaną usunięte. Jesteś pewny?",
   "Do not show dialog for 5 minutes": "Nie pokazuj okna dialogowego przez 5 minut",
   "Delete": "Kasować",
-  "Write": "",
+  "Write": "pisać",
   "General": "Generał",
   "Edit read/write functions": "Edytuj funkcje odczytu/zapisu",
   "Read function": "Czytać",
@@ -172,5 +172,7 @@
   "string": "strunowy",
   "file": "plik",
   "Edit state %s": "Edytuj stan %s",
-  "type-blindButtons": "Roleta sterowana przyciskami"
+  "type-blindButtons": "Roleta sterowana przyciskami",
+  "Select for \"%s\"": "Wybierz dla „%s”",
+  "Select predefined icon": ""
 }

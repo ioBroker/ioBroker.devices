@@ -337,7 +337,7 @@ class DialogEditProperties extends React.PureComponent {
                     key="_name"
                     fullWidth
                     disabled={disabled}
-                    value={this.state.name}
+                    value={this.state.name || ''}
                     error={this.checkedName()}
                     className={classes.oidField}
                     onChange={e => this.setState({ name: e.target.value })}
@@ -367,7 +367,7 @@ class DialogEditProperties extends React.PureComponent {
                     fullWidth
                     disabled={disabled}
                     placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
-                    value={this.state.smartName}
+                    value={this.state.smartName || ''}
                     className={classes.oidField}
                     helperText={I18n.t('This name will use be in smart assistance. (optional)')}
                     onChange={e => this.setState({ smartName: e.target.value.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') })}
@@ -389,8 +389,7 @@ class DialogEditProperties extends React.PureComponent {
                         key="_color"
                         fullWidth
                         disabled={disabled}
-                        value={this.state.color}
-                        // style={{ width: 'calc(100% - 185px)' }}
+                        value={this.state.color || ''}
                         onChange={e => this.setState({ color: e.target.value })}
                     />
                     <TextField
@@ -398,7 +397,7 @@ class DialogEditProperties extends React.PureComponent {
                         type="color"
                         style={{ width: 40 }}
                         disabled={disabled}
-                        value={this.state.color}
+                        value={this.state.color || ''}
                         className={clsx(classes.oidField, classes.colorButton)}
                         onChange={e => this.setState({ color: e.target.value })}
                         margin="normal"

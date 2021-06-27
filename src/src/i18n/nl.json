@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Apparaat en alle statussen worden verwijderd. Weet je het zeker?",
   "Do not show dialog for 5 minutes": "Dialoogvenster gedurende 5 minuten niet weergeven",
   "Delete": "Verwijderen",
-  "Write": "",
+  "Write": "Schrijven",
   "General": "Algemeen",
   "Edit read/write functions": "Lees-/schrijffuncties bewerken",
   "Read function": "Lezen",
@@ -172,5 +172,7 @@
   "string": "draad",
   "file": "het dossier",
   "Edit state %s": "Bewerk staat %s",
-  "type-blindButtons": "Jaloezie bestuurd door knoppen"
+  "type-blindButtons": "Jaloezie bestuurd door knoppen",
+  "Select for \"%s\"": "Selecteer voor \"%s\"",
+  "Select predefined icon": ""
 }

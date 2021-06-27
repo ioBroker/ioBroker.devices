@@ -22,6 +22,8 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import ButtonBase from '@material-ui/core/ButtonBase';
 import { Toolbar, InputAdornment, ListItemIcon, TextField, Tooltip, withWidth } from '@material-ui/core';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
 
 import { MdAdd as IconAdd } from 'react-icons/md';
 import { MdRefresh as IconRefresh } from 'react-icons/md';
@@ -51,6 +53,7 @@ import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
 import Router from '@iobroker/adapter-react/Components/Router';
 import Utils from '@iobroker/adapter-react/Components/Utils';
 import Icon from '@iobroker/adapter-react/Components/Icon';
+import SelectWithIcon from '@iobroker/adapter-react/Components/SelectWithIcon';
 
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
@@ -568,6 +571,9 @@ const styles = theme => ({
         width: 16,
         height: 16,
     },
+    iconInSelect: {
+        marginRight: 4,
+    },
     nameEnumCell: {
         marginLeft: 3
     },
@@ -672,7 +678,18 @@ const styles = theme => ({
         wrapperTitleAndId: {
             maxWidth: 120
         },
-    }, 
+    },
+    filterType: {
+        minWidth: 100
+    },
+    searchText: {
+        color: 'orange'
+    },
+    textStyle: {
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        padding: '0 16px 0 16px'
+    }
 });
 
 class ListDevices extends Component {
@@ -731,9 +748,15 @@ class ListDevices extends Component {
             loading: true,
             browse: false,
             expanded,
-            orderBy: window.localStorage.getItem('Devices.orderBy') || 'IDs',
             lastChanged: '',
             linkeddevices: '',
+            filter: {
+                func: window.localStorage.getItem('Devices.filter.func') || '',
+                room: window.localStorage.getItem('Devices.filter.room') || '',
+                type: window.localStorage.getItem('Devices.filter.type') || '',
+                text: window.localStorage.getItem('Devices.filter.text') || '',
+                noInfo: window.localStorage.getItem('Devices.filter.noInfo') !== 'false',
+            },
             selected,
             iot: '',
             iotNoCommon: false,
@@ -742,13 +765,10 @@ class ListDevices extends Component {
             newFolder: false,
             // onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
             onlyAliases: false,
-            hideInfo: window.localStorage.getItem('Devices.hideInfo') ? JSON.parse(window.localStorage.getItem('Devices.hideInfo')) : true,
             updating: [],
         };
 
         this.inputRef = createRef();
-
-        this.filter = window.localStorage.getItem('Devices.filter') || '';
 
         this.timerChanged = null;
 
@@ -758,6 +778,8 @@ class ListDevices extends Component {
         this.states = {};
         this.instances = [];
         this.enumObj = {};
+
+        this.filter = this.state.filter.text;
 
         this.subscribes = {};
         this.onUpdateBound = this.onUpdate.bind(this);
@@ -907,12 +929,12 @@ class ListDevices extends Component {
             result && result.forEach(device => devices.push(device));
         });
 
-        const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
-        const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
+        this.funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
+        this.roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
         // find channelID for every device
         devices.map(device =>
-            this.updateEnumsForOneDevice(device, funcEnums, roomsEnums));
+            this.updateEnumsForOneDevice(device, this.funcEnums, this.roomsEnums));
 
         const listItems = this.onObjectsGenerate(this.objects || {}, JSON.parse(JSON.stringify(devices)));
 
@@ -922,6 +944,8 @@ class ListDevices extends Component {
             listItems.forEach(item =>
                 expandedIDs.includes(item.parent) && expandedIDs.push(item.parent));
         }
+
+        this.applyFilter(listItems, devices);
 
         await this.setStateAsync({ devices, expandedIDs, listItems, loading: false, browse: false });
 
@@ -1273,28 +1297,6 @@ class ListDevices extends Component {
         this.setState({ copyId, showAddDialog: ALIAS + '0' });
     }
 
-    isFilteredOut(device) {
-        if (this.state.orderBy === 'IDs') {
-            if (this.filter &&
-                // device.type !== 'folder' &&
-                !Utils.getObjectNameFromObj(device.obj, I18n.getLanguage()).toLowerCase().includes(this.filter.toLowerCase()) &&
-                !device.id.toLowerCase().includes(this.filter.toLowerCase())
-            ) {
-                return true;
-            } else {
-                const deviceAllparams = this.state.devices.find(el => el.channelId === device.id);
-                return this.state.hideInfo && deviceAllparams && deviceAllparams.type === Types.info;
-            }
-        } else
-            if (this.filter &&
-                !device.channelId.toLowerCase().includes(this.filter) &&
-                !device.name.toLowerCase().includes(this.filter)) {
-                return true;
-            } else {
-                return !!(this.state.hideInfo && device.type === Types.info);
-            }
-    }
-
     onEditEnum(values, enums, index) {
         this.setState({ editEnum: { values, enums, index } });
     }
@@ -1305,11 +1307,13 @@ class ListDevices extends Component {
             name: Utils.getObjectName(this.objects, id, { language: I18n.getLanguage() }),
             id
         }));
+
         const content = objs.map(obj =>
             <div className={this.props.classes.wrapperIconEnumCell} key={obj.id}>
                 {obj.icon && <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} />}
                 <div className={this.props.classes.nameEnumCell}>{obj.name}</div>
-            </div>)
+            </div>);
+
         return <Tooltip title={content}>
             <ButtonBase
                 focusRipple
@@ -1361,61 +1365,110 @@ class ListDevices extends Component {
         this.saveExpanded(expandedIDs);
     }
 
-    getTextStyle(item) {
-        return {
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            padding: '0 16px 0 16px'
-        };
+    applyFilter(listItems, devices, filter) {
+        filter = filter || this.state.filter;
+        devices = devices || this.state.devices;
+
+        let setState;
+        if (!listItems) {
+            listItems = JSON.parse(JSON.stringify(this.state.listItems));
+            setState = true;
+        }
+
+        // hasVisibleChildren
+        // visible
+        listItems.forEach(item => {
+            const device = devices.find(el => el.channelId === item.id);
+            item.visible = true;
+
+            if (device) {
+                if (filter.type && device.type !== filter.type) {
+                    item.visible = false;
+                } else if (filter.room && !device.rooms.includes(filter.room)) {
+                    item.visible = false;
+                } else if (filter.func && !device.functions.includes(filter.func)) {
+                    item.visible = false;
+                } else if (filter.noInfo && device.type === 'info') {
+                    item.visible = false;
+                }
+            }
+
+            if (item.visible &&
+                filter.text &&
+                !item.title.includes(filter.text) &&
+                !item.id.toLowerCase().includes(filter.text)
+            ) {
+                item.visible = false;
+            }
+        });
+
+        const someFilterActive = filter.type || filter.func || filter.room || filter.text;
+
+        let someChanges = false;
+        let folders = listItems.filter(item => item.type === 'folder');
+        do {
+            someChanges = false;
+            for (let f = 0; f < folders.length; f++) {
+                const item = folders[f];
+                item.hasVisibleChildren = listItems.filter(_item => _item.parent === item.id && _item.visible).length;
+                if (someFilterActive && !item.hasVisibleChildren && item.visible) {
+                    item.visible = false;
+                    someChanges = true;
+                }
+            }
+        } while (someChanges);
+
+        setState && this.setState({listItems});
     }
 
     renderOneItem(items, item) {
-        let childrenFiltered = (this.state.searchText || this.state.typeFilter) && items.filter(i => i.parent === item.id ? !this.isFilteredOut(i) : false);
+        if (!item.visible && !item.hasVisibleChildren) {
+            return null;
+        }
+
         let children = items.filter(i => i.parent === item.id);
-        let childrenFilter = items.filter(i => i.parent === item.id).filter(i => !this.isFilteredOut(i));
-        if (this.isFilteredOut(item)) {
-            if (this.filter && !childrenFilter.length) {
-                return
-            } else if (!this.filter) {
-                return;
-            }
-        }
-
-        if (item.type === 'folder' && (this.state.searchText || this.state.typeFilter) && !childrenFiltered.length) {
-            return;
-        }
-
-        const depthPx = item.depth * (this.state.windowWidth <= WIDTHS[6] ? 8 : 20) + 10;
-
-        let title = item.title;
-
-        if (this.state.searchText) {
-            const pos = title.toLowerCase().indexOf(this.state.searchText.toLowerCase());
-            if (pos !== -1) {
-                title = [
-                    <span key="first">{title.substring(0, pos)}</span>,
-                    <span key="second" style={{ color: 'orange' }}>{title.substring(pos, pos + this.state.searchText.length)}</span>,
-                    <span key="third">{title.substring(pos + this.state.searchText.length)}</span>,
-                ];
-            }
-        }
-
-        const style = Object.assign({
-            paddingLeft: depthPx,
-            cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
-            opacity: item.filteredPartly ? 0.5 : 1,
-        });
 
         let isExpanded = false;
         if (children && children.length) {
             isExpanded = this.state.expandedIDs.includes(item.id);
         }
 
+        const depthPx = item.depth * (this.state.windowWidth <= WIDTHS[6] ? 8 : 20) + 10;
+
+        let title = item.title;
+        let searchId = item.id;
+
+        if (this.state.filter.text) {
+            let pos = title.toLowerCase().indexOf(this.state.filter.text);
+            if (pos !== -1) {
+                title = [
+                    <span key="0">{title.substring(0, pos)}</span>,
+                    <span key="1" className={this.props.classes.searchText}>{title.substring(pos, pos + this.state.filter.text.length)}</span>,
+                    <span key="2">{title.substring(pos + this.state.filter.text.length)}</span>,
+                ];
+            }
+            pos = searchId.toLowerCase().indexOf(this.state.filter.text);
+            if (pos !== -1) {
+                searchId = [
+                    <span key="0">{searchId.substring(0, pos)}</span>,
+                    <span key="1" className={this.props.classes.searchText}>{searchId.substring(pos, pos + this.state.filter.text.length)}</span>,
+                    <span key="2">{searchId.substring(pos + this.state.filter.text.length)}</span>,
+                ];
+            }
+        }
+
+        const style = Object.assign({
+            paddingLeft: depthPx,
+            cursor: 'pointer',
+            opacity: item.visible ? 1 : 0.5,
+        });
+
         let iconStyle = {};
-        let countSpan = (childrenFiltered && childrenFiltered.length) || children.length ?
-            <span className={this.props.classes.childrenCount}>{childrenFiltered && childrenFiltered.length !== children.length ?
-                `${childrenFiltered.length}(${children.length})` :
-                children.length}</span>
+        let countSpan = children.length ?
+            <span className={this.props.classes.childrenCount}>{
+                children.length !== item.hasVisibleChildren ?
+                    item.hasVisibleChildren + ' (' + children.length + ')' : children.length}
+            </span>
             : null;
 
         const searchStyle = {};
@@ -1427,10 +1480,11 @@ class ListDevices extends Component {
             searchStyle.opacity = 0.5;
         }
 
-        if (this.filter && childrenFilter.length && item.type === 'folder') {
+        if (item.hasVisibleChildren && !item.visible) {
             searchStyle.opacity = 0.5;
             iconStyle.opacity = 0.5;
         }
+
         iconStyle.color = '#448dde';
         iconStyle.width = 36;
         iconStyle.height = 36;
@@ -1441,13 +1495,13 @@ class ListDevices extends Component {
             iconStyle.color = colorNativeDevices;
             backgroundRow = colorNativeDevices + '33';
         } else
-            if (item.id === 'alias.0.linked_devices') {
-                iconStyle.color = colorLinkedDevices;
-                backgroundRow = colorLinkedDevices + '33';
-            } else
-                if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
-                    return;
-                }
+        if (item.id === 'alias.0.linked_devices') {
+            iconStyle.color = colorLinkedDevices;
+            backgroundRow = colorLinkedDevices + '33';
+        } else
+        if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
+            return null;
+        }
 
         const classes = this.props.classes;
         let background;
@@ -1492,10 +1546,7 @@ class ListDevices extends Component {
                 colSpan={3}
                 style={Object.assign({ maxWidth: 300 }, style)}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
-                className={Utils.clsx(
-                    item.type === 'folder' ? this.props.classes.folder : this.props.classes.element,
-                    this.state.reorder && this.props.classes.reorder
-                )}
+                className={item.type === 'folder' ? this.props.classes.folder : this.props.classes.element}
             >
                 <div className={classes.displayFlex}>
                     <ListItemIcon className={this.props.classes.iconStyle}>
@@ -1513,25 +1564,27 @@ class ListDevices extends Component {
                             </div>}
                     </ListItemIcon>
                     <Tooltip title={<div>
-                        <div>{`${I18n.t("Name")}: ${title}`}</div>
-                        {!item.showId && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" &&
-                            <div>{`${I18n.t("Id")}: ${item.id}`}</div>
+                        <div>{`${I18n.t('Name')}: ${title}`}</div>
+                        {!item.showId && item.id !== 'alias.0.automatically_detected' && item.id !== 'alias.0.linked_devices' &&
+                            <div>{`${I18n.t('Id')}: ${item.id}`}</div>
                         }
                     </div>}>
                         <div className={this.props.classes.wrapperTitleAndId}>
                             <div
-                                style={Object.assign(searchStyle, this.getTextStyle(item))}
-                                className={clsx(this.props.classes.fontStyle)}
+                                style={searchStyle}
+                                className={clsx(this.props.classes.fontStyle, this.props.classes.textStyle)}
                             >{title}</div>
-                            {!item.showId && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div
-                                style={Object.assign(searchStyle, this.getTextStyle(item))}
-                                className={clsx(this.props.classes.fontStyleId)}
-                            >{item.id}</div>}
+                            {!item.showId && item.id !== 'alias.0.automatically_detected' && item.id !== 'alias.0.linked_devices' && <div
+                                style={searchStyle}
+                                className={clsx(this.props.classes.fontStyleId, this.props.classes.textStyle)}
+                            >{searchId}</div>}
                         </div>
                     </Tooltip>
                 </div>
             </TableCell>
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>{this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}</TableCell> : null}
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
+                {this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}
+            </TableCell> : null}
 
             {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
                 {this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}
@@ -1617,11 +1670,107 @@ class ListDevices extends Component {
         return result;
     }
 
-    renderAllItems(items, dragging) {
-        const result = [];
-        items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
+    changeFilter(func, room, type, text, noInfo) {
+        const filter = JSON.parse(JSON.stringify(this.state.filter));
+        if (func !== undefined && func !== null) {
+            filter.func = func === '_' ? '' : func;
+            window.localStorage.setItem('Devices.filter.func', filter.func);
+        }
+        if (room !== undefined && room !== null) {
+            filter.room = room === '_' ? '' : room;
+            window.localStorage.setItem('Devices.filter.room', filter.room);
+        }
+        if (type !== undefined && type !== null) {
+            filter.type = type === '_' ? '' : type;
+            window.localStorage.setItem('Devices.filter.type', filter.type);
+        }
+        if (text !== undefined && text !== null) {
+            filter.text = text.toLowerCase();
+            window.localStorage.setItem('Devices.filter.text', filter.text);
+        }
+        if (noInfo !== undefined && noInfo !== null) {
+            filter.noInfo = noInfo;
+            window.localStorage.setItem('Devices.filter.noInfo', filter.noInfo ? 'true' : 'false');
+        }
 
-        return result;
+        const listItems = this.state.listItems; //JSON.parse(JSON.stringify(this.state.listItems));
+        this.applyFilter(listItems, null, filter);
+        this.setState({/*listItems,*/ filter});
+    }
+
+    renderAllItems(items) {
+        return items
+            .filter(item => !item.parent)
+            .map(item => this.renderOneItem(items, item));
+    }
+
+    renderHeaderType() {
+        let result = [];
+        const noInfo = this.state.filter.noInfo;
+        this.state.devices.forEach(el => (!noInfo || el.type !== 'info') && !result.includes(el.type) && result.push(el.type));
+        result = result.map(type => ({value: type, label: I18n.t('type-' + type)}));
+        result.sort((a, b) => a.label > b.label ? 1 : (a.label < b.label ? -1 : 0))
+
+        return <Select
+            value={this.state.filter.type || '_'}
+            onChange={e => this.changeFilter(null, null, e.target.value)}
+        >
+            <MenuItem value={'_'}><span style={{color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'}}>{I18n.t('Type')}</span></MenuItem>
+            {result.map(item => <MenuItem key={item.value} value={item.value}>
+                <TypeIcon className={clsx(this.props.classes.enumIcon, this.props.classes.iconInSelect)} type={item.value} />
+                {item.label}
+            </MenuItem>)}
+        </Select>;
+    }
+
+    renderHeaderFunction() {
+        if (!this.funcEnums) {
+            return I18n.t('Function');
+        } else {
+            const list = this.funcEnums.map(id => this.objects[id]);
+            list.unshift({
+                _id: '_',
+                common: {
+                    name: I18n.t('Function'),
+                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'
+                }
+            });
+
+            return <SelectWithIcon
+                t={I18n.t}
+                dense
+                lang={I18n.getLanguage()}
+                themeType={this.props.themeType}
+                value={this.state.filter.func || '_'}
+                list={list}
+                onChange={text => this.changeFilter(text)}
+            />;
+        }
+    }
+
+    renderHeaderRoom() {
+        if (!this.roomsEnums) {
+            return I18n.t('Room');
+        } else {
+            const list = this.roomsEnums.map(id => this.objects[id]);
+            list.unshift({
+                _id: '_',
+                common: {
+                    name: I18n.t('Room'),
+                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'
+                }
+            });
+
+            return <SelectWithIcon
+                t={I18n.t}
+                dense
+                lang={I18n.getLanguage()}
+                themeType={this.props.themeType}
+                value={this.state.filter.func || '_'}
+                list={list}
+                onChange={text => this.changeFilter(text)}
+            />;
+        }
     }
 
     renderDevices() {
@@ -1636,10 +1785,9 @@ class ListDevices extends Component {
                         <TableCell className={classes.tableExpandIconCell} />
                         <TableCell className={classes.tableIconCell} />
                         <TableCell className={classes.headerCell + ' ' + classes.tableNameCell}>{I18n.t('Name')}</TableCell>
-                        {this.state.orderBy !== 'IDs' && this.state.windowWidth >= WIDTHS[4] ? <TableCell className={classes.headerCell}>{I18n.t('ID')}</TableCell> : null}
-                        {this.state.orderBy !== 'functions' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{I18n.t('Function')}</TableCell> : null}
-                        {this.state.orderBy !== 'rooms' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{I18n.t('Room')}</TableCell> : null}
-                        {this.state.orderBy !== 'types' && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{I18n.t('Type')}</TableCell> : null}
+                        {this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{this.renderHeaderFunction()}</TableCell> : null}
+                        {this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{this.renderHeaderRoom()}</TableCell> : null}
+                        {this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell className={classes.headerCell}>{this.renderHeaderType()}</TableCell> : null}
                         {this.state.windowWidth >= WIDTHS[0] ? <TableCell style={{ width: 50 }} className={classes.headerCell}>{I18n.t('States')}</TableCell> : null}
                         <TableCell className={classes.headerCell + ' ' + classes.buttonsCellHeader} />
                     </TableRow>
@@ -1961,7 +2109,7 @@ class ListDevices extends Component {
                 if (channelId.startsWith(LINKEDDEVICES)) {
                     for (let s = 0; s < device.states.length; s++) {
                         let state = device.states[s];
-                        const obj = await this.props.socket.getObject(state.id);
+                        const obj = state.id && (await this.props.socket.getObject(state.id));
                         let attrs;
                         if (state.id && obj && obj.common && obj.common.custom && (attrs = Object.keys(obj.common.custom).filter(id => id.startsWith(LINKEDDEVICES))).length) {
                             const attr = attrs[0];
@@ -1975,15 +2123,14 @@ class ListDevices extends Component {
                                     somethingChanged = true;
                                 } else {
                                     // update state
-                                    const stateObj = await this.props.socket.getObject(state.id);
-                                    stateObj.common = stateObj.common || {};
-                                    stateObj.common.custom = stateObj.common.custom || {};
-                                    stateObj.common.custom[attr] = stateObj.common.custom[attr] || {};
-                                    stateObj.common.custom[attr].parentId = data.ids[state.name];
-                                    stateObj.common.custom[attr].enabled = true;
-                                    stateObj.common.custom[attr].isLinked = true;
+                                    obj.common = obj.common || {};
+                                    obj.common.custom = obj.common.custom || {};
+                                    obj.common.custom[attr] = obj.common.custom[attr] || {};
+                                    obj.common.custom[attr].parentId = data.ids[state.name];
+                                    obj.common.custom[attr].enabled = true;
+                                    obj.common.custom[attr].isLinked = true;
                                     somethingChanged = true;
-                                    await this.props.socket.setObject(stateObj._id, stateObj);
+                                    await this.props.socket.setObject(obj._id, obj);
                                 }
                             } // else nothing changed
                         } else if (data.ids[state.name]) {
@@ -2489,8 +2636,7 @@ class ListDevices extends Component {
         this.filterTimer && clearTimeout(this.filterTimer);
         this.filterTimer = setTimeout(() => {
             this.filterTimer = null;
-            window.localStorage.setItem('Devices.filter', this.filter);
-            this.forceUpdate();
+            this.changeFilter(null, null, null, this.filter);
         }, 400);
     }
 
@@ -2520,7 +2666,7 @@ class ListDevices extends Component {
                         <div className={classes.wrapperHeadButtons}>
                         <Tooltip title={I18n.t('Create new device with Aliases')}>
                             <div>
-                                <IconButton 
+                                <IconButton
                                         disabled={this.disabledButtons()}
                                         onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
                                     <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
@@ -2539,11 +2685,8 @@ class ListDevices extends Component {
                         </Tooltip>
                         <Tooltip title={I18n.t('Hide info devices')}>
                             <IconButton
-                                color={this.state.hideInfo ? 'primary' : 'inherit'}
-                                onClick={() => {
-                                    window.localStorage.setItem('Devices.hideInfo', this.state.hideInfo ? 'false' : 'true');
-                                    this.setState({ hideInfo: !this.state.hideInfo });
-                                }}>
+                                color={this.state.filter.noInfo ? 'primary' : 'inherit'}
+                                onClick={() => this.changeFilter(null, null, null, null, !this.state.filter.noInfo)}>
                                 <IconInfo />
                             </IconButton>
                         </Tooltip>

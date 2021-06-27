@@ -396,14 +396,15 @@ class DialogEditDevice extends React.Component {
             name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
-        const extendedAvailable = !!(this.props.channelInfo.states.filter(item => item.indicator).length) && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
+        const indicatorsAvailable = !!this.props.channelInfo.states.filter(item => item.indicator).length
+        const extendedAvailable = indicatorsAvailable && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
 
         this.state = {
             ids: ids,
             idsInit: JSON.parse(JSON.stringify(ids)),
             name,
             addedStates,
-            extended: extendedAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
+            showIndicators: indicatorsAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
             expertMode: true,
             selectIdFor: '',
             newState: false,
@@ -414,6 +415,7 @@ class DialogEditDevice extends React.Component {
             startTheProcess: false,
             disabledButton: false,
             extendedAvailable,
+            indicatorsAvailable,
             tab: localStorage.getItem('EditDevice.tab') ? JSON.parse(localStorage.getItem('EditDevice.tab')) || 0 : 0,
             initChangeProperties: {},
             changeProperties: {},
@@ -558,7 +560,7 @@ class DialogEditDevice extends React.Component {
             imagePrefix="../.."
             socket={this.props.socket}
             dialogName="devicesEdit"
-            title={this.state.newState ? I18n.t('Importer state') : I18n.t('Select for ') + this.state.selectIdFor}
+            title={this.state.newState ? I18n.t('Importer state') : I18n.t('Select for "%s"',  this.state.selectIdFor)}
             selected={selected || this.findRealDevice(this.state.selectIdPrefix)}
             statesOnly={true}
             onOk={async id => {
@@ -652,29 +654,29 @@ class DialogEditDevice extends React.Component {
 
     renderHeader() {
         const classes = this.props.classes;
-        const checkIndicators = this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).find(obj => this.state.ids[obj.name]);
+
+        const checkIndicators = this.props.channelInfo.states
+            .filter(item => item.indicator && item.defaultRole)
+            .find(obj => this.state.ids[obj.name]);
+
         return <div className={classes.header}>
             <div className={clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
             <div className={classes.menuWrapperIcons}>
-                {this.state.extendedAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
+                {this.state.indicatorsAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
-                        style={{ color: this.state.extended ? '#4dabf5' : null, border: checkIndicators && !this.state.extended ? '1px solid #4dabf5' : null }}
+                        style={{ color: this.state.showIndicators ? '#4DABF5' : null, border: checkIndicators && !this.state.showIndicators ? '1px solid #4DABF5' : null }}
                         onClick={() => {
-                            window.localStorage.setItem('Devices.editExtended', this.state.extended ? 'false' : 'true');
-                            this.setState({ extended: !this.state.extended });
+                            window.localStorage.setItem('Devices.editExtended', this.state.showIndicators ? 'false' : 'true');
+                            this.setState({ showIndicators: !this.state.showIndicators });
                         }}>
-                        <IconExtended style={{ transform: !this.state.extended ? 'rotate(180deg)' : '' }} />
+                        <IconExtended style={{ transform: !this.state.showIndicators ? 'rotate(180deg)' : '' }} />
                     </IconButton>
                 </Tooltip>}
                 {this.state.extendedAvailable && !this.state.startTheProcess &&
                     <Tooltip title={I18n.t('Add state')}>
                         <IconButton
                             onClick={() => addStateCallBack(
-                                async obj => {
-                                    if (obj) {
-                                        //this.props.objects[obj._id] = await this.props.socket.getObject(obj._id);
-                                    }
-                                },
+                                null,
                                 this.props.objects,
                                 this.props.socket,
                                 this.channelId,
@@ -1123,13 +1125,16 @@ class DialogEditDevice extends React.Component {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
             {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
-            {this.state.extended && this.state.extendedAvailable &&
+            {this.state.showIndicators && this.state.indicatorsAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
                     <div className={this.props.classes.headerIndicatorsName}>{I18n.t('Indicators')}</div>
                     <div className={this.props.classes.headerIndicatorsLine} />
                 </div>}
-            {this.state.extended && this.state.extendedAvailable && this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole).map(item => this.renderVariable(item, 'indicators'))}
+            {this.state.showIndicators && this.state.indicatorsAvailable &&
+                this.props.channelInfo.states
+                    .filter(item => item.indicator && item.defaultRole)
+                    .map(item => this.renderVariable(item, 'indicators'))}
         </div>;
     }
 
@@ -1181,12 +1186,6 @@ class DialogEditDevice extends React.Component {
                         <Tab disabled={this.state.startTheProcess} label={I18n.t('States')} {...this.a11yProps(1)} />
                     </Tabs>
                 </AppBar>
-                <TabPanel classes={this.props.classes} value={this.state.tab} index={1}>
-                    <div className={this.props.classes.divDialogContent}>
-                        {this.renderHeader()}
-                        {this.renderVariables()}
-                    </div>
-                </TabPanel>
                 <TabPanel classes={this.props.classes} value={this.state.tab} index={0}>
                     <DialogEditProperties
                         channelId={this.props.channelId}
@@ -1210,6 +1209,13 @@ class DialogEditDevice extends React.Component {
                         }}
                     />
                 </TabPanel>
+                <TabPanel classes={this.props.classes} value={this.state.tab} index={1}>
+                    <div className={this.props.classes.divDialogContent}>
+                        {this.renderHeader()}
+                        {this.renderVariables()}
+                    </div>
+                </TabPanel>
+
             </DialogContent>
             <DialogActions>
                 <Button

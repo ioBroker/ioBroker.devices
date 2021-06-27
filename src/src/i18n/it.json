@@ -133,7 +133,7 @@
   "Device and all states will be deleted. Are you sure?": "Il dispositivo e tutti gli stati verranno eliminati. Sei sicuro?",
   "Do not show dialog for 5 minutes": "Non mostrare la finestra di dialogo per 5 minuti",
   "Delete": "Elimina",
-  "Write": "",
+  "Write": "Scrivi",
   "General": "Generale",
   "Edit read/write functions": "Modifica funzioni di lettura/scrittura",
   "Read function": "Leggere",
@@ -172,5 +172,7 @@
   "string": "corda",
   "file": "file",
   "Edit state %s": "Modifica stato %s",
-  "type-blindButtons": "Tenda controllata da pulsanti"
+  "type-blindButtons": "Tenda controllata da pulsanti",
+  "Select for \"%s\"": "Seleziona per \"%s\"",
+  "Select predefined icon": ""
 }
