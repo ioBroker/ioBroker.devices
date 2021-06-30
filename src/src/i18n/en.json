@@ -174,5 +174,8 @@
   "Edit state %s": "Edit state %s",
   "type-blindButtons": "Blind controlled by buttons",
   "Select for \"%s\"": "Select for \"%s\"",
-  "Select predefined icon": "Select predefined icon"
+  "Select predefined icon": "Select predefined icon",
+  "type-chart": "Chart",
+  "Create new folder in root": "Create new folder in root directory",
+  "You can drag & drop device": "You can drag & drop device"
 }

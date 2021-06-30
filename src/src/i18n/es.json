@@ -174,5 +174,8 @@
   "Edit state %s": "Editar estado %s",
   "type-blindButtons": "Persiana controlada por botones",
   "Select for \"%s\"": "Seleccionar para \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "Gráfico",
+  "Create new folder in root": "Crear nueva carpeta en el directorio raíz",
+  "You can drag & drop device": "Puede arrastrar y soltar dispositivo"
 }

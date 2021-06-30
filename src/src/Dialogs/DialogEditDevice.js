@@ -396,7 +396,8 @@ class DialogEditDevice extends React.Component {
             name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
-        const indicatorsAvailable = !!this.props.channelInfo.states.filter(item => item.indicator).length
+        const indicatorsAvailable = !!this.props.channelInfo.states.filter(item => item.indicator).length;
+        const indicatorsVisible   = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.') || (indicatorsAvailable && !!this.props.channelInfo.states.filter(item => item.indicator && item.id).length);
         const extendedAvailable = indicatorsAvailable && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
 
         this.state = {
@@ -411,6 +412,7 @@ class DialogEditDevice extends React.Component {
             selectIdPrefix: '',
             editFxFor: '',
             newChannelId: '',
+            indicatorsVisible,
             newChannelError: false,
             startTheProcess: false,
             disabledButton: false,
@@ -662,7 +664,7 @@ class DialogEditDevice extends React.Component {
         return <div className={classes.header}>
             <div className={clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
             <div className={classes.menuWrapperIcons}>
-                {this.state.indicatorsAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
+                {this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
                         style={{ color: this.state.showIndicators ? '#4DABF5' : null, border: checkIndicators && !this.state.showIndicators ? '1px solid #4DABF5' : null }}
                         onClick={() => {
@@ -1125,13 +1127,13 @@ class DialogEditDevice extends React.Component {
         return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
             {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
-            {this.state.showIndicators && this.state.indicatorsAvailable &&
+            {this.state.indicatorsVisible && this.state.showIndicators && this.state.indicatorsAvailable &&
                 <div className={this.props.classes.wrapperHeaderIndicators}>
                     <div className={this.props.classes.headerIndicatorsLine} />
                     <div className={this.props.classes.headerIndicatorsName}>{I18n.t('Indicators')}</div>
                     <div className={this.props.classes.headerIndicatorsLine} />
                 </div>}
-            {this.state.showIndicators && this.state.indicatorsAvailable &&
+            {this.state.indicatorsVisible && this.state.showIndicators && this.state.indicatorsAvailable &&
                 this.props.channelInfo.states
                     .filter(item => item.indicator && item.defaultRole)
                     .map(item => this.renderVariable(item, 'indicators'))}

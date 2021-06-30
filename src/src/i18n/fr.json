@@ -174,5 +174,8 @@
   "Edit state %s": "Modifier l'état %s",
   "type-blindButtons": "Store contrôlé par des boutons",
   "Select for \"%s\"": "Sélectionnez pour \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "Graphique",
+  "Create new folder in root": "Créer un nouveau dossier dans le répertoire racine",
+  "You can drag & drop device": "Vous pouvez glisser-déposer l'appareil"
 }

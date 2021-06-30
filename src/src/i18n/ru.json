@@ -174,5 +174,8 @@
   "Edit state %s": "Изменить состояние %s",
   "type-blindButtons": "Жалюзи управляются кнопками",
   "Select for \"%s\"": "Выбрать для \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "График",
+  "Create new folder in root": "Создать новую папку в корневом каталоге",
+  "You can drag & drop device": "Вы можете перетащить устройство"
 }

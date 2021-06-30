@@ -174,5 +174,8 @@
   "Edit state %s": "Zustand %s bearbeiten",
   "type-blindButtons": "Jalousie über Tasten gesteuert",
   "Select for \"%s\"": "Auswählen für \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "Diagramm",
+  "Create new folder in root": "Neuen Ordner im Stammverzeichnis erstellen",
+  "You can drag & drop device": "Sie können das Gerät per Drag & Drop verschieben"
 }

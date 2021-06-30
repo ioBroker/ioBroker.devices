@@ -854,7 +854,9 @@ class ListDevices extends Component {
     }
 
     disabledButtons = () =>{
-        return this.state.selected.startsWith('alias.0.automatically_detected') ||  this.state.selected.startsWith('alias.0.linked_devices') || !this.state.selected.startsWith('alias.0')
+        return this.state.selected.startsWith('alias.0.automatically_detected') ||
+            this.state.selected.startsWith('alias.0.linked_devices') ||
+            !this.state.selected.startsWith('alias.0');
     }
 
     onObjectChanged = (id, obj) => {
@@ -1054,12 +1056,11 @@ class ListDevices extends Component {
         devicesArr = devicesArr.filter(({ channelId }) => !channelId.startsWith('alias.0') && !channelId.startsWith('linkeddevices.0'));
 
         devicesArr.forEach(device => {
-            let parts = device.channelId.split('.');
-            const name = `${parts[0]}.${parts[1]}`;
-            parts = `${parts[0]}`;
-            if (!stateIds[`${this.prefix}.automatically_detected.${parts}`]) {
-                const instances = this.instances.find(inst => inst._id.replace('system.adapter.', '') === parts);
-                stateIds[`${this.prefix}.automatically_detected.${parts}`] = {
+            let [adapter, instance] = device.channelId.split('.');
+            const name = adapter + '-' + instance;
+            if (!stateIds[`${this.prefix}.automatically_detected.${name}`]) {
+                const instances = this.instances.find(inst => inst._id.replace('system.adapter.', '') === adapter);
+                stateIds[`${this.prefix}.automatically_detected.${name}`] = {
                     common: {
                         name,
                         nondeletable: true,
@@ -1075,9 +1076,9 @@ class ListDevices extends Component {
         });
 
         devicesArr.forEach(device => {
-            let parts = device.channelId.split('.');
-            parts = `${parts[0]}`;
-            stateIds[`${this.prefix}.automatically_detected.${parts}.${device.channelId.replace(/[\s.,%]/g, '')}`] = {
+            let [adapter, instance] = device.channelId.split('.');
+            const name = adapter + '-' + instance;
+            stateIds[`${this.prefix}.automatically_detected.${name}.${device.channelId.replace(/[\s.,%]/g, '')}`] = {
                 common: {
                     name: Utils.getObjectName(objects, device.channelId, { language }),
                     nondeletable: true,
@@ -1555,9 +1556,11 @@ class ListDevices extends Component {
                                 <IconFolderOpened onClick={() => this.toggleExpanded(item.id)} style={iconStyle} /> :
                                 <IconFolder onClick={() => this.toggleExpanded(item.id)} style={iconStyle} />)
                             :
-                            <div style={{ background }} className={this.props.classes.tableIcon}>
-                                <TypeIcon src={item.icon} style={{ color }} className={this.props.classes.tableIconImg} type={item.role} />
-                            </div>}
+                            <Tooltip title={I18n.t('You can drag & drop device')}>
+                                <div style={{ background }} className={this.props.classes.tableIcon}>
+                                    <TypeIcon src={item.icon} style={{ color }} className={this.props.classes.tableIconImg} type={item.role} />
+                                </div>
+                            </Tooltip>}
                         {item.type === 'folder' && item.icon &&
                             <div className={clsx(isExpanded && this.props.classes.iconOpen)} onClick={() => this.toggleExpanded(item.id)}>
                                 <Icon className={this.props.classes.iconCommon} onClick={() => this.toggleExpanded(item.id)} alt={item.type} src={item.icon} />
@@ -1639,26 +1642,28 @@ class ListDevices extends Component {
                         <div className={classes.emptyBlock} />
                         <div className={classes.emptyBlock} />
                     </div>}
-                {!item.noEdit && item.id !== "alias.0.automatically_detected" && item.id !== "alias.0.linked_devices" && <div className={classes.wrapperButton}>
-                    <Tooltip title={I18n.t('Edit folder')}>
-                        <IconButton
-                            size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
-                            onClick={_ => this.setState({ showEditFolder: item.obj })}>
-                            <IconEdit />
-                        </IconButton>
-                    </Tooltip>
-                    {!countSpan ?
-                        <Tooltip title={I18n.t('Delete folder')}>
+                {!item.noEdit && item.id !== 'alias.0.automatically_detected' && item.id !== 'alias.0.linked_devices' &&
+                    <div className={classes.wrapperButton}>
+                        <Tooltip title={I18n.t('Edit folder')}>
                             <IconButton
                                 size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
-                                onClick={e =>
-                                    deleteFolderAndDeviceCallBack(result =>
-                                        result && this.props.socket.delObjects(item.id, true), false)}
-                            >
-                                <IconDelete />
+                                onClick={_ => this.setState({ showEditFolder: item.obj })}>
+                                <IconEdit />
                             </IconButton>
-                        </Tooltip> : <div className={classes.emptyBlock} />}
-                </div>}
+                        </Tooltip>
+                        {!countSpan ?
+                            <Tooltip title={I18n.t('Delete folder')}>
+                                <IconButton
+                                    size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                    onClick={e =>
+                                        deleteFolderAndDeviceCallBack(result =>
+                                            result && this.props.socket.delObjects(item.id, true), false)}
+                                >
+                                    <IconDelete />
+                                </IconButton>
+                            </Tooltip> : <div className={classes.emptyBlock} />}
+                    </div>
+                }
             </TableCell>}
         </WrapperRow>;
 
@@ -1951,6 +1956,9 @@ class ListDevices extends Component {
         const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
 
+        const patterns = this.detector.getPatterns();
+        const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
+
         const obj = {
             id: newChannelId,
             obj: {
@@ -1958,7 +1966,7 @@ class ListDevices extends Component {
                     name: channelObj.common.name,
                     color,
                     desc: channelObj.common.desc,
-                    role: type,
+                    role: role?.defaultChannelRole || type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 native: {},
@@ -2435,11 +2443,15 @@ class ListDevices extends Component {
         if (options.states.length) {
             states = options.states;
         }
+
+        // try to find channelRole
+        const role = states.find(item => item.defaultChannelRole);
+
         const obj = {
             _id: options.id,
             common: {
                 name: { [I18n.getLanguage()]: options.name },
-                role: options.type,
+                role: role?.defaultChannelRole || options.type,
                 icon: options.icon,
                 color: options.color,
             },
@@ -2523,6 +2535,7 @@ class ListDevices extends Component {
             return <DialogNew
                 themeType={this.props.themeType}
                 theme={this.props.theme}
+                detector={this.detector}
                 objects={this.objects}
                 socket={this.props.socket}
                 processTasks={this.processTasks}
@@ -2564,9 +2577,10 @@ class ListDevices extends Component {
                 deleteDevice={async (index, devices) => await this.deleteDevice(index, devices)}
                 objects={this.objects}
                 socket={this.props.socket}
+                detector={this.detector}
                 devices={this.state.devices}
                 data={this.state.showEditFolder}
-                selected={this.state.selected}
+                selected={this.disabledButtons() ? undefined : this.state.selected}
                 newFolder={this.state.newFolder}
                 onClose={() =>
                     this.setState({ showEditFolder: undefined, newFolder: false })}
@@ -2659,6 +2673,7 @@ class ListDevices extends Component {
         } else {
             const classes = this.props.classes;
             const small = this.props.width === 'xs' || this.props.width === 'sm';
+            const disabledButtons = this.disabledButtons();
 
             return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
                 <div className={classes.tab}>
@@ -2667,7 +2682,7 @@ class ListDevices extends Component {
                         <Tooltip title={I18n.t('Create new device with Aliases')}>
                             <div>
                                 <IconButton
-                                        disabled={this.disabledButtons()}
+                                        disabled={disabledButtons}
                                         onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
                                     <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
                                 </IconButton>
@@ -2690,15 +2705,12 @@ class ListDevices extends Component {
                                 <IconInfo />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title={I18n.t('Create new folder')}>
-                            <div>
-                                <IconButton
-                                    color="primary"
-                                    disabled={this.disabledButtons()}
-                                    onClick={_ => this.setState({ newFolder: true })}>
-                                    <CreateNewFolderIcon />
-                                </IconButton>
-                            </div>
+                        <Tooltip title={disabledButtons ? I18n.t('Create new folder in root') : I18n.t('Create new folder')}>
+                            <IconButton
+                                color={disabledButtons ? 'secondary' : 'primary'}
+                                onClick={_ => this.setState({ newFolder: true })}>
+                                <CreateNewFolderIcon />
+                            </IconButton>
                         </Tooltip>
                         <Tooltip title={I18n.t('Expand all nodes')}>
                             <IconButton

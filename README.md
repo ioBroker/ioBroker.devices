@@ -30,6 +30,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### 1.0.7 (2021-06-30)
+* (bluefox) Corrected creation the folders
+
 ### 1.0.6 (2021-06-27)
 * (bluefox) Implemented the filters
 

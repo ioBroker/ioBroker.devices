@@ -174,5 +174,8 @@
   "Edit state %s": "Edytuj stan %s",
   "type-blindButtons": "Roleta sterowana przyciskami",
   "Select for \"%s\"": "Wybierz dla „%s”",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "Wykres",
+  "Create new folder in root": "Utwórz nowy folder w katalogu głównym",
+  "You can drag & drop device": "Możesz przeciągnąć i upuścić urządzenie"
 }

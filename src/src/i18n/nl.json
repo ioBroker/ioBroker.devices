@@ -174,5 +174,8 @@
   "Edit state %s": "Bewerk staat %s",
   "type-blindButtons": "Jaloezie bestuurd door knoppen",
   "Select for \"%s\"": "Selecteer voor \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "grafiek",
+  "Create new folder in root": "Maak een nieuwe map in de hoofdmap",
+  "You can drag & drop device": "U kunt het apparaat slepen en neerzetten"
 }

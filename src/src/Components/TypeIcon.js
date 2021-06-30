@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import {Types} from 'iobroker.type-detector';
 
+import {AiOutlineLineChart as TypeIconChart} from 'react-icons/ai';
 import TypeIconBlinds from '../icons/Jalousie';
 import TypeIconButton from '../icons/PushButton';
 import {GoDeviceCameraVideo as TypeIconCamera} from 'react-icons/go';
@@ -38,6 +39,7 @@ import {MdWarning as TypeIconWarning} from 'react-icons/md';
 import {FaFan as TypeIconAC} from 'react-icons/fa';
 import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
 import TypeIconVacuumCleaner from './icons/Cleaner';
+
 import IconAdapter from '@iobroker/adapter-react/Components/Icon';
 
 const TYPE_ICONS = {
@@ -46,12 +48,15 @@ const TYPE_ICONS = {
     [Types.button]: TypeIconButton,
     [Types.buttonSensor]: TypeIconButtonSensor,
     [Types.camera]: TypeIconCamera,
+    [Types.chart]: TypeIconChart,
     [Types.url]: TypeIconURL,
     [Types.image]: TypeIconImage,
     [Types.dimmer]: TypeIconDimmer,
     [Types.door]: TypeIconDoor,
     [Types.fireAlarm]: TypeIconFireAlarm,
+    'sensor.alarm.fire': TypeIconFireAlarm,
     [Types.floodAlarm]: TypeIconFloodAlarm,
+    'sensor.alarm.flood': TypeIconFireAlarm,
     [Types.gate]: TypeIconGate,
     [Types.humidity]: TypeIconHumidity,
     [Types.info]: TypeIconInfo,

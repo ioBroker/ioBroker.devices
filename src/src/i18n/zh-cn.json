@@ -174,5 +174,8 @@
   "Edit state %s": "编辑状态 %s",
   "type-blindButtons": "由按钮控制的百叶窗",
   "Select for \"%s\"": "选择“%s”",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "图表",
+  "Create new folder in root": "在根目录新建文件夹",
+  "You can drag & drop device": "您可以拖放设备"
 }

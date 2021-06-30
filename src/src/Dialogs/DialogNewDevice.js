@@ -128,7 +128,9 @@ const styles = theme => ({
 });
 
 const UNSUPPORTED_TYPES = [
-    Types.unknown
+    Types.unknown,
+    Types.instance,
+    Types.chart,
 ];
 
 function getParentId(id) {
@@ -186,7 +188,7 @@ class DialogNewDevice extends React.Component {
 
         this.typesWords = {};
         Object.keys(Types)
-            .filter(id => id !== 'instance' && !UNSUPPORTED_TYPES.includes(id))
+            .filter(id => !UNSUPPORTED_TYPES.includes(id))
             .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
 
         // sort types by ABC in the current language
@@ -326,6 +328,9 @@ class DialogNewDevice extends React.Component {
         const { functions, rooms, icon, states, color, type } = this.props.copyDevice;
         const tasks = [];
 
+        const patterns = this.props.detector.getPatterns();
+        const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
+
         tasks.push({
             id: newChannelId,
             obj: {
@@ -333,7 +338,7 @@ class DialogNewDevice extends React.Component {
                     name: channelObj.common.name,
                     color: color,
                     desc: channelObj.common.desc,
-                    role: type,
+                    role: role?.defaultChannelRole || type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 type: 'channel',
@@ -470,7 +475,7 @@ class DialogNewDevice extends React.Component {
                         margin="normal"
                     />
                     {!this.props.copyDevice && <FormControl className={classes.type}>
-                        <InputLabel htmlFor="age-helper">{I18n.t('Device type')}</InputLabel>
+                        <InputLabel>{I18n.t('Device type')}</InputLabel>
                         <Select
                             value={this.state.type}
                             onChange={e => {
@@ -523,6 +528,7 @@ DialogNewDevice.propTypes = {
     themeType: PropTypes.string,
     enumIDs: PropTypes.array,
     socket: PropTypes.object,
+    detector: PropTypes.object,
 };
 
 export default withStyles(styles)(DialogNewDevice);

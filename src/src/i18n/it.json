@@ -174,5 +174,8 @@
   "Edit state %s": "Modifica stato %s",
   "type-blindButtons": "Tenda controllata da pulsanti",
   "Select for \"%s\"": "Seleziona per \"%s\"",
-  "Select predefined icon": ""
+  "Select predefined icon": "",
+  "type-chart": "Grafico",
+  "Create new folder in root": "Crea una nuova cartella nella directory principale",
+  "You can drag & drop device": "Puoi trascinare e rilasciare il dispositivo"
 }

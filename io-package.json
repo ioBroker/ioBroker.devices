@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.6",
+        "version": "1.0.7",
         "news": {
+            "1.0.7": {
+                "en": "Corrected creation the folders",
+                "de": "Erstellung der Ordner korrigiert",
+                "ru": "Исправлено создание папок",
+                "pt": "Criação corrigida das pastas",
+                "nl": "Aanmaak van mappen gecorrigeerd",
+                "fr": "Correction de la création des dossiers",
+                "it": "Corretta la creazione delle cartelle",
+                "es": "Creación corregida de carpetas.",
+                "pl": "Poprawiono tworzenie folderów",
+                "zh-cn": "更正了文件夹的创建"
+            },
             "1.0.6": {
                 "en": "Implemented the filters",
                 "de": "Die Filter implementiert",
@@ -230,18 +242,6 @@
                 "es": "Backend fue eliminado",
                 "pl": "Backend został usunięty",
                 "zh-cn": "后端已删除"
-            },
-            "0.1.8": {
-                "en": "Allowed the clone of devices",
-                "de": "Erlaubt das Klonen von Geräten",
-                "ru": "Разрешен клон устройств",
-                "pt": "Permitido o clone de dispositivos",
-                "nl": "Toegestaan met het klonen van apparaten",
-                "fr": "Permis le clone de périphériques",
-                "it": "Consentito il clone dei dispositivi",
-                "es": "Permitido el clon de dispositivos",
-                "pl": "Dozwolony klon urządzeń",
-                "zh-cn": "允许克隆设备"
             }
         },
         "title": "Manage devices",

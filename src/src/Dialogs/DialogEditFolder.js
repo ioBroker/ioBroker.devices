@@ -64,7 +64,7 @@ const emptyObj = {
     type: 'folder'
 };
 
-const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevice, processTasks, selected, newFolder }) => {
+const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevice, processTasks, selected, newFolder, detector }) => {
     const classes = useStyles();
     const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
     const [arrayObjects, setArrayObjects] = useState([]);
@@ -152,6 +152,9 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
         const { functions, rooms, icon, states, color, type } = copyDevice;
         const tasks = [];
 
+        const patterns = detector.getPatterns();
+        const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
+
         tasks.push({
             id: newChannelId,
             obj: {
@@ -159,7 +162,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                     name: channelObj.common.name,
                     color: color,
                     desc: channelObj.common.desc,
-                    role: type,
+                    role: role?.defaultChannelRole || type,
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 type: 'channel',
