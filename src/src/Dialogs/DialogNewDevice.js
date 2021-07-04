@@ -484,14 +484,20 @@ class DialogNewDevice extends React.Component {
                             }}
                         >
                             {this.types
-                                .filter(id => !UNSUPPORTED_TYPES.includes(id))
+                                .filter(id => !UNSUPPORTED_TYPES.includes(id) && TYPE_OPTIONS[id])
                                 .map(typeId => <MenuItem key={Types[typeId]} value={Types[typeId]}>
                                     <div className={classes.itemChildrenWrapper}>
                                         <div>
                                             <TypeIcon className={this.props.classes.selectIcon} type={Types[typeId]} style={{ color: this.props.themeType === 'dark' ? '#FFFFFF' : '#000' }} />
                                             <span className={this.props.classes.selectText}>{this.typesWords[typeId]}</span>
                                         </div>
-                                        <div className={classes.iconWrapper}>{Object.keys(TYPE_OPTIONS[typeId]).map(key => TYPE_OPTIONS[typeId][key] ? <Icon className={classes.iconStyle} src={ICONS_TYPE[key]} /> : <div key={key} className={classes.emptyIcon} />)}</div>
+                                        <div className={classes.iconWrapper}>{
+                                            Object.keys(TYPE_OPTIONS[typeId])
+                                                .map(key => TYPE_OPTIONS[typeId][key] ?
+                                                    <Icon className={classes.iconStyle} src={ICONS_TYPE[key]} /> :
+                                                    <div key={key} className={classes.emptyIcon} />
+                                                )}
+                                        </div>
                                     </div>
                                 </MenuItem>)}
                         </Select>

@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.7",
+        "version": "1.0.8",
         "news": {
+            "1.0.8": {
+                "en": "Corrected creation of the devices",
+                "de": "Anlegen der Geräte korrigiert",
+                "ru": "Исправлено создание устройств.",
+                "pt": "Criação corrigida dos dispositivos",
+                "nl": "Gecorrigeerde aanmaak van de apparaten",
+                "fr": "Création corrigée des appareils",
+                "it": "Corretta creazione dei dispositivi",
+                "es": "Creación corregida de los dispositivos.",
+                "pl": "Poprawiono tworzenie urządzeń",
+                "zh-cn": "更正了设备的创建"
+            },
             "1.0.7": {
                 "en": "Corrected creation the folders",
                 "de": "Erstellung der Ordner korrigiert",
@@ -230,18 +242,6 @@
                 "es": "compatibilidad con Admin > 4.0.0 agregado",
                 "pl": "dodano kompatybilność z Admin > 4.0.0",
                 "zh-cn": "与Admin > 4.0.0的兼容性已添加"
-            },
-            "0.2.0": {
-                "en": "Backend was removed",
-                "de": "Backend wurde entfernt",
-                "ru": "Бэкэнд был удален",
-                "pt": "O back-end foi removido",
-                "nl": "Backend is verwijderd",
-                "fr": "Le backend a été supprimé",
-                "it": "Il backend è stato rimosso",
-                "es": "Backend fue eliminado",
-                "pl": "Backend został usunięty",
-                "zh-cn": "后端已删除"
             }
         },
         "title": "Manage devices",
