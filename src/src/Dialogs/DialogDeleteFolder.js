@@ -8,7 +8,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import { Checkbox, DialogTitle, FormControlLabel, makeStyles, ThemeProvider } from '@material-ui/core';
 
 import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import IconDelete from '@material-ui/icons/Delete';
 
 import I18n from '@iobroker/adapter-react/i18n';
 import theme from '@iobroker/adapter-react/Theme';
@@ -83,7 +83,7 @@ const DialogDeleteFolder = ({ cb, device }) => {
                         }
                         cb(true);
                     }}
-                    startIcon={<IconCheck />}
+                    startIcon={<IconDelete />}
                     color="primary">
                     {I18n.t('Delete')}
                 </Button>
