@@ -284,6 +284,7 @@
         "platform": "Javascript/Node.js",
         "connectionType": "none",
         "dataSource": "none",
+        "tier": 3,
         "icon": "devices.png",
         "enabled": true,
         "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
