@@ -419,8 +419,8 @@ const styles = theme => ({
         color: theme.palette.type === 'dark' ? '#FFF' : '#000',
     },
     tableIcon: {
-        width: 32,
-        height: 32,
+        width: 24,
+        height: 24,
         display: 'flex',
         padding: 2,
         background: theme.palette.type === 'dark' ? '#3b3b3b' : '#e0e0e0',
@@ -522,7 +522,7 @@ const styles = theme => ({
         justifyContent: 'flex-end'
     },
     emptyBlock: {
-        width: 48
+        width: 24
     },
     displayFlex: {
         display: 'flex',
@@ -538,7 +538,7 @@ const styles = theme => ({
     },
     iconStyle: {
         position: 'relative',
-        minWidth: 36
+        minWidth: 24
     },
     fontStyle: {
         // maxWidth: 160,
@@ -689,6 +689,12 @@ const styles = theme => ({
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         padding: '0 16px 0 16px'
+    },
+    cell: {
+        padding: '0 24px 0 16px',
+    },
+    cellMobile: {
+        padding: '6px 24px 6px 16px',
     }
 });
 
@@ -1339,12 +1345,12 @@ class ListDevices extends Component {
                 <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
             </div>
             <div className={this.props.classes.iconWrapper}>
-                {Object.keys(TYPE_OPTIONS[type])
+                {TYPE_OPTIONS[type] ? Object.keys(TYPE_OPTIONS[type])
                     .map(key => TYPE_OPTIONS[type][key] ?
                         <Icon key={key} className={this.props.classes.iconStyleType} src={ICONS_TYPE[key]} title={I18n.t('Supported by "%s"', key)} /> :
                         <div key={key} className={this.props.classes.emptyIcon} />
                     )
-                }
+                : null}
             </div>
         </div>;
     }
@@ -1545,9 +1551,10 @@ class ListDevices extends Component {
             <TableCell
                 id={'td_' + item.id}
                 colSpan={3}
+                size="small"
                 style={Object.assign({ maxWidth: 300 }, style)}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
-                className={item.type === 'folder' ? this.props.classes.folder : this.props.classes.element}
+                className={clsx(this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile, item.type === 'folder' ? this.props.classes.folder : this.props.classes.element)}
             >
                 <div className={classes.displayFlex}>
                     <ListItemIcon className={this.props.classes.iconStyle}>
@@ -1585,27 +1592,29 @@ class ListDevices extends Component {
                     </Tooltip>
                 </div>
             </TableCell>
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell size="small" className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>
                 {this.renderEnumCell(device.functionsNames, device.functions, funcEnums, index)}
             </TableCell> : null}
 
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell size="small" className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>
                 {this.renderEnumCell(device.roomsNames, device.rooms, roomsEnums, index)}
             </TableCell> : null}
-            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell>{this.renderTypeCell(device.type)}</TableCell> : null}
-            {device && this.state.windowWidth >= WIDTHS[0] ? <TableCell>{device.usedStates}</TableCell> : null}
-            {device && <TableCell align="right" className={classes.buttonsCell}>
+            {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell size="small" className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>{this.renderTypeCell(device.type)}</TableCell> : null}
+            {device && this.state.windowWidth >= WIDTHS[0] ? <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>{device.usedStates}</TableCell> : null}
+            {device && <TableCell align="right" size="small" className={clsx(this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile, classes.buttonsCell)}>
                 <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Copy device')}>
                         <IconButton
-                            size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                            //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                            size="small"
                             onClick={e => this.onCopy(item.id, e)}>
                             <FileCopyIcon />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title={I18n.t('Edit states')}>
                         <IconButton
-                            size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                            //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                            size="small"
                             onClick={e => this.onEdit(item.id, e)}>
                             <IconEdit />
                         </IconButton>
@@ -1613,7 +1622,8 @@ class ListDevices extends Component {
                     {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
                         <Tooltip title={I18n.t('Delete device with all states')}>
                             <IconButton
-                                size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                               //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                size="small"
                                 onClick={e =>
                                     deleteFolderAndDeviceCallBack(result =>
                                         result && this.deleteDevice(index), true)}
@@ -1624,16 +1634,17 @@ class ListDevices extends Component {
 
                 </div>
             </TableCell>}
-            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
-            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
-            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell colSpan={1} />}
-            {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell colSpan={1} >{countSpan}</TableCell>}
-            {!device && <TableCell align="right" className={classes.buttonsCell}>
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} />}
+            {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} >{countSpan}</TableCell>}
+            {!device && <TableCell size="small" align="right" className={clsx(classes.buttonsCell, this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile)}>
                 {item.importer &&
                     <div className={classes.wrapperButton}>
                         <Tooltip title={I18n.t('Importer')}>
                             <IconButton
-                                size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                size="small"
+                                //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
                                 onClick={() => this.setState({ showImporterDialog: item })}
                             >
                                 <FileCopyIcon />
@@ -1646,7 +1657,8 @@ class ListDevices extends Component {
                     <div className={classes.wrapperButton}>
                         <Tooltip title={I18n.t('Edit folder')}>
                             <IconButton
-                                size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                size="small"
+                                //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
                                 onClick={_ => this.setState({ showEditFolder: item.obj })}>
                                 <IconEdit />
                             </IconButton>
@@ -1654,7 +1666,8 @@ class ListDevices extends Component {
                         {!countSpan ?
                             <Tooltip title={I18n.t('Delete folder')}>
                                 <IconButton
-                                    size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                    //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                    size="small"
                                     onClick={e =>
                                         deleteFolderAndDeviceCallBack(result =>
                                             result && this.props.socket.delObjects(item.id, true), false)}

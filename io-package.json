@@ -1,8 +1,20 @@
 {
     "common": {
         "name": "devices",
-        "version": "1.0.8",
+        "version": "1.0.9",
         "news": {
+            "1.0.9": {
+                "en": "Implement the narrow rows",
+                "de": "Implementieren Sie die schmalen Reihen",
+                "ru": "Реализуйте узкие ряды",
+                "pt": "Implementar as linhas estreitas",
+                "nl": "Implementeer de smalle rijen",
+                "fr": "Implémenter les rangées étroites",
+                "it": "Implementa le file strette",
+                "es": "Implementar las filas estrechas",
+                "pl": "Zaimplementuj wąskie rzędy",
+                "zh-cn": "实施窄行"
+            },
             "1.0.8": {
                 "en": "Corrected creation of the devices",
                 "de": "Anlegen der Geräte korrigiert",
@@ -230,18 +242,6 @@
                 "es": "uso con todo tipo de puertos de administración y proxies inversos optimizados",
                 "pl": "użycie z wszelkiego rodzaju portami administracyjnymi i zoptymalizowanymi zwrotnymi serwerami proxy",
                 "zh-cn": "各种管理端口和反向代理的使用均经过优化"
-            },
-            "0.3.1": {
-                "en": "compatibility with Admin >4.0.0 added",
-                "de": "Kompatibilität mit Admin > 4.0.0 hinzugefügt",
-                "ru": "добавлена совместимость с Admin > 4.0.0",
-                "pt": "compatibilidade com Admin > 4.0.0 adicionada",
-                "nl": "compatibiliteit met Admin > 4.0.0 toegevoegd",
-                "fr": "compatibilité avec Admin > 4.0.0 ajoutée",
-                "it": "compatibilità con Admin > 4.0.0 aggiunto",
-                "es": "compatibilidad con Admin > 4.0.0 agregado",
-                "pl": "dodano kompatybilność z Admin > 4.0.0",
-                "zh-cn": "与Admin > 4.0.0的兼容性已添加"
             }
         },
         "title": "Manage devices",
