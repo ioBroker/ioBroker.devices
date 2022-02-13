@@ -28,7 +28,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 1.0.10 (2022-02-13)
 * (bluefox) Corrected edit of folders
 * (bluefox) Updated some libraries
 
@@ -57,7 +57,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 * (bluefox) Added new devices
 
 ### 0.3.16 (2021-03-11)
-* (bluefox) Fixed the error for IDs with the strange characters 
+* (bluefox) Fixed the error for IDs with the strange characters
 
 ### 0.3.15 (2020-12-13)
 * (bluefox) Updated the select ID dialog

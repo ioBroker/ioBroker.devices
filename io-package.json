@@ -1,311 +1,155 @@
 {
-    "common": {
-        "name": "devices",
-        "version": "1.0.9",
-        "news": {
-            "1.0.9": {
-                "en": "Implement the narrow rows",
-                "de": "Implementieren Sie die schmalen Reihen",
-                "ru": "Реализуйте узкие ряды",
-                "pt": "Implementar as linhas estreitas",
-                "nl": "Implementeer de smalle rijen",
-                "fr": "Implémenter les rangées étroites",
-                "it": "Implementa le file strette",
-                "es": "Implementar las filas estrechas",
-                "pl": "Zaimplementuj wąskie rzędy",
-                "zh-cn": "实施窄行"
-            },
-            "1.0.8": {
-                "en": "Corrected creation of the devices",
-                "de": "Anlegen der Geräte korrigiert",
-                "ru": "Исправлено создание устройств.",
-                "pt": "Criação corrigida dos dispositivos",
-                "nl": "Gecorrigeerde aanmaak van de apparaten",
-                "fr": "Création corrigée des appareils",
-                "it": "Corretta creazione dei dispositivi",
-                "es": "Creación corregida de los dispositivos.",
-                "pl": "Poprawiono tworzenie urządzeń",
-                "zh-cn": "更正了设备的创建"
-            },
-            "1.0.7": {
-                "en": "Corrected creation the folders",
-                "de": "Erstellung der Ordner korrigiert",
-                "ru": "Исправлено создание папок",
-                "pt": "Criação corrigida das pastas",
-                "nl": "Aanmaak van mappen gecorrigeerd",
-                "fr": "Correction de la création des dossiers",
-                "it": "Corretta la creazione delle cartelle",
-                "es": "Creación corregida de carpetas.",
-                "pl": "Poprawiono tworzenie folderów",
-                "zh-cn": "更正了文件夹的创建"
-            },
-            "1.0.6": {
-                "en": "Implemented the filters",
-                "de": "Die Filter implementiert",
-                "ru": "Реализованы фильтры",
-                "pt": "Implementou os filtros",
-                "nl": "De filters geïmplementeerd",
-                "fr": "Implémenter les filtres",
-                "it": "Implementati i filtri",
-                "es": "Implementado los filtros",
-                "pl": "Wdrożone filtry",
-                "zh-cn": "实施过滤器"
-            },
-            "1.0.5": {
-                "en": "Implemented the edit of `states` parameter",
-                "de": "Die Bearbeitung des Parameters `states` implementiert",
-                "ru": "Реализовано редактирование параметра `States`",
-                "pt": "Implementado a edição do parâmetro `states`",
-                "nl": "De bewerking van de parameter 'states' geïmplementeerd",
-                "fr": "Implémentation de la modification du paramètre `states`",
-                "it": "Implementata la modifica del parametro `states`",
-                "es": "Se implementó la edición del parámetro `states`",
-                "pl": "Zaimplementowano edycję parametru `states`",
-                "zh-cn": "实现了`states`参数的编辑"
-            },
-            "1.0.4": {
-                "en": "Fixed some GUI errors",
-                "de": "Einige GUI-Fehler behoben",
-                "ru": "Исправлены некоторые ошибки графического интерфейса.",
-                "pt": "Corrigidos alguns erros de GUI",
-                "nl": "Enkele GUI-fouten opgelost",
-                "fr": "Correction de quelques erreurs d'interface graphique",
-                "it": "Risolti alcuni errori della GUI",
-                "es": "Se corrigieron algunos errores de GUI",
-                "pl": "Naprawiono niektóre błędy GUI",
-                "zh-cn": "修复了一些 GUI 错误"
-            },
-            "1.0.3": {
-                "en": "Fixed some GUI errors",
-                "de": "Einige GUI-Fehler behoben",
-                "ru": "Исправлены некоторые ошибки графического интерфейса.",
-                "pt": "Corrigidos alguns erros de GUI",
-                "nl": "Enkele GUI-fouten opgelost",
-                "fr": "Correction de quelques erreurs d'interface graphique",
-                "it": "Risolti alcuni errori della GUI",
-                "es": "Se corrigieron algunos errores de GUI",
-                "pl": "Naprawiono niektóre błędy GUI",
-                "zh-cn": "修复了一些 GUI 错误"
-            },
-            "1.0.2": {
-                "en": "Fixed some GUI errors",
-                "de": "Einige GUI-Fehler behoben",
-                "ru": "Исправлены некоторые ошибки графического интерфейса.",
-                "pt": "Corrigidos alguns erros de GUI",
-                "nl": "Enkele GUI-fouten opgelost",
-                "fr": "Correction de quelques erreurs d'interface graphique",
-                "it": "Risolti alcuni errori della GUI",
-                "es": "Se corrigieron algunos errores de GUI",
-                "pl": "Naprawiono niektóre błędy GUI",
-                "zh-cn": "修复了一些 GUI 错误"
-            },
-            "1.0.1": {
-                "en": "Added sentry",
-                "de": "Wächter hinzugefügt",
-                "ru": "Добавлен часовой",
-                "pt": "Adicionado sentinela",
-                "nl": "schildwacht toegevoegd Added",
-                "fr": "Sentinelle ajoutée",
-                "it": "sentinella aggiunta",
-                "es": "Centinela agregado",
-                "pl": "Dodano wartownik",
-                "zh-cn": "添加哨兵"
-            },
-            "1.0.0": {
-                "en": "Added new devices",
-                "de": "Neue Geräte hinzugefügt",
-                "ru": "Добавлены новые устройства",
-                "pt": "Novos dispositivos adicionados",
-                "nl": "Nieuwe apparaten toegevoegd",
-                "fr": "Ajout de nouveaux appareils",
-                "it": "Aggiunti nuovi dispositivi",
-                "es": "Nuevos dispositivos agregados",
-                "pl": "Dodano nowe urządzenia",
-                "zh-cn": "添加了新设备"
-            },
-            "0.3.16": {
-                "en": "Fixed the error for IDs with the strange characters",
-                "de": "Der Fehler für IDs mit den seltsamen Zeichen wurde behoben",
-                "ru": "Исправлена ошибка идентификаторов со странными символами.",
-                "pt": "Corrigido o erro de IDs com caracteres estranhos",
-                "nl": "De fout verholpen voor ID's met de vreemde tekens",
-                "fr": "Correction de l'erreur pour les identifiants avec les caractères étranges",
-                "it": "Risolto l'errore per gli ID con i caratteri strani",
-                "es": "Se corrigió el error de las identificaciones con caracteres extraños.",
-                "pl": "Naprawiono błąd identyfikatorów z dziwnymi znakami",
-                "zh-cn": "修复了带有奇怪字符的ID的错误"
-            },
-            "0.3.15": {
-                "en": "Updated the select ID dialog",
-                "de": "Das Dialogfeld \"ID auswählen\" wurde aktualisiert",
-                "ru": "Обновлен диалог выбора идентификатора.",
-                "pt": "Atualizado a caixa de diálogo de seleção de ID",
-                "nl": "Het dialoogvenster ID selecteren bijgewerkt",
-                "fr": "Mise à jour de la boîte de dialogue de sélection d'ID",
-                "it": "Aggiornata la finestra di dialogo Seleziona ID",
-                "es": "Se actualizó el cuadro de diálogo Seleccionar ID",
-                "pl": "Zaktualizowano okno dialogowe wyboru identyfikatora",
-                "zh-cn": "更新了选择ID对话框"
-            },
-            "0.3.13": {
-                "en": "Fixed errors by optional states",
-                "de": "Fehler durch optionale Zustände behoben",
-                "ru": "Исправлены ошибки по необязательным состояниям",
-                "pt": "Erros corrigidos por estados opcionais",
-                "nl": "Fouten opgelost door optionele statussen",
-                "fr": "Erreurs corrigées par des états optionnels",
-                "it": "Risolti errori da stati opzionali",
-                "es": "Errores corregidos por estados opcionales",
-                "pl": "Naprawiono błędy przez opcjonalne stany",
-                "zh-cn": "通过可选状态修复了错误"
-            },
-            "0.3.12": {
-                "en": "Added the vacuum cleaner",
-                "de": "fügte den Staubsauger hinzu",
-                "ru": "добавил пылесос",
-                "pt": "adicionou o aspirador de pó",
-                "nl": "voegde de stofzuiger toe",
-                "fr": "a ajouté l'aspirateur",
-                "it": "ha aggiunto l'aspirapolvere",
-                "es": "añadió la aspiradora",
-                "pl": "dodał odkurzacz",
-                "zh-cn": "添加了吸尘器"
-            },
-            "0.3.10": {
-                "en": "added the air conditioner",
-                "de": "fügte die Klimaanlage hinzu",
-                "ru": "добавлен кондиционер",
-                "pt": "adicionou o ar condicionado",
-                "nl": "voegde de airconditioner toe",
-                "fr": "ajouté le climatiseur",
-                "it": "aggiunto il condizionatore d'aria",
-                "es": "agregó el aire acondicionado",
-                "pl": "dodał klimatyzator",
-                "zh-cn": "添加了空调"
-            },
-            "0.3.7": {
-                "en": "Themes are used now",
-                "de": "Fügen Sie Sentry für die Fehlerberichterstattung in React hinzu",
-                "ru": "добавить Sentry для отчетов об ошибках в React",
-                "pt": "adicione Sentry para relatório de erros no React",
-                "nl": "voeg Sentry toe voor foutrapportage in React",
-                "fr": "ajouter Sentry pour le rapport d'erreurs dans React",
-                "it": "aggiungi Sentry per la segnalazione degli errori in React",
-                "es": "agregar Centinela para informar de errores en Reaccionar",
-                "pl": "dodaj Sentry do zgłaszania błędów w React",
-                "zh-cn": "在React中添加Sentry进行错误报告"
-            },
-            "0.3.6": {
-                "en": "add Sentry for error reporting in React",
-                "de": "Fügen Sie Sentry für die Fehlerberichterstattung in React hinzu",
-                "ru": "добавить Sentry для отчетов об ошибках в React",
-                "pt": "adicione Sentry para relatório de erros no React",
-                "nl": "voeg Sentry toe voor foutrapportage in React",
-                "fr": "ajouter Sentry pour le rapport d'erreurs dans React",
-                "it": "aggiungi Sentry per la segnalazione degli errori in React",
-                "es": "agregar Centinela para informar de errores en Reaccionar",
-                "pl": "dodaj Sentry do zgłaszania błędów w React",
-                "zh-cn": "在React中添加Sentry进行错误报告"
-            },
-            "0.3.5": {
-                "en": "fixed typo",
-                "de": "Tippfehler behoben",
-                "ru": "исправлена опечатка",
-                "pt": "erro de digitação fixo",
-                "nl": "vaste typefout",
-                "fr": "faute de frappe fixe",
-                "it": "errore di battitura fisso",
-                "es": "error tipográfico fijo",
-                "pl": "poprawiona literówka",
-                "zh-cn": "固定错字"
-            },
-            "0.3.4": {
-                "en": "Fixed error by device creation",
-                "de": "Fehler durch Geräteerstellung behoben",
-                "ru": "Исправлена ошибка при создании устройства",
-                "pt": "Corrigido erro pela criação do dispositivo",
-                "nl": "Vaste fout bij het maken van apparaten",
-                "fr": "Correction d'une erreur lors de la création de l'appareil",
-                "it": "Risolto errore di creazione del dispositivo",
-                "es": "Se corrigió el error por la creación del dispositivo",
-                "pl": "Naprawiono błąd związany z tworzeniem urządzenia",
-                "zh-cn": "通过设备创建修复错误"
-            },
-            "0.3.2": {
-                "en": "usage with all kinds of admin ports and reverse proxies optimized",
-                "de": "Verwendung mit allen Arten von Admin-Ports und Reverse-Proxys optimiert",
-                "ru": "оптимизировано использование всех видов административных портов и обратных прокси",
-                "pt": "uso com todos os tipos de portas administrativas e proxies reversos otimizados",
-                "nl": "gebruik met allerlei beheerpoorten en geoptimaliseerde reverse-proxy's",
-                "fr": "utilisation avec toutes sortes de ports d'administration et proxys inversés optimisés",
-                "it": "ottimizzato l'utilizzo con tutti i tipi di porte di amministrazione e proxy inversi",
-                "es": "uso con todo tipo de puertos de administración y proxies inversos optimizados",
-                "pl": "użycie z wszelkiego rodzaju portami administracyjnymi i zoptymalizowanymi zwrotnymi serwerami proxy",
-                "zh-cn": "各种管理端口和反向代理的使用均经过优化"
-            }
-        },
-        "title": "Manage devices",
-        "titleLang": {
-            "en": "Manage devices",
-            "de": "Geräte verwalten",
-            "ru": "Управление устройствами",
-            "pt": "Gerenciar dispositivos",
-            "nl": "Beheer apparaten",
-            "fr": "Gérer les appareils",
-            "it": "Gestisci i dispositivi",
-            "es": "Administrar dispositivos",
-            "pl": "Zarządzaj urządzeniami",
-            "zh-cn": "管理设备"
-        },
-        "desc": {
-            "en": "Manage and create devices for using it in other adapters like material, iot,...",
-            "de": "Verwalten und erstellen Sie Geräte für die Verwendung in anderen Adaptern wie Material, iot, ...",
-            "ru": "Управляйте и создавайте устройства для использования в других адаптерах, таких как material, iot, ...",
-            "pt": "Gerenciar e criar dispositivos para usá-lo em outros adaptadores como material, iot, ...",
-            "nl": "Beheer en maak apparaten voor gebruik in andere adapters zoals materiaal, iot, ...",
-            "fr": "Gérez et créez des périphériques pour l’utiliser dans d’autres adaptateurs, tels que Material, Iot, ...",
-            "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
-            "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
-            "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
-            "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
-        },
-        "authors": [
-            "bluefox <dogafox@gmail.com>"
-        ],
-        "keywords": [
-            "ioBroker",
-            "devices",
-            "material",
-            "iot",
-            "Smart Home",
-            "home automation"
-        ],
-        "license": "MIT",
-        "platform": "Javascript/Node.js",
-        "connectionType": "none",
-        "dataSource": "none",
-        "tier": 3,
-        "icon": "devices.png",
-        "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
-        "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
-        "loglevel": "info",
-        "noConfig": true,
-        "onlyWWW": true,
-        "singleton": true,
-        "type": "general",
-        "mode": "none",
-        "adminTab": {
-            "singleton": true,
-            "name": "Devices"
-        },
-        "dependencies": [
-            {
-                "admin": ">=5.1.0"
-            }
-        ]
+  "common": {
+    "name": "devices",
+    "version": "1.0.10",
+    "news": {
+      "1.0.10": {
+        "en": "Corrected edit of folders\nUpdated some libraries",
+        "de": "Korrigierte Bearbeitung von Ordnern\nEinige Bibliotheken aktualisiert",
+        "ru": "Исправлено редактирование папок\nОбновлены некоторые библиотеки",
+        "pt": "Edição corrigida de pastas\nAtualizadas algumas bibliotecas",
+        "nl": "Gecorrigeerde bewerking van mappen\nEnkele bibliotheken bijgewerkt",
+        "fr": "Correction de l'édition des dossiers\nMise à jour de certaines bibliothèques",
+        "it": "Modifica delle cartelle corretta\nAggiornate alcune librerie",
+        "es": "Edición corregida de carpetas.\nSe actualizaron algunas bibliotecas.",
+        "pl": "Poprawiona edycja folderów\nZaktualizowano niektóre biblioteki",
+        "zh-cn": "更正了文件夹的编辑\n更新了一些库"
+      },
+      "1.0.9": {
+        "en": "Implement the narrow rows",
+        "de": "Implementieren Sie die schmalen Reihen",
+        "ru": "Реализуйте узкие ряды",
+        "pt": "Implementar as linhas estreitas",
+        "nl": "Implementeer de smalle rijen",
+        "fr": "Implémenter les rangées étroites",
+        "it": "Implementa le file strette",
+        "es": "Implementar las filas estrechas",
+        "pl": "Zaimplementuj wąskie rzędy",
+        "zh-cn": "实施窄行"
+      },
+      "1.0.8": {
+        "en": "Corrected creation of the devices",
+        "de": "Anlegen der Geräte korrigiert",
+        "ru": "Исправлено создание устройств.",
+        "pt": "Criação corrigida dos dispositivos",
+        "nl": "Gecorrigeerde aanmaak van de apparaten",
+        "fr": "Création corrigée des appareils",
+        "it": "Corretta creazione dei dispositivi",
+        "es": "Creación corregida de los dispositivos.",
+        "pl": "Poprawiono tworzenie urządzeń",
+        "zh-cn": "更正了设备的创建"
+      },
+      "1.0.7": {
+        "en": "Corrected creation the folders",
+        "de": "Erstellung der Ordner korrigiert",
+        "ru": "Исправлено создание папок",
+        "pt": "Criação corrigida das pastas",
+        "nl": "Aanmaak van mappen gecorrigeerd",
+        "fr": "Correction de la création des dossiers",
+        "it": "Corretta la creazione delle cartelle",
+        "es": "Creación corregida de carpetas.",
+        "pl": "Poprawiono tworzenie folderów",
+        "zh-cn": "更正了文件夹的创建"
+      },
+      "1.0.6": {
+        "en": "Implemented the filters",
+        "de": "Die Filter implementiert",
+        "ru": "Реализованы фильтры",
+        "pt": "Implementou os filtros",
+        "nl": "De filters geïmplementeerd",
+        "fr": "Implémenter les filtres",
+        "it": "Implementati i filtri",
+        "es": "Implementado los filtros",
+        "pl": "Wdrożone filtry",
+        "zh-cn": "实施过滤器"
+      },
+      "1.0.5": {
+        "en": "Implemented the edit of `states` parameter",
+        "de": "Die Bearbeitung des Parameters `states` implementiert",
+        "ru": "Реализовано редактирование параметра `States`",
+        "pt": "Implementado a edição do parâmetro `states`",
+        "nl": "De bewerking van de parameter 'states' geïmplementeerd",
+        "fr": "Implémentation de la modification du paramètre `states`",
+        "it": "Implementata la modifica del parametro `states`",
+        "es": "Se implementó la edición del parámetro `states`",
+        "pl": "Zaimplementowano edycję parametru `states`",
+        "zh-cn": "实现了`states`参数的编辑"
+      },
+      "1.0.4": {
+        "en": "Fixed some GUI errors",
+        "de": "Einige GUI-Fehler behoben",
+        "ru": "Исправлены некоторые ошибки графического интерфейса.",
+        "pt": "Corrigidos alguns erros de GUI",
+        "nl": "Enkele GUI-fouten opgelost",
+        "fr": "Correction de quelques erreurs d'interface graphique",
+        "it": "Risolti alcuni errori della GUI",
+        "es": "Se corrigieron algunos errores de GUI",
+        "pl": "Naprawiono niektóre błędy GUI",
+        "zh-cn": "修复了一些 GUI 错误"
+      }
     },
-    "native": {},
-    "objects": [],
-    "instanceObjects": []
+    "title": "Manage devices",
+    "titleLang": {
+      "en": "Manage devices",
+      "de": "Geräte verwalten",
+      "ru": "Управление устройствами",
+      "pt": "Gerenciar dispositivos",
+      "nl": "Beheer apparaten",
+      "fr": "Gérer les appareils",
+      "it": "Gestisci i dispositivi",
+      "es": "Administrar dispositivos",
+      "pl": "Zarządzaj urządzeniami",
+      "zh-cn": "管理设备"
+    },
+    "desc": {
+      "en": "Manage and create devices for using it in other adapters like material, iot,...",
+      "de": "Verwalten und erstellen Sie Geräte für die Verwendung in anderen Adaptern wie Material, iot, ...",
+      "ru": "Управляйте и создавайте устройства для использования в других адаптерах, таких как material, iot, ...",
+      "pt": "Gerenciar e criar dispositivos para usá-lo em outros adaptadores como material, iot, ...",
+      "nl": "Beheer en maak apparaten voor gebruik in andere adapters zoals materiaal, iot, ...",
+      "fr": "Gérez et créez des périphériques pour l’utiliser dans d’autres adaptateurs, tels que Material, Iot, ...",
+      "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
+      "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
+      "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
+      "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
+    },
+    "authors": [
+      "bluefox <dogafox@gmail.com>"
+    ],
+    "keywords": [
+      "ioBroker",
+      "devices",
+      "material",
+      "iot",
+      "Smart Home",
+      "home automation"
+    ],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "connectionType": "none",
+    "dataSource": "none",
+    "tier": 3,
+    "icon": "devices.png",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
+    "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
+    "loglevel": "info",
+    "noConfig": true,
+    "onlyWWW": true,
+    "singleton": true,
+    "type": "general",
+    "mode": "none",
+    "adminTab": {
+      "singleton": true,
+      "name": "Devices"
+    },
+    "dependencies": [
+      {
+        "admin": ">=5.1.0"
+      }
+    ]
+  },
+  "native": {},
+  "objects": [],
+  "instanceObjects": []
 }
