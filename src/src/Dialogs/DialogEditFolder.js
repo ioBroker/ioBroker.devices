@@ -190,10 +190,12 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
         await processTasks(tasks);
     }
 
-    const generateId = () => {
-        if (typeof dataEdit?.common?.name !== 'string') {
+    const getIdFromName = obj => {
+        obj = obj || dataEdit;
+
+        if (typeof obj?.common?.name !== 'string') {
             return false;
-        } else if (!dataEdit?.common?.name) {
+        } else if (!obj?.common?.name) {
             return data._id;
         }
 
@@ -205,7 +207,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             parts.pop();
             parts = parts.join('.');
         }
-        parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
+        parts = `${parts}.${obj.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`
         return parts;
     }
 
@@ -234,6 +236,8 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
         // Delete folder and all object
         deleteFolderID && (await socket.delObjects(deleteFolderID, true));
     }
+
+    const id = getIdFromName();
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
@@ -277,7 +281,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             }}
                             value={name}
                             className={classes.oidField}
-                            error={!!objects[generateId()] || !name}
+                            error={!!objects[id] || !name}
                             disabled={startTheProcess}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
@@ -319,7 +323,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             style={{ width: 40 }}
                             disabled={startTheProcess}
                             value={dataEdit?.common?.color}
-                            className={classes.oidField + ' ' + classes.colorButton}
+                            className={Utils.clsx(classes.oidField, classes.colorButton)}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.color = e.target.value;
@@ -353,7 +357,12 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                 <Button
                     variant="contained"
                     autoFocus
-                    disabled={JSON.stringify(dataEdit) === JSON.stringify(data) || !dataEdit.common.name || !!objects[generateId()] || startTheProcess}
+                    disabled={
+                        JSON.stringify(dataEdit) === JSON.stringify(data) ||
+                        !dataEdit.common.name ||
+                        (!!objects[id] && getIdFromName(dataEdit) !== getIdFromName(data))  ||
+                        startTheProcess
+                    }
                     onClick={() => onCloseLocal(true)}
                     startIcon={<IconCheck />}
                     color="primary">

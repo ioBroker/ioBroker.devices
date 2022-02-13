@@ -28,6 +28,10 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (bluefox) Corrected edit of folders
+* (bluefox) Updated some libraries
+
 ### 1.0.9 (2021-07-11)
 * (bluefox) Implement the narrow rows
 

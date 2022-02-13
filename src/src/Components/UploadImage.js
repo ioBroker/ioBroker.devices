@@ -39,6 +39,10 @@ const styles = theme => ({
     iconPickerLabel: {
         fontSize: 20,
         fontWeight: 'bold',
+    },
+    iconPickerIcon: {
+        width: 32,
+        height: 'auto'
     }
 });
 
@@ -85,9 +89,10 @@ class UploadImage extends Component {
             <IconPicker
                 label={this.props.t('Icon')}
                 disabled={disabled}
-                customClasses={{label: classes.iconPickerLabel}}
+                customClasses={{label: classes.iconPickerLabel, icon: classes.iconPickerIcon}}
                 onChange={base64 => onChange(base64)}
-                value={icon}/>
+                value={icon}
+            />
 
             {icon && crop && cropHandler ? <Cropper
                 ref={this.cropperRef}
