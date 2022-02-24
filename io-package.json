@@ -138,6 +138,7 @@
     "onlyWWW": true,
     "singleton": true,
     "type": "general",
+    "eraseOnUpload": true,
     "mode": "none",
     "adminTab": {
       "singleton": true,
