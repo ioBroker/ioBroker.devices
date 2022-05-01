@@ -19,7 +19,7 @@
     "url": "https://github.com/ioBroker/ioBroker.devices"
   },
   "devDependencies": {
-    "@alcalzone/release-script": "^3.5.6",
+    "@alcalzone/release-script": "^3.5.8",
     "@alcalzone/release-script-plugin-iobroker": "^3.5.7",
     "@alcalzone/release-script-plugin-license": "^3.5.3",
     "del": "^6.0.0",
