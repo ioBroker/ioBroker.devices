@@ -24,10 +24,13 @@ Manage and create devices for using it in other adapters like material, iot,...
 
 <!--
 	Placeholder for the next version (at the beginning of the line):
-	### __WORK IN PROGRESS__
+	### **WORK IN PROGRESS**
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Updated some libraries
+
 ### 1.0.10 (2022-02-13)
 * (bluefox) Corrected edit of folders
 * (bluefox) Updated some libraries
