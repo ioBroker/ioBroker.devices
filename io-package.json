@@ -1,8 +1,20 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "news": {
+      "1.0.11": {
+        "en": "Updated some libraries",
+        "de": "Einige Bibliotheken aktualisiert",
+        "ru": "Обновлены некоторые библиотеки",
+        "pt": "Atualizado algumas bibliotecas",
+        "nl": "Verhoog wat bibliotheken",
+        "fr": "Mise à jour de certaines bibliothèques",
+        "it": "Aggiornato alcune librerie",
+        "es": "Actualización de algunas bibliotecas",
+        "pl": "Upowszechnionych bibliotek",
+        "zh-cn": "更新的一些图书馆"
+      },
       "1.0.10": {
         "en": "Corrected edit of folders\nUpdated some libraries",
         "de": "Korrigierte Bearbeitung von Ordnern\nEinige Bibliotheken aktualisiert",
@@ -74,18 +86,6 @@
         "es": "Se implementó la edición del parámetro `states`",
         "pl": "Zaimplementowano edycję parametru `states`",
         "zh-cn": "实现了`states`参数的编辑"
-      },
-      "1.0.4": {
-        "en": "Fixed some GUI errors",
-        "de": "Einige GUI-Fehler behoben",
-        "ru": "Исправлены некоторые ошибки графического интерфейса.",
-        "pt": "Corrigidos alguns erros de GUI",
-        "nl": "Enkele GUI-fouten opgelost",
-        "fr": "Correction de quelques erreurs d'interface graphique",
-        "it": "Risolti alcuni errori della GUI",
-        "es": "Se corrigieron algunos errores de GUI",
-        "pl": "Naprawiono niektóre błędy GUI",
-        "zh-cn": "修复了一些 GUI 错误"
       }
     },
     "title": "Manage devices",
