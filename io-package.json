@@ -1,8 +1,20 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "news": {
+      "1.0.12": {
+        "en": "Allowed to work with devices behind reverse proxy\nReplaced the function icon",
+        "de": "Erlaubt, mit Geräten hinter Reverse Proxy zu arbeiten\nErsetzt das Funktionssymbol",
+        "ru": "Разрешено работать с устройствами позади обратных прокси\nЗаменил иконку функции",
+        "pt": "Permite trabalhar com dispositivos por trás do proxy reverso\nSubstituir o ícone da função",
+        "nl": "Genoemd om te werken met apparatuur achter omgekeerde proxy\nVervang het functionele icoon",
+        "fr": "Permet de travailler avec des dispositifs derrière le proxy inverse\nRemplacer l'icône de la fonction",
+        "it": "Consente di lavorare con dispositivi dietro proxy inverso\nSostituito l'icona della funzione",
+        "es": "Permitido trabajar con dispositivos detrás del proxy inverso\nReemplazado el icono de la función",
+        "pl": "Wszystkie zawdzięczają pracę z urządzeniami za przesunięciem proxy\nZrezygnował ikonę funkcji",
+        "zh-cn": "允许与反导装置合作\n改为:"
+      },
       "1.0.11": {
         "en": "Updated some libraries",
         "de": "Einige Bibliotheken aktualisiert",
@@ -74,18 +86,6 @@
         "es": "Implementado los filtros",
         "pl": "Wdrożone filtry",
         "zh-cn": "实施过滤器"
-      },
-      "1.0.5": {
-        "en": "Implemented the edit of `states` parameter",
-        "de": "Die Bearbeitung des Parameters `states` implementiert",
-        "ru": "Реализовано редактирование параметра `States`",
-        "pt": "Implementado a edição do parâmetro `states`",
-        "nl": "De bewerking van de parameter 'states' geïmplementeerd",
-        "fr": "Implémentation de la modification du paramètre `states`",
-        "it": "Implementata la modifica del parametro `states`",
-        "es": "Se implementó la edición del parámetro `states`",
-        "pl": "Zaimplementowano edycję parametru `states`",
-        "zh-cn": "实现了`states`参数的编辑"
       }
     },
     "title": "Manage devices",
