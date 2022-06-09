@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2021 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2022 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -20,7 +20,6 @@ import MenuItem from '@material-ui/core/MenuItem';
 import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
 
 import { MdEdit as IconEdit } from 'react-icons/md';
-import { MdFunctions as IconFunction } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
 import { MdHelpOutline } from 'react-icons/md';
 import IconClose from '@material-ui/icons/Close';
@@ -29,6 +28,7 @@ import { MdDelete as IconDelete } from 'react-icons/md';
 import { MdAdd as IconAdd } from 'react-icons/md';
 import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
 import ImportExportIcon from '@material-ui/icons/ImportExport';
+import IconFunction from '@iobroker/adapter-react/icons/IconFx';
 
 import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
 import I18n from '@iobroker/adapter-react/i18n';
@@ -321,6 +321,9 @@ const styles = theme => ({
             maxWidth: 120
         },
     },
+    button: {
+        height: 24
+    }
 });
 
 // const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
@@ -411,6 +414,10 @@ class DialogEditDevice extends React.Component {
             newState: false,
             selectIdPrefix: '',
             editFxFor: '',
+            fxRead: '',
+            fxReadOriginal: '',
+            fxWrite: '',
+            fxWriteOriginal: '',
             newChannelId: '',
             indicatorsVisible,
             newChannelError: false,
@@ -754,14 +761,11 @@ class DialogEditDevice extends React.Component {
         }
         const fx = this.fx[this.state.editFxFor];
 
-        this.fxRead = fx.read;
-        this.fxWrite = fx.write;
-
         return <Dialog
             open={true}
             key="editFxDialog"
             maxWidth="sm"
-            onClose={() => this.setState({ editFxFor: '' })}
+            onClose={() => this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' })}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
         >
@@ -776,10 +780,10 @@ class DialogEditDevice extends React.Component {
                         </div>
                         <TextField
                             fullWidth
-                            defaultValue={this.fxRead}
+                            value={this.state.fxRead}
                             className={this.props.classes.funcEdit}
-                            onChange={e => this.fxRead = e.target.value}
-                            helperText={I18n.t('JS function like') + ' "val / 5 + 21"'}
+                            onChange={e => this.setState({ fxRead: e.target.value })}
+                            helperText={`${I18n.t('JS function like')} "val / 5 + 21"`}
                             margin="normal"
                         />
                     </div> : null}
@@ -789,26 +793,32 @@ class DialogEditDevice extends React.Component {
                         </div>
                         <TextField
                             fullWidth
-                            defaultValue={this.fxWrite}
-                            helperText={I18n.t('JS function like') + ' "(val - 21) * 5"'}
+                            value={this.state.fxWrite}
+                            helperText={`${I18n.t('JS function like')} "(val - 21) * 5"`}
                             className={this.props.classes.funcEdit}
-                            onChange={e => this.fxWrite = e.target.value}
+                            onChange={e => this.setState({ fxWrite: e.target.value })}
                             margin="normal"
                         />
                     </div> : null}
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button variant="contained" onClick={() => {
-                    this.setState({ editFxFor: '' });
-                    if (this.fx[this.state.editFxFor].read !== undefined) {
-                        this.fx[this.state.editFxFor].read = this.fxRead;
-                    }
-                    if (this.fx[this.state.editFxFor].write !== undefined) {
-                        this.fx[this.state.editFxFor].write = this.fxWrite;
-                    }
+                <Button
+                    variant="contained"
+                    disabled={this.state.fxRead === this.state.fxReadOriginal && this.state.fxWrite === this.state.fxWriteOriginal}
+                    onClick={() => {
+                        if (this.fx[this.state.editFxFor].read !== undefined) {
+                            this.fx[this.state.editFxFor].read = this.state.fxRead;
+                        }
+                        if (this.fx[this.state.editFxFor].write !== undefined) {
+                            this.fx[this.state.editFxFor].write = this.state.fxWrite;
+                        }
+                        this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' });
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
-                <Button variant="contained" onClick={() => this.setState({ editFxFor: '' })}>{I18n.t('Cancel')}</Button>
+                <Button
+                    variant="contained"
+                    onClick={() => this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' })}
+                >{I18n.t('Cancel')}</Button>
             </DialogActions>
         </Dialog>;
     }
@@ -943,7 +953,7 @@ class DialogEditDevice extends React.Component {
                                 />
                                 <div className={this.props.classes.wrapperItemButtons}>
                                     {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })}>
+                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'read' })} className={this.props.classes.button}>
                                             <IconEdit />
                                         </IconButton>
                                     </Tooltip>}
@@ -981,7 +991,7 @@ class DialogEditDevice extends React.Component {
                                 />
                                 <div className={this.props.classes.wrapperItemButtons}>
                                     {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })}>
+                                        <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name, selectIdPrefix: 'write' })} className={this.props.classes.button}>
                                             <IconEdit />
                                         </IconButton>
                                     </Tooltip>}
@@ -991,17 +1001,26 @@ class DialogEditDevice extends React.Component {
                     </div>
                     <div className={this.props.classes.wrapperItemButtons}>
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use one state for read and write')}>
-                            <IconButton size="small"  color="primary" onClick={() => this.onToggleTypeStates(name)}>
+                            <IconButton size="small"  color="primary" onClick={() => this.onToggleTypeStates(name)} className={this.props.classes.button}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
                         {(this.state.ids[name].read || this.state.ids[name].write) && alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                            <IconButton size="small"  onClick={() => this.setState({ editFxFor: name })}>
+                            <IconButton
+                                size="small"
+                                onClick={() => this.setState({
+                                    editFxFor: name,
+                                    fxRead: this.fx[name]?.read || '',
+                                    fxWrite: this.fx[name]?.write || '',
+                                    fxReadOriginal: this.fx[name]?.read || '',
+                                    fxWriteOriginal: this.fx[name]?.write || '',
+                                })}
+                                className={this.props.classes.button}>
                                 <IconFunction />
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton size="small" className={clsx(this.props.classes.addedName)}
+                            <IconButton size="small" className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => addStateCallBack(
                                     async obj => {
                                         if (obj) {
@@ -1025,12 +1044,12 @@ class DialogEditDevice extends React.Component {
                             </IconButton>
                         </Tooltip>}
                         {this.state.states[name] && !this.state.startTheProcess && <Tooltip title={I18n.t('Edit states')}>
-                            <IconButton size="small" onClick={() => this.setState({editStates: name})}>
+                            <IconButton size="small" onClick={() => this.setState({editStates: name})} className={this.props.classes.button}>
                                 <IconEditStates />
                             </IconButton>
                         </Tooltip>}
                         {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                            <IconButton size="small"  onClick={() => this.onDelete(item.id)}>
+                            <IconButton size="small" onClick={() => this.onDelete(item.id)} className={this.props.classes.button}>
                                 <IconDelete />
                             </IconButton>
                         </Tooltip>}
@@ -1069,22 +1088,30 @@ class DialogEditDevice extends React.Component {
                     />
                     <div className={this.props.classes.wrapperItemButtons}>
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Select ID')}>
-                            <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name })}>
+                            <IconButton size="small"  onClick={() => this.setState({ selectIdFor: name })} className={this.props.classes.button}>
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
                         {(alias || linkedDevices) && !this.state.startTheProcess && <Tooltip title={I18n.t('Use different states for read and write')}>
-                            <IconButton size="small"  onClick={() => this.onToggleTypeStates(name)}>
+                            <IconButton size="small"  onClick={() => this.onToggleTypeStates(name)} className={this.props.classes.button}>
                                 <ImportExportIcon />
                             </IconButton>
                         </Tooltip>}
                         {alias && this.state.ids[name] && !this.state.startTheProcess ? <Tooltip title={I18n.t('Edit convert functions')}>
-                            <IconButton size="small"  onClick={() => this.setState({ editFxFor: name })}>
+                            <IconButton
+                                size="small"
+                                onClick={() => this.setState({
+                                    editFxFor: name,
+                                    fxRead: this.fx[name]?.read || '',
+                                    fxWrite: this.fx[name]?.write || '',
+                                    fxReadOriginal: this.fx[name]?.read || '',
+                                    fxWriteOriginal: this.fx[name]?.write || '',
+                                })} className={this.props.classes.button}>
                                 <IconFunction />
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton size="small" className={this.props.classes.addedName}
+                            <IconButton size="small" className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => addStateCallBack(
                                     async obj => {
                                         if (obj) {
@@ -1108,12 +1135,12 @@ class DialogEditDevice extends React.Component {
                             </IconButton>
                         </Tooltip>}
                         {this.state.states[item.name] && !this.state.startTheProcess && <Tooltip title={I18n.t('Edit states')}>
-                            <IconButton size="small" onClick={() => this.setState({editStates: item.name})}>
+                            <IconButton size="small" onClick={() => this.setState({editStates: item.name})} className={this.props.classes.button}>
                                 <IconEditStates />
                             </IconButton>
                         </Tooltip>}
-                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')}>
-                            <IconButton size="small"  onClick={() => this.onDelete(item.id)}>
+                        {item.noType && !this.state.startTheProcess && <Tooltip title={I18n.t('Delete state')} >
+                            <IconButton size="small"  onClick={() => this.onDelete(item.id)} className={this.props.classes.button}>
                                 <IconDelete />
                             </IconButton>
                         </Tooltip>}

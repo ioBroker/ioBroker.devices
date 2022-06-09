@@ -19,7 +19,7 @@ import Paper from '@material-ui/core/Paper';
 import IconButton from '@material-ui/core/IconButton';
 import {TextField} from '@material-ui/core';
 
-import {MdAdd as IconAdd} from 'react-icons/md';
+import { MdAdd as IconAdd } from 'react-icons/md';
 import Button from '@material-ui/core/Button';
 import IconCheck from '@material-ui/icons/Check';
 import IconClose from '@material-ui/icons/Close';
