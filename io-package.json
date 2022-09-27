@@ -1,8 +1,20 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.0.12",
+    "version": "1.1.0",
     "news": {
+      "1.1.0": {
+        "en": "Migrated GUI to v5",
+        "de": "Migrated GUI to v5",
+        "ru": "Migrated GUI для v5",
+        "pt": "GUI migrado para v5",
+        "nl": "Gemigreerde GUI",
+        "fr": "Migrated GUI to v5",
+        "it": "GUI emigrata a v5",
+        "es": "GUI migrado al v5",
+        "pl": "Migrated GUI (ang.)",
+        "zh-cn": "第5条"
+      },
       "1.0.12": {
         "en": "Allowed to work with devices behind reverse proxy\nReplaced the function icon",
         "de": "Erlaubt, mit Geräten hinter Reverse Proxy zu arbeiten\nErsetzt das Funktionssymbol",
@@ -74,18 +86,6 @@
         "es": "Creación corregida de carpetas.",
         "pl": "Poprawiono tworzenie folderów",
         "zh-cn": "更正了文件夹的创建"
-      },
-      "1.0.6": {
-        "en": "Implemented the filters",
-        "de": "Die Filter implementiert",
-        "ru": "Реализованы фильтры",
-        "pt": "Implementou os filtros",
-        "nl": "De filters geïmplementeerd",
-        "fr": "Implémenter les filtres",
-        "it": "Implementati i filtri",
-        "es": "Implementado los filtros",
-        "pl": "Wdrożone filtry",
-        "zh-cn": "实施过滤器"
       }
     },
     "title": "Manage devices",
