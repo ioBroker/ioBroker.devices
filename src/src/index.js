@@ -1,38 +1,37 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import {version} from '../package.json';
-import { MuiThemeProvider} from '@material-ui/core/styles';
-import * as Sentry from '@sentry/browser';
-import * as SentryIntegrations from '@sentry/integrations';
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import { StylesProvider, createGenerateClassName } from '@mui/styles';
+import pack from '../package.json';
 
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import theme from '@iobroker/adapter-react-v5/Theme';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 import App from './App';
 
 import * as serviceWorker from './serviceWorker';
-import '@iobroker/adapter-react/index.css';
+import '@iobroker/adapter-react-v5/index.css';
 
 window.adapterName = 'devices';
-
-console.log('iobroker.' + window.adapterName + '@' + version);
+window.sentryDSN = 'https://3cedc5ceb5544e2e8248053c817fc98b@sentry.iobroker.net/131';
+console.log('iobroker.' + window.adapterName + '@' + pack.version);
 let themeName = Utils.getThemeName();
+const generateClassName = createGenerateClassName({
+    productionPrefix: 'iob',
+});
 
 function build() {
-    return ReactDOM.render(<MuiThemeProvider theme={ theme(themeName) }>
-        <App onThemeChange={_themeName => {
-            themeName = _themeName;
-            build();
-        }}/>
-    </MuiThemeProvider>, document.getElementById('root'));
-}
-
-if (window.location.host !== 'localhost:3000') {
-    Sentry.init({
-        dsn: 'https://3cedc5ceb5544e2e8248053c817fc98b@sentry.iobroker.net/131',
-        integrations: [
-            new SentryIntegrations.Dedupe()
-        ]
-    });
+    const container = document.getElementById('root');
+    const root = createRoot(container);
+    return root.render(<StylesProvider generateClassName={generateClassName}>
+        <StyledEngineProvider injectFirst>
+            <ThemeProvider theme={theme(themeName)}>
+                <App onThemeChange={_themeName => {
+                    themeName = _themeName;
+                    build();
+                }}/>
+            </ThemeProvider>
+        </StyledEngineProvider>
+    </StylesProvider>);
 }
 
 build();

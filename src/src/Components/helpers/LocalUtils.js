@@ -4,8 +4,8 @@
  * MIT License
  *
  **/
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import I18n from '@iobroker/adapter-react/i18n';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import I18n from '@iobroker/adapter-react-v5/i18n';
 
 class LocalUtils  {
     static getObjectName(objects, id, label, channelName, enumNames) {

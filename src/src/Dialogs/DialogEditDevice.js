@@ -6,33 +6,33 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 import clsx from 'clsx';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@mui/material';
 
 import { MdEdit as IconEdit } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
 import { MdHelpOutline } from 'react-icons/md';
-import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import IconClose from '@mui/icons-material/Close';
+import IconCheck from '@mui/icons-material/Check';
 import { MdDelete as IconDelete } from 'react-icons/md';
 import { MdAdd as IconAdd } from 'react-icons/md';
 import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
-import ImportExportIcon from '@material-ui/icons/ImportExport';
-import IconFunction from '@iobroker/adapter-react/icons/IconFx';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import IconFunction from '@iobroker/adapter-react-v5/icons/IconFx';
 
-import DialogSelectID from '@iobroker/adapter-react/Dialogs/SelectID';
-import I18n from '@iobroker/adapter-react/i18n';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import DialogSelectID from '@iobroker/adapter-react-v5/Dialogs/SelectID';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
@@ -84,7 +84,7 @@ const styles = theme => ({
         width: '100%',
     },
     divDevice: {
-        color: theme.palette.type === 'light' ? 'black' : 'white',
+        color: theme.palette.mode === 'light' ? 'black' : 'white',
         display: 'inline-block',
         width: 100,
         verticalAlign: 'top',
@@ -144,7 +144,7 @@ const styles = theme => ({
         marginBottom: 0,
     },
     icon: {
-        color: theme.palette.type === 'light' ? 'black' : 'white',
+        color: theme.palette.mode === 'light' ? 'black' : 'white',
         display: 'inline-block',
         verticalAlign: 'middle'
     },
@@ -744,6 +744,7 @@ class DialogEditDevice extends React.Component {
         });
 
         return <Select
+            variant="standard"
             className={this.props.classes.oidField}
             value={this.state[name]}
             multiple={true}
@@ -779,6 +780,7 @@ class DialogEditDevice extends React.Component {
                             {I18n.t('Read function')}
                         </div>
                         <TextField
+                            variant="standard"
                             fullWidth
                             value={this.state.fxRead}
                             className={this.props.classes.funcEdit}
@@ -792,6 +794,7 @@ class DialogEditDevice extends React.Component {
                             {I18n.t('Write function')}
                         </div>
                         <TextField
+                            variant="standard"
                             fullWidth
                             value={this.state.fxWrite}
                             helperText={`${I18n.t('JS function like')} "(val - 21) * 5"`}
@@ -816,6 +819,7 @@ class DialogEditDevice extends React.Component {
                         this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' });
                 }} color="primary" autoFocus>{I18n.t('Ok')}</Button>
                 <Button
+                    color="grey"
                     variant="contained"
                     onClick={() => this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' })}
                 >{I18n.t('Cancel')}</Button>
@@ -936,6 +940,7 @@ class DialogEditDevice extends React.Component {
                             </Tooltip>
                             <div className={this.props.classes.wrapperButtonsAndOidField}>
                                 <TextField
+                                    variant="standard"
                                     key={name}
                                     fullWidth
                                     disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
@@ -974,6 +979,7 @@ class DialogEditDevice extends React.Component {
                             </Tooltip>
                             <div className={this.props.classes.wrapperButtonsAndOidField}>
                                 <TextField
+                                    variant="standard"
                                     key={name}
                                     fullWidth
                                     disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
@@ -1070,6 +1076,7 @@ class DialogEditDevice extends React.Component {
                 </Tooltip>
                 <div className={this.props.classes.wrapperButtonsAndOidField}>
                     <TextField
+                        variant="standard"
                         fullWidth
                         disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                         value={(alias || linkedDevices) ? this.state.ids[name] || '' : item.id || ''}
@@ -1254,6 +1261,7 @@ class DialogEditDevice extends React.Component {
                     startIcon={<IconCheck />}
                     color="primary">{I18n.t('Save')}</Button>
                 <Button
+                    color="grey"
                     variant="contained"
                     disabled={this.state.startTheProcess}
                     onClick={this.handleClose}

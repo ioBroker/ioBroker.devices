@@ -40,7 +40,7 @@ import {FaFan as TypeIconAC} from 'react-icons/fa';
 import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
 import TypeIconVacuumCleaner from './icons/Cleaner';
 
-import IconAdapter from '@iobroker/adapter-react/Components/Icon';
+import IconAdapter from '@iobroker/adapter-react-v5/Components/Icon';
 
 const TYPE_ICONS = {
     [Types.airCondition]: TypeIconAC,

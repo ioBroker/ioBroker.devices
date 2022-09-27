@@ -7,17 +7,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 
-import TextField from '@material-ui/core/TextField';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import Switch from '@material-ui/core/Switch';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import Icon from '@iobroker/adapter-react/Components/Icon';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import Icon from '@iobroker/adapter-react-v5/Components/Icon';
 
 import UploadImage from '../Components/UploadImage';
 
@@ -49,7 +49,7 @@ const styles = theme => ({
         verticalAlign: 'top',
     },
     divDevice: {
-        color: theme.palette.type === 'light' ? 'black' : 'white',
+        color: theme.palette.mode === 'light' ? 'black' : 'white',
         display: 'inline-block',
         width: 100,
         verticalAlign: 'top',
@@ -246,6 +246,7 @@ class DialogEditProperties extends React.PureComponent {
         });
 
         return <Select
+            variant="standard"
             className={this.props.classes.oidField}
             value={this.state[name]}
             fullWidth
@@ -334,6 +335,7 @@ class DialogEditProperties extends React.PureComponent {
             <div className={classes.divOidField}>
                 <div className={classes.oidName} >{I18n.t('Name')}</div>
                 <TextField
+                    variant="standard"
                     key="_name"
                     fullWidth
                     disabled={disabled}
@@ -363,6 +365,7 @@ class DialogEditProperties extends React.PureComponent {
             {this.state.smartName !== false ? <div className={classes.divOidField}>
                 <div className={classes.oidName} >{I18n.t('Smart name')}</div>
                 <TextField
+                    variant="standard"
                     key="_smartName"
                     fullWidth
                     disabled={disabled}
@@ -386,6 +389,7 @@ class DialogEditProperties extends React.PureComponent {
                 <div className={classes.oidName} >{I18n.t('Color')}</div>
                 <div className={classes.wrapperColorFields}>
                     <TextField
+                        variant="standard"
                         key="_color"
                         fullWidth
                         disabled={disabled}
@@ -393,6 +397,7 @@ class DialogEditProperties extends React.PureComponent {
                         onChange={e => this.setState({ color: e.target.value })}
                     />
                     <TextField
+                        variant="standard"
                         key="_color1"
                         type="color"
                         style={{ width: 40 }}

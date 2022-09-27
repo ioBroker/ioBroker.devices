@@ -1,42 +1,42 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withStyles} from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 
-import {SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
+import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
 
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogActions from '@material-ui/core/DialogActions';
-import Fab from '@material-ui/core/Fab';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
-import IconButton from '@material-ui/core/IconButton';
-import {TextField} from '@material-ui/core';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Fab from '@mui/material/Fab';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
+import {TextField} from '@mui/material';
 
 import { MdAdd as IconAdd } from 'react-icons/md';
-import Button from '@material-ui/core/Button';
-import IconCheck from '@material-ui/icons/Check';
-import IconClose from '@material-ui/icons/Close';
-import IconDelete from '@material-ui/icons/Delete';
-import IconDragHandle from '@material-ui/icons/DragHandle';
+import Button from '@mui/material/Button';
+import IconCheck from '@mui/icons-material/Check';
+import IconClose from '@mui/icons-material/Close';
+import IconDelete from '@mui/icons-material/Delete';
+import IconDragHandle from '@mui/icons-material/DragHandle';
 
-import I18n from '@iobroker/adapter-react/i18n';
+import I18n from '@iobroker/adapter-react-v5/i18n';
 const DragHandle = SortableHandle(() => <IconDragHandle style={{cursor: 'grab'}}/>);
 
 const SortableItem = SortableElement(({item, ownIndex, onDelete, onChange}) =>
     <TableRow style={{zIndex: 10000}}>
         <TableCell><DragHandle /></TableCell>
         <TableCell component="th" scope="row">{
-            <TextField value={item.value} onChange={e => onChange(ownIndex, e.target.value)}/>
+            <TextField variant="standard" value={item.value} onChange={e => onChange(ownIndex, e.target.value)}/>
         }</TableCell>
         <TableCell align="right">{
-            <TextField value={item.label} onChange={e => onChange(ownIndex, undefined, e.target.value)}/>
+            <TextField variant="standard" value={item.label} onChange={e => onChange(ownIndex, undefined, e.target.value)}/>
         }</TableCell>
         <TableCell><IconButton onClick={() => onDelete(ownIndex)}
         ><IconDelete/></IconButton></TableCell>

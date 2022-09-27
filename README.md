@@ -28,6 +28,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Migrated GUI to v5
+
 ### 1.0.12 (2022-06-09)
 * (bluefox) Allowed to work with devices behind reverse proxy
 * (bluefox) Replaced the function icon

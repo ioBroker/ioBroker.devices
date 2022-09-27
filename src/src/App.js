@@ -1,12 +1,12 @@
 import React from 'react';
-import { ThemeProvider, withStyles } from '@material-ui/core/styles';
-// import I18n from '@iobroker/adapter-react/i18n';
+import { withStyles } from '@mui/styles';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
-import { Paper } from '@material-ui/core';
+import { Paper } from '@mui/material';
 
-import GenericApp from '@iobroker/adapter-react/GenericApp';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import Loader from '@iobroker/adapter-react/Components/Loader'
+import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import Loader from '@iobroker/adapter-react-v5/Components/Loader'
 // import ToggleThemeMenu from './Components/ToggleThemeMenu';
 
 import TabDevices from './Tabs/ListDevices';
@@ -49,6 +49,7 @@ class App extends GenericApp {
             'pl': require('./i18n/pl'),
             'zh-cn': require('./i18n/zh-cn'),
         };
+        extendedProps.sentryDSN = window.sentryDSN;
         super(props, extendedProps);
 
         const theme = this.createTheme();
@@ -100,32 +101,34 @@ class App extends GenericApp {
             return <Loader theme={this.state.themeType} />;
         }
 
-        return <ThemeProvider theme={this.state.theme}>
-            {/* <ToggleThemeMenu
-                                toggleTheme={this.toggleTheme}
-                                themeName={this.state.themeName}
-                                t={I18n.t} /> */}
-            <Paper square elevation={0} className={this.props.classes.tabContent}>
-                {(this.state.selectedTab === 'list' || !this.state.selectedTab) ?
-                <TabDevices
-                    theme={this.state.theme}
-                    themeType={this.state.themeType}
-                    key="options"
-                    common={this.common}
-                    socket={this.socket}
-                    native={this.state.native}
-                    onError={text => this.setState({ errorText: text })}
-                    onLoad={native => this.onLoadConfig(native)}
-                    instance={this.instance}
-                    adapterName={this.adapterName}
-                    onChange={(attr, value) => this.updateNativeValue(attr, value)}
-                />
-                : null}
+        return <StyledEngineProvider injectFirst>
+            <ThemeProvider theme={this.state.theme}>
+                {/* <ToggleThemeMenu
+                                    toggleTheme={this.toggleTheme}
+                                    themeName={this.state.themeName}
+                                    t={I18n.t} /> */}
+                <Paper square elevation={0} className={this.props.classes.tabContent}>
+                    {(this.state.selectedTab === 'list' || !this.state.selectedTab) ?
+                    <TabDevices
+                        theme={this.state.theme}
+                        themeType={this.state.themeType}
+                        key="options"
+                        common={this.common}
+                        socket={this.socket}
+                        native={this.state.native}
+                        onError={text => this.setState({ errorText: text })}
+                        onLoad={native => this.onLoadConfig(native)}
+                        instance={this.instance}
+                        adapterName={this.adapterName}
+                        onChange={(attr, value) => this.updateNativeValue(attr, value)}
+                    />
+                    : null}
 
-            </Paper>
-            {this.renderError()}
-            {this.renderSaveCloseButtons()}
-        </ThemeProvider>;
+                </Paper>
+                {this.renderError()}
+                {this.renderSaveCloseButtons()}
+            </ThemeProvider>
+        </StyledEngineProvider>;
     }
 }
 

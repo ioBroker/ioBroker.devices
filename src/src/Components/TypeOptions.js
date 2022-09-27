@@ -37,7 +37,9 @@ import { GiElectric, GiLightningFrequency } from 'react-icons/gi';
 import { FcElectricalSensor } from 'react-icons/fc';
 import WindowTilted from './icons/WindowTilted';
 import MaterialIcon from './icons/Material';
-import {FiPower, HiOutlineLightBulb, ImPower} from 'react-icons/all';
+import { FiPower } from 'react-icons/fi';
+import { HiOutlineLightBulb } from 'react-icons/hi';
+import { ImPower } from 'react-icons/im';
 
 const TYPE_OPTIONS = {
     [Types.airCondition]:    { alexa: false, alisa: true,  google: false, material: false },

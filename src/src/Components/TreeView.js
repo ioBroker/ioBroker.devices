@@ -6,17 +6,17 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import IconButton from '@material-ui/core/IconButton';
-import TextField from '@material-ui/core/TextField';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import Button from '@material-ui/core/Button';
+import { withStyles } from '@mui/styles';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import DialogTitle from '@mui/material/DialogTitle';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
@@ -28,13 +28,13 @@ import { MdExpandMore as IconCollapse } from 'react-icons/md';
 import { MdKeyboardArrowRight as IconExpand } from 'react-icons/md';
 import { MdCheck as IconOK } from 'react-icons/md';
 import { MdCancel as IconCancel } from 'react-icons/md';
-import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import { Paper, Tooltip } from '@material-ui/core';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import { Paper, Tooltip } from '@mui/material';
 import clsx from 'clsx';
-import Icon from '@iobroker/adapter-react/Components/Icon';
+import Icon from '@iobroker/adapter-react-v5/Components/Icon';
 
 const LEVEL_OFFSET = 14;
 
@@ -49,13 +49,13 @@ const styles = theme => ({
     list: {
         maxHeight: 400,
         overflowY: 'auto',
-        //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
+        //background: theme.palette.mode === 'dark' ? '#6a6a6a' : '#e2e2e2',
     },
     selected: {
         //color: theme.palette.action.selected
     },
     folder: {
-        //background: theme.palette.type === 'dark' ? '#6a6a6a' : '#e2e2e2',
+        //background: theme.palette.mode === 'dark' ? '#6a6a6a' : '#e2e2e2',
         cursor: 'pointer',
         paddingTop: 0,
         paddingBottom: 0,
@@ -97,7 +97,7 @@ const styles = theme => ({
     buttonWrapper: {
         display: 'flex',
         top: 0,
-        background: theme.palette.type === 'light' ? '#0000000d' : '#ffffff12',
+        background: theme.palette.mode === 'light' ? '#0000000d' : '#ffffff12',
         marginBottom: 5
     },
     iconCommon: {
@@ -324,6 +324,7 @@ class TreeView extends React.Component {
                 <DialogTitle className={this.props.classes.addNewFolderTitle} >{I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}</DialogTitle>
                 <form className={this.props.classes.dialogNewForm} noValidate autoComplete="off">
                     <TextField
+                        variant="standard"
                         onKeyPress={async ev => {
                             if (ev.key === 'Enter') {
                                 ev.preventDefault();
@@ -359,6 +360,7 @@ class TreeView extends React.Component {
                         color="primary"
                     >{I18n.t('Add')}</Button>
                     <Button
+                        color="grey"
                         variant="contained"
                         onClick={() => this.setState({ addNew: null, addNewName: '' })}
                         startIcon={<IconCancel />}

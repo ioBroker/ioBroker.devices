@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import { makeStyles } from '@mui/styles';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import { Checkbox, DialogTitle, FormControlLabel, makeStyles, ThemeProvider } from '@material-ui/core';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import { Checkbox, DialogTitle, FormControlLabel, ThemeProvider } from '@mui/material';
 
-import IconClose from '@material-ui/icons/Close';
-import IconDelete from '@material-ui/icons/Delete';
+import IconClose from '@mui/icons-material/Close';
+import IconDelete from '@mui/icons-material/Delete';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import theme from '@iobroker/adapter-react-v5/Theme';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
 let node = null;
 
@@ -94,7 +95,8 @@ const DialogDeleteFolder = ({ cb, device }) => {
                         cb(false);
                     }}
                     startIcon={<IconClose />}
-                    color="default">
+                    color="grey"
+                >
                     {I18n.t('Cancel')}
                 </Button>
             </DialogActions>

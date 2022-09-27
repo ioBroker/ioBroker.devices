@@ -1,28 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { makeStyles } from '@mui/styles';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import {
     Checkbox,
-    DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, LinearProgress, makeStyles,
+    DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, LinearProgress,
     MenuItem,
     Select,
     TextField,
     ThemeProvider,
     Tooltip
-} from '@material-ui/core';
+} from '@mui/material';
 
 import { MdModeEdit as IconEdit } from 'react-icons/md';
-import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import IconClose from '@mui/icons-material/Close';
+import IconCheck from '@mui/icons-material/Check';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import Icon from '@iobroker/adapter-react/Components/Icon';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import theme from '@iobroker/adapter-react-v5/Theme';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import Icon from '@iobroker/adapter-react-v5/Components/Icon';
 
 import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
@@ -259,6 +260,7 @@ const RenderNewItemDialog = ({ classes, object, onClose, open, checkDeviceInObje
         <DialogTitle className={classes.addNewFolderTitle} >{I18n.t('Edit name "%s"', name)}</DialogTitle>
         <form className={classes.dialogNewForm} autoComplete="off">
             <TextField
+                variant="standard"
                 onKeyPress={(ev) => {
                     if (ev.key === 'Enter') {
                         ev.preventDefault();
@@ -575,9 +577,10 @@ const DialogImporter = ({
                                         }
                                     }}
                                 />
-                                <FormControl className={classes.type}>
+                                <FormControl className={classes.type} variant="standard">
                                     <InputLabel>{I18n.t('cloning method')}</InputLabel>
                                     <Select
+                                        variant="standard"
                                         className={classes.oidField}
                                         fullWidth
                                         disabled={!arrayDevice.length || startTheProcess}

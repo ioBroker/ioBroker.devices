@@ -5,25 +5,25 @@
  *
  **/
 import React, { Component, createRef } from 'react';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
 
-import IconButton from '@material-ui/core/IconButton';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
-import ButtonBase from '@material-ui/core/ButtonBase';
-import { Toolbar, InputAdornment, ListItemIcon, TextField, Tooltip, withWidth } from '@material-ui/core';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
+import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import ButtonBase from '@mui/material/ButtonBase';
+import { Toolbar, InputAdornment, ListItemIcon, TextField, Tooltip } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 
 import { MdAdd as IconAdd } from 'react-icons/md';
 import { MdRefresh as IconRefresh } from 'react-icons/md';
@@ -43,17 +43,18 @@ import { FaThermometer as IconThermometer } from 'react-icons/fa';
 import { HiLink } from 'react-icons/hi';
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
-import DvrIcon from '@material-ui/icons/Dvr';
-import FileCopyIcon from '@material-ui/icons/FileCopy';
-import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
+import DvrIcon from '@mui/icons-material/Dvr';
+import FileCopyIcon from '@mui/icons-material/FileCopy';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
 import { Types } from 'iobroker.type-detector';
-import I18n from '@iobroker/adapter-react/i18n';
-import MessageDialog from '@iobroker/adapter-react/Dialogs/Message';
-import Router from '@iobroker/adapter-react/Components/Router';
-import Utils from '@iobroker/adapter-react/Components/Utils';
-import Icon from '@iobroker/adapter-react/Components/Icon';
-import SelectWithIcon from '@iobroker/adapter-react/Components/SelectWithIcon';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import MessageDialog from '@iobroker/adapter-react-v5/Dialogs/Message';
+import Router from '@iobroker/adapter-react-v5/Components/Router';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import Icon from '@iobroker/adapter-react-v5/Components/Icon';
+import SelectWithIcon from '@iobroker/adapter-react-v5/Components/SelectWithIcon';
+import { withWidth } from '@iobroker/adapter-react-v5';
 
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
@@ -416,14 +417,14 @@ const styles = theme => ({
     tableIconImg: {
         width: 20,
         height: 20,
-        color: theme.palette.type === 'dark' ? '#FFF' : '#000',
+        color: theme.palette.mode === 'dark' ? '#FFF' : '#000',
     },
     tableIcon: {
         width: 24,
         height: 24,
         display: 'flex',
         padding: 2,
-        background: theme.palette.type === 'dark' ? '#3b3b3b' : '#e0e0e0',
+        background: theme.palette.mode === 'dark' ? '#3b3b3b' : '#e0e0e0',
         borderRadius: 3,
         alignItems: 'center',
         justifyContent: 'center'
@@ -633,7 +634,7 @@ const styles = theme => ({
         }
     },
     selected: {
-        background: theme.palette.type === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
+        background: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
     },
     wrapperHeadButtons:{
         display: 'flex',
@@ -1730,6 +1731,7 @@ class ListDevices extends Component {
         result.sort((a, b) => a.label > b.label ? 1 : (a.label < b.label ? -1 : 0))
 
         return <Select
+            variant="standard"
             value={this.state.filter.type || '_'}
             onChange={e => this.changeFilter(null, null, e.target.value)}
         >
@@ -2741,6 +2743,7 @@ class ListDevices extends Component {
                         </Tooltip>
                         </div>
                         <TextField
+                            variant="standard"
                             margin="dense"
                             inputRef={this.inputRef}
                             placeholder={I18n.t('Filter')}

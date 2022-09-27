@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { makeStyles } from '@mui/styles';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import { Checkbox, DialogTitle, FormControl, FormControlLabel, InputLabel, makeStyles, MenuItem, Paper, Select, TextField, ThemeProvider } from '@material-ui/core';
-import Autocomplete from '@material-ui/lab/Autocomplete';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import { Autocomplete, Checkbox, DialogTitle, FormControl, FormControlLabel, InputLabel, MenuItem, Paper, Select, TextField, ThemeProvider } from '@mui/material';
 
-import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import IconClose from '@mui/icons-material/Close';
+import IconCheck from '@mui/icons-material/Check';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import theme from '@iobroker/adapter-react-v5/Theme';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
 let node = null;
 
@@ -163,6 +163,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
             <DialogContent className={classes.overflowHidden} dividers>
                 <Paper className={classes.showDialog} style={{ padding: `10px 20px` }} p={3}>
                     <TextField
+                        variant="standard"
                         fullWidth
                         value={name}
                         error={!name || (objects[`${channelId}.${name}`] && editState !== `${channelId}.${name}`) || arrayStateDefault.find(item => item.name === name)}
@@ -182,15 +183,20 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                         }}
                         onInputChange={(event, role) => setRoleInput(role)}
                         renderInput={params => <TextField
+                            variant="standard"
                             {...params}
                             label={I18n.t('Role')}
                         // variant="outlined"
                         />}
                     />
-                    <FormControl fullWidth
-                        className={classes.typeField}>
+                    <FormControl
+                        fullWidth
+                        variant="standard"
+                        className={classes.typeField}
+                    >
                         <InputLabel>{I18n.t('Type')}</InputLabel>
                         <Select
+                            variant="standard"
                             fullWidth
                             value={type}
                             onChange={e => setType(e.target.value)}
@@ -211,6 +217,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                         </>
                     }
                     {type === 'number' && <TextField
+                        variant="standard"
                         fullWidth
                         value={unit}
                         className={classes.unitField}
@@ -219,6 +226,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                     />}
                     {type === 'number' && <div className={classes.minMax}>
                         <TextField
+                            variant="standard"
                             fullWidth
                             value={min}
                             type="number"
@@ -227,6 +235,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                             onChange={e => setMin(e.target.value)}
                         />
                         <TextField
+                            variant="standard"
                             fullWidth
                             value={max}
                             type="number"
@@ -235,6 +244,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                             onChange={e => setMax(e.target.value)}
                         />
                         <TextField
+                            variant="standard"
                             fullWidth
                             value={step}
                             type="number"
@@ -300,7 +310,8 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                     variant="contained"
                     onClick={() => onClose()}
                     startIcon={<IconClose />}
-                    color="default">
+                    color="grey"
+                >
                     {I18n.t('Cancel')}
                 </Button>
             </DialogActions>

@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react';
+import { makeStyles } from '@mui/styles';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import { Checkbox, DialogTitle, FormControlLabel, makeStyles, TextField, ThemeProvider } from '@material-ui/core';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import { Checkbox, DialogTitle, FormControlLabel, TextField, ThemeProvider } from '@mui/material';
 
-import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import IconClose from '@mui/icons-material/Close';
+import IconCheck from '@mui/icons-material/Check';
 
-import I18n from '@iobroker/adapter-react/i18n';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import theme from '@iobroker/adapter-react-v5/Theme';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
 import UploadImage from '../Components/UploadImage';
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(theme => ({
     root: {
         backgroundColor: theme.palette.background.paper,
         width: '100%',
@@ -265,6 +266,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                     <div className={classes.divOidField}>
                         <div className={classes.oidName} >{I18n.t('Name')}</div>
                         <TextField
+                            variant="standard"
                             key="_name"
                             fullWidth
                             autoFocus
@@ -306,6 +308,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                     <div className={classes.divOidField}>
                         <div className={classes.oidName} >{I18n.t('Color')}</div>
                         <TextField
+                            variant="standard"
                             key="_color"
                             disabled={startTheProcess}
                             // fullWidth
@@ -318,6 +321,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             }}
                         />
                         <TextField
+                            variant="standard"
                             key="_color1"
                             type="color"
                             style={{ width: 40 }}
@@ -373,7 +377,8 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                     disabled={startTheProcess}
                     onClick={() => onCloseLocal(false)}
                     startIcon={<IconClose />}
-                    color="default">
+                    color="grey"
+                >
                     {I18n.t('Close')}
                 </Button>
             </DialogActions>

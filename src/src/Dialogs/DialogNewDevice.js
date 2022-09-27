@@ -6,30 +6,30 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import IconClose from '@material-ui/icons/Close';
-import IconCheck from '@material-ui/icons/Check';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import IconClose from '@mui/icons-material/Close';
+import IconCheck from '@mui/icons-material/Check';
 
 import { Types } from 'iobroker.type-detector';
-import I18n from '@iobroker/adapter-react/i18n';
-import Utils, { FORBIDDEN_CHARS } from '@iobroker/adapter-react/Components/Utils';
-import Icon from '@iobroker/adapter-react/Components/Icon';
+import I18n from '@iobroker/adapter-react-v5/i18n';
+import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import Icon from '@iobroker/adapter-react-v5/Components/Icon';
 
 // import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
-import { Checkbox, FormControlLabel } from '@material-ui/core';
+import { Checkbox, FormControlLabel } from '@mui/material';
 
 const styles = theme => ({
     header: {
@@ -280,9 +280,10 @@ class DialogNewDevice extends React.Component {
             }
         });
 
-        return <FormControl className={this.props.classes.type}>
+        return <FormControl className={this.props.classes.type} variant="standard">
             <InputLabel>{title}</InputLabel>
             <Select
+                variant="standard"
                 className={this.props.classes.oidField}
                 fullWidth
                 multiple
@@ -316,7 +317,7 @@ class DialogNewDevice extends React.Component {
     }
 
     generateId() {
-        return `${this.state.root}.${this.state.name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
+        return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
     async onCopyDevice(newChannelId) {
@@ -402,7 +403,7 @@ class DialogNewDevice extends React.Component {
     }
 
     async addNewFolder(name, parentId) {
-        const id = `${parentId}.${name.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const id = `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         const obj = {
             _id: id,
             common: { name: { [I18n.getLanguage()]: name } },
@@ -453,6 +454,7 @@ class DialogNewDevice extends React.Component {
                         label={I18n.t('Add to root')}
                     />
                     <TextField
+                        variant="standard"
                         fullWidth
                         autoFocus={!!this.props.copyDevice}
                         onKeyPress={(ev) => {
@@ -474,9 +476,10 @@ class DialogNewDevice extends React.Component {
                         onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
                     />
-                    {!this.props.copyDevice && <FormControl className={classes.type}>
+                    {!this.props.copyDevice && <FormControl className={classes.type} variant="standard">
                         <InputLabel>{I18n.t('Device type')}</InputLabel>
                         <Select
+                            variant="standard"
                             value={this.state.type}
                             onChange={e => {
                                 localStorage.setItem('Devices.newType', e.target.value);
