@@ -66,6 +66,7 @@
     "type-media": "media",
     "type-motion": "motion",
     "type-rgb": "RGB light",
+    "type-cie": "CIE color light",
     "type-rgbSingle": "RGB light single",
     "type-slider": "slider",
     "type-socket": "socket",

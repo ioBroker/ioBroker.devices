@@ -66,6 +66,7 @@
     "type-media": "Medien",
     "type-motion": "Bewegung",
     "type-rgb": "RGB-Licht",
+    "type-cie": "CIE Farblicht",
     "type-rgbSingle": "RGB-Licht einzeln",
     "type-slider": "Schieberegler",
     "type-socket": "Steckdose",

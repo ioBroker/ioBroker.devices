@@ -66,6 +66,7 @@
   "type-media": "media",
   "type-motion": "movimento",
   "type-rgb": "Luce RGB",
+  "type-cie": "Luce CIE",
   "type-rgbSingle": "Luce RGB singola",
   "type-slider": "cursore",
   "type-socket": "presa di corrente",
