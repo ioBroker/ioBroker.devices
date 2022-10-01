@@ -45,6 +45,7 @@ import IconAdapter from '@iobroker/adapter-react-v5/Components/Icon';
 const TYPE_ICONS = {
     [Types.airCondition]: TypeIconAC,
     [Types.blind]: TypeIconBlinds,
+    [Types.blindButtons]: TypeIconBlinds,
     [Types.button]: TypeIconButton,
     [Types.buttonSensor]: TypeIconButtonSensor,
     [Types.camera]: TypeIconCamera,
