@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import { makeStyles } from '@mui/styles';
 
 import Button from '@mui/material/Button';
@@ -15,9 +15,7 @@ import I18n from '@iobroker/adapter-react-v5/i18n';
 import theme from '@iobroker/adapter-react-v5/Theme';
 import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
-let node = null;
-
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(theme => ({
     root: {
         backgroundColor: theme.palette.background.paper,
         width: '100%',
@@ -44,22 +42,14 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const DialogDeleteFolder = ({ cb, device }) => {
+const DialogDeleteFolder = ({ onClose, device }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [checked, setChecked] = useState(false);
 
-    const onClose = () => {
-        setOpen(false);
-        if (node) {
-            document.body.removeChild(node);
-            node = null;
-        }
-    };
-
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            onClose={onClose}
+            onClose={() => setOpen(false)}
             open={open}
             classes={{ paper: classes.paper }}
         >
@@ -78,11 +68,8 @@ const DialogDeleteFolder = ({ cb, device }) => {
                     variant="contained"
                     autoFocus
                     onClick={() => {
-                        onClose();
-                        if (checked) {
-                            window.localStorage.setItem(device ? 'DeleteDeviceTime' : 'DeleteFolderTime', new Date().getTime());
-                        }
-                        cb(true);
+                        setOpen(false);
+                        onClose(true, checked);
                     }}
                     startIcon={<IconDelete />}
                     color="primary">
@@ -91,8 +78,8 @@ const DialogDeleteFolder = ({ cb, device }) => {
                 <Button
                     variant="contained"
                     onClick={() => {
-                        onClose();
-                        cb(false);
+                        setOpen(false);
+                        onClose(false);
                     }}
                     startIcon={<IconClose />}
                     color="grey"
@@ -104,16 +91,9 @@ const DialogDeleteFolder = ({ cb, device }) => {
     </ThemeProvider>;
 }
 
-export const deleteFolderAndDeviceCallBack = (cb, device = false) => {
-    const time = window.localStorage.getItem(device ? 'DeleteDeviceTime' : 'DeleteFolderTime');
-    const fiveMin = 1000 * 60 * 5;
-    if (time && new Date().getTime() - time < fiveMin) {
-        return cb(true);
-    }
-    if (!node) {
-        node = document.createElement('div');
-        node.id = 'renderModal';
-        document.body.appendChild(node);
-    }
-    return ReactDOM.render(<DialogDeleteFolder cb={cb} device={device} />, node);
-}
+DialogDeleteFolder.propTypes = {
+    device: PropTypes.bool,
+    onClose: PropTypes.func.isRequired,
+};
+
+export default DialogDeleteFolder;

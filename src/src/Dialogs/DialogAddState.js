@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import { makeStyles } from '@mui/styles';
 
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import { Autocomplete, Checkbox, DialogTitle, FormControl, FormControlLabel, InputLabel, MenuItem, Paper, Select, TextField, ThemeProvider } from '@mui/material';
+import {
+    Autocomplete,
+    Checkbox,
+    DialogTitle,
+    FormControl,
+    FormControlLabel,
+    InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    TextField,
+    ThemeProvider
+} from '@mui/material';
 
 import IconClose from '@mui/icons-material/Close';
 import IconCheck from '@mui/icons-material/Check';
@@ -15,9 +27,8 @@ import I18n from '@iobroker/adapter-react-v5/i18n';
 import theme from '@iobroker/adapter-react-v5/Theme';
 import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 
-let node = null;
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(theme => ({
     root: {
         backgroundColor: theme.palette.background.paper,
         width: '100%',
@@ -93,7 +104,7 @@ const typeArray = [
     'file',
 ];
 
-const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefault, editState }) => {
+const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault, editState }) => {
     const classes = useStyles();
     const [open, setOpen] = useState(true);
     const [role, setRole] = useState(null);
@@ -143,19 +154,11 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                 }
             }
         }
-    }, [editState, objects])
-
-    const onClose = () => {
-        setOpen(false);
-        if (node) {
-            document.body.removeChild(node);
-            node = null;
-        }
-    };
+    }, [editState, objects]);
 
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
-            onClose={onClose}
+            onClose={() => setOpen(false)}
             open={open}
             classes={{ paper: classes.paper }}
         >
@@ -265,7 +268,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                     autoFocus
                     disabled={!name || (objects[`${channelId}.${name}`] && !editState) || (editState && editState !== `${channelId}.${name}` && objects[`${channelId}.${name}`]) || arrayStateDefault.find(item => item.name === name)}
                     onClick={async () => {
-                        onClose();
+                        setOpen(false);
                         let obj = {
                             _id: `${channelId}.${name}`,
                             common: {
@@ -300,7 +303,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                             obj.common.write = checkedWrite;
                         }
                         await socket.setObject(`${channelId}.${name}`, obj);
-                        callback && callback(obj);
+                        onClose && onClose(obj);
                     }}
                     startIcon={<IconCheck />}
                     color="primary">
@@ -308,7 +311,7 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
                 </Button>
                 <Button
                     variant="contained"
-                    onClick={() => onClose()}
+                    onClick={() => setOpen(false)}
                     startIcon={<IconClose />}
                     color="grey"
                 >
@@ -319,24 +322,12 @@ const DialogAddState = ({ callback, objects, socket, channelId, arrayStateDefaul
     </ThemeProvider>;
 }
 
-DialogAddState.defaultProps = {
-    editState: null
+DialogAddState.propTypes = {
+    editState: PropTypes.string,
+    objects: PropTypes.object,
+    socket: PropTypes.object,
+    arrayStateDefault: PropTypes.array,
+    onClose: PropTypes.func.isRequired,
 };
 
-export const addStateCallBack = (callback, objects, socket, channelId, arrayStateDefault, editState) => {
-    if (!node) {
-        node = document.createElement('div');
-        node.id = 'renderModal';
-        document.body.appendChild(node);
-    }
-
-    return ReactDOM.render(
-        <DialogAddState
-            arrayStateDefault={arrayStateDefault}
-            channelId={channelId}
-            socket={socket}
-            objects={objects}
-            callback={callback}
-            editState={editState}
-        />, node);
-}
+export default DialogAddState;

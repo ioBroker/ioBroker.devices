@@ -62,7 +62,7 @@ import DialogNew from '../Dialogs/DialogNewDevice';
 import LocalUtils from '../Components/helpers/LocalUtils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
 import TypeIcon from '../Components/TypeIcon';
-import { deleteFolderAndDeviceCallBack } from '../Dialogs/DialogDeleteFolder';
+import DialogDeleteFolder from '../Dialogs/DialogDeleteFolder';
 import DialogEditFolder from '../Dialogs/DialogEditFolder';
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import DragWrapper from '../Components/DragWrapper';
@@ -831,10 +831,8 @@ class ListDevices extends Component {
         window.addEventListener('hashchange', this.onHashChange, false);
 
         setTimeout(() => {
-            const el = document.getElementById('td_' + this.state.selected);
-            if (el) {
-                el.scrollIntoView({ block: 'center' });
-            }
+            const el = document.getElementById(`td_${this.state.selected}`);
+            el && el.scrollIntoView({ block: 'center' });
         }, 300);
     }
 
@@ -856,8 +854,8 @@ class ListDevices extends Component {
     }
 
     onSelect(selected) {
-            this.setState({ selected });
-            window.localStorage.setItem('Devices.selected', selected);
+        this.setState({ selected });
+        window.localStorage.setItem('Devices.selected', selected);
     }
 
     disabledButtons = () =>{
@@ -1429,6 +1427,64 @@ class ListDevices extends Component {
         setState && this.setState({listItems});
     }
 
+    renderDeleteDialog() {
+        if (this.state.deleteFolderAndDevice) {
+            const time = window.localStorage.getItem(this.state.deleteFolderAndDevice.device ? 'DeleteDeviceTime' : 'DeleteFolderTime');
+            if (time && Date.now() - time < 5 * 60000) {
+                const deleteFolderAndDevice = JSON.parse(JSON.stringify(this.state.deleteFolderAndDevice));
+                this.deleteTimeout = this.deleteTimeout || setTimeout(_deleteFolderAndDevice => {
+                    this.deleteTimeout = null;
+                    const newState = { deleteFolderAndDevice: null };
+                    if (this.state.selected === _deleteFolderAndDevice.id ||
+                        (_deleteFolderAndDevice.index !== undefined &&
+                            this.state.devices[_deleteFolderAndDevice.index] &&
+                            this.state.devices[_deleteFolderAndDevice.index].channelId === this.state.selected
+                        )
+                    ) {
+                        newState.selected = '';
+                        window.localStorage.removeItem('Devices.selected');
+                    }
+                    this.setState(newState, () => {
+                        if (_deleteFolderAndDevice.device) {
+                            this.deleteDevice(_deleteFolderAndDevice.index);
+                        } else {
+                            this.props.socket.delObjects(_deleteFolderAndDevice.id, true);
+                        }
+                    });
+                }, 50, deleteFolderAndDevice);
+
+                return null;
+            }
+            return <DialogDeleteFolder
+                onClose={(result, suppressQuestion) => {
+                    const newState = { deleteFolderAndDevice: null };
+                    if (result) {
+                        suppressQuestion && window.localStorage.setItem(this.state.deleteFolderAndDevice.device ? 'DeleteDeviceTime' : 'DeleteFolderTime', Date.now());
+
+                        if (this.state.selected === this.state.deleteFolderAndDevice.id ||
+                            (this.state.deleteFolderAndDevice.index !== undefined &&
+                                this.state.devices[this.state.deleteFolderAndDevice.index] &&
+                                this.state.devices[this.state.deleteFolderAndDevice.index].channelId === this.state.selected
+                            )
+                        ) {
+                            newState.selected = '';
+                            window.localStorage.removeItem('Devices.selected');
+                        }
+
+                        if (this.state.deleteFolderAndDevice.device) {
+                            this.deleteDevice(this.state.deleteFolderAndDevice.index);
+                        } else {
+                            this.props.socket.delObjects(this.state.deleteFolderAndDevice.id, true);
+                        }
+                    }
+                    this.setState(newState);
+                }}
+                device={this.state.deleteFolderAndDevice.device || false}
+            />;
+        }
+        return null;
+    }
+
     renderOneItem(items, item) {
         if (!item.visible && !item.hasVisibleChildren) {
             return null;
@@ -1623,11 +1679,9 @@ class ListDevices extends Component {
                     {(device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES)) ?
                         <Tooltip title={I18n.t('Delete device with all states')}>
                             <IconButton
-                               //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
+                                // size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
                                 size="small"
-                                onClick={e =>
-                                    deleteFolderAndDeviceCallBack(result =>
-                                        result && this.deleteDevice(index), true)}
+                                onClick={() => this.setState({ deleteFolderAndDevice: { index, device: true } })}
                             >
                                 <IconDelete />
                             </IconButton>
@@ -1669,9 +1723,7 @@ class ListDevices extends Component {
                                 <IconButton
                                     //size={this.state.windowWidth <= WIDTHS[4] ? 'small' : 'medium'}
                                     size="small"
-                                    onClick={e =>
-                                        deleteFolderAndDeviceCallBack(result =>
-                                            result && this.props.socket.delObjects(item.id, true), false)}
+                                    onClick={() => this.setState({ deleteFolderAndDevice: { id: item.id } })}
                                 >
                                     <IconDelete />
                                 </IconButton>
@@ -2780,6 +2832,7 @@ class ListDevices extends Component {
                     {this.renderEditEnumDialog()}
                     {this.renderImporterDialog()}
                     {this.renderEditFolder()}
+                    {this.renderDeleteDialog()}
                 </div>
             </DndProvider>;
         }

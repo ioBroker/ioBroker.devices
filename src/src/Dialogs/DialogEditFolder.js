@@ -109,10 +109,8 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
             } else {
                 // If name and ID were changed
                 if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
-
                     await onChangeCopy();
                 } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
-
                     await socket.setObject(dataEdit._id, dataEdit);
                 }
             }
@@ -177,7 +175,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                 return;
             }
             const obj = JSON.parse(JSON.stringify(objects[state.id]));
-            obj._id = newChannelId + '.' + state.name;
+            obj._id = `${newChannelId}.${state.name}`;
 
             if (!obj.native) {
                 obj.native = {};
@@ -243,7 +241,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
             onClose={() => onCloseLocal()}
-            open={true}
+            open={!0}
             classes={{ paper: classes.paper }}
         >
             <DialogTitle>{I18n.t(!newFolder ? 'Edit folder %s' : 'Add new folder %s', newId)}{name && newFolder ? `.${name}` : ''}</DialogTitle>
@@ -281,7 +279,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                                     ev.preventDefault();
                                 }
                             }}
-                            value={name}
+                            value={name || ''}
                             className={classes.oidField}
                             error={!!objects[id] || !name}
                             disabled={startTheProcess}
@@ -312,7 +310,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             key="_color"
                             disabled={startTheProcess}
                             // fullWidth
-                            value={dataEdit?.common?.color}
+                            value={dataEdit?.common?.color || ''}
                             style={{ width: 'calc(100% - 40px)' }}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
@@ -326,7 +324,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
                             type="color"
                             style={{ width: 40 }}
                             disabled={startTheProcess}
-                            value={dataEdit?.common?.color}
+                            value={dataEdit?.common?.color || ''}
                             className={Utils.clsx(classes.oidField, classes.colorButton)}
                             onChange={e => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));

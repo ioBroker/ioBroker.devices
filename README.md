@@ -28,6 +28,10 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Corrected delete dialog
+* (bluefox) Added ukrainian translation
+
 ### 1.1.0 (2022-09-27)
 * (bluefox) Migrated GUI to v5
 

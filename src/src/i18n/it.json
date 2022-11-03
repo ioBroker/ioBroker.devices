@@ -106,7 +106,6 @@
   "type-airCondition": "Condizionatore",
   "type-buttonSensor": "Sensore pulsante",
   "New folder": "Nuova cartella",
-  " Show expert settings": " Mostra impostazioni avanzate",
   "Copy device into aliases": "Copia il dispositivo negli alias",
   "type-vacuumCleaner": "Aspirapolvere",
   "Show expert settings": "Mostra impostazioni avanzate",
@@ -175,7 +174,7 @@
   "Edit state %s": "Modifica stato %s",
   "type-blindButtons": "Tenda controllata da pulsanti",
   "Select for \"%s\"": "Seleziona per \"%s\"",
-  "Select predefined icon": "",
+  "Select predefined icon": "Seleziona l'icona predefinita",
   "type-chart": "Grafico",
   "Create new folder in root": "Crea una nuova cartella nella directory principale",
   "You can drag & drop device": "Puoi trascinare e rilasciare il dispositivo"

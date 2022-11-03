@@ -6,15 +6,15 @@
  **/
 'use strict';
 
-const gulp       = require('gulp');
-const fs         = require('fs');
-const rename     = require('gulp-rename');
-const del        = require('del');
-const cp         = require('child_process');
+const gulp      = require('gulp');
+const fs        = require('fs');
+const rename    = require('gulp-rename');
+const del       = require('del');
+const cp        = require('child_process');
 
-const pkg        = require('./package.json');
-const iopackage  = require('./io-package.json');
-const version    = (pkg && pkg.version) ? pkg.version : iopackage.common.version;
+const pkg       = require('./package.json');
+const iopackage = require('./io-package.json');
+const version   = (pkg && pkg.version) ? pkg.version : iopackage.common.version;
 
 gulp.task('clean', () => {
     return del([
@@ -32,7 +32,7 @@ gulp.task('clean', () => {
 function npmInstall() {
     return new Promise((resolve, reject) => {
         // Install node modules
-        const cwd = __dirname.replace(/\\/g, '/') + '/src/';
+        const cwd = `${__dirname.replace(/\\/g, '/')}/src/`;
 
         const cmd = `npm install`;
         console.log(`"${cmd} in ${cwd}`);
@@ -48,7 +48,7 @@ function npmInstall() {
         child.on('exit', (code /* , signal */) => {
             // code 1 is strange error that cannot be explained. Everything is installed but error :(
             if (code && code !== 1) {
-                reject('Cannot install: ' + code);
+                reject(`Cannot install: ${code}`);
             } else {
                 console.log(`"${cmd} in ${cwd} finished.`);
                 // command succeeded
@@ -75,7 +75,7 @@ function build() {
             cwd:   __dirname + '/src/'
         };
 
-        const version = JSON.parse(fs.readFileSync(__dirname + '/package.json').toString('utf8')).version;
+        const version = JSON.parse(fs.readFileSync(`${__dirname}/package.json`).toString('utf8')).version;
         const data = JSON.parse(fs.readFileSync(__dirname + '/src/package.json').toString('utf8'));
         data.version = version;
         fs.writeFileSync(__dirname + '/src/package.json', JSON.stringify(data, null, 4));

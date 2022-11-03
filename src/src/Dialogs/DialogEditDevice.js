@@ -37,7 +37,7 @@ import Utils from '@iobroker/adapter-react-v5/Components/Utils';
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties from './DialogEditProperties';
-import { addStateCallBack } from './DialogAddState';
+import DialogAddState from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
 import DialogEditStates from './DialogEditStates';
 
@@ -469,6 +469,31 @@ class DialogEditDevice extends React.Component {
         }
     }
 
+    renderDialogAddState() {
+        if (this.state.dialogAddState) {
+            return <DialogAddState
+                onClose={obj => {
+                    if (this.state.dialogAddState.onClose && obj && obj.common && obj.common.name !== this.state.dialogAddState.name) {
+                        this.onDelete(this.state.dialogAddState.item.id);
+                        const newIds = JSON.parse(JSON.stringify(this.state.ids));
+                        const newValue = newIds[this.state.dialogAddState.name];
+                        delete newIds[this.state.dialogAddState.name];
+                        newIds[obj.common.name] = newValue;
+                        this.setState({ ids: newIds, dialogAddState: null });
+                    } else {
+                        this.setState({ dialogAddState: null });
+                    }
+                }}
+                editState={this.state.dialogAddState.editState}
+                objects={this.props.objects}
+                socket={this.props.socket}
+                channelId={this.channelId}
+                arrayStateDefault={this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole)}
+            />;
+        }
+        return null;
+    }
+
     getAddedChannelStates() {
         const channelIds = getChannelItems(this.props.objects, this.props.channelInfo.channelId);
 
@@ -684,13 +709,12 @@ class DialogEditDevice extends React.Component {
                 {this.state.extendedAvailable && !this.state.startTheProcess &&
                     <Tooltip title={I18n.t('Add state')}>
                         <IconButton
-                            onClick={() => addStateCallBack(
-                                null,
-                                this.props.objects,
-                                this.props.socket,
-                                this.channelId,
-                                this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole)
-                            )}>
+                            onClick={() => this.setState({ dialogAddState: {
+                                    onClose: null,
+                                    editState: null,
+                                }})
+                            }
+                        >
                             <IconAdd />
                         </IconButton>
                     </Tooltip>}
@@ -1030,26 +1054,11 @@ class DialogEditDevice extends React.Component {
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton size="small" className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
-                                onClick={() => addStateCallBack(
-                                    async obj => {
-                                        if (obj) {
-                                            if (obj.common.name !== name) {
-                                                this.onDelete(item.id);
-                                                const newIds = JSON.parse(JSON.stringify(this.state.ids));
-                                                const newValue = newIds[name];
-                                                delete newIds[name];
-                                                newIds[obj.common.name] = newValue;
-                                                this.setState({ids:newIds});
-                                            }
-                                        }
-                                    },
-                                    this.props.objects,
-                                    this.props.socket,
-                                    this.channelId,
-                                    this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole),
-                                    item.id
-                                )}>
+                            <IconButton
+                                size="small"
+                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
+                            >
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
@@ -1122,26 +1131,11 @@ class DialogEditDevice extends React.Component {
                             </IconButton>
                         </Tooltip> : item.noType ? '' : <div className={this.props.classes.emptyButton} />}
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
-                            <IconButton size="small" className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
-                                onClick={() => addStateCallBack(
-                                    async obj => {
-                                        if (obj) {
-                                            if (obj.common.name !== name) {
-                                                this.onDelete(item.id);
-                                                const newIds = JSON.parse(JSON.stringify(this.state.ids));
-                                                const newValue = newIds[name];
-                                                delete newIds[name];
-                                                newIds[obj.common.name] = newValue;
-                                                this.setState({ids:newIds});
-                                            }
-                                        }
-                                    },
-                                    this.props.objects,
-                                    this.props.socket,
-                                    this.channelId,
-                                    this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole),
-                                    item.id
-                                )}>
+                            <IconButton
+                                size="small"
+                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
+                            >
                                 <IconEdit />
                             </IconButton>
                         </Tooltip>}
@@ -1273,6 +1267,7 @@ class DialogEditDevice extends React.Component {
                 >{I18n.t('Cancel')}</Button>
             </DialogActions>
             {this.renderEditStates()}
+            {this.renderDialogAddState()}
         </Dialog>;
     }
 }
