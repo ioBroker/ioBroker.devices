@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "news": {
+      "1.1.1": {
+        "en": "Corrected delete dialog\nAdded ukrainian translation",
+        "de": "Korrigiert Löschen Dialog\nHinzugefügt ukrainische Übersetzung",
+        "ru": "Исправлен диалог удаления\nДобавлен украинский перевод",
+        "pt": "Eliminação correta diálogo\nAdicionado tradução ukrainian",
+        "nl": "Vertaling:\nVertaling:",
+        "fr": "Correction du dialogue de suppression\nAjout de la traduction ukrainienne",
+        "it": "Cancella finestra di dialogo corretta\nAggiunto ukrainian traduzione",
+        "es": "Diálogo de borrado corregido\nTraducción ucraniana",
+        "pl": "Poprawka\nAddedukrainian translation",
+        "uk": "Виправлено видалення діалогу\nДодано переклад українською мовою",
+        "zh-cn": "更正\n增加培训员"
+      },
       "1.1.0": {
         "en": "Migrated GUI to v5",
         "de": "Migrated GUI to v5",
@@ -74,18 +87,6 @@
         "es": "Creación corregida de los dispositivos.",
         "pl": "Poprawiono tworzenie urządzeń",
         "zh-cn": "更正了设备的创建"
-      },
-      "1.0.7": {
-        "en": "Corrected creation the folders",
-        "de": "Erstellung der Ordner korrigiert",
-        "ru": "Исправлено создание папок",
-        "pt": "Criação corrigida das pastas",
-        "nl": "Aanmaak van mappen gecorrigeerd",
-        "fr": "Correction de la création des dossiers",
-        "it": "Corretta la creazione delle cartelle",
-        "es": "Creación corregida de carpetas.",
-        "pl": "Poprawiono tworzenie folderów",
-        "zh-cn": "更正了文件夹的创建"
       }
     },
     "title": "Manage devices",
