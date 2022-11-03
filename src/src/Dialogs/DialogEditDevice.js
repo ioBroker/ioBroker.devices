@@ -875,7 +875,7 @@ class DialogEditDevice extends React.Component {
         }
         let props = [item.type || 'any'];
         const dName = item.name.replace(/\d+$/, '%d');
-        //let's try to find the state that has a default role first (fixes issues with double states, for example ON in lights).
+        // let's try to find the state that has a default role first (fixes issues with double states, for example ON in lights).
         let pattern = this.pattern.states.find(state => (state.name === item.name || state.name === dName) && state.defaultRole);
         if (!pattern) {
             pattern = this.pattern.states.find(state => state.name === item.name || state.name === dName);
