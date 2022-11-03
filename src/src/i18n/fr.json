@@ -66,6 +66,7 @@
     "type-media": "médias",
     "type-motion": "mouvement",
     "type-rgb": "Lumière RVB",
+    "type-cie": "Lumière CIE",
     "type-rgbSingle": "Lumière unique RVB",
     "type-slider": "curseur",
     "type-socket": "prise",

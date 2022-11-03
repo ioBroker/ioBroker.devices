@@ -66,6 +66,7 @@
     "type-media": "głoska bezdźwięczna",
     "type-motion": "ruch",
     "type-rgb": "Światło RGB",
+    "type-cie": "Światło CIE",
     "type-rgbSingle": "Światło pojedyncze RGB",
     "type-slider": "suwak",
     "type-socket": "gniazdo elektryczne",

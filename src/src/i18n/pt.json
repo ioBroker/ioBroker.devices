@@ -66,6 +66,7 @@
     "type-media": "meios de comunicação",
     "type-motion": "movimento",
     "type-rgb": "Luz RGB",
+    "type-cie": "Luz CIE",
     "type-rgbSingle": "Luz única RGB",
     "type-slider": "controle deslizante",
     "type-socket": "soquete",

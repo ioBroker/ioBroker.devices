@@ -66,6 +66,7 @@
   "type-media": "медиаплайер",
   "type-motion": "движение",
   "type-rgb": "RGB свет",
+  "type-cie": "CIE свет",
   "type-rgbSingle": "RGB свет одиноч.",
   "type-slider": "ползунок",
   "type-socket": "розетка",

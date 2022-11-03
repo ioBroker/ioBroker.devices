@@ -70,6 +70,7 @@ const TYPE_ICONS = {
     [Types.ct]: TypeIconCT,
     [Types.rgbSingle]: TypeIconRGBSingle,
     [Types.hue]: TypeIconHUE,
+    [Types.cie]: TypeIconRGB,
     [Types.slider]: TypeIconSlider,
     [Types.socket]: TypeIconSocket,
     [Types.temperature]: TypeIconTemperature,

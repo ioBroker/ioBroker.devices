@@ -65,6 +65,7 @@ const TYPE_OPTIONS = {
     [Types.motion]:          { alexa: false, alisa: true,  google: false, material: false },
     [Types.rgbSingle]:       { alexa: false, alisa: true,  google: true,  material: false },
     [Types.rgb]:             { alexa: false, alisa: false, google: true,  material: true  },
+    [Types.cie]:             { alexa: false, alisa: false, google: false, material: false },
     [Types.slider]:          { alexa: false, alisa: false, google: true,  material: false },
     [Types.socket]:          { alexa: true,  alisa: true,  google: true,  material: false },
     [Types.temperature]:     { alexa: false, alisa: true,  google: true,  material: true  },

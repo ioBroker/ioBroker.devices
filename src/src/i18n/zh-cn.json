@@ -66,6 +66,7 @@
     "type-media": "多媒体",
     "type-motion": "运动传感器",
     "type-rgb": "RGB灯",
+    "type-cie": "CIE灯",
     "type-rgbSingle": "RGB灯（单）",
     "type-slider": "滑块",
     "type-socket": "插座",

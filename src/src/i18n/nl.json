@@ -66,6 +66,7 @@
     "type-media": "media",
     "type-motion": "beweging",
     "type-rgb": "RGB-licht",
+    "type-cie": "CIE-licht",
     "type-rgbSingle": "RGB-licht enkel",
     "type-slider": "schuif",
     "type-socket": "stopcontact",
