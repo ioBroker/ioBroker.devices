@@ -28,7 +28,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 1.1.2 (2022-11-09)
 * (Garfonso) corrected the double states in light devices
 * (Garfonso) added CIE color type as equivalent to `rgbSingle` type
 

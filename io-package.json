@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "news": {
+      "1.1.2": {
+        "en": "corrected the double states in light devices\nadded CIE color type as equivalent to `rgbSingle` type",
+        "de": "die doppelten zustände in lichtgeräten korrigiert\nhinzugefügt CIE-Farbtyp als äquivalent zu rgbSingle-Typ",
+        "ru": "исправлены двойные состояния на легких устройствах\nдобавлен тип цвета CIE как эквивалент rgbSingle типа",
+        "pt": "corrigido os estados duplos em dispositivos de luz\nadicionado tipo de cor CIE como equivalente ao tipo rgbSingle",
+        "nl": "vertaling:\nvoegde CIE kleurtype toe als equivalent aan rgbSingle type",
+        "fr": "corrigé les doubles états dans les dispositifs de lumière\ncouleur CIE ajouté comme équivalent au type rgbSingle",
+        "it": "corretto il doppio stato in dispositivi leggeri\naggiunto CIE tipo di colore equivalente a rgbSingle tipo",
+        "es": "corregido los estados dobles en dispositivos ligeros\nañadido CIE tipo de color como equivalente a rgbSingle tipo",
+        "pl": "poprawiono podwójne stany w lekkich urządzeniach\ndodano kolor CIE jako odpowiednik rgbSingle",
+        "uk": "виправлено подвійні стани в легких пристроях\nдодано тип кольору CIE як еквівалент rgbSingle",
+        "zh-cn": "更正了照旧装置的双重国家。\n添加了CIE颜色,相当于乙型肝炎。"
+      },
       "1.1.1": {
         "en": "Corrected delete dialog\nAdded ukrainian translation",
         "de": "Korrigiert Löschen Dialog\nHinzugefügt ukrainische Übersetzung",
@@ -75,18 +88,6 @@
         "es": "Implementar las filas estrechas",
         "pl": "Zaimplementuj wąskie rzędy",
         "zh-cn": "实施窄行"
-      },
-      "1.0.8": {
-        "en": "Corrected creation of the devices",
-        "de": "Anlegen der Geräte korrigiert",
-        "ru": "Исправлено создание устройств.",
-        "pt": "Criação corrigida dos dispositivos",
-        "nl": "Gecorrigeerde aanmaak van de apparaten",
-        "fr": "Création corrigée des appareils",
-        "it": "Corretta creazione dei dispositivi",
-        "es": "Creación corregida de los dispositivos.",
-        "pl": "Poprawiono tworzenie urządzeń",
-        "zh-cn": "更正了设备的创建"
       }
     },
     "title": "Manage devices",
