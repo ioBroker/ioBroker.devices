@@ -7,7 +7,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
-import clsx from 'clsx';
 
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -694,7 +693,7 @@ class DialogEditDevice extends React.Component {
             .find(obj => this.state.ids[obj.name]);
 
         return <div className={classes.header}>
-            <div className={clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
+            <div className={Utils.clsx(classes.divOids, classes.headerButtons, classes.divExtended)} />
             <div className={classes.menuWrapperIcons}>
                 {this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.startTheProcess && <Tooltip title={I18n.t('Show hide indicators')}>
                     <IconButton
@@ -907,11 +906,11 @@ class DialogEditDevice extends React.Component {
         if (item.write) props.push('write');
         if (item.read) props.push('read');
         if (pattern?.defaultRole) {
-            props.push('role=' + pattern.defaultRole);
+            props.push(`role=${pattern.defaultRole}`);
         } else if (item.defaultRole) {
-            props.push('role=' + item.defaultRole);
+            props.push(`role=${item.defaultRole}`);
         } else {
-            pattern?.role && props.push('role=' + pattern.role.toString());
+            pattern?.role && props.push(`role=${pattern.role.toString()}`);
         }
 
         if (pattern?.enums) {
@@ -923,7 +922,7 @@ class DialogEditDevice extends React.Component {
             } else if (type === 'door') {
                 props.push('enum door');
             } else {
-                props.push('enum ' + this.props.channelInfo.type);
+                props.push(`enum ${this.props.channelInfo.type}`);
             }
         }
 
@@ -950,7 +949,7 @@ class DialogEditDevice extends React.Component {
         if (typeof this.state.ids[name] === 'object') {
             return <div key={name + '_' + index}>
                 <div
-                    className={clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)}
+                    className={Utils.clsx(this.props.classes.divOidField, this.props.classes.divOidFieldObj)}
                     style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}
                 >
                     <div className={this.props.classes.displayFlex}>
@@ -958,9 +957,9 @@ class DialogEditDevice extends React.Component {
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
                                     <div className={this.props.classes.wrapperOidNameIcon}>
-                                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                                        <IconsState className={Utils.clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
                                     </div>
-                                    <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                                    <div className={Utils.clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_read')}</div>
                                     </div>
@@ -973,7 +972,7 @@ class DialogEditDevice extends React.Component {
                                     fullWidth
                                     disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                     value={this.state.ids[name].read}
-                                    className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                    className={Utils.clsx(this.props.classes.oidField, this.props.classes.width100)}
                                     style={{ paddingTop: 8 }}
                                     onChange={e => {
                                         const ids = JSON.parse(JSON.stringify(this.state.ids));
@@ -997,9 +996,9 @@ class DialogEditDevice extends React.Component {
                             <Tooltip title={titleTooltip}>
                                 <div className={this.props.classes.wrapperOidName}>
                                     <div className={this.props.classes.wrapperOidNameIcon}>
-                                        <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                                        <IconsState className={Utils.clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
                                     </div>
-                                    <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                                    <div className={Utils.clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                                         {(item.required ? '*' : '') + name}
                                         <div className={this.props.classes.stateSubCategory}>{I18n.t('alias_write')}</div>
                                     </div>
@@ -1012,7 +1011,7 @@ class DialogEditDevice extends React.Component {
                                     fullWidth
                                     disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                     value={this.state.ids[name].write}
-                                    className={clsx(this.props.classes.oidField, this.props.classes.width100)}
+                                    className={Utils.clsx(this.props.classes.oidField, this.props.classes.width100)}
                                     style={{ paddingTop: 8 }}
                                     onChange={e => {
                                         const ids = JSON.parse(JSON.stringify(this.state.ids));
@@ -1056,7 +1055,7 @@ class DialogEditDevice extends React.Component {
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
                             <IconButton
                                 size="small"
-                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                className={Utils.Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
                             >
                                 <IconEdit />
@@ -1076,13 +1075,13 @@ class DialogEditDevice extends React.Component {
                 </div>
             </div>;
         } else {
-            return <div key={name + '_' + index} className={clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+            return <div key={name + '_' + index} className={Utils.clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
                 <Tooltip title={titleTooltip}>
                     <div className={this.props.classes.wrapperOidName}>
                         <div className={this.props.classes.wrapperOidNameIcon}>
-                            <IconsState className={clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
+                            <IconsState className={Utils.clsx(this.props.classes.oidNameIcon, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} />
                         </div>
-                        <div className={clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
+                        <div className={Utils.clsx(this.props.classes.oidName, isAddedName === 'add' && this.props.classes.addedName, isAddedName === 'indicators' && this.props.classes.indicators)} style={{ fontWeight: item.required ? 'bold' : null }}>
                             {(item.required ? '*' : '') + name}
                         </div>
                     </div>
@@ -1133,7 +1132,7 @@ class DialogEditDevice extends React.Component {
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
                             <IconButton
                                 size="small"
-                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                className={Utils.Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
                             >
                                 <IconEdit />
@@ -1156,7 +1155,7 @@ class DialogEditDevice extends React.Component {
     }
 
     renderVariables() {
-        return <div key="vars" className={clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
+        return <div key="vars" className={Utils.clsx(this.props.classes.divOids, this.props.classes.divCollapsed)}>
             {this.props.channelInfo.states.filter(item => !item.indicator && item.defaultRole).map((item, i) => this.renderVariable(item, 'def', i))}
             {this.state.extendedAvailable && this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
             {this.state.indicatorsVisible && this.state.showIndicators && this.state.indicatorsAvailable &&

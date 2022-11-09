@@ -70,21 +70,19 @@ const useStyles = makeStyles(theme => ({
     },
     minField: {
         marginTop: 10,
-        marginRight: 10
-
+        marginRight: 10,
     },
     maxField: {
-        marginTop: 10
-
+        marginTop: 10,
     },
     minMax: {
-        display: 'flex'
+        display: 'flex',
     },
     overflowText:{
         '& h2':{
             overflow: 'hidden',
-            textOverflow: 'ellipsis'
-        }
+            textOverflow: 'ellipsis',
+        },
     },
     '@media screen and (max-width: 450px)': {
         paper: {
@@ -92,9 +90,9 @@ const useStyles = makeStyles(theme => ({
             width: 'calc(100% - 12px)',
             height: 'calc(100% - 12px)',
             maxHeight:'calc(100% - 12px)',
-            margin: 0
-        }
-    }
+            margin: 0,
+        },
+    },
 }));
 
 const typeArray = [
