@@ -5,8 +5,7 @@ import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import { Paper } from '@mui/material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Loader from '@iobroker/adapter-react-v5/Components/Loader'
+import { Utils, AdminConnection, Loader } from '@iobroker/adapter-react-v5';
 // import ToggleThemeMenu from './Components/ToggleThemeMenu';
 
 import TabDevices from './Tabs/ListDevices';
@@ -36,6 +35,7 @@ class App extends GenericApp {
     constructor(props) {
         const extendedProps = { ...props };
         extendedProps.bottomButtons = false;
+        extendedProps.Connection = AdminConnection;
         extendedProps.adapterName = 'devices';
         extendedProps.translations = {
             en: require('./i18n/en'),
