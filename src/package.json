@@ -9,7 +9,7 @@
         "@mui/icons-material": "^5.11.0",
         "@mui/styles": "^5.11.7",
         "babel-eslint": "^10.1.0",
-        "@sentry/browser": "^7.28.1",
+        "@sentry/browser": "^7.34.0",
         "@sentry/integrations": "^7.28.1",
         "del": "^6.1.1",
         "gulp": "^4.0.2",
