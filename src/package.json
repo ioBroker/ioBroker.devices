@@ -15,7 +15,7 @@
         "gulp": "^4.0.2",
         "react": "^18.2.0",
         "react-color": "^2.19.3",
-        "react-cropper": "^2.1.8",
+        "react-cropper": "^2.3.2",
         "react-dnd": "^16.0.1",
         "react-dnd-html5-backend": "^16.0.1",
         "react-dnd-touch-backend": "^16.0.1",
