@@ -1923,6 +1923,8 @@ class ListDevices extends Component {
             } else {
                 if (obj.common.smartName) {
                     obj.common.smartName[language] = '';
+                } else {
+                    obj.common.smartName = null; //just delete smartName: false setting from common.
                 }
             }
         }
