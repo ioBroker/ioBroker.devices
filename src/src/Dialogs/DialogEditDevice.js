@@ -1036,7 +1036,7 @@ class DialogEditDevice extends React.Component {
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
                             <IconButton
                                 size="small"
-                                className={Utils.Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
                             >
                                 <IconEdit />
@@ -1113,7 +1113,7 @@ class DialogEditDevice extends React.Component {
                         {isAddedName === 'add' && <Tooltip title={I18n.t('Edit state')}>
                             <IconButton
                                 size="small"
-                                className={Utils.Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
+                                className={Utils.clsx(this.props.classes.addedName, this.props.classes.button)}
                                 onClick={() => this.setState({ dialogAddState: { onClose: true, editState: item.id, item, name } })}
                             >
                                 <IconEdit />
