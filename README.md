@@ -27,9 +27,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
-* (Garfonso) fix problem with editing imported states
-* (Garfonso) fix warning
-* (Garfonso) fix enabling iot again (without setting a custom smartName)
+* (Garfonso) fix: problem with editing imported states
+* (Garfonso) fix: warning
+* (Garfonso) fix: enabling iot again (without setting a custom smartName)
 
 ## Changelog
 ### 1.1.3 (2023-05-16)
