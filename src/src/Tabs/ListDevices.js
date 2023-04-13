@@ -2159,7 +2159,7 @@ class ListDevices extends Component {
                             stateObj.common.alias.write = data.fx[state.name].write;
                         }
 
-                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
+                        common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed';
 
                         if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
@@ -2249,7 +2249,7 @@ class ListDevices extends Component {
                             if (state.defaultStates) {
                                 common.states = state.defaultStates;
                             }
-                            common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state';
+                            common.type = state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed';
 
                             if (state.defaultMin !== undefined) {
                                 common.min = state.defaultMin;
@@ -2540,7 +2540,7 @@ class ListDevices extends Component {
                 const common = {
                     name: state.name,
                     role: state.defaultRole,
-                    type: state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'state',
+                    type: state.type ? (typeof state.type === 'object' ? state.type[0] : state.type) : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed',
                     read: state.read === undefined ? true : state.read,
                     write: state.write === undefined ? false : state.write,
                     alias: {
