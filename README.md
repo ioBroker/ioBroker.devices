@@ -26,6 +26,8 @@ Manage and create devices for using it in other adapters like material, iot,...
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (Garfonso) fix problem with editing imported states
 
 ## Changelog
 ### 1.1.3 (2023-05-16)
