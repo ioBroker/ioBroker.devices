@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "news": {
+      "1.1.3": {
+        "en": "Better behavior of category selection",
+        "de": "Besseres Verhalten der Kategorieauswahl",
+        "ru": "Лучшее поведение выбора категории",
+        "pt": "Melhor comportamento da seleção de categorias",
+        "nl": "Beter gedrag van categorie selectie",
+        "fr": "Meilleur comportement de sélection de catégorie",
+        "it": "Migliore comportamento della selezione di categoria",
+        "es": "Mejor comportamiento de la selección de la categoría",
+        "pl": "Lepsze zachowanie kategorii",
+        "uk": "Краще поведінка вибору категорії",
+        "zh-cn": "B. 改进类别选择行为"
+      },
       "1.1.2": {
         "en": "corrected the double states in light devices\nadded CIE color type as equivalent to `rgbSingle` type",
         "de": "die doppelten zustände in lichtgeräten korrigiert\nhinzugefügt CIE-Farbtyp als äquivalent zu rgbSingle-Typ",
@@ -76,18 +89,6 @@
         "es": "Edición corregida de carpetas.\nSe actualizaron algunas bibliotecas.",
         "pl": "Poprawiona edycja folderów\nZaktualizowano niektóre biblioteki",
         "zh-cn": "更正了文件夹的编辑\n更新了一些库"
-      },
-      "1.0.9": {
-        "en": "Implement the narrow rows",
-        "de": "Implementieren Sie die schmalen Reihen",
-        "ru": "Реализуйте узкие ряды",
-        "pt": "Implementar as linhas estreitas",
-        "nl": "Implementeer de smalle rijen",
-        "fr": "Implémenter les rangées étroites",
-        "it": "Implementa le file strette",
-        "es": "Implementar las filas estrechas",
-        "pl": "Zaimplementuj wąskie rzędy",
-        "zh-cn": "实施窄行"
       }
     },
     "title": "Manage devices",
