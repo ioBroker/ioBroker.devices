@@ -20,11 +20,9 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
+import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 
-const styles = theme => ({
+const styles = () => ({
     header: {
         width: '100%',
         fontSize: 16,
@@ -104,7 +102,7 @@ class DialogEditEnums extends React.Component {
     render() {
         return <Dialog
             key="enumDialog"
-            open={true}
+            open={!0}
             maxWidth={'sm'}
             onClose={() => this.handleOk()}
             aria-labelledby="alert-dialog-title"

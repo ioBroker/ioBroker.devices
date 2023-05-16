@@ -6,7 +6,6 @@
  **/
 import React from 'react';
 import PropTypes from 'prop-types';
-import clsx from 'clsx';
 import { withStyles } from '@mui/styles';
 
 import TextField from '@mui/material/TextField';
@@ -14,10 +13,9 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
+import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
 
@@ -30,7 +28,7 @@ const styles = theme => ({
     },
     oidName: {
         fontSize: 14,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
     oidField: {
         display: 'inline-block',
@@ -40,8 +38,8 @@ const styles = theme => ({
     colorButton: {
         marginLeft: 5,
         '&>div': {
-            width: '100%'
-        }
+            width: '100%',
+        },
     },
     divOids: {
         display: 'inline-block',
@@ -67,27 +65,27 @@ const styles = theme => ({
         color: '#ffffff',
     },
     headerButtons: {
-        textAlign: 'right'
+        textAlign: 'right',
     },
     enumIcon: {
         width: 24,
         height: 24,
-        marginRight: 10
+        marginRight: 10,
     },
     renderValueWrapper: {
-        display: 'flex'
+        display: 'flex',
     },
     renderValueCurrent: {
         display: 'flex',
         alignItems: 'center',
-        marginRight: 10
+        marginRight: 10,
     },
     funcDivEdit: {
-        width: '100%'
+        width: '100%',
     },
     funcEditName: {
         display: 'inline-block',
-        width: 85
+        width: 85,
     },
     funcEdit: {
         display: 'inline-block',
@@ -100,18 +98,18 @@ const styles = theme => ({
         marginLeft: 4,
         width: 32,
         height: 32,
-        color: '#888'
+        color: '#888',
     },
     disableSwitch: {
         '& .Mui-checked .MuiSwitch-thumb': {
-            background: '#ffb3ce'
-        }
+            background: '#ffb3ce',
+        },
     },
     disableSwitchLabel: {
         '& .MuiFormControlLabel-label': {
             fontSize: '0.75rem',
             opacity: 0.6,
-        }
+        },
     },
     dropZone: {
         textAlign: 'left',
@@ -119,39 +117,39 @@ const styles = theme => ({
     },
     wrapperColorFields:{
         display: 'flex',
-        width: '100%'
+        width: '100%',
     },
     '@media screen and (max-width: 650px)': {
         oidName: {
-            fontSize: 11
+            fontSize: 11,
         },
         oidField: {
             '& input': {
-                fontSize: 12
+                fontSize: 12,
             },
             '& p': {
-                fontSize: 7
+                fontSize: 7,
             },
         },
         renderValueCurrent: {
-            fontSize: 12
+            fontSize: 12,
         },
         enumIcon: {
             width: 14,
             height: 14,
-            marginRight: 5
+            marginRight: 5,
         },
         disableSwitchLabel: {
             '& span': {
-                fontSize: 11
+                fontSize: 11,
             }
         },
-        wrapperColorFields:{
-            flexDirection: 'column'
+        wrapperColorFields: {
+            flexDirection: 'column',
         },
-        colorButton:{
-            marginLeft:0
-        }
+        colorButton: {
+            marginLeft: 0,
+        },
     }
 });
 
@@ -193,6 +191,7 @@ class DialogEditProperties extends React.PureComponent {
             name,
             initName: name,
             smartName,
+            open: {},
         };
     }
 
@@ -235,15 +234,13 @@ class DialogEditProperties extends React.PureComponent {
     }
 
     renderSelectEnum(name) {
-        const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
+        const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
         const language = I18n.getLanguage();
-        const objs = enums.map(id => {
-            return {
-                name: Utils.getObjectName(this.props.objects, id, { language }),
-                icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                id: id
-            }
-        });
+        const objs = enums.map(id => ({
+            name: Utils.getObjectName(this.props.objects, id, { language }),
+            icon: Utils.getObjectIcon(id, this.props.objects[id]),
+            id,
+        }));
 
         return <Select
             variant="standard"
@@ -251,15 +248,16 @@ class DialogEditProperties extends React.PureComponent {
             value={this.state[name]}
             fullWidth
             multiple
+            open={!!this.state.open[name]}
+            onClick={() => this.setState({ open: { [name]: !this.state.open[name] } })}
             disabled={this.props.disabled}
+            onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
             renderValue={arrId => {
-                const newArr = arrId.map(id => {
-                    return {
-                        name: Utils.getObjectName(this.props.objects, id, { language }),
-                        icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                        id: id
-                    }
-                });
+                const newArr = arrId.map(id => ({
+                    name: Utils.getObjectName(this.props.objects, id, { language }),
+                    icon: Utils.getObjectIcon(id, this.props.objects[id]),
+                    id,
+                }));
 
                 return <div className={this.props.classes.renderValueWrapper}>
                     {newArr.map(obj => <div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
@@ -268,11 +266,10 @@ class DialogEditProperties extends React.PureComponent {
                     </div>)}
                 </div>
             }}
-            onChange={e => {
-                this.setState({ [name]: e.target.value })
-            }}
+            onChange={e => this.setState({ [name]: e.target.value, open: { [name]: false } })}
         >
             {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                <Checkbox checked={this.state[name].includes(obj.id)} />
                 {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                 {obj.name}
             </MenuItem>)}
@@ -403,7 +400,7 @@ class DialogEditProperties extends React.PureComponent {
                         style={{ width: 40 }}
                         disabled={disabled}
                         value={this.state.color || ''}
-                        className={clsx(classes.oidField, classes.colorButton)}
+                        className={Utils.clsx(classes.oidField, classes.colorButton)}
                         onChange={e => this.setState({ color: e.target.value })}
                         margin="normal"
                     />

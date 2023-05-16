@@ -26,7 +26,7 @@ import IconClose from '@mui/icons-material/Close';
 import IconDelete from '@mui/icons-material/Delete';
 import IconDragHandle from '@mui/icons-material/DragHandle';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
+import { I18n } from '@iobroker/adapter-react-v5';
 const DragHandle = SortableHandle(() => <IconDragHandle style={{cursor: 'grab'}}/>);
 
 const SortableItem = SortableElement(({item, ownIndex, onDelete, onChange}) =>
@@ -95,7 +95,7 @@ class DialogEditStates extends React.Component {
 
     render() {
         return <Dialog
-            open={true}
+            open={!0}
             disableBackdropClick
             disableEscapeKeyDown
         >

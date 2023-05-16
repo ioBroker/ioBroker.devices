@@ -17,6 +17,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import { Paper, Tooltip } from '@mui/material';
 
 import { FaFolderOpen as IconFolderOpened } from 'react-icons/fa';
 import { FaFolder as IconFolder } from 'react-icons/fa';
@@ -30,11 +31,7 @@ import { MdCheck as IconOK } from 'react-icons/md';
 import { MdCancel as IconCancel } from 'react-icons/md';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import { Paper, Tooltip } from '@mui/material';
-import clsx from 'clsx';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
+import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 
 const LEVEL_OFFSET = 14;
 
@@ -551,7 +548,7 @@ class TreeView extends React.Component {
             {item.icon && <Icon className={this.props.classes.iconCommon} alt={item.type} src={item.icon} />}
             <div
                 style={this.getTextStyle(item)}
-                className={clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
+                className={Utils.clsx(item.id === this.state.selected && this.props.classes.selected, this.props.classes.fontStyle)}
 
             >{title}</div>
             <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</ListItemSecondaryAction>
@@ -569,7 +566,7 @@ class TreeView extends React.Component {
         const result = [];
         items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
 
-        return <List key="list" dense={true} disablePadding={true} className={this.props.classes.list}>{result}</List>;
+        return <List key="list" dense disablePadding className={this.props.classes.list}>{result}</List>;
     }
 
     renderAddButton() {
@@ -613,7 +610,7 @@ class TreeView extends React.Component {
     }
 
     render() {
-        return <Paper className={clsx(this.props.classes.wrapperFoldersBlock, this.props.displayFlex && this.props.classes.displayFlex)}>
+        return <Paper className={Utils.clsx(this.props.classes.wrapperFoldersBlock, this.props.displayFlex && this.props.classes.displayFlex)}>
             {this.renderAddButton()}
             {this.renderTree()}
             {this.renderNewItemDialog()}

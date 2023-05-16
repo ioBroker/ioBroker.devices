@@ -1,43 +1,43 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-import {Types} from 'iobroker.type-detector';
+import { Types } from 'iobroker.type-detector';
 
-import {AiOutlineLineChart as TypeIconChart} from 'react-icons/ai';
+import { AiOutlineLineChart as TypeIconChart } from 'react-icons/ai';
 import TypeIconBlinds from '../icons/Jalousie';
 import TypeIconButton from '../icons/PushButton';
-import {GoDeviceCameraVideo as TypeIconCamera} from 'react-icons/go';
-import {FaExternalLinkSquareAlt as TypeIconURL} from 'react-icons/fa';
-import {FaImage as TypeIconImage} from 'react-icons/fa';
-import {FaRegLightbulb as TypeIconDimmer} from 'react-icons/fa';
+import { GoDeviceCameraVideo as TypeIconCamera } from 'react-icons/go';
+import { FaExternalLinkSquareAlt as TypeIconURL } from 'react-icons/fa';
+import { FaImage as TypeIconImage } from 'react-icons/fa';
+import { FaRegLightbulb as TypeIconDimmer } from 'react-icons/fa';
 import TypeIconDoor from '../icons/DoorOpened';
 import TypeIconFireAlarm from '../icons/FireOn';
 import TypeIconFloodAlarm from '../icons/FloodOn';
 import TypeIconGate from '../icons/Gate';
 import TypeIconHumidity from '../icons/Humidity';
-import {FaInfoCircle as TypeIconInfo} from 'react-icons/fa';
-import {FaLightbulb as TypeIconLight} from 'react-icons/fa';
-import {FaLock as TypeIconLock} from 'react-icons/fa';
-import {FaStreetView as TypeIconLocation} from 'react-icons/fa';
-import {FaStepForward as TypeIconMedia} from 'react-icons/fa';
+import { FaInfoCircle as TypeIconInfo } from 'react-icons/fa';
+import { FaLightbulb as TypeIconLight } from 'react-icons/fa';
+import { FaLock as TypeIconLock } from 'react-icons/fa';
+import { FaStreetView as TypeIconLocation } from 'react-icons/fa';
+import { FaStepForward as TypeIconMedia } from 'react-icons/fa';
 import TypeIconMotion from '../icons/MotionOn';
 import TypeIconRGB from '../icons/RGB';
-import {MdFormatColorFill as TypeIconCT} from 'react-icons/md';
+import { MdFormatColorFill as TypeIconCT } from 'react-icons/md';
 import TypeIconRGBSingle from '../icons/RGB';
-import {MdFormatColorFill as TypeIconHUE} from 'react-icons/md';
-import {FaSlidersH as TypeIconSlider} from 'react-icons/fa';
+import { MdFormatColorFill as TypeIconHUE } from 'react-icons/md';
+import { FaSlidersH as TypeIconSlider } from 'react-icons/fa';
 import TypeIconSocket from '../icons/Socket';
 import TypeIconTemperature from '../icons/Thermometer';
 import TypeIconThermostat from '../icons/Thermostat';
 import TypeIconValve from '../icons/HeatValve';
-import {FaVolumeDown as TypeIconVolume} from 'react-icons/fa';
-import {FaVolumeUp as TypeIconVolumeGroup} from 'react-icons/fa';
+import { FaVolumeDown as TypeIconVolume } from 'react-icons/fa';
+import { FaVolumeUp as TypeIconVolumeGroup } from 'react-icons/fa';
 import TypeIconWindow from '../icons/WindowOpened';
 import TypeIconWindowTilt from '../icons/WindowTilted';
-import {WiCloudy as TypeIconWeather} from 'react-icons/wi';
-import {MdWarning as TypeIconWarning} from 'react-icons/md';
-import {FaFan as TypeIconAC} from 'react-icons/fa';
-import {IoIosRadioButtonOn as TypeIconButtonSensor} from 'react-icons/io';
+import { WiCloudy as TypeIconWeather } from 'react-icons/wi';
+import { MdWarning as TypeIconWarning } from 'react-icons/md';
+import { FaFan as TypeIconAC } from 'react-icons/fa';
+import { IoIosRadioButtonOn as TypeIconButtonSensor } from 'react-icons/io';
 import TypeIconVacuumCleaner from './icons/Cleaner';
 
 import IconAdapter from '@iobroker/adapter-react-v5/Components/Icon';
@@ -96,7 +96,12 @@ const defaultStyle = {
 class TypeIcon extends Component {
     render() {
         if (!!this.props.src) {
-            return <IconAdapter src={this.props.src} style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''} alt=""/>;
+            return <IconAdapter
+                src={this.props.src}
+                style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})}
+                className={this.props.className || ''}
+                alt=""
+            />;
         } else {
             const Icon = this.props.type && TYPE_ICONS[this.props.type];
             return Icon ? <Icon style={Object.assign({}, !this.props.className && defaultStyle, this.props.style || {})} className={this.props.className || ''}/> : null;

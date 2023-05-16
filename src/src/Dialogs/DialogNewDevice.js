@@ -22,9 +22,7 @@ import IconClose from '@mui/icons-material/Close';
 import IconCheck from '@mui/icons-material/Check';
 
 import { Types } from 'iobroker.type-detector';
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
+import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 
 // import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
@@ -62,7 +60,7 @@ const styles = theme => ({
         paddingRight: theme.spacing(1),
         verticalAlign: 'middle',
         width: 20,
-        height: 20
+        height: 20,
     },
     selectText: {
         verticalAlign: 'middle',
@@ -70,61 +68,61 @@ const styles = theme => ({
     enumIcon: {
         width: 24,
         height: 24,
-        marginRight: 10
+        marginRight: 10,
     },
     renderValueWrapper: {
-        display: 'flex'
+        display: 'flex',
     },
     renderValueCurrent: {
         display: 'flex',
         alignItems: 'center',
-        marginRight: 10
+        marginRight: 10,
     },
     blockFields: {
         display: 'flex',
         flex: 1,
         width: '100%',
         flexDirection: 'column',
-        margin: 5
+        margin: 5,
     },
     container: {
         display: 'flex',
         overflowX: 'hidden',
-        flexFlow: 'wrap'
+        flexFlow: 'wrap',
     },
     treeDiv: {
         width: '100%',
         flex: 1,
         margin: 5,
-        overflow: 'hidden'
+        overflow: 'hidden',
     },
     titleColor: {
         '& h2': {
             overflow: 'hidden',
             direction: 'rtl',
             textOverflow: 'ellipsis',
-            textAlign: 'end'
+            textAlign: 'end',
         },
     },
     iconStyle: {
         width: 16,
         height: 16,
-        margin: '0 3px'
+        margin: '0 3px',
     },
     emptyIcon: {
         width: 16,
         height: 16,
-        margin: '0 3px'
+        margin: '0 3px',
     },
     itemChildrenWrapper: {
         display: 'flex',
         width: '100%',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
     },
     iconWrapper: {
         display: 'flex',
-        alignItems: 'center'
-    }
+        alignItems: 'center',
+    },
 });
 
 const UNSUPPORTED_TYPES = [
@@ -189,7 +187,7 @@ class DialogNewDevice extends React.Component {
         this.typesWords = {};
         Object.keys(Types)
             .filter(id => !UNSUPPORTED_TYPES.includes(id))
-            .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
+            .forEach(typeId => this.typesWords[typeId] = I18n.t(`type-${Types[typeId]}`));
 
         // sort types by ABC in the current language
         this.types = Object.keys(this.typesWords).sort((a, b) => {
@@ -210,17 +208,17 @@ class DialogNewDevice extends React.Component {
                 name: this.props.objects[id] && this.props.objects[id].type === 'folder' ? Utils.getObjectName(this.props.objects, id, { language }) : getLastPart(id),
                 nondeletable: true,
                 color: this.props.objects[id]?.common && this.props.objects[id].common.color ? this.props.objects[id].common.color : null,
-                icon: this.props.objects[id]?.common && this.props.objects[id].common.icon ? this.props.objects[id].common.icon : null
+                icon: this.props.objects[id]?.common && this.props.objects[id].common.icon ? this.props.objects[id].common.icon : null,
             },
-            type: 'folder'
+            type: 'folder',
         });
 
         stateIds[this.prefix] = {
             common: {
                 name: I18n.t('Root'),
-                nondeletable: true
+                nondeletable: true,
             },
-            type: 'folder'
+            type: 'folder',
         };
         let functions = [];
         let rooms = [];
@@ -228,7 +226,7 @@ class DialogNewDevice extends React.Component {
             functions = JSON.parse(window.localStorage.getItem('Devices.new.functions') || '[]');
             rooms = JSON.parse(window.localStorage.getItem('Devices.new.rooms') || '[]');
         } catch (e) {
-
+            // ignore
         }
 
         let root = window.localStorage.getItem('NewDeviceRoot');
@@ -244,7 +242,7 @@ class DialogNewDevice extends React.Component {
                     parts = parts.join('.');
                     return checkIdSelected(parts);
                 }
-                return newPart
+                return newPart;
             }
             root = checkIdSelected();
         }
@@ -255,13 +253,14 @@ class DialogNewDevice extends React.Component {
 
         this.state = {
             root: root?.startsWith(this.prefix) ? root : this.prefix,
-            name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : I18n.t('Device') + ' ' + i,
+            name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : `${I18n.t('Device')} ${i}`,
             notUnique: false,
             functions,
             rooms,
             type: window.localStorage.getItem('Devices.newType') || 'light',
             ids: stateIds,
-            rootCheck: (root || this.prefix) === this.prefix ? this.prefix : null
+            rootCheck: (root || this.prefix) === this.prefix ? this.prefix : null,
+            open: {},
         };
     }
 
@@ -270,45 +269,46 @@ class DialogNewDevice extends React.Component {
     }
 
     renderSelectEnum(name, title) {
-        const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
+        const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
         const language = I18n.getLanguage();
-        const objs = enums.map(id => {
-            return {
-                name: Utils.getObjectName(this.props.objects, id, { language }),
-                icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                id: id
-            }
-        });
+        const objs = enums.map(id => ({
+            name: Utils.getObjectName(this.props.objects, id, { language }),
+            icon: Utils.getObjectIcon(id, this.props.objects[id]),
+            id,
+        }));
 
         return <FormControl className={this.props.classes.type} variant="standard">
             <InputLabel>{title}</InputLabel>
             <Select
                 variant="standard"
                 className={this.props.classes.oidField}
+                open={!!this.state.open[name]}
+                onClick={() => this.setState({ open: { [name]: !this.state.open[name] } })}
+                onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
                 fullWidth
                 multiple
-                renderValue={(arrId) => {
-                    const newArr = arrId.length && typeof arrId !== 'string' ? arrId.map(id => {
-                        return {
-                            name: Utils.getObjectName(this.props.objects, id, { language }),
-                            icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                            id: id
-                        }
-                    }) : [];
+                renderValue={arrId => {
+                    const newArr = arrId.length && typeof arrId !== 'string' ? arrId.map(id => ({
+                        name: Utils.getObjectName(this.props.objects, id, { language }),
+                        icon: Utils.getObjectIcon(id, this.props.objects[id]),
+                        id,
+                    })) : [];
+
                     return <div className={this.props.classes.renderValueWrapper}>
                         {newArr.map(obj => <div className={this.props.classes.renderValueCurrent} key={`${obj.id}-render`}>
                             {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                             {obj.name}
                         </div>)}
-                    </div>
+                    </div>;
                 }}
                 value={this.state[name] || []}
                 onChange={e => {
-                    localStorage.setItem('Devices.new.' + name, JSON.stringify(e.target.value));
-                    this.setState({ [name]: e.target.value });
+                    localStorage.setItem(`Devices.new.${name}`, JSON.stringify(e.target.value));
+                    this.setState({ [name]: e.target.value, open: { [name]: false } });
                 }}
             >
                 {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
+                    <Checkbox checked={(this.state[name] || []).includes(obj.id)} />
                     {obj.icon ? <Icon className={this.props.classes.enumIcon} src={obj.icon} alt={obj.id} /> : <div className={this.props.classes.enumIcon} />}
                     {obj.name}
                 </MenuItem>)}
@@ -321,7 +321,7 @@ class DialogNewDevice extends React.Component {
     }
 
     async onCopyDevice(newChannelId) {
-        // if this is device not from linkeddevice or from alias
+        // if this is device not from linkeddevices or from alias
         this.channelId = this.props.copyDevice.channelId;
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
 
@@ -343,9 +343,9 @@ class DialogNewDevice extends React.Component {
                     icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
                 },
                 type: 'channel',
-                native: channelObj.native || {}
+                native: channelObj.native || {},
             },
-            enums: rooms.concat(functions)
+            enums: rooms.concat(functions),
         });
 
         states.forEach(state => {
@@ -353,7 +353,7 @@ class DialogNewDevice extends React.Component {
                 return;
             }
             const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
-            obj._id = newChannelId + '.' + state.name;
+            obj._id = `${newChannelId}.${state.name}`;
 
             if (!obj.native) {
                 obj.native = {};
@@ -383,7 +383,7 @@ class DialogNewDevice extends React.Component {
                 states: [],
                 color: null,
                 rooms: this.state.rooms,
-                prefix: this.prefix
+                prefix: this.prefix,
             });
         }
     }
@@ -408,7 +408,7 @@ class DialogNewDevice extends React.Component {
             _id: id,
             common: { name: { [I18n.getLanguage()]: name } },
             native: {},
-            type: 'folder'
+            type: 'folder',
         };
 
         await this.props.processTasks([{ id, obj }]);
@@ -417,7 +417,7 @@ class DialogNewDevice extends React.Component {
         const ids = JSON.parse(JSON.stringify(this.state.ids));
         ids[id] = {
             common: { name },
-            type: 'folder'
+            type: 'folder',
         };
         this.prefix = id;
         await this.setStateAsync({ ids, root: id });
@@ -427,9 +427,9 @@ class DialogNewDevice extends React.Component {
         const classes = this.props.classes;
 
         return <Dialog
-            open={true}
+            open={!0}
             maxWidth="md"
-            fullWidth={true}
+            fullWidth
             onClose={() => this.handleCancel()}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
@@ -497,7 +497,7 @@ class DialogNewDevice extends React.Component {
                                         <div className={classes.iconWrapper}>{
                                             Object.keys(TYPE_OPTIONS[typeId])
                                                 .map(key => TYPE_OPTIONS[typeId][key] ?
-                                                    <Icon className={classes.iconStyle} src={ICONS_TYPE[key]} /> :
+                                                    <Icon key={key} className={classes.iconStyle} src={ICONS_TYPE[key]} /> :
                                                     <div key={key} className={classes.emptyIcon} />
                                                 )}
                                         </div>
@@ -527,8 +527,8 @@ class DialogNewDevice extends React.Component {
 }
 
 DialogNewDevice.defaultProps = {
-    selected: 'alias.0'
-}
+    selected: 'alias.0',
+};
 
 DialogNewDevice.propTypes = {
     onClose: PropTypes.func,

@@ -6,13 +6,13 @@ import { Cropper } from 'react-cropper';
 import 'cropperjs/dist/cropper.css';
 
 import { Menu, MenuItem, Tooltip } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
 
+import IconButton from '@mui/material/IconButton';
 import CropIcon from '@mui/icons-material/Crop';
 
 import IconPicker from '@iobroker/adapter-react-v5/Components/IconPicker';
 
-const styles = theme => ({
+const styles = () => ({
     image: {
         objectFit: 'contain',
         margin: 'auto',
@@ -25,16 +25,16 @@ const styles = theme => ({
         position: 'absolute',
         zIndex: 222,
         right: 0,
-        top: 50
+        top: 50,
     },
     buttonIconsWrapper: {
         position: 'absolute',
         zIndex: 222,
         right: 0,
-        top: 100
+        top: 100,
     },
     error: {
-        border: '2px solid red'
+        border: '2px solid red',
     },
     iconPickerLabel: {
         fontSize: 20,
@@ -42,8 +42,8 @@ const styles = theme => ({
     },
     iconPickerIcon: {
         width: 32,
-        height: 'auto'
-    }
+        height: 'auto',
+    },
 });
 
 class UploadImage extends Component {

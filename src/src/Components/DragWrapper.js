@@ -1,8 +1,9 @@
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import { TableRow } from '@mui/material';
 import React, { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
+
+import { TableRow } from '@mui/material';
+
+import { Utils, I18n } from '@iobroker/adapter-react-v5';
 
 const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteDevice, deviceIdx, id, children, style, className, onClick }) => {
     const ref = useRef(null);
@@ -10,9 +11,8 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
     const [{ isDragging }, dragRef] = useDrag({
         type: 'box',
         item: { id, deviceIdx },
-        canDrag:()=>{
+        canDrag: () => {
             return !id?.includes('linked_devices') && !id?.includes('linkeddevices.0');
-
         },
         end: async (item, monitor) => {
             let parts;
@@ -57,7 +57,7 @@ const DragWrapper = ({ openFolder, backgroundRow, objects, onCopyDevice, deleteD
         collect: (monitor) => ({
             handlerId: monitor.getHandlerId(),
             isOver: monitor.isOver(),
-            canDrop: monitor.canDrop()
+            canDrop: monitor.canDrop(),
         }),
         drop: async (item) => {
             let parts;

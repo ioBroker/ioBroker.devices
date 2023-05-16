@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2022 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2023 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -7,7 +7,6 @@
 import React, { Component, createRef } from 'react';
 import { withStyles } from '@mui/styles';
 import PropTypes from 'prop-types';
-import clsx from 'clsx';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
@@ -48,13 +47,15 @@ import FileCopyIcon from '@mui/icons-material/FileCopy';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
 import { Types } from 'iobroker.type-detector';
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import MessageDialog from '@iobroker/adapter-react-v5/Dialogs/Message';
-import Router from '@iobroker/adapter-react-v5/Components/Router';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
-import SelectWithIcon from '@iobroker/adapter-react-v5/Components/SelectWithIcon';
-import { withWidth } from '@iobroker/adapter-react-v5';
+import {
+    Icon,
+    Utils,
+    I18n,
+    withWidth,
+    Message as MessageDialog,
+    Router,
+    SelectWithIcon
+} from '@iobroker/adapter-react-v5';
 
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
@@ -106,11 +107,11 @@ const TYPES_MAPPING = {
     value: 'number',
     level: 'number',
     indicator: 'boolean',
-    action: 'boolean'
+    action: 'boolean',
 };
 
 const UNSUPPORTED_TYPES = [
-    Types.unknown
+    Types.unknown,
 ];
 
 function getParentId(id) {
@@ -158,7 +159,7 @@ const prepareList = (data, root, objects) => {
             importer: !!obj?.importer,
             originalId: obj?.native?.originalId || null,
             parent: parts.length > 2 ? parts.join('.') : null,
-            instance: obj.common?.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null
+            instance: obj.common?.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null,
         });
     }
 
@@ -200,10 +201,10 @@ const prepareList = (data, root, objects) => {
     result.forEach((item, i) => item.index = i);
 
     let modified;
-    const regEx = new RegExp('^' + root.replace(/\./g, '\\.'));
+    const regEx = new RegExp(`^${root.replace(/\./g, '\\.')}`);
     do {
         modified = false;
-        // check if all parents exists
+        // check if all parents exist
 
         // eslint-disable-next-line no-loop-func
         result.forEach(item => {
@@ -228,7 +229,7 @@ const prepareList = (data, root, objects) => {
                         showId: !!obj?.showId,
                         originalId: obj?.native?.originalId || null,
                         importer: !!obj?.importer,
-                        parent: parts.length >= 2 ? parts.join('.') : null
+                        parent: parts.length >= 2 ? parts.join('.') : null,
                     });
                     modified = true;
                 }
@@ -256,7 +257,7 @@ const WIDTHS = [
     1250,
     600,
     500,
-    450
+    450,
 ];
 
 const ALIAS = 'alias.';
@@ -266,28 +267,28 @@ const IS_CHROME = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(naviga
 const styles = theme => ({
     tab: {
         width: '100%',
-        height: '100%'
+        height: '100%',
     },
     column: {
         display: 'inline-block',
         verticalAlign: 'top',
         marginRight: 20,
         height: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
     },
     columnDiv: {
         height: 'calc(100% - 40px)',
         overflow: 'auto',
-        minWidth: 300
+        minWidth: 300,
     },
     filter: {
         margin: 0,
     },
     button: {
-        marginRight: 20
+        marginRight: 20,
     },
     buttonLinkedDevices: {
-        background: '#17faff'
+        background: '#17faff',
     },
     devLineExpand: {
         marginRight: 10,
@@ -300,12 +301,12 @@ const styles = theme => ({
     devLineEdit: {
         position: 'absolute',
         top: 5,
-        right: 50
+        right: 50,
     },
     devLineDelete: {
         position: 'absolute',
         top: 5,
-        right: 0
+        right: 0,
     },
     devLineName: {
 
@@ -316,7 +317,7 @@ const styles = theme => ({
         width: 15,
     },
     editedId: {
-        fontStyle: 'italic'
+        fontStyle: 'italic',
     },
     enumLineSubName: {
         fontStyle: 'italic',
@@ -324,12 +325,12 @@ const styles = theme => ({
     devLine: {
         height: 48,
         width: '100%',
-        position: 'relative'
+        position: 'relative',
     },
     devLineDescription: {
         display: 'block',
         fontStyle: 'italic',
-        fontSize: 12
+        fontSize: 12,
     },
     devLineActions: {
         fontStyle: 'italic',
@@ -343,57 +344,57 @@ const styles = theme => ({
         left: 0,
     },
     channelLineActions: {
-        width: 80
+        width: 80,
     },
     devLineNameBlock: {
         display: 'inline-block',
-        width: 'calc(100% - 350px)'
+        width: 'calc(100% - 350px)',
     },
     columnHeader: {
         background: theme.palette.primary.light,
         padding: 10,
-        color: theme.palette.primary.contrastText
+        color: theme.palette.primary.contrastText,
     },
     devModified: {
-        fontStyle: 'italic'
+        fontStyle: 'italic',
     },
     actionIcon: {
-        width: 16
+        width: 16,
     },
 
     devSubLine: {
         position: 'relative',
-        height: 48
+        height: 48,
     },
     devSubLineName: {
         marginLeft: 5,
         marginTop: 14,
         display: 'inline-block',
         fontSize: 13,
-        width: 'calc(100% - 400px)'
+        width: 'calc(100% - 400px)',
     },
     devSubSubLineName: {
         fontSize: 8,
         fontStyle: 'italic',
-        display: 'block'
+        display: 'block',
     },
     devSubLineByOn: {
-        marginLeft: 5
+        marginLeft: 5,
     },
     devSubLineDelete: {
         position: 'absolute',
         top: 12,
         right: 12,
-        padding: 0
+        padding: 0,
     },
     devSubLineEdit: {
         position: 'absolute',
         top: 12,
         right: 62,
-        padding: 0
+        padding: 0,
     },
     devSubLineTypeTitle: {
-        marginTop: 0
+        marginTop: 0,
     },
     orderSelector: {
         marginRight: 10,
@@ -408,11 +409,11 @@ const styles = theme => ({
     tableLine: {
         height: 50,
         '&:hover': {
-            background: `#3399cccc !important`,
+            background: `#3399CCCC !important`,
             '& *': {
-                color: '#ffffff !important'
-            }
-        }
+                color: '#FFFFFF !important',
+            },
+        },
     },
     tableIconImg: {
         width: 20,
@@ -427,7 +428,7 @@ const styles = theme => ({
         background: theme.palette.mode === 'dark' ? '#3b3b3b' : '#e0e0e0',
         borderRadius: 3,
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     tableNameCell: {
         whiteSpace: 'nowrap',
@@ -444,10 +445,10 @@ const styles = theme => ({
         maxWidth: 150,
         overflow: 'hidden',
         direction: 'rtl',
-        textAlign: 'left'
+        textAlign: 'left',
     },
     headerCell: {
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
     tableExpandIconCell: {
         padding: 0,
@@ -455,7 +456,7 @@ const styles = theme => ({
     },
     tableIconCell: {
         padding: 0,
-        width: 40
+        width: 40,
     },
     tableEditButtonCell: {
         padding: 0,
@@ -470,14 +471,14 @@ const styles = theme => ({
     },
     tableGroup: {
         background: theme.palette.secondary.main,
-        borderTop: '5px solid ' + theme.palette.background.paper,
+        borderTop: `5px solid ${theme.palette.background.paper}`,
     },
     tableGroupCell: {
         fontWeight: 'bold',
         fontSize: 18,
         color: '#FFF',
         cursor: 'pointer',
-        textTransform: 'uppercase'
+        textTransform: 'uppercase',
     },
     tableExpandIcon: {
         marginRight: 5,
@@ -491,7 +492,7 @@ const styles = theme => ({
     tableGroupIcon: {
         height: 20,
         marginRight: 5,
-        color: '#ffffff'
+        color: '#ffffff',
     },
 
     enumsEdit: {
@@ -505,29 +506,29 @@ const styles = theme => ({
             zIndex: 1,
             opacity: 0.7,
             borderRadius: 3,
-            background: 'gray'
+            background: 'gray',
         },
     },
     enumsEditFocusVisible: {},
     wrapperButtonEnum: {
         maxWidth: 200,
         display: 'flex',
-        overflow: 'hidden'
+        overflow: 'hidden',
     },
     emptyClear: {
-        width: 32
+        width: 32,
     },
     wrapperButton: {
         marginRight: 10,
         display: 'flex',
-        justifyContent: 'flex-end'
+        justifyContent: 'flex-end',
     },
     emptyBlock: {
-        width: 24
+        width: 24,
     },
     displayFlex: {
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     iconCommon: {
         width: 20,
@@ -535,23 +536,23 @@ const styles = theme => ({
         position: 'absolute',
         top: 10,
         left: 8,
-        opacity: 0.8
+        opacity: 0.8,
     },
     iconStyle: {
         position: 'relative',
-        minWidth: 24
+        minWidth: 24,
     },
     fontStyle: {
         // maxWidth: 160,
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
     wrapperTitleAndId: {
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
     },
     fontStyleId: {
         whiteSpace: 'nowrap',
@@ -560,13 +561,13 @@ const styles = theme => ({
         fontWeight: 'bold',
         fontSize: 9,
         opacity: 0.6,
-        fontStyle: 'italic'
+        fontStyle: 'italic',
     },
     wrapperIconEnumCell: {
         display: 'flex',
         alignItems: 'center',
         marginLeft: 3,
-        marginRight: 3
+        marginRight: 3,
     },
     enumIcon: {
         width: 16,
@@ -576,46 +577,45 @@ const styles = theme => ({
         marginRight: 4,
     },
     nameEnumCell: {
-        marginLeft: 3
+        marginLeft: 3,
     },
     emptyBlockFlex: {
-        flexGrow: 1
+        flexGrow: 1,
     },
     wrapperName: {
         fontWeight: 800,
         display: 'flex',
         alignItems: 'center',
-        marginRight: 10
+        marginRight: 10,
     },
     table: {
         '& th': {
-            background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white'
-        }
+            background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white',
+        },
     },
     spaceBetween: {
-        justifyContent: 'space-between'
-
+        justifyContent: 'space-between',
     },
     iconWrapper: {
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     iconStyleType: {
         width: 16,
         height: 16,
-        margin: '0 3px'
+        margin: '0 3px',
     },
     emptyIcon: {
         width: 16,
         height: 16,
-        margin: '0 3px'
+        margin: '0 3px',
     },
     typeCellNameAndIcon: {
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     iconOpen: {
-        transform: 'skew(147deg, 183deg) scale(0.5) translate(-43px, 11px)'
+        transform: 'skew(147deg, 183deg) scale(0.5) translate(-43px, 11px)',
     },
     hoverRow: {
         '&:hover:after': {
@@ -630,8 +630,8 @@ const styles = theme => ({
             left: 0,
             height: '100%',
             background: '#ffffff36',
-            pointerEvents: 'none'
-        }
+            pointerEvents: 'none',
+        },
     },
     selected: {
         background: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
@@ -639,64 +639,64 @@ const styles = theme => ({
     wrapperHeadButtons:{
         display: 'flex',
         overflowY: 'auto',
-        marginRight: 'auto'
+        marginRight: 'auto',
     },
     '@media screen and (max-width: 700px)': {
         hide700: {
-            display: 'none'
+            display: 'none',
         },
-        wrapperName:{
-            marginLeft:10
-        }
+        wrapperName: {
+            marginLeft: 10,
+        },
     },
     '@media screen and (max-width: 600px)': {
         emptyBlock: {
-            width: 24
+            width: 24,
         },
     },
     '@media screen and (max-width: 500px)': {
         wrapperTitleAndId: {
-            maxWidth: 200
+            maxWidth: 200,
         },
     },
     '@media screen and (max-width: 440px)': {
         wrapperTitleAndId: {
-            maxWidth: 150
+            maxWidth: 150,
         },
         fontStyle: {
-            fontSize: 11
+            fontSize: 11,
         },
         fontStyleId: {
-            fontSize: 7
+            fontSize: 7,
         },
         wrapperName:{
             '& span':{
-                display: 'none'
-            }
-        }
+                display: 'none',
+            },
+        },
     },
     '@media screen and (max-width: 360px)': {
         wrapperTitleAndId: {
-            maxWidth: 120
+            maxWidth: 120,
         },
     },
     filterType: {
-        minWidth: 100
+        minWidth: 100,
     },
     searchText: {
-        color: 'orange'
+        color: 'orange',
     },
     textStyle: {
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        padding: '0 16px 0 16px'
+        padding: '0 16px 0 16px',
     },
     cell: {
         padding: '0 24px 0 16px',
     },
     cellMobile: {
         padding: '6px 24px 6px 16px',
-    }
+    },
 });
 
 class ListDevices extends Component {
@@ -725,9 +725,9 @@ class ListDevices extends Component {
 
         const selected = window.localStorage.getItem('Devices.selected') || '';
         if (expandedIDs && selected) {
-            // be sure, that selected element is visible
+            // be sure that the selected element is visible
             const parts = selected.split('.');
-            let id = parts[0] + '.' + parts[1];
+            let id = `${parts[0]}.${parts[1]}`;
             for (let i = 2; i < parts.length; i++) {
                 id += '.' + parts[i];
                 if (!expandedIDs.includes(id)) {
@@ -904,27 +904,28 @@ class ListDevices extends Component {
         // List all devices in aliases
         const keys = Object.keys(this.objects).sort();
 
+        const END = `${LINKEDDEVICES}\u9999`;
         for (let i = 0; i < keys.length; i++) {
             if (keys[i] < ALIAS) {
                 // go to the next
             } else
-                if (keys[i] > LINKEDDEVICES + '\u9999') {
+                if (keys[i] > END) {
                     break;
                 } else
-                    if ((keys[i].startsWith(ALIAS) || keys[i].startsWith(LINKEDDEVICES)) && this.objects[keys[i]] && !idsInEnums.includes(keys[i])) {
-                        if (this.objects[keys[i]].type === 'device') {
-                            idsInEnums.push(keys[i]);
-                        } else if (this.objects[keys[i]].type === 'channel') {
-                            const parts = keys[i].split('.');
-                            parts.pop();
+                if ((keys[i].startsWith(ALIAS) || keys[i].startsWith(LINKEDDEVICES)) && this.objects[keys[i]] && !idsInEnums.includes(keys[i])) {
+                    if (this.objects[keys[i]].type === 'device') {
+                        idsInEnums.push(keys[i]);
+                    } else if (this.objects[keys[i]].type === 'channel') {
+                        const parts = keys[i].split('.');
+                        parts.pop();
 
-                            const parentId = parts.join('.');
-                            // if parent was not yet included
-                            if (!this.objects[parentId] || !idsInEnums.includes(parentId)) {
-                                idsInEnums.push(keys[i]);
-                            }
+                        const parentId = parts.join('.');
+                        // if parent was not yet included
+                        if (!this.objects[parentId] || !idsInEnums.includes(parentId)) {
+                            idsInEnums.push(keys[i]);
                         }
                     }
+                }
         }
 
         idsInEnums.sort();
@@ -1007,7 +1008,7 @@ class ListDevices extends Component {
                         ids.push(parentId);
                     }
                 } else
-                    if (id > prefix + '\u9999') {
+                    if (id > `${prefix}\u9999`) {
                         break;
                     }
         }
@@ -1016,18 +1017,18 @@ class ListDevices extends Component {
 
         Object.keys(Types)
             .filter(id => !UNSUPPORTED_TYPES.includes(id))
-            .forEach(typeId => this.typesWords[typeId] = I18n.t('type-' + Types[typeId]));
+            .forEach(typeId => this.typesWords[typeId] = I18n.t(`type-${Types[typeId]}`));
 
         // sort types by ABC in the current language
         this.types = Object.keys(this.typesWords).sort((a, b) => {
             if (this.typesWords[a] === this.typesWords[b]) {
                 return 0;
             } else
-                if (this.typesWords[a] > this.typesWords[b]) {
-                    return 1;
-                } else {
-                    return -1;
-                }
+            if (this.typesWords[a] > this.typesWords[b]) {
+                return 1;
+            } else {
+                return -1;
+            }
         });
 
         const stateIds = {};
@@ -1038,11 +1039,11 @@ class ListDevices extends Component {
                     name: objects[id]?.type === 'folder' ? Utils.getObjectName(objects, id, { language }) : getLastPart(id),
                     nondeletable: true,
                     color: objects[id]?.common?.color || null,
-                    icon: objects[id]?.common?.icon || this.searchIcon(id.channelId)
+                    icon: objects[id]?.common?.icon || this.searchIcon(id.channelId),
                 },
                 obj: objects[id],
                 type: objects[id].type,
-                role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null
+                role: objects[id].type !== 'folder' && objects[id].common ? objects[id].common.role || null : null,
             };
         });
 
@@ -1053,7 +1054,7 @@ class ListDevices extends Component {
                 noEdit: true,
                 showId: true,
             },
-            type: 'folder'
+            type: 'folder',
         };
 
         let devicesArr = devices || this.state.devices;
@@ -1062,37 +1063,37 @@ class ListDevices extends Component {
 
         devicesArr.forEach(device => {
             let [adapter, instance] = device.channelId.split('.');
-            const name = adapter + '-' + instance;
+            const name = `${adapter}-${instance}`;
             if (!stateIds[`${this.prefix}.automatically_detected.${name}`]) {
                 const instances = this.instances.find(inst => inst._id.replace('system.adapter.', '') === adapter);
                 stateIds[`${this.prefix}.automatically_detected.${name}`] = {
                     common: {
                         name,
                         nondeletable: true,
-                        icon: instances?.common?.extIcon || this.searchIcon(device.channelId)
+                        icon: instances?.common?.extIcon || this.searchIcon(device.channelId),
                     },
                     noEdit: true,
                     importer: true,
                     showId: true,
-                    // obj:instances,
-                    type: 'folder'
+                    // obj: instances,
+                    type: 'folder',
                 };
             }
         });
 
         devicesArr.forEach(device => {
             let [adapter, instance] = device.channelId.split('.');
-            const name = adapter + '-' + instance;
+            const name = `${adapter}-${instance}`;
             stateIds[`${this.prefix}.automatically_detected.${name}.${device.channelId.replace(/[\s.,%]/g, '')}`] = {
                 common: {
                     name: Utils.getObjectName(objects, device.channelId, { language }),
                     nondeletable: true,
                     color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId)
+                    icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId),
                 },
                 obj: objects[device.channelId],
                 type: objects[device.channelId]?.type,
-                role: device.type
+                role: device.type,
             };
         });
 
@@ -1106,10 +1107,9 @@ class ListDevices extends Component {
                     nondeletable: true,
                     noEdit: true,
                     showId: true,
-                    icon: <HiLink style={{ color: 'black' }} className={this.props.classes.iconCommon}
-                    />
+                    icon: <HiLink style={{ color: 'black' }} className={this.props.classes.iconCommon} />,
                 },
-                type: 'folder'
+                type: 'folder',
             };
 
             devicesArrLinkeddevices.forEach(device => {
@@ -1118,11 +1118,11 @@ class ListDevices extends Component {
                         name: Utils.getObjectName(objects, device.channelId, { language }),
                         nondeletable: true,
                         color: objects[device.channelId]?.common && objects[device.channelId].common.color ? objects[device.channelId].common.color : null,
-                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId)
+                        icon: objects[device.channelId]?.common && objects[device.channelId].common.icon ? objects[device.channelId].common.icon : this.searchIcon(device.channelId),
                     },
                     obj: objects[device.channelId],
                     type: objects[device.channelId]?.type,
-                    role: device.type
+                    role: device.type,
                 }
             });
         }
@@ -1144,7 +1144,8 @@ class ListDevices extends Component {
             channelId = stateId.substring(0, pos);
             if (!this.objects[channelId] ||
                 !this.objects[channelId].common ||
-                (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')) {
+                (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')
+            ) {
                 channelId = stateId;
             }
         }
@@ -1190,7 +1191,7 @@ class ListDevices extends Component {
         }
     }
 
-    searchIcon = (channelId) => {
+    searchIcon = channelId => {
         if (!this.objects) {
             return null;
         }
@@ -1239,7 +1240,7 @@ class ListDevices extends Component {
                 if (cIcon[0] === '/') {
                     instance[2] += cIcon;
                 } else {
-                    instance[2] += '/' + cIcon;
+                    instance[2] += `/${cIcon}`;
                 }
                 icon = `${imagePrefix}/adapter/${instance[2]}`;
             } else {
@@ -1247,7 +1248,7 @@ class ListDevices extends Component {
                 if (cIcon[0] === '/') {
                     instance[0] += cIcon;
                 } else {
-                    instance[0] += '/' + cIcon;
+                    instance[0] += `/${cIcon}`;
                 }
                 icon = `${imagePrefix}/adapter/${instance[0]}`;
             }
@@ -1300,7 +1301,7 @@ class ListDevices extends Component {
     onCopy(copyId, e) {
         e && e.preventDefault();
         e && e.stopPropagation();
-        this.setState({ copyId, showAddDialog: ALIAS + '0' });
+        this.setState({ copyId, showAddDialog: `${ALIAS}0` });
     }
 
     onEditEnum(values, enums, index) {
@@ -1338,7 +1339,7 @@ class ListDevices extends Component {
     }
 
     renderTypeCell(type) {
-        return <div className={clsx(this.props.classes.wrapperIconEnumCell, this.props.classes.spaceBetween)}>
+        return <div className={Utils.clsx(this.props.classes.wrapperIconEnumCell, this.props.classes.spaceBetween)}>
             <div className={this.props.classes.typeCellNameAndIcon}>
                 <TypeIcon className={this.props.classes.enumIcon} type={type} />
                 <div className={this.props.classes.nameEnumCell}>{I18n.t('type-' + type)}</div>
@@ -1347,8 +1348,7 @@ class ListDevices extends Component {
                 {TYPE_OPTIONS[type] ? Object.keys(TYPE_OPTIONS[type])
                     .map(key => TYPE_OPTIONS[type][key] ?
                         <Icon key={key} className={this.props.classes.iconStyleType} src={ICONS_TYPE[key]} title={I18n.t('Supported by "%s"', key)} /> :
-                        <div key={key} className={this.props.classes.emptyIcon} />
-                    )
+                        <div key={key} className={this.props.classes.emptyIcon} />)
                 : null}
             </div>
         </div>;
@@ -1455,6 +1455,7 @@ class ListDevices extends Component {
 
                 return null;
             }
+
             return <DialogDeleteFolder
                 onClose={(result, suppressQuestion) => {
                     const newState = { deleteFolderAndDevice: null };
@@ -1531,7 +1532,7 @@ class ListDevices extends Component {
         let countSpan = children.length ?
             <span className={this.props.classes.childrenCount}>{
                 children.length !== item.hasVisibleChildren ?
-                    item.hasVisibleChildren + ' (' + children.length + ')' : children.length}
+                    `${item.hasVisibleChildren} (${children.length})` : children.length}
             </span>
             : null;
 
@@ -1557,11 +1558,11 @@ class ListDevices extends Component {
 
         if (item.id === 'alias.0.automatically_detected') {
             iconStyle.color = colorNativeDevices;
-            backgroundRow = colorNativeDevices + '33';
+            backgroundRow = `${colorNativeDevices}33`;
         } else
         if (item.id === 'alias.0.linked_devices') {
             iconStyle.color = colorLinkedDevices;
-            backgroundRow = colorLinkedDevices + '33';
+            backgroundRow = `${colorLinkedDevices}33`;
         } else
         if ((item.id === 'alias.0.automatically_detected' || item.id === 'alias.0.linked_devices') && !countSpan) {
             return null;
@@ -1600,18 +1601,21 @@ class ListDevices extends Component {
             openFolder={() => this.toggleExpanded(item.id, true)}
             deviceIdx={deviceIdx}
             backgroundRow={backgroundRow}
-            className={Utils.clsx(this.props.classes.hoverRow, this.state.selected === item.id && this.props.classes.selected)}
+            className={Utils.Utils.clsx(this.props.classes.hoverRow, this.state.selected === item.id && this.props.classes.selected)}
             key={item.id || title}
             padding="default"
             onClick={() => this.onSelect(item.id)}
         >
             <TableCell
-                id={'td_' + item.id}
+                id={`td_${item.id}`}
                 colSpan={3}
                 size="small"
                 style={Object.assign({ maxWidth: 300 }, style)}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
-                className={clsx(this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile, item.type === 'folder' ? this.props.classes.folder : this.props.classes.element)}
+                className={Utils.clsx(
+                    this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile,
+                    item.type === 'folder' ? this.props.classes.folder : this.props.classes.element,
+                )}
             >
                 <div className={classes.displayFlex}>
                     <ListItemIcon className={this.props.classes.iconStyle}>
@@ -1626,7 +1630,7 @@ class ListDevices extends Component {
                                 </div>
                             </Tooltip>}
                         {item.type === 'folder' && item.icon &&
-                            <div className={clsx(isExpanded && this.props.classes.iconOpen)} onClick={() => this.toggleExpanded(item.id)}>
+                            <div className={Utils.clsx(isExpanded && this.props.classes.iconOpen)} onClick={() => this.toggleExpanded(item.id)}>
                                 <Icon className={this.props.classes.iconCommon} onClick={() => this.toggleExpanded(item.id)} alt={item.type} src={item.icon} />
                             </div>}
                     </ListItemIcon>
@@ -1639,11 +1643,11 @@ class ListDevices extends Component {
                         <div className={this.props.classes.wrapperTitleAndId}>
                             <div
                                 style={searchStyle}
-                                className={clsx(this.props.classes.fontStyle, this.props.classes.textStyle)}
+                                className={Utils.clsx(this.props.classes.fontStyle, this.props.classes.textStyle)}
                             >{title}</div>
                             {!item.showId && item.id !== 'alias.0.automatically_detected' && item.id !== 'alias.0.linked_devices' && <div
                                 style={searchStyle}
-                                className={clsx(this.props.classes.fontStyleId, this.props.classes.textStyle)}
+                                className={Utils.clsx(this.props.classes.fontStyleId, this.props.classes.textStyle)}
                             >{searchId}</div>}
                         </div>
                     </Tooltip>
@@ -1658,7 +1662,7 @@ class ListDevices extends Component {
             </TableCell> : null}
             {device && this.state.windowWidth >= WIDTHS[1 + j++] ? <TableCell size="small" className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>{this.renderTypeCell(device.type)}</TableCell> : null}
             {device && this.state.windowWidth >= WIDTHS[0] ? <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile}>{device.usedStates}</TableCell> : null}
-            {device && <TableCell align="right" size="small" className={clsx(this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile, classes.buttonsCell)}>
+            {device && <TableCell align="right" size="small" className={Utils.clsx(this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile, classes.buttonsCell)}>
                 <div className={classes.wrapperButton}>
                     <Tooltip title={I18n.t('Copy device')}>
                         <IconButton
@@ -1693,7 +1697,7 @@ class ListDevices extends Component {
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} />}
             {!device && this.state.windowWidth >= WIDTHS[1 + j++] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} />}
             {!device && this.state.windowWidth >= WIDTHS[0] && <TableCell className={this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile} size="small" colSpan={1} >{countSpan}</TableCell>}
-            {!device && <TableCell size="small" align="right" className={clsx(classes.buttonsCell, this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile)}>
+            {!device && <TableCell size="small" align="right" className={Utils.clsx(classes.buttonsCell, this.state.windowWidth > WIDTHS[2] ? this.props.classes.cell : this.props.classes.cellMobile)}>
                 {item.importer &&
                     <div className={classes.wrapperButton}>
                         <Tooltip title={I18n.t('Importer')}>
@@ -1779,7 +1783,7 @@ class ListDevices extends Component {
         let result = [];
         const noInfo = this.state.filter.noInfo;
         this.state.devices.forEach(el => (!noInfo || el.type !== 'info') && !result.includes(el.type) && result.push(el.type));
-        result = result.map(type => ({value: type, label: I18n.t('type-' + type)}));
+        result = result.map(type => ({value: type, label: I18n.t(`type-${type}`)}));
         result.sort((a, b) => a.label > b.label ? 1 : (a.label < b.label ? -1 : 0))
 
         return <Select
@@ -1789,7 +1793,7 @@ class ListDevices extends Component {
         >
             <MenuItem value={'_'}><span style={{color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'}}>{I18n.t('Type')}</span></MenuItem>
             {result.map(item => <MenuItem key={item.value} value={item.value}>
-                <TypeIcon className={clsx(this.props.classes.enumIcon, this.props.classes.iconInSelect)} type={item.value} />
+                <TypeIcon className={Utils.clsx(this.props.classes.enumIcon, this.props.classes.iconInSelect)} type={item.value} />
                 {item.label}
             </MenuItem>)}
         </Select>;
@@ -1804,8 +1808,8 @@ class ListDevices extends Component {
                 _id: '_',
                 common: {
                     name: I18n.t('Function'),
-                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'
-                }
+                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040',
+                },
             });
 
             return <SelectWithIcon
@@ -1829,8 +1833,8 @@ class ListDevices extends Component {
                 _id: '_',
                 common: {
                     name: I18n.t('Room'),
-                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040'
-                }
+                    color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040',
+                },
             });
 
             return <SelectWithIcon
@@ -1981,7 +1985,7 @@ class ListDevices extends Component {
                         try {
                             await this.addToEnum(enumId, task.id);
                         } catch (e) {
-                            window.alert('Cannot change enum: ' + e);
+                            window.alert(`Cannot change enum: ${e}`);
                         }
                     }
                 }
@@ -1989,7 +1993,7 @@ class ListDevices extends Component {
                 try {
                     await this.props.socket.setObject(task.id, task.obj);
                 } catch (e) {
-                    window.alert('Cannot change object: ' + e);
+                    window.alert(`Cannot change object: ${e}`);
                 }
             } else {
                 // delete
@@ -1999,7 +2003,7 @@ class ListDevices extends Component {
                         try {
                             await this.removeFromEnum(enumId, task.id);
                         } catch (e) {
-                            window.alert('Cannot change enum: ' + e);
+                            window.alert(`Cannot change enum: ${e}`);
                         }
                     }
                 }
@@ -2009,7 +2013,7 @@ class ListDevices extends Component {
     }
 
     onCopyDevice = async (id, newChannelId) => {
-        // if this is device not from linkeddevice or from alias
+        // if this is device not from linkeddevices or from alias
         const copyDevice = this.state.devices.find(device => device.channelId === id);
 
         if (!copyDevice) {
@@ -2057,15 +2061,15 @@ class ListDevices extends Component {
                 return;
             }
             const obj = JSON.parse(JSON.stringify(this.objects[state.id]));
-            obj._id = newChannelId + '.' + state.name;
+            obj._id = `${newChannelId}.${state.name}`;
 
             obj.native = {};
 
-            if(obj?.common?.custom){
+            if (obj?.common?.custom) {
                 delete obj.common.custom;
             }
 
-            if(obj?.common?.smartName){
+            if (obj?.common?.smartName) {
                 delete obj.common.smartName;
             }
 
@@ -2118,7 +2122,7 @@ class ListDevices extends Component {
                             }
                         } // else nothing changed
                     } else if (data.ids[state.name]) {
-                        state.id = state.id || (channelId + '.' + state.name);
+                        state.id = state.id || `${channelId}.${state.name}`;
 
                         // Object not yet exists or invalid
                         let stateObj;
@@ -2160,16 +2164,16 @@ class ListDevices extends Component {
                         if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
                         } else
-                            if (state.min !== undefined) {
-                                common.min = 0;
-                            }
+                        if (state.min !== undefined) {
+                            common.min = 0;
+                        }
 
                         if (state.defaultMax !== undefined) {
                             common.max = state.defaultMax;
                         } else
-                            if (state.max !== undefined) {
-                                common.max = 100;
-                            }
+                        if (state.max !== undefined) {
+                            common.max = 100;
+                        }
 
                         if (state.defaultUnit) {
                             common.unit = state.defaultUnit;
@@ -2209,7 +2213,7 @@ class ListDevices extends Component {
                                 }
                             } // else nothing changed
                         } else if (data.ids[state.name]) {
-                            state.id = state.id || (channelId + '.' + state.name);
+                            state.id = state.id || `${channelId}.${state.name}`;
 
                             // Object not yet exists or invalid
                             let stateObj;
@@ -2523,7 +2527,7 @@ class ListDevices extends Component {
                 color: options.color,
             },
             native: {},
-            type: 'channel'
+            type: 'channel',
         };
 
         // create channel
@@ -2540,8 +2544,8 @@ class ListDevices extends Component {
                     read: state.read === undefined ? true : state.read,
                     write: state.write === undefined ? false : state.write,
                     alias: {
-                        id: ''
-                    }
+                        id: '',
+                    },
                 };
                 if (state.defaultStates) {
                     common.states = state.defaultStates;
@@ -2569,12 +2573,12 @@ class ListDevices extends Component {
                     }
 
                 const obj = {
-                    _id: options.id + '.' + state.name,
+                    _id: `${options.id}.${state.name}`,
                     common,
                     native: {},
-                    type: 'state'
+                    type: 'state',
                 };
-                await this.props.socket.setObject(options.id + '.' + state.name, obj);
+                await this.props.socket.setObject(`${options.id}.${state.name}`, obj);
             }
 
             await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
@@ -2750,7 +2754,7 @@ class ListDevices extends Component {
                             <div>
                                 <IconButton
                                         disabled={disabledButtons}
-                                        onClick={() => this.setState({ showAddDialog: ALIAS + '0' })}>
+                                        onClick={() => this.setState({ showAddDialog: `${ALIAS}0` })}>
                                     <IconAdd color={this.state.viewCategory ? 'primary' : 'inherit'} />
                                 </IconButton>
                             </div>

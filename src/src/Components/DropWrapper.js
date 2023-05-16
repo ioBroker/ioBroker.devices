@@ -1,8 +1,9 @@
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import { TableRow } from '@mui/material';
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
+
+import { TableRow } from '@mui/material';
+
+import { Utils, I18n } from '@iobroker/adapter-react-v5';
 
 const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, children, className, backgroundRow, onClick }) => {
     const [error, setError] = useState(false);
@@ -24,7 +25,7 @@ const DropWrapper = ({ openFolder, objects, deleteDevice, onCopyDevice, id, chil
         collect: (monitor) => ({
             handlerId: monitor.getHandlerId(),
             isOver: monitor.isOver(),
-            canDrop: monitor.canDrop()
+            canDrop: monitor.canDrop(),
         }),
         drop: async (item) => {
             let parts;

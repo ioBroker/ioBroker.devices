@@ -14,9 +14,16 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import { AppBar, IconButton, LinearProgress, Paper, Tab, Tabs, Tooltip, Typography } from '@mui/material';
+import {
+    AppBar,
+    IconButton,
+    LinearProgress,
+    Paper,
+    Tab,
+    Tabs,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 
 import { MdEdit as IconEdit } from 'react-icons/md';
 import { MdOpenInNew as IconExtended } from 'react-icons/md';
@@ -29,9 +36,7 @@ import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import IconFunction from '@iobroker/adapter-react-v5/icons/IconFx';
 
-import DialogSelectID from '@iobroker/adapter-react-v5/Dialogs/SelectID';
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import { I18n, Utils, SelectID as DialogSelectID } from '@iobroker/adapter-react-v5';
 
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
@@ -595,7 +600,7 @@ class DialogEditDevice extends React.Component {
             dialogName="devicesEdit"
             title={this.state.newState ? I18n.t('Importer state') : I18n.t('Select for "%s"',  this.state.selectIdFor)}
             selected={selected || this.findRealDevice(this.state.selectIdPrefix)}
-            statesOnly={true}
+            statesOnly
             onOk={async id => {
                 const ids = JSON.parse(JSON.stringify(this.state.ids));
                 if (!this.state.newState) {
@@ -755,30 +760,6 @@ class DialogEditDevice extends React.Component {
         return realParent || '';
     }
 
-    renderSelectEnum(name) {
-        const enums = this.props.enumIDs.filter(id => id.startsWith('enum.' + name + '.'));
-        const language = I18n.getLanguage();
-        const objs = enums.map(id => {
-            return {
-                name: Utils.getObjectName(this.props.objects, id, { language }),
-                icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                id
-            }
-        });
-
-        return <Select
-            variant="standard"
-            className={this.props.classes.oidField}
-            value={this.state[name]}
-            multiple={true}
-            onChange={e => this.setState({ [name]: e.target.value })}
-        >
-            {objs.map(obj => <MenuItem key={obj.id} icon={obj.icon} value={obj.id}>
-                {obj.name}
-            </MenuItem>)}
-        </Select>;
-    }
-
     renderEditFxDialog() {
         if (!this.state.editFxFor) {
             return null;
@@ -786,7 +767,7 @@ class DialogEditDevice extends React.Component {
         const fx = this.fx[this.state.editFxFor];
 
         return <Dialog
-            open={true}
+            open={!0}
             key="editFxDialog"
             maxWidth="sm"
             onClose={() => this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' })}
@@ -1075,7 +1056,7 @@ class DialogEditDevice extends React.Component {
                 </div>
             </div>;
         } else {
-            return <div key={name + '_' + index} className={Utils.clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
+            return <div key={`${name}_${index}`} className={Utils.clsx(this.props.classes.divOidField)} style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}>
                 <Tooltip title={titleTooltip}>
                     <div className={this.props.classes.wrapperOidName}>
                         <div className={this.props.classes.wrapperOidNameIcon}>
@@ -1100,7 +1081,7 @@ class DialogEditDevice extends React.Component {
                             this.setState({ ids });
                         }}
                         FormHelperTextProps={{
-                            className: this.props.classes.helperText
+                            className: this.props.classes.helperText,
                         }}
                         helperText={props.join(', ')}
                         margin="normal"
@@ -1181,9 +1162,9 @@ class DialogEditDevice extends React.Component {
     render() {
         return <Dialog
             key="editDialog"
-            open={true}
+            open={!0}
             maxWidth="md"
-            fullWidth={true}
+            fullWidth
             classes={{ paper: this.props.classes.mobileWidth }}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"

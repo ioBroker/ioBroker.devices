@@ -22,7 +22,7 @@
     "@alcalzone/release-script": "^3.5.9",
     "@alcalzone/release-script-plugin-iobroker": "^3.5.9",
     "@alcalzone/release-script-plugin-license": "^3.5.9",
-    "del": "^6.1.1",
+    "del": "^7.0.0",
     "gulp": "^4.0.2",
     "gulp-rename": "^2.0.0"
   },
@@ -39,7 +39,8 @@
     "release": "release-script",
     "release-patch": "release-script patch --yes",
     "release-minor": "release-script minor --yes",
-    "release-major": "release-script major --yes"
+    "release-major": "release-script major --yes",
+    "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd .."
   },
   "bugs": {
     "url": "https://github.com/ioBroker/ioBroker.devices/issues"

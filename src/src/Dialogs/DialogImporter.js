@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import clsx from 'clsx';
 import { makeStyles } from '@mui/styles';
 
 import Button from '@mui/material/Button';
@@ -20,10 +19,8 @@ import { MdModeEdit as IconEdit } from 'react-icons/md';
 import IconClose from '@mui/icons-material/Close';
 import IconCheck from '@mui/icons-material/Check';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
+import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 import theme from '@iobroker/adapter-react-v5/Theme';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
-import Icon from '@iobroker/adapter-react-v5/Components/Icon';
 
 import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
@@ -487,7 +484,7 @@ const DialogImporter = ({
             icon: Utils.getObjectIcon(id, objects[id]),
             name: Utils.getObjectName(objects, id, { language: I18n.getLanguage() }),
             id
-        })).map(obj => <div className={clsx(classes.wrapperIconEnumCell, name === 'rooms' && classes.enumsStyle)} key={obj.id}>
+        })).map(obj => <div className={Utils.clsx(classes.wrapperIconEnumCell, name === 'rooms' && classes.enumsStyle)} key={obj.id}>
             {obj.icon && <Icon className={classes.enumIcon} src={obj.icon} alt={obj.id} />}
             <div className={classes.nameEnumCell}>{obj.name}</div>
         </div>);
@@ -523,7 +520,7 @@ const DialogImporter = ({
     return <ThemeProvider theme={theme(Utils.getThemeName())}>
         <Dialog
             onClose={() => onClose()}
-            open={true}
+            open={!0}
             classes={{ paper: classes.paper }}
         >
             <DialogTitle>{I18n.t('Importer')} {item.title} → {selectFolder}{generateFolders()}</DialogTitle>
@@ -548,7 +545,7 @@ const DialogImporter = ({
                     open={openEdit}
                 />
                 <div className={classes.divOids}>
-                    <div className={clsx(classes.flex, classes.wrapperDevices, startTheProcess && classes.startTheProcess)}>
+                    <div className={Utils.clsx(classes.flex, classes.wrapperDevices, startTheProcess && classes.startTheProcess)}>
                         <TreeView
                             themeType={Utils.getThemeType()}
                             theme={theme(Utils.getThemeName())}
@@ -560,10 +557,10 @@ const DialogImporter = ({
                             disabled={startTheProcess}
                         />
                     </div>
-                    <div className={clsx(classes.flex, classes.wrapperCloning)}>
+                    <div className={Utils.clsx(classes.flex, classes.wrapperCloning)}>
                         {startTheProcess && <LinearProgress />}
                         <div className={classes.header}>
-                            <div className={clsx(classes.headerWrapElement, startTheProcess && classes.startTheProcess)}>
+                            <div className={Utils.clsx(classes.headerWrapElement, startTheProcess && classes.startTheProcess)}>
                                 <Checkbox
                                     disabled={!arrayDevice.length || startTheProcess}
                                     checked={arrayDevice.length === checkedSelect.length || ((arrayDevice.length !== checkedSelect.length) && checkedSelect.length !== 0)}
@@ -611,11 +608,11 @@ const DialogImporter = ({
                                     label={I18n.t('do not export devices without category')}
                                 />}
                         </div>
-                        <div className={clsx(classes.wrapperItems, startTheProcess && classes.startTheProcess)}>
+                        <div className={Utils.clsx(classes.wrapperItems, startTheProcess && classes.startTheProcess)}>
                             {!arrayDevice.length && <div className={classes.emptyList}>
                                 {I18n.t('The list of devices to copy is empty')}
                             </div>}
-                            {arrayDevice.map(device => <div className={clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed, checkEnumsScip(device.id) && classes.backgroundSilver)} key={device.id}>
+                            {arrayDevice.map(device => <div className={Utils.clsx(classes.deviceWrapper, checkDeviceInObjects(device.title, device.id) && classes.backgroundRed, checkEnumsScip(device.id) && classes.backgroundSilver)} key={device.id}>
                                 <div className={classes.wrapperNameAndId}>
                                     <div className={classes.wrapperCheckbox}>
                                         <Checkbox
