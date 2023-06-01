@@ -22,7 +22,7 @@
         "react-sortable-hoc": "^2.0.0",
         "react-dom": "^18.2.0",
         "react-dropzone": "^14.2.3",
-        "react-icons": "^4.8.0",
+        "react-icons": "^4.9.0",
         "react-image-crop": "^10.0.9",
         "react-input-color": "^4.0.1",
         "react-scripts": "^5.0.1"
