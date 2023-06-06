@@ -28,6 +28,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Updated packages
+
 ### 1.1.3 (2023-05-16)
 * (bluefox) Better behavior of category selection
 

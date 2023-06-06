@@ -1601,7 +1601,7 @@ class ListDevices extends Component {
             openFolder={() => this.toggleExpanded(item.id, true)}
             deviceIdx={deviceIdx}
             backgroundRow={backgroundRow}
-            className={Utils.Utils.clsx(this.props.classes.hoverRow, this.state.selected === item.id && this.props.classes.selected)}
+            className={Utils.clsx(this.props.classes.hoverRow, this.state.selected === item.id && this.props.classes.selected)}
             key={item.id || title}
             padding="default"
             onClick={() => this.onSelect(item.id)}
