@@ -26,13 +26,12 @@ Manage and create devices for using it in other adapters like material, iot,...
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.1.5 (2023-06-06)
 * (Garfonso) fixed: problem with editing imported states
 * (Garfonso) fixed: warning
 * (Garfonso) fixed: enabling iot again (without setting a custom smartName)
 * (Garfonso) fixed: possible crash / typo in 1.1.3.
 
-## Changelog
 ### 1.1.4 (2023-06-06)
 * (bluefox) Updated packages
 
