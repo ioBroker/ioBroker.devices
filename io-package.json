@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "news": {
+      "1.1.4": {
+        "en": "Updated packages",
+        "de": "Aktualisierte Pakete",
+        "ru": "Обновленные пакеты",
+        "pt": "Pacotes atualizados",
+        "nl": "Verouderde pakketten",
+        "fr": "Forfaits mis à jour",
+        "it": "Pacchetti aggiornati",
+        "es": "Paquetes actualizados",
+        "pl": "Pakiet upoważniony",
+        "uk": "Оновлені пакети",
+        "zh-cn": "最新一揽子计划"
+      },
       "1.1.3": {
         "en": "Better behavior of category selection",
         "de": "Besseres Verhalten der Kategorieauswahl",
@@ -77,18 +90,6 @@
         "es": "Actualización de algunas bibliotecas",
         "pl": "Upowszechnionych bibliotek",
         "zh-cn": "更新的一些图书馆"
-      },
-      "1.0.10": {
-        "en": "Corrected edit of folders\nUpdated some libraries",
-        "de": "Korrigierte Bearbeitung von Ordnern\nEinige Bibliotheken aktualisiert",
-        "ru": "Исправлено редактирование папок\nОбновлены некоторые библиотеки",
-        "pt": "Edição corrigida de pastas\nAtualizadas algumas bibliotecas",
-        "nl": "Gecorrigeerde bewerking van mappen\nEnkele bibliotheken bijgewerkt",
-        "fr": "Correction de l'édition des dossiers\nMise à jour de certaines bibliothèques",
-        "it": "Modifica delle cartelle corretta\nAggiornate alcune librerie",
-        "es": "Edición corregida de carpetas.\nSe actualizaron algunas bibliotecas.",
-        "pl": "Poprawiona edycja folderów\nZaktualizowano niektóre biblioteki",
-        "zh-cn": "更正了文件夹的编辑\n更新了一些库"
       }
     },
     "title": "Manage devices",

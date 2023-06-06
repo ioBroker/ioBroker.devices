@@ -10,9 +10,7 @@ import { Checkbox, DialogTitle, FormControlLabel, TextField, ThemeProvider } fro
 import IconClose from '@mui/icons-material/Close';
 import IconCheck from '@mui/icons-material/Check';
 
-import I18n from '@iobroker/adapter-react-v5/i18n';
-import theme from '@iobroker/adapter-react-v5/Theme';
-import Utils from '@iobroker/adapter-react-v5/Components/Utils';
+import { I18n, Utils, Theme }  from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
 
@@ -238,7 +236,7 @@ const DialogEditFolder = ({ onClose, data, socket, devices, objects, deleteDevic
 
     const id = getIdFromName();
 
-    return <ThemeProvider theme={theme(Utils.getThemeName())}>
+    return <ThemeProvider theme={Theme(Utils.getThemeName())}>
         <Dialog
             onClose={() => onCloseLocal()}
             open={!0}

@@ -33,6 +33,9 @@ Manage and create devices for using it in other adapters like material, iot,...
 * (Garfonso) fixed: possible crash / typo in 1.1.3.
 
 ## Changelog
+### 1.1.4 (2023-06-06)
+* (bluefox) Updated packages
+
 ### 1.1.3 (2023-05-16)
 * (bluefox) Better behavior of category selection
 
