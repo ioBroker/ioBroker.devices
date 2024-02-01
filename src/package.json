@@ -7,7 +7,7 @@
         "iobroker.type-detector": "^1.1.2",
         "@mui/material": "^5.14.4",
         "@mui/icons-material": "^5.14.3",
-        "@mui/styles": "^5.14.4",
+        "@mui/styles": "^5.15.7",
         "babel-eslint": "^10.1.0",
         "@sentry/browser": "^7.62.0",
         "@sentry/integrations": "^7.62.0",
