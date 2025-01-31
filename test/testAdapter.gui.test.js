@@ -18,7 +18,7 @@ describe('test-admin-gui', () => {
         this.timeout(15_000);
         return new Promise(resolve =>
             setTimeout(async () => {
-                await gPage.waitForSelector('.MuiTabs-root', { timeout: 15_000 });
+                await gPage.waitForSelector('.MuiPaper-root', { timeout: 15_000 });
                 resolve();
             }, 5000),
         );

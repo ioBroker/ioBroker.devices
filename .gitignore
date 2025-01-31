@@ -7,7 +7,7 @@ nbproject
 iobroker.*.tgz
 
 Thumbs.db
-
+/tmp
 # i18n intermediate files
 admin/i18n/flat.txt
 admin/i18n/*/flat.txt
