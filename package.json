@@ -1,50 +1,54 @@
 {
-  "name": "iobroker.devices",
-  "version": "1.1.5",
-  "description": "Manage and create devices for using it in other adapters like material, iot,...",
-  "author": {
-    "name": "bluefox",
-    "email": "dogafox@gmail.com"
-  },
-  "homepage": "https://github.com/ioBroker/ioBroker.devices",
-  "license": "MIT",
-  "keywords": [
-    "ioBroker",
-    "template",
-    "Smart Home",
-    "home automation"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ioBroker/ioBroker.devices"
-  },
-  "devDependencies": {
-    "@alcalzone/release-script": "^3.6.0",
-    "@alcalzone/release-script-plugin-iobroker": "^3.6.0",
-    "@alcalzone/release-script-plugin-license": "^3.5.9",
-    "gulp": "^4.0.2",
-    "gulp-rename": "^2.0.0"
-  },
-  "main": "admin/tab.html",
-  "files": [
-    "admin/",
-    "img/",
-    "io-package.json",
-    "LICENSE"
-  ],
-  "scripts": {
-    "prepublishOnly": "node node_modules/gulp/bin/gulp.js",
-    "build": "node node_modules/gulp/bin/gulp.js",
-    "release": "release-script",
-    "release-patch": "release-script patch --yes",
-    "release-minor": "release-script minor --yes",
-    "release-major": "release-script major --yes",
-    "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd ..",
-    "npm": "npm i && cd src && npm i -f"
-
-  },
-  "bugs": {
-    "url": "https://github.com/ioBroker/ioBroker.devices/issues"
-  },
-  "readmeFilename": "README.md"
+    "name": "iobroker.devices",
+    "version": "1.1.5",
+    "description": "Manage and create devices for using it in other adapters like material, iot,...",
+    "author": {
+        "name": "bluefox",
+        "email": "dogafox@gmail.com"
+    },
+    "homepage": "https://github.com/ioBroker/ioBroker.devices",
+    "license": "MIT",
+    "keywords": [
+        "ioBroker",
+        "template",
+        "Smart Home",
+        "home automation"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ioBroker/ioBroker.devices"
+    },
+    "devDependencies": {
+        "@alcalzone/release-script": "^3.8.0",
+        "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
+        "@alcalzone/release-script-plugin-license": "^3.7.0",
+        "@types/node": "^22.12.0",
+        "@iobroker/build-tools": "^2.0.15",
+        "@iobroker/eslint-config": "^1.0.0"
+    },
+    "main": "admin/tab.html",
+    "files": [
+        "admin/",
+        "img/",
+        "io-package.json",
+        "LICENSE"
+    ],
+    "scripts": {
+        "prepublishOnly": "node tasks",
+        "build": "node tasks",
+        "release": "release-script",
+        "release-patch": "release-script patch --yes",
+        "release-minor": "release-script minor --yes",
+        "release-major": "release-script major --yes",
+        "update-packages": "npx -y npm-check-updates --upgrade && cd src-admin && npx -y npm-check-updates --upgrade",
+        "npm": "npm i && cd src-admin && npm i -f",
+        "0-clean": "node tasks --0-clean",
+        "1-npm": "node tasks --1-npm",
+        "2-build": "node tasks --2-build",
+        "3-copy": "node tasks --3-copy"
+    },
+    "bugs": {
+        "url": "https://github.com/ioBroker/ioBroker.devices/issues"
+    },
+    "readmeFilename": "README.md"
 }
