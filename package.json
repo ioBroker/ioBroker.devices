@@ -29,7 +29,7 @@
         "@types/node": "^22.12.0",
         "chai": "^4.5.0",
         "colorette": "^2.0.20",
-        "mocha": "^11.0.1",
+        "mocha": "^11.1.0",
         "puppeteer": "^24.1.1"
     },
     "main": "admin/tab.html",
