@@ -4,16 +4,15 @@
  * MIT License
  *
  **/
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { Component } from 'react';
 
 import { TextField, Select, MenuItem, Switch, FormControlLabel, Checkbox, Box } from '@mui/material';
 
-import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type AdminConnection } from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
 
-const styles = {
+const styles: Record<string, any> = {
     divOidField: {
         width: '100%',
         display: 'block',
@@ -163,18 +162,58 @@ const styles = {
     },
 };
 
-class DialogEditProperties extends React.PureComponent {
-    constructor(props) {
+export interface DialogEditPropertiesState {
+    color?: string;
+    icon?: string;
+    functions?: string[];
+    rooms?: string[];
+    name?: string;
+    initName?: string;
+    smartName?: string | false;
+    open?: Record<string, boolean>;
+}
+
+interface DialogEditPropertiesProps {
+    onChange: (
+        data: DialogEditPropertiesState,
+        initState?: false | DialogEditPropertiesState,
+        nameError?: boolean,
+    ) => void;
+    changeProperties: DialogEditPropertiesState;
+    type: string;
+    iot?: string;
+    iotNoCommon?: boolean;
+    channelId: string;
+    objects: Record<string, ioBroker.Object>;
+    enumIDs: string[];
+    socket: AdminConnection;
+    disabled?: boolean;
+}
+
+class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEditPropertiesState> {
+    constructor(props: DialogEditPropertiesProps) {
         super(props);
 
         let name = '';
-        const channelObj = this.props.objects[this.props.channelId];
+        const channelObj: ioBroker.ChannelObject | undefined = this.props.objects[this.props.channelId] as
+            | ioBroker.ChannelObject
+            | undefined;
 
-        if (channelObj && channelObj.common) {
-            name =
-                Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() }) === 'undefined'
-                    ? channelObj.common.name[Object.keys(channelObj.common.name)[0]]
-                    : Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
+        if (channelObj?.common) {
+            const objName = Utils.getObjectNameFromObj(channelObj, I18n.getLanguage());
+            if (objName === undefined) {
+                if (typeof channelObj.common.name === 'string') {
+                    name = channelObj.common.name;
+                } else {
+                    name =
+                        channelObj.common.name[I18n.getLanguage()] ||
+                        channelObj.common.name.en ||
+                        channelObj.common.name[Object.keys(channelObj.common.name)[0] as ioBroker.Languages] ||
+                        '';
+                }
+            } else {
+                name = objName;
+            }
         }
 
         const functions = this.props.enumIDs.filter(id => {
@@ -182,7 +221,7 @@ class DialogEditProperties extends React.PureComponent {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.includes(this.props.channelId);
+            return obj?.common?.members?.includes(this.props.channelId);
         });
 
         const rooms = this.props.enumIDs.filter(id => {
@@ -190,17 +229,17 @@ class DialogEditProperties extends React.PureComponent {
                 return false;
             }
             const obj = this.props.objects[id];
-            return obj && obj.common && obj.common.members && obj.common.members.includes(this.props.channelId);
+            return obj?.common?.members?.includes(this.props.channelId);
         });
 
         // ;common.custom[adapter.namespace].smartName
-        let smartName = this.getSmartName(channelObj);
+        const smartName = channelObj ? this.getSmartName(channelObj as any as ioBroker.StateObject) : false;
 
         this.state = Object.keys(this.props.changeProperties).length
             ? this.props.changeProperties
             : {
-                  color: channelObj && channelObj.common && channelObj.common.color,
-                  icon: channelObj && channelObj.common && channelObj.common.icon,
+                  color: channelObj?.common?.color,
+                  icon: channelObj?.common?.icon,
                   functions,
                   rooms,
                   name,
@@ -210,50 +249,23 @@ class DialogEditProperties extends React.PureComponent {
               };
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         if (!Object.keys(this.props.changeProperties).length) {
             this.props.onChange(this.state, this.state);
         }
     }
 
-    componentDidUpdate(prevProps, prevState) {
+    componentDidUpdate(prevProps: DialogEditPropertiesProps, prevState: DialogEditPropertiesState): void {
         if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-            this.props.onChange(this.state, false, this.checkedName());
+            this.props.onChange(this.state, false, !!this.checkedName());
         }
     }
 
-    handleClose() {
-        this.props.onClose && this.props.onClose();
-    }
-
-    handleOk() {
-        this.props.onClose &&
-            this.props.onClose({
-                rooms: this.state.rooms,
-                functions: this.state.functions,
-                name: this.state.name,
-                icon: this.state.icon,
-                color: this.state.color,
-                smartName: this.state.smartName,
-            });
-    }
-
-    findRealDevice() {
-        let realParent = Object.keys(this.state.ids).find(id => this.state.ids[id]);
-        if (realParent) {
-            realParent = this.state.ids[realParent];
-            const parts = realParent.split('.');
-            parts.pop();
-            realParent = parts.join('.');
-        }
-        return realParent || '';
-    }
-
-    renderSelectEnum(name) {
+    renderSelectEnum(name: 'functions' | 'rooms'): React.JSX.Element {
         const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
         const language = I18n.getLanguage();
         const objs = enums.map(id => ({
-            name: Utils.getObjectName(this.props.objects, id, { language }),
+            name: Utils.getObjectName(this.props.objects, id, language),
             icon: Utils.getObjectIcon(id, this.props.objects[id]),
             id,
         }));
@@ -265,13 +277,13 @@ class DialogEditProperties extends React.PureComponent {
                 value={this.state[name]}
                 fullWidth
                 multiple
-                open={!!this.state.open[name]}
-                onClick={() => this.setState({ open: { [name]: !this.state.open[name] } })}
+                open={!!this.state.open?.[name]}
+                onClick={() => this.setState({ open: { [name]: !this.state.open?.[name] } })}
                 disabled={this.props.disabled}
                 onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
                 renderValue={arrId => {
                     const newArr = arrId.map(id => ({
-                        name: Utils.getObjectName(this.props.objects, id, { language }),
+                        name: Utils.getObjectName(this.props.objects, id, language),
                         icon: Utils.getObjectIcon(id, this.props.objects[id]),
                         id,
                     }));
@@ -303,10 +315,9 @@ class DialogEditProperties extends React.PureComponent {
                 {objs.map(obj => (
                     <MenuItem
                         key={obj.id}
-                        icon={obj.icon}
                         value={obj.id}
                     >
-                        <Checkbox checked={this.state[name].includes(obj.id)} />
+                        <Checkbox checked={this.state[name]?.includes(obj.id)} />
                         <Box sx={styles.preImage}>
                             {obj.icon ? (
                                 <Icon
@@ -325,10 +336,10 @@ class DialogEditProperties extends React.PureComponent {
         );
     }
 
-    getSmartName(obj, language) {
+    getSmartName(obj: ioBroker.StateObject, language?: ioBroker.Languages): string | false {
         language = language || I18n.getLanguage();
         let smartName;
-        if (obj && obj.common && obj.common.custom) {
+        if (obj?.common?.custom) {
             if (this.props.iotNoCommon) {
                 const iot = this.props.iot || 'iot.0';
                 if (obj.common.custom[iot] && obj.common.custom[iot].smartName) {
@@ -343,36 +354,31 @@ class DialogEditProperties extends React.PureComponent {
 
         if (smartName === false) {
             return false;
-        } else if (smartName && typeof smartName === 'object') {
+        }
+        if (smartName && typeof smartName === 'object') {
             if (smartName[language] === false || smartName.en === false) {
                 return false;
             }
             smartName = smartName[language] || smartName.en || '';
         }
+
         return smartName || '';
     }
 
-    handleIcon(file) {
-        const newValue = typeof file === 'object' ? file.data : file;
-
-        //newValue.changed = this.isChanged(name, newValue.values[name]);
-        this.setState({ icon: newValue });
-    }
-
-    checkedName = () => {
+    checkedName = (): ioBroker.Object | undefined | boolean => {
         if (!this.state.name) {
             return true;
-        } else if (this.state.name === this.state.initName) {
+        }
+        if (this.state.name === this.state.initName) {
             return false;
         }
-        let parts = this.props.channelId.split('.');
+        const parts = this.props.channelId.split('.');
         parts.pop();
-        parts = parts.join('.');
-        parts = `${parts}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        return this.props.objects[parts];
+        const parentId = `${parts.join('.')}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        return this.props.objects[parentId];
     };
 
-    renderProperties() {
+    renderProperties(): React.JSX.Element {
         const { disabled } = this.props;
         return (
             <div style={styles.divOids}>
@@ -384,7 +390,7 @@ class DialogEditProperties extends React.PureComponent {
                         fullWidth
                         disabled={disabled}
                         value={this.state.name || ''}
-                        error={this.checkedName()}
+                        error={!!this.checkedName()}
                         sx={styles.oidField}
                         onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
@@ -400,7 +406,7 @@ class DialogEditProperties extends React.PureComponent {
                                 disabled={disabled}
                                 checked={this.state.smartName === false}
                                 color="secondary"
-                                onChange={e => this.setState({ smartName: e.target.checked ? false : null })}
+                                onChange={e => this.setState({ smartName: e.target.checked ? false : undefined })}
                             />
                         }
                         label={I18n.t('Hide this name from smart assistance')}
@@ -414,7 +420,7 @@ class DialogEditProperties extends React.PureComponent {
                             key="_smartName"
                             fullWidth
                             disabled={disabled}
-                            placeholder={this.state.name.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ')}
+                            placeholder={this.state.name!.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') || ''}
                             value={this.state.smartName || ''}
                             sx={styles.oidField}
                             helperText={I18n.t('This name will use be in smart assistance. (optional)')}
@@ -463,28 +469,16 @@ class DialogEditProperties extends React.PureComponent {
                     style={styles.dropZone}
                     maxSize={256 * 1024}
                     icon={this.state.icon}
-                    onChange={base64 => this.setState({ icon: base64 })}
+                    onChange={(base64: string): void => this.setState({ icon: base64 })}
                     t={I18n.t}
                 />
             </div>
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         return <div style={styles.divDialogContent}>{this.renderProperties()}</div>;
     }
 }
-
-DialogEditProperties.propTypes = {
-    onClose: PropTypes.func,
-    type: PropTypes.string,
-    iot: PropTypes.string,
-    iotNoCommon: PropTypes.bool,
-    channelId: PropTypes.string,
-    objects: PropTypes.object,
-    enumIDs: PropTypes.array,
-    socket: PropTypes.object,
-    disabled: PropTypes.bool,
-};
 
 export default DialogEditProperties;

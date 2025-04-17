@@ -499,7 +499,7 @@ class TreeView extends React.Component {
         }
         // window.localStorage.setItem('TreeView.selected', item.id);
         this.setState({ selected: item.id });
-        this.props.onSelect && this.props.onSelect(item.id);
+        this.props.onSelect(item.id);
     }
 
     renderOneItem(items, item) {

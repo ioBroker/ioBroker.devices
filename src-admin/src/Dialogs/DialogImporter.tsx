@@ -22,13 +22,14 @@ import {
 
 import { ModeEdit as IconEdit, Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
-import { I18n, Utils, Icon, Theme } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type AdminConnection, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
 
 import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
+import type { ListItem, PatternControlEx } from '../types';
 
-const styles = {
+const styles: Record<string, any> = {
     paper: {
         maxWidth: 960,
         maxHeight: 'calc(100% - 64px)',
@@ -232,9 +233,32 @@ const styles = {
     },
 };
 
-const RenderNewItemDialog = ({ object, onClose, open, checkDeviceInObjects }) => {
-    const [name, setName] = useState(object.title);
-    const error = !name || (object && checkDeviceInObjects(name, object.id));
+function getParentId(id: string): string {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(0, pos);
+    }
+
+    return '';
+}
+
+function getLastPart(id: string): string {
+    const pos = id.lastIndexOf('.');
+    if (pos !== -1) {
+        return id.substring(pos + 1);
+    }
+    return id;
+}
+
+function RenderNewItemDialog(props: {
+    object?: ListItem;
+    open: boolean;
+    onClose: (name?: string) => void;
+    checkDeviceInObjects: (name: string, id: string) => boolean;
+}): React.JSX.Element {
+    const { object, onClose, open, checkDeviceInObjects } = props;
+    const [name, setName] = useState(object?.title || '');
+    const error: boolean = !name || !!(object && checkDeviceInObjects(name, object.id));
 
     useEffect(() => {
         if (object && name !== object.title) {
@@ -249,14 +273,14 @@ const RenderNewItemDialog = ({ object, onClose, open, checkDeviceInObjects }) =>
             onClose={() => onClose()}
             open={open}
         >
-            <DialogTitle style={styles.addNewFolderTitle}>{I18n.t('Edit name "%s"', name)}</DialogTitle>
+            <DialogTitle>{I18n.t('Edit name "%s"', name)}</DialogTitle>
             <form
                 style={styles.dialogNewForm}
                 autoComplete="off"
             >
                 <TextField
                     variant="standard"
-                    onKeyPress={ev => {
+                    onKeyUp={ev => {
                         if (ev.key === 'Enter') {
                             ev.preventDefault();
 
@@ -268,7 +292,6 @@ const RenderNewItemDialog = ({ object, onClose, open, checkDeviceInObjects }) =>
                         }
                     }}
                     error={!!error}
-                    style={styles.dialogNewInput}
                     autoFocus
                     fullWidth
                     label={I18n.t('Name')}
@@ -279,7 +302,7 @@ const RenderNewItemDialog = ({ object, onClose, open, checkDeviceInObjects }) =>
             <DialogActions>
                 <Button
                     variant="contained"
-                    disabled={!!error || object.title === name}
+                    disabled={!!error || object?.title === name}
                     onClick={() => onClose(name)}
                     startIcon={<IconCheck />}
                     color="primary"
@@ -296,44 +319,37 @@ const RenderNewItemDialog = ({ object, onClose, open, checkDeviceInObjects }) =>
             </DialogActions>
         </Dialog>
     );
-};
+}
 
-const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, onCopyDevice }) => {
-    const [arrayDevice, setArrayDevice] = useState([]);
+export default function DialogImporter(props: {
+    onClose: () => void;
+    item: ListItem;
+    socket: AdminConnection;
+    devices: PatternControlEx[];
+    objects: Record<string, ioBroker.Object>;
+    listItems: ListItem[];
+    onCopyDevice: (fromId: string, toId: string) => Promise<void>;
+    theme: IobTheme;
+    themeType: ThemeType;
+}): React.JSX.Element {
+    const { onClose, item, socket, devices, objects, listItems, onCopyDevice, theme, themeType } = props;
+    const [arrayDevice, setArrayDevice] = useState<ListItem[]>([]);
+    const [openEdit, setOpenEdit] = useState<ListItem | undefined>(undefined);
     const [cloningMethod, setCloningMethod] = useStateLocal('flat', 'importer.cloningMethod');
-    const [idsFolder, setSdsFolder] = useState([]);
+    const [idsFolder, setSdsFolder] = useState<Record<string, ioBroker.FolderObject>>({});
     const [selectFolder, setSelectFolder] = useState('alias.0');
-    const [checkedSelect, setCheckedSelect] = useState([]);
-    const [openEdit, setOpenEdit] = useState(false);
+    const [checkedSelect, setCheckedSelect] = useState<string[]>([]);
     const [skipElement, setSkipElement] = useState(true);
     const [startTheProcess, setStartTheProcess] = useState(false);
 
     useEffect(() => {
-        const ids = [];
-        const getParentId = id => {
-            const pos = id.lastIndexOf('.');
-            if (pos !== -1) {
-                return id.substring(0, pos);
-            } else {
-                return '';
-            }
-        };
-
-        const getLastPart = id => {
-            const pos = id.lastIndexOf('.');
-            if (pos !== -1) {
-                return id.substring(pos + 1);
-            } else {
-                return id;
-            }
-        };
+        const ids: string[] = [];
 
         const prefix = 'alias.0';
         Object.keys(objects).forEach(id => {
             if (
                 id.startsWith(prefix) &&
-                objects[id] &&
-                objects[id].common &&
+                objects[id]?.common &&
                 (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder')
             ) {
                 let parentId;
@@ -350,49 +366,88 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
             }
         });
 
-        const stateIds = {};
+        const stateIds: Record<string, ioBroker.FolderObject> = {};
         const language = I18n.getLanguage();
         ids.forEach(
             id =>
                 (stateIds[id] = {
+                    _id: id,
                     common: {
                         name:
                             objects[id] && objects[id].type === 'folder'
-                                ? Utils.getObjectName(objects, id, { language })
+                                ? Utils.getObjectName(objects, id, language)
                                 : getLastPart(id),
                         nondeletable: true,
-                        color: objects[id]?.common && objects[id].common.color ? objects[id].common.color : null,
-                        icon: objects[id]?.common && objects[id].common.icon ? objects[id].common.icon : null,
+                        color: objects[id]?.common && objects[id].common.color ? objects[id].common.color : undefined,
+                        icon: objects[id]?.common && objects[id].common.icon ? objects[id].common.icon : undefined,
                     },
                     type: 'folder',
+                    native: {},
                 }),
         );
 
         stateIds[prefix] = {
+            _id: prefix,
             common: {
                 name: I18n.t('Root'),
                 nondeletable: true,
             },
             type: 'folder',
+            native: {},
         };
 
         setSdsFolder(stateIds);
     }, [objects, listItems]);
 
     useEffect(() => {
-        const originalIds = listItems.filter(el => el?.obj?.native?.originalId).map(el => el.obj.native.originalId);
+        const originalIds = listItems.filter(el => el?.obj?.native?.originalId).map(el => el.obj?.native.originalId);
 
         const newArray = listItems.filter(device => device.parent === item.id && !originalIds.includes(device.id));
         setArrayDevice(newArray);
-        const selectId = newArray.map(device => device.id);
+        const selectId: string[] = newArray.map(device => device.id);
         setCheckedSelect(selectId);
     }, [item.id, item.parent, listItems]);
 
-    const addNewFolder = async (dataFolder, id) => {
-        const obj = {
+    const addNewFolder = async (
+        dataFolder:
+            | {
+                  name: string;
+                  color?: string;
+                  icon?: string;
+              }
+            | {
+                  objName: ioBroker.StringOrTranslated;
+                  color?: string;
+                  icon?: string;
+              },
+        id: string,
+    ): Promise<void> => {
+        const obj: ioBroker.FolderObject = {
             _id: id,
             common: {
-                name: dataFolder.objName ? dataFolder.objName : { [I18n.getLanguage()]: dataFolder.name },
+                name: (
+                    dataFolder as {
+                        objName: ioBroker.StringOrTranslated;
+                        color?: string;
+                        icon?: string;
+                    }
+                ).objName
+                    ? (
+                          dataFolder as {
+                              objName: ioBroker.StringOrTranslated;
+                              color?: string;
+                              icon?: string;
+                          }
+                      ).objName
+                    : ({
+                          [I18n.getLanguage()]: (
+                              dataFolder as {
+                                  name: string;
+                                  color?: string;
+                                  icon?: string;
+                              }
+                          ).name,
+                      } as ioBroker.StringOrTranslated),
                 color: dataFolder.color,
                 icon: dataFolder.icon,
             },
@@ -403,22 +458,49 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
         await socket.setObject(id, obj);
     };
 
-    const addDevice = async (id, el) => {
+    const addDevice = async (id: string, el: ListItem): Promise<void> => {
         const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         await onCopyDevice(el.id, newId);
     };
 
-    const arrayDeviceFunction = async () => {
+    const checkDeviceInObjects = (name: string, id: string): boolean => {
+        const device = devices.find(device => id === device.channelId);
+        let newId = `${selectFolder}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        if (cloningMethod === 'rooms') {
+            if (device?.rooms.length) {
+                newId = `${selectFolder}.${device.rooms[0].replace('enum.rooms.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            }
+        } else if (cloningMethod === 'functions') {
+            if (device?.functions.length) {
+                newId = `${selectFolder}.${device.functions[0].replace('enum.functions.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            }
+        }
+        return !!objects[newId];
+    };
+
+    const checkEnumsScip = (id: string): boolean => {
+        const device = devices.find(device => id === device.channelId);
+
+        if (cloningMethod === 'rooms' && skipElement) {
+            return !device?.rooms.length;
+        }
+        if (cloningMethod === 'functions' && skipElement) {
+            return !device?.functions.length;
+        }
+        return false;
+    };
+
+    const arrayDeviceFunction = async (): Promise<void> => {
         for (let s = 0; s < arrayDevice.length; s++) {
             const el = arrayDevice[s];
-            if (checkedSelect.indexOf(el.id) === -1 || checkDeviceInObjects(el.title, el.id) || checkEnumsScip(el.id)) {
+            if (!checkedSelect.includes(el.id) || checkDeviceInObjects(el.title, el.id) || checkEnumsScip(el.id)) {
                 continue;
             }
             let newId = `${selectFolder}`;
             const device = devices.find(device => el.id === device.channelId);
 
             if (cloningMethod === 'rooms') {
-                if (device.rooms.length) {
+                if (device?.rooms.length) {
                     newId = `${newId}.${device.rooms[0].replace('enum.rooms.', '')}`;
                     if (!objects[newId]) {
                         const newObjFolder = objects[device.rooms[0]];
@@ -435,7 +517,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                     }
                 }
             } else if (cloningMethod === 'functions') {
-                if (device.functions.length) {
+                if (device?.functions.length) {
                     newId = `${newId}.${device.functions[0].replace('enum.functions.', '')}`;
                     if (!objects[newId]) {
                         const newObjFolder = objects[device.functions[0]];
@@ -452,19 +534,20 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                     }
                 }
             }
+
             await addDevice(newId, el);
         }
     };
 
-    const onChangeCopy = async () => {
+    const onChangeCopy = async (): Promise<void> => {
         if (!objects[selectFolder] && selectFolder !== 'alias.0') {
-            let parts = selectFolder.split('.');
-            parts = parts.pop();
+            const parts = selectFolder.split('.');
+            const lastPart = parts.pop() || '';
             await addNewFolder(
                 {
-                    name: parts.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),
-                    color: null,
-                    icon: null,
+                    name: lastPart.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),
+                    color: undefined,
+                    icon: undefined,
                 },
                 selectFolder,
             );
@@ -472,7 +555,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
         await arrayDeviceFunction();
     };
 
-    const generateFolders = () => {
+    const generateFolders = (): string => {
         switch (cloningMethod) {
             case 'flat':
                 return '';
@@ -485,7 +568,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
         }
     };
 
-    const renderEnumCell = (id, name) => {
+    const renderEnumCell = (id: string, name: 'functions' | 'rooms'): React.JSX.Element[] | null => {
         const device = devices.find(device => id === device.channelId);
         if (!device || (device && !device[name])) {
             return null;
@@ -493,7 +576,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
         return device[name]
             .map(id => ({
                 icon: Utils.getObjectIcon(id, objects[id]),
-                name: Utils.getObjectName(objects, id, { language: I18n.getLanguage() }),
+                name: Utils.getObjectName(objects, id, I18n.getLanguage()),
                 id,
             }))
             .map(obj => (
@@ -513,35 +596,8 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
             ));
     };
 
-    const checkDeviceInObjects = (name, id) => {
-        const device = devices.find(device => id === device.channelId);
-        let newId = `${selectFolder}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        if (cloningMethod === 'rooms') {
-            if (device.rooms.length) {
-                newId = `${selectFolder}.${device.rooms[0].replace('enum.rooms.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-            }
-        } else if (cloningMethod === 'functions') {
-            if (device.functions.length) {
-                newId = `${selectFolder}.${device.functions[0].replace('enum.functions.', '')}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-            }
-        }
-        return !!objects[newId];
-    };
-
-    const checkEnumsScip = id => {
-        const device = devices.find(device => id === device.channelId);
-
-        if (cloningMethod === 'rooms' && skipElement) {
-            return !device.rooms.length;
-        }
-        if (cloningMethod === 'functions' && skipElement) {
-            return !device.functions.length;
-        }
-        return false;
-    };
-
     return (
-        <ThemeProvider theme={Theme(Utils.getThemeName())}>
+        <ThemeProvider theme={theme}>
             <Dialog
                 onClose={() => onClose()}
                 open={!0}
@@ -560,7 +616,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                         checkDeviceInObjects={checkDeviceInObjects}
                         onClose={name => {
                             if (name) {
-                                const indexDevice = arrayDevice.indexOf(openEdit);
+                                const indexDevice = openEdit ? arrayDevice.indexOf(openEdit) : -1;
                                 if (indexDevice !== -1) {
                                     const newDevice = JSON.parse(JSON.stringify(openEdit));
                                     const newArrayDevice = JSON.parse(JSON.stringify(arrayDevice));
@@ -569,9 +625,9 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                                     setArrayDevice(newArrayDevice);
                                 }
                             }
-                            setOpenEdit(false);
+                            setOpenEdit(undefined);
                         }}
-                        open={openEdit}
+                        open={!!openEdit}
                     />
                     <Box sx={styles.divOids}>
                         <Box
@@ -579,16 +635,16 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                             style={startTheProcess ? styles.startTheProcess : undefined}
                         >
                             <TreeView
-                                themeType={Utils.getThemeType()}
-                                theme={theme(Utils.getThemeName())}
+                                themeType={themeType}
+                                theme={theme}
                                 objects={idsFolder}
-                                onAddNew={async (name, parentId) =>
+                                onAddNew={async (name: string, parentId: string): Promise<void> =>
                                     await addNewFolder(
-                                        { name, icon: null, color: null },
+                                        { name, icon: undefined, color: undefined },
                                         `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`,
                                     )
                                 }
-                                onSelect={id => setSelectFolder(id)}
+                                onSelect={(id: string): void => setSelectFolder(id)}
                                 selected={selectFolder}
                                 displayFlex
                                 disabled={startTheProcess}
@@ -597,7 +653,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
 
                         <Box sx={{ ...styles.flex, ...styles.wrapperCloning }}>
                             {startTheProcess && <LinearProgress />}
-                            <Box style={styles.header}>
+                            <Box sx={styles.header}>
                                 <div
                                     style={{
                                         ...styles.headerWrapElement,
@@ -656,18 +712,21 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                                 )}
                             </Box>
                             <div
-                                style={{ ...styles.wrapperItems, ...(startTheProcess ? styles.startTheProcess : undefined) }}
+                                style={{
+                                    ...styles.wrapperItems,
+                                    ...(startTheProcess ? styles.startTheProcess : undefined),
+                                }}
                             >
                                 {!arrayDevice.length && (
-                                    <div style={styles.emptyList}>
-                                        {I18n.t('The list of devices to copy is empty')}
-                                    </div>
+                                    <div style={styles.emptyList}>{I18n.t('The list of devices to copy is empty')}</div>
                                 )}
                                 {arrayDevice.map(device => (
                                     <Box
                                         sx={styles.deviceWrapper}
-                                        styles={{
-                                            ...(checkDeviceInObjects(device.title, device.id) ? styles.backgroundRed : undefined),
+                                        style={{
+                                            ...(checkDeviceInObjects(device.title, device.id)
+                                                ? styles.backgroundRed
+                                                : undefined),
                                             ...(checkEnumsScip(device.id) ? styles.backgroundSilver : undefined),
                                         }}
                                         key={device.id}
@@ -704,7 +763,10 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                                                     <Box style={styles.fontStyle}>{device.title}</Box>
                                                     <Box style={styles.fontStyleId}>{device.id}</Box>
                                                 </div>
-                                                <Tooltip title={I18n.t('Edit')} slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}>
+                                                <Tooltip
+                                                    title={I18n.t('Edit')}
+                                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                                >
                                                     <div>
                                                         <IconButton
                                                             onClick={() => setOpenEdit(device)}
@@ -747,7 +809,7 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
                         disabled={startTheProcess}
                         onClick={() => onClose()}
                         startIcon={<IconClose />}
-                        color="default"
+                        color="grey"
                     >
                         {I18n.t('Close')}
                     </Button>
@@ -755,6 +817,4 @@ const DialogImporter = ({ onClose, item, socket, devices, objects, listItems, on
             </Dialog>
         </ThemeProvider>
     );
-};
-
-export default DialogImporter;
+}

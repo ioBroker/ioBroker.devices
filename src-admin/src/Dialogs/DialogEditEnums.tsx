@@ -5,7 +5,6 @@
  *
  **/
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {
     Button,
@@ -14,16 +13,16 @@ import {
     DialogContent,
     DialogActions,
     List,
-    ListItem,
     ListItemSecondaryAction,
     ListItemIcon,
     ListItemText,
     Checkbox,
+    ListItemButton,
 } from '@mui/material';
 
 import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
     header: {
         width: '100%',
         fontSize: 16,
@@ -42,27 +41,35 @@ const styles = {
     },
 };
 
-class DialogEditEnums extends React.Component {
-    constructor(props) {
+interface DialogEditEnumsProps {
+    onClose: (values: string[] | null) => void;
+    deviceName: string;
+    objects: Record<string, ioBroker.Object>;
+    enumIDs: string[];
+    values?: string[];
+}
+
+interface DialogEditEnumsState {
+    values: string[];
+}
+
+class DialogEditEnums extends React.Component<DialogEditEnumsProps, DialogEditEnumsState> {
+    constructor(props: DialogEditEnumsProps) {
         super(props);
         this.state = {
             values: this.props.values ? this.props.values.slice() : [], // copy array
         };
     }
 
-    handleClose() {
-        this.props.onClose && this.props.onClose(null);
+    handleClose(): void {
+        this.props.onClose(null);
     }
 
-    handleOk(isRefresh) {
-        this.props.onClose && this.props.onClose(this.state.values);
+    handleOk(): void {
+        this.props.onClose(this.state.values);
     }
 
-    renderHeader() {
-        return null;
-    }
-
-    onToggle(id) {
+    onToggle(id: string): void {
         const values = this.state.values.slice();
         const pos = values.indexOf(id);
         if (pos === -1) {
@@ -73,21 +80,20 @@ class DialogEditEnums extends React.Component {
         this.setState({ values });
     }
 
-    renderSelectEnum() {
+    renderSelectEnum(): React.JSX.Element {
         const enums = this.props.enumIDs;
         const language = I18n.getLanguage();
         const objs = enums.map(id => ({
-            name: Utils.getObjectName(this.props.objects, id, { language }),
+            name: Utils.getObjectName(this.props.objects, id, language),
             icon: Utils.getObjectIcon(id, this.props.objects[id]),
             id,
         }));
 
         return (
-            <List style={styles.list}>
+            <List>
                 {objs.map(obj => (
-                    <ListItem
+                    <ListItemButton
                         key={obj.id}
-                        button
                         onClick={() => this.onToggle(obj.id)}
                     >
                         <ListItemIcon>
@@ -109,13 +115,13 @@ class DialogEditEnums extends React.Component {
                                 checked={this.state.values.includes(obj.id)}
                             />
                         </ListItemSecondaryAction>
-                    </ListItem>
+                    </ListItemButton>
                 ))}
             </List>
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         return (
             <Dialog
                 key="enumDialog"
@@ -125,18 +131,11 @@ class DialogEditEnums extends React.Component {
                 aria-labelledby="alert-dialog-title"
                 aria-describedby="alert-dialog-description"
             >
-                <DialogTitle
-                    style={styles.titleBackground}
-                    classes={{ root: this.props.classes.titleColor }}
-                    id="edit-device-dialog-title"
-                >
+                <DialogTitle id="edit-device-dialog-title">
                     {I18n.t('Edit enums')} <b>{this.props.deviceName}</b>
                 </DialogTitle>
                 <DialogContent>
-                    <div style={styles.divDialogContent}>
-                        {this.renderHeader()}
-                        {this.renderSelectEnum()}
-                    </div>
+                    <div style={styles.divDialogContent}>{this.renderSelectEnum()}</div>
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -159,13 +158,5 @@ class DialogEditEnums extends React.Component {
         );
     }
 }
-
-DialogEditEnums.propTypes = {
-    onClose: PropTypes.func,
-    deviceName: PropTypes.string,
-    objects: PropTypes.object,
-    enumIDs: PropTypes.array,
-    values: PropTypes.array,
-};
 
 export default DialogEditEnums;

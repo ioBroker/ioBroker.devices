@@ -23,14 +23,14 @@
         "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
         "@alcalzone/release-script-plugin-license": "^3.7.0",
         "@iobroker/build-tools": "^2.0.15",
-        "@iobroker/eslint-config": "^1.0.0",
+        "@iobroker/eslint-config": "^2.0.1",
         "@iobroker/legacy-testing": "^2.0.2",
         "@iobroker/testing": "^5.0.4",
-        "@types/node": "^22.13.14",
+        "@types/node": "^22.14.1",
         "chai": "^4.5.0",
         "colorette": "^2.0.20",
         "mocha": "^11.1.0",
-        "puppeteer": "^24.4.0"
+        "puppeteer": "^24.6.1"
     },
     "main": "admin/tab.html",
     "files": [

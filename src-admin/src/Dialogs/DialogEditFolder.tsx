@@ -14,11 +14,13 @@ import {
 
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
-import { I18n, Utils, Theme } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
+import type { PatternControlEx } from '../types';
+import SmartDetector from '../Devices/SmartDetector';
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
     paper: {
         maxWidth: 600,
         width: '100%',
@@ -48,31 +50,37 @@ const styles = {
     },
 };
 
-const emptyObj = {
+const emptyObj: ioBroker.FolderObject = {
     _id: '',
     common: {
         name: '',
-        color: null,
-        icon: null,
+        color: undefined,
+        icon: undefined,
     },
     native: {},
     type: 'folder',
 };
 
-const DialogEditFolder = ({
-    onClose,
-    data,
-    socket,
-    devices,
-    objects,
-    deleteDevice,
-    processTasks,
-    selected,
-    newFolder,
-    detector,
-}) => {
+function DialogEditFolder(props: {
+    onClose: (changed?: boolean) => void;
+    data?: ioBroker.Object;
+    socket: AdminConnection;
+    devices: PatternControlEx[];
+    objects: Record<string, ioBroker.Object>;
+    deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
+    processTasks: (
+        tasks: {
+            id: string;
+            obj: ioBroker.Object;
+            enums?: string[];
+        }[],
+    ) => Promise<void>;
+    selected?: string;
+    newFolder?: boolean;
+}): React.JSX.Element {
+    const { onClose, data, socket, devices, objects, deleteDevice, processTasks, selected, newFolder } = props;
     const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
-    const [arrayObjects, setArrayObjects] = useState([]);
+    const [arrayObjects, setArrayObjects] = useState<ioBroker.Object[]>([]);
     const [name, setName] = useState(
         Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined'
             ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]]
@@ -80,61 +88,67 @@ const DialogEditFolder = ({
     );
     const [startTheProcess, setStartTheProcess] = useState(false);
 
-    const checkIdSelected = (newPart = selected) => {
-        if (objects[newPart]?.type && objects[newPart]?.type !== 'folder') {
-            let parts = newPart.split('.');
+    const checkIdSelected = (newPart?: string): string | undefined => {
+        newPart ||= selected;
+        if (newPart && objects[newPart]?.type && objects[newPart]?.type !== 'folder') {
+            const parts = newPart.split('.');
             parts.pop();
-            parts = parts.join('.');
-            return checkIdSelected(parts);
+            return checkIdSelected(parts.join('.'));
         }
         return newPart?.startsWith('alias.0') ? newPart : 'alias.0';
     };
 
-    const [newId, setId] = useState(newFolder ? checkIdSelected() : data?._id);
-    const [rootCheck, setRootCheck] = useState(newId === 'alias.0' ? 'alias.0' : null);
+    const [newId, setId] = useState(newFolder ? checkIdSelected() : data!._id);
+    const [rootCheck, setRootCheck] = useState<string | undefined>(newId === 'alias.0' ? 'alias.0' : undefined);
 
     useEffect(() => {
-        const idsObject = Object.keys(objects)
-            .filter(el => el === data._id || el.startsWith(data._id + '.'))
-            .filter(
-                id => objects[id].type === 'folder' || objects[id].type === 'channel' || objects[id].type === 'device',
-            )
-            .map(id => objects[id]);
+        const idsObject = data?._id
+            ? Object.keys(objects)
+                  .filter(el => el === data._id || el.startsWith(`${data._id}.`))
+                  .filter(
+                      id =>
+                          objects[id].type === 'folder' ||
+                          objects[id].type === 'channel' ||
+                          objects[id].type === 'device',
+                  )
+                  .map(id => objects[id])
+            : [];
 
         setArrayObjects(idsObject);
     }, [data?._id, objects]);
 
-    function getNonEmptyName(obj) {
+    function getNonEmptyName(obj: ioBroker.Object): string {
         const lang = I18n.getLanguage();
         const name = Utils.getObjectNameFromObj(obj, lang);
-        return name === 'undefined' ? obj.common.name[Object.keys(obj.common.name)[0]] : name;
+        if (name) {
+            return name;
+        }
+        if (obj?.common?.name && typeof obj.common.name === 'object') {
+            return (
+                obj.common.name[lang] ||
+                obj.common.name.en ||
+                obj.common.name[Object.keys(obj.common.name)[0] as ioBroker.Languages] ||
+                ''
+            );
+        }
+        return (obj?.common?.name as string) || '';
     }
 
-    const onCloseLocal = async changed => {
-        if (!startTheProcess && changed) {
-            setStartTheProcess(true);
-            if (newFolder) {
-                const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
-                newDataEdit._id = `${newId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-                await socket.setObject(newDataEdit._id, newDataEdit);
-            } else {
-                // If name and ID were changed
-                if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
-                    await onChangeCopy();
-                } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
-                    await socket.setObject(dataEdit._id, dataEdit);
-                }
-            }
-        }
-
-        onClose();
-    };
-
-    const addNewFolder = async (dataFolder, id) => {
-        const obj = {
+    const addNewFolder = async (
+        dataFolder: {
+            name: ioBroker.StringOrTranslated;
+            color: string | undefined;
+            icon: string | undefined;
+        },
+        id: string,
+    ): Promise<void> => {
+        const obj: ioBroker.FolderObject = {
             _id: id,
             common: {
-                name: typeof dataFolder.name === 'string' ? { [I18n.getLanguage()]: dataFolder.name } : dataFolder.name,
+                name:
+                    typeof dataFolder.name === 'string'
+                        ? ({ [I18n.getLanguage()]: dataFolder.name } as ioBroker.StringOrTranslated)
+                        : dataFolder.name,
                 color: dataFolder.color,
                 icon: dataFolder.icon,
             },
@@ -144,9 +158,13 @@ const DialogEditFolder = ({
         await socket.setObject(id, obj);
     };
 
-    const onCopyDevice = async (copyDevice, newChannelId, obj) => {
-        if (!copyDevice && !copyDevice?.channelId) {
-            return null;
+    const onCopyDevice = async (
+        copyDevice: PatternControlEx,
+        newChannelId: string,
+        obj: ioBroker.Object,
+    ): Promise<void> => {
+        if (!copyDevice?.channelId) {
+            return;
         }
         // if this is a device not from linkeddevice or from alias
         const channelId = copyDevice.channelId;
@@ -156,24 +174,29 @@ const DialogEditFolder = ({
             if (obj) {
                 channelObj = obj;
             } else {
-                return null;
+                return;
             }
         }
         const { functions, rooms, icon, states, color, type } = copyDevice;
-        const tasks = [];
+        const tasks: {
+            id: string;
+            obj: ioBroker.Object;
+            enums?: string[];
+        }[] = [];
 
-        const patterns = detector.getPatterns();
+        const patterns = SmartDetector.getPatterns();
         const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
 
         tasks.push({
             id: newChannelId,
             obj: {
+                _id: newChannelId,
                 common: {
                     name: channelObj.common.name,
-                    color: color,
+                    color: color || undefined,
                     desc: channelObj.common.desc,
                     role: role?.defaultChannelRole || type,
-                    icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
+                    icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
                 },
                 type: 'channel',
                 native: channelObj.native || {},
@@ -185,12 +208,10 @@ const DialogEditFolder = ({
             if (!state.id) {
                 return;
             }
-            const obj = JSON.parse(JSON.stringify(objects[state.id]));
+            const obj: ioBroker.Object = JSON.parse(JSON.stringify(objects[state.id]));
             obj._id = `${newChannelId}.${state.name}`;
 
-            if (!obj.native) {
-                obj.native = {};
-            }
+            obj.native ||= {};
             if (!isAlias) {
                 obj.common.alias = { id: state.id };
             }
@@ -200,44 +221,54 @@ const DialogEditFolder = ({
         await processTasks(tasks);
     };
 
-    const getIdFromName = obj => {
-        obj = obj || dataEdit;
+    const getIdFromName = (obj?: ioBroker.Object): string => {
+        obj ||= dataEdit;
 
-        if (typeof obj?.common?.name !== 'string') {
-            return false;
-        } else if (!obj?.common?.name) {
-            return data._id;
+        if (!obj?.common?.name) {
+            return data!._id;
         }
 
-        let parts;
-        if (newFolder) {
-            parts = newId;
+        let name: string;
+        if (typeof obj.common.name !== 'string') {
+            name =
+                obj.common.name[I18n.getLanguage()] ||
+                obj.common.name.en ||
+                obj.common.name[Object.keys(obj?.common?.name)[0] as ioBroker.Languages] ||
+                '';
         } else {
-            parts = data._id.split('.');
-            parts.pop();
-            parts = parts.join('.');
+            name = obj.common.name;
         }
-        parts = `${parts}.${obj.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        return parts;
+
+        let parentId: string;
+        if (newFolder) {
+            parentId = newId!;
+        } else {
+            const parts = data!._id.split('.');
+            parts.pop();
+            parentId = parts.join('.');
+        }
+        return `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
     };
 
-    const onChangeCopy = async () => {
-        let newDevices = JSON.parse(JSON.stringify(devices));
+    const onChangeCopy = async (): Promise<void> => {
+        let newDevices: PatternControlEx[] = JSON.parse(JSON.stringify(devices));
 
-        let parts = data._id.split('.');
+        const parts = data!._id.split('.');
         parts.pop();
-        parts = parts.join('.');
-        parts = `${parts}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const parentId = `${parts.join('.')}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
 
         let deleteFolderID = '';
         for (let i = 0; i < arrayObjects.length; i++) {
             const el = arrayObjects[i];
-            const newId = el._id.replace(data._id, parts);
+            const newId = el._id.replace(data!._id, parentId);
             if (el.type === 'folder') {
-                await addNewFolder(data._id === el._id ? dataEdit.common : el.common, newId);
+                await addNewFolder(data!._id === el._id ? dataEdit.common : el.common, newId);
                 deleteFolderID = el._id;
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
+                if (!device) {
+                    continue;
+                }
                 await onCopyDevice(device, newId, el);
                 newDevices = await deleteDevice(newDevices.indexOf(device));
             }
@@ -245,6 +276,26 @@ const DialogEditFolder = ({
 
         // Delete folder and all object
         deleteFolderID && (await socket.delObjects(deleteFolderID, true));
+    };
+
+    const onCloseLocal = async (changed?: boolean): Promise<void> => {
+        if (!startTheProcess && changed) {
+            setStartTheProcess(true);
+            if (newFolder) {
+                const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
+                newDataEdit._id = `${newId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+                await socket.setObject(newDataEdit._id, newDataEdit);
+            } else {
+                // If name and ID were changed
+                if (getNonEmptyName(dataEdit) !== getNonEmptyName(data!)) {
+                    await onChangeCopy();
+                } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
+                    await socket.setObject(dataEdit._id, dataEdit);
+                }
+            }
+        }
+
+        onClose();
     };
 
     const id = getIdFromName();
@@ -270,9 +321,9 @@ const DialogEditFolder = ({
                                 disabled={rootCheck === newId}
                                 control={
                                     <Checkbox
-                                        checked={rootCheck}
+                                        checked={!!rootCheck}
                                         onChange={() => {
-                                            let newRootCheck = null;
+                                            let newRootCheck: string | undefined;
                                             let newRoot = rootCheck;
                                             if (!rootCheck) {
                                                 newRootCheck = newId;
@@ -293,19 +344,18 @@ const DialogEditFolder = ({
                                 key="_name"
                                 fullWidth
                                 autoFocus
-                                onKeyPress={ev => {
+                                onKeyUp={ev => {
                                     if (ev.key === 'Enter') {
                                         // if (dataEdit.common.name && JSON.stringify(dataEdit) !== JSON.stringify(data)) {
                                         //     cb(dataEdit);
                                         // } else {
                                         //     cb(false);
                                         // }
-                                        onCloseLocal(true);
                                         ev.preventDefault();
+                                        void onCloseLocal(true);
                                     }
                                 }}
                                 value={name || ''}
-                                style={styles.oidField}
                                 error={!!objects[id] || !name}
                                 disabled={startTheProcess}
                                 onChange={e => {
@@ -315,7 +365,7 @@ const DialogEditFolder = ({
 
                                     if (!newFolder) {
                                         let parts;
-                                        parts = data._id.split('.');
+                                        parts = data!._id.split('.');
                                         parts.pop();
                                         parts = parts.join('.');
                                         parts = `${parts}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
@@ -348,7 +398,7 @@ const DialogEditFolder = ({
                                 type="color"
                                 disabled={startTheProcess}
                                 value={dataEdit?.common?.color || ''}
-                                style={{ ...styles.oidField, ...styles.colorButton, width: 40 }}
+                                style={{ width: 40 }}
                                 onChange={e => {
                                     const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                     newDataEdit.common.color = e.target.value;
@@ -362,12 +412,12 @@ const DialogEditFolder = ({
                             disabled={startTheProcess}
                             maxSize={256 * 1024}
                             icon={dataEdit?.common?.icon}
-                            removeIconFunc={e => {
+                            removeIconFunc={() => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.icon = '';
                                 setDataEdit(newDataEdit);
                             }}
-                            onChange={base64 => {
+                            onChange={(base64: string): void => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                 newDataEdit.common.icon = base64;
                                 setDataEdit(newDataEdit);
@@ -405,7 +455,7 @@ const DialogEditFolder = ({
             </Dialog>
         </ThemeProvider>
     );
-};
+}
 
 DialogEditFolder.defaultProps = {
     data: emptyObj,

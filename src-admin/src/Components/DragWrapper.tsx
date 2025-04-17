@@ -4,32 +4,35 @@ import { useDrag, useDrop } from 'react-dnd';
 import { TableRow } from '@mui/material';
 
 import { Utils, I18n } from '@iobroker/adapter-react-v5';
+import type { PatternControlEx } from '../types';
 
-const DragWrapper = ({
-    openFolder,
-    backgroundRow,
-    objects,
-    onCopyDevice,
-    deleteDevice,
-    deviceIdx,
-    id,
-    children,
-    style,
-    sx,
-    onClick,
-}) => {
+export interface DragWrapperProps {
+    openFolder: () => void;
+    objects: Record<string, ioBroker.Object>;
+    deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
+    onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
+    id: string;
+    children: (React.JSX.Element | null)[];
+    sx: Record<string, any>;
+    backgroundRow: string | null;
+    onClick: () => void;
+
+    deviceIdx: number;
+}
+
+export default function DragWrapper(props: DragWrapperProps): React.JSX.Element {
     const ref = useRef(null);
     const language = I18n.getLanguage();
     const [{ isDragging }, dragRef] = useDrag({
         type: 'box',
-        item: { id, deviceIdx },
+        item: { id: props.id, deviceIdx: props.deviceIdx },
         canDrag: () => {
-            return !id?.includes('linked_devices') && !id?.includes('linkeddevices.0');
+            return !props.id?.includes('linked_devices') && !props.id?.includes('linkeddevices.0');
         },
         end: async (item, monitor) => {
             let parts;
-            if (objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(objects, item.id, { language })
+            if (props.objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
@@ -40,11 +43,11 @@ const DragWrapper = ({
             const result = monitor.getDropResult();
             const targetId = monitor.getTargetIds();
             const didDrop = monitor.didDrop();
-            if (id !== `alias.0.${parts}` && !result && !targetId.length && !didDrop) {
-                await onCopyDevice(id, `alias.0.${parts}`);
-                openFolder();
-                if (id.includes('alias.0')) {
-                    await deleteDevice(item.deviceIdx);
+            if (props.id !== `alias.0.${parts}` && !result && !targetId.length && !didDrop) {
+                await props.onCopyDevice(props.id, `alias.0.${parts}`);
+                props.openFolder();
+                if (props.id.includes('alias.0')) {
+                    await props.deleteDevice(item.deviceIdx);
                 }
             }
         },
@@ -53,10 +56,10 @@ const DragWrapper = ({
     const [error, setError] = useState(false);
     const [{ isOver, canDrop }, dropRef] = useDrop({
         accept: 'box',
-        canDrop: item => {
+        canDrop: (item: { id: string }): boolean => {
             let parts;
-            if (objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(objects, item.id, { language })
+            if (props.objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
@@ -64,14 +67,14 @@ const DragWrapper = ({
                 parts = item.id.split('.');
                 parts = parts.pop();
             }
-            let partsId = id.split('.');
+            const partsId = props.id.split('.');
             partsId.pop();
-            partsId = partsId.join('.');
+            const parentId = partsId.join('.');
             if (
-                !id?.includes('alias.0') ||
-                id?.includes('automatically_detected') ||
-                id?.includes('linked_devices') ||
-                objects[`${partsId}.${parts}`]
+                !props.id?.includes('alias.0') ||
+                props.id?.includes('automatically_detected') ||
+                props.id?.includes('linked_devices') ||
+                props.objects[`${parentId}.${parts}`]
             ) {
                 return false;
             }
@@ -82,10 +85,10 @@ const DragWrapper = ({
             isOver: monitor.isOver(),
             canDrop: monitor.canDrop(),
         }),
-        drop: async item => {
+        drop: async (item: { id: string; deviceIdx: number }) => {
             let parts;
-            if (objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(objects, item.id, { language })
+            if (props.objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
@@ -93,20 +96,20 @@ const DragWrapper = ({
                 parts = item.id.split('.');
                 parts = parts.pop();
             }
-            let partsId = id.split('.');
+            const partsId = props.id.split('.');
             partsId.pop();
-            partsId = partsId.join('.');
+            const parentId = partsId.join('.');
             setError(false);
-            await onCopyDevice(item.id, `${partsId}.${parts}`);
-            openFolder();
+            await props.onCopyDevice(item.id, `${parentId}.${parts}`);
+            props.openFolder();
             if (item.id.includes('alias.0')) {
-                await deleteDevice(item.deviceIdx);
+                await props.deleteDevice(item.deviceIdx);
             }
         },
-        hover(item, monitor) {
+        hover(item) {
             let parts;
-            if (objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(objects, item.id, { language })
+            if (props.objects[item.id]?.common?.name) {
+                parts = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
@@ -114,14 +117,14 @@ const DragWrapper = ({
                 parts = item.id.split('.');
                 parts = parts.pop();
             }
-            let partsId = id.split('.');
+            const partsId = props.id.split('.');
             partsId.pop();
-            partsId = partsId.join('.');
+            const parentId = partsId.join('.');
             if (
-                !id?.includes('alias.0') ||
-                id?.includes('automatically_detected') ||
-                id?.includes('linked_devices') ||
-                objects[`${partsId}.${parts}`]
+                !props.id?.includes('alias.0') ||
+                props.id?.includes('automatically_detected') ||
+                props.id?.includes('linked_devices') ||
+                props.objects[`${parentId}.${parts}`]
             ) {
                 setError(true);
             } else {
@@ -130,7 +133,7 @@ const DragWrapper = ({
         },
     });
     const isActive = isOver && canDrop;
-    let background = backgroundRow;
+    let background = props.backgroundRow || undefined;
     if (isOver && error) {
         background = '#e73c3c75';
     } else if (isActive) {
@@ -142,15 +145,12 @@ const DragWrapper = ({
 
     return (
         <TableRow
-            sx={sx}
-            onClick={isDragging ? null : e => onClick(e)}
-            padding="default"
+            sx={props.sx}
+            onClick={isDragging ? undefined : () => props.onClick()}
             ref={ref}
-            style={{ ...style, opacity, background }}
+            style={{ opacity, background }}
         >
-            {children}
+            {props.children}
         </TableRow>
     );
-};
-
-export default DragWrapper;
+}

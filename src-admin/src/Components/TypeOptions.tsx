@@ -1,3 +1,4 @@
+import React from 'react';
 import { Types } from '@iobroker/type-detector';
 
 import { FcGoogle, FcElectricalSensor } from 'react-icons/fc';
@@ -50,8 +51,11 @@ import { HiOutlineLightBulb } from 'react-icons/hi';
 import { ImPower } from 'react-icons/im';
 import WindowTilted from './icons/WindowTilted';
 import MaterialIcon from './icons/Material';
+import type { IconType } from 'react-icons';
 
-const TYPE_OPTIONS = {
+export type ApplicationType = 'alexa' | 'alisa' | 'google' | 'material';
+
+const TYPE_OPTIONS: Partial<Record<Types, Record<ApplicationType, boolean>>> = {
     [Types.airCondition]: { alexa: false, alisa: true, google: false, material: false },
     [Types.blindButtons]: { alexa: false, alisa: false, google: false, material: false },
     [Types.blind]: { alexa: false, alisa: true, google: true, material: true },
@@ -80,9 +84,9 @@ const TYPE_OPTIONS = {
     [Types.socket]: { alexa: true, alisa: true, google: true, material: false },
     [Types.temperature]: { alexa: false, alisa: true, google: true, material: true },
     [Types.thermostat]: { alexa: true, alisa: true, google: true, material: true },
-    [Types.url]: { alexa: false, alisa: false, google: false, material: false },
+    // [Types.url]: { alexa: false, alisa: false, google: false, material: false },
     [Types.vacuumCleaner]: { alexa: false, alisa: true, google: false, material: false },
-    [Types.valve]: { alexa: false, alisa: false, google: false, material: false },
+    // [Types.valve]: { alexa: false, alisa: false, google: false, material: false },
     [Types.volumeGroup]: { alexa: false, alisa: false, google: false, material: true },
     [Types.volume]: { alexa: false, alisa: false, google: false, material: true },
     [Types.warning]: { alexa: false, alisa: false, google: false, material: true },
@@ -92,7 +96,7 @@ const TYPE_OPTIONS = {
     [Types.window]: { alexa: false, alisa: true, google: true, material: true },
 };
 
-export const ICONS_TYPE = {
+export const ICONS_TYPE: Record<ApplicationType, React.JSX.Element> = {
     alexa: <SiAmazonalexa style={{ margin: '0 3px', width: 16, height: 16 }} />,
     alisa: (
         <img
@@ -105,7 +109,7 @@ export const ICONS_TYPE = {
     material: <MaterialIcon style={{ margin: '0 3px', width: 16, height: 16 }} />,
 };
 
-export const STATES_NAME_ICONS = {
+export const STATES_NAME_ICONS: Record<string, IconType> = {
     SET: AiOutlineAppstoreAdd,
     WORKING: MdWork,
     UNREACH: IconUnreach,

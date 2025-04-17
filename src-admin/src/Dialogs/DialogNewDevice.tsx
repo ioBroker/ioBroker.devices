@@ -1,11 +1,10 @@
 /**
- * Copyright 2019-2023 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2025 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
- **/
+ */
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {
     Button,
@@ -24,13 +23,15 @@ import {
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type ThemeType } from '@iobroker/adapter-react-v5';
 
-// import TreeView from '../Components/TreeView';
 import TypeIcon from '../Components/TypeIcon';
-import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
+import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
+import SmartDetector from '../Devices/SmartDetector';
+import type { PatternControlEx } from '../types';
+import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
-const styles = {
+const styles: Record<string, any> = {
     header: {
         width: '100%',
         fontSize: 16,
@@ -126,28 +127,75 @@ const styles = {
     },
 };
 
-const UNSUPPORTED_TYPES = [Types.unknown, Types.instance, Types.chart];
+const UNSUPPORTED_TYPES: Types[] = [Types.unknown, Types.instance, Types.chart];
 
-function getParentId(id) {
+function getParentId(id: string): string {
     const pos = id.lastIndexOf('.');
     if (pos !== -1) {
         return id.substring(0, pos);
-    } else {
-        return '';
     }
+    return '';
 }
 
-function getLastPart(id) {
+function getLastPart(id: string): string {
     const pos = id.lastIndexOf('.');
     if (pos !== -1) {
         return id.substring(pos + 1);
-    } else {
-        return id;
     }
+
+    return id;
 }
 
-class DialogNewDevice extends React.Component {
-    constructor(props) {
+interface DialogNewDeviceProps {
+    onClose: (data?: {
+        id: string;
+        type: Types;
+        name: string;
+        functions: string[];
+        icon: string;
+        states: ExternalDetectorState[];
+        color?: string;
+        rooms: string[];
+        prefix: string;
+    }) => void;
+    objects: Record<string, ioBroker.Object>;
+    detector: SmartDetector;
+    enumIDs: string[];
+    themeType: ThemeType;
+    copyDevice: PatternControlEx | null;
+    prefix?: string;
+    selected?: string;
+    processTasks: (
+        tasks: {
+            id: string;
+            obj: ioBroker.Object;
+            enums?: string[];
+        }[],
+    ) => Promise<void>;
+}
+
+interface DialogNewDeviceState {
+    root: string;
+    name: string;
+    notUnique: boolean;
+    functions: string[];
+    rooms: string[];
+    type: Types;
+    ids: Record<string, ioBroker.FolderObject>;
+    rootCheck: string | null;
+    open: Record<string, boolean>;
+}
+
+class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDeviceState> {
+    private prefix: string;
+
+    private channelId: string;
+
+    private types: Types[];
+
+    private readonly typesWords: Partial<Record<Types, string>>;
+
+    constructor(props: DialogNewDeviceProps) {
         super(props);
         let i = 1;
 
@@ -160,18 +208,17 @@ class DialogNewDevice extends React.Component {
         const prefix = this.prefix.startsWith('alias.') ? this.prefix.replace(/\d+$/, '') : this.prefix; // alias.0 => alias.
 
         // filter aliases
-        const ids = [];
+        const ids: string[] = [];
 
         Object.keys(this.props.objects).forEach(id => {
             if (
                 id.startsWith(prefix) &&
-                this.props.objects[id] &&
-                this.props.objects[id].common &&
+                this.props.objects[id]?.common &&
                 (this.props.objects[id].type === 'channel' ||
                     this.props.objects[id].type === 'device' ||
                     this.props.objects[id].type === 'folder')
             ) {
-                let parentId;
+                let parentId: string;
                 // getParentId
                 if (this.props.objects[id].type === 'folder') {
                     parentId = id;
@@ -187,72 +234,77 @@ class DialogNewDevice extends React.Component {
 
         this.typesWords = {};
         Object.keys(Types)
-            .filter(id => !UNSUPPORTED_TYPES.includes(id))
-            .forEach(typeId => (this.typesWords[typeId] = I18n.t(`type-${Types[typeId]}`)));
+            .filter(id => !UNSUPPORTED_TYPES.includes(id as Types))
+            .forEach(typeId => (this.typesWords[typeId as Types] = I18n.t(`type-${Types[typeId as Types]}`)));
 
         // sort types by ABC in the current language
         this.types = Object.keys(this.typesWords).sort((a, b) => {
-            if (this.typesWords[a] === this.typesWords[b]) {
+            if (this.typesWords[a as Types] === this.typesWords[b as Types]) {
                 return 0;
-            } else if (this.typesWords[a] > this.typesWords[b]) {
-                return 1;
-            } else {
-                return -1;
             }
-        });
+            if (this.typesWords[a as Types]! > this.typesWords[b as Types]!) {
+                return 1;
+            }
+            return -1;
+        }) as Types[];
 
-        const stateIds = {};
+        const stateIds: Record<string, ioBroker.FolderObject> = {};
         const language = I18n.getLanguage();
         ids.forEach(
             id =>
                 (stateIds[id] = {
+                    _id: id,
                     common: {
                         name:
                             this.props.objects[id] && this.props.objects[id].type === 'folder'
-                                ? Utils.getObjectName(this.props.objects, id, { language })
+                                ? Utils.getObjectName(this.props.objects, id, language)
                                 : getLastPart(id),
                         nondeletable: true,
                         color:
                             this.props.objects[id]?.common && this.props.objects[id].common.color
                                 ? this.props.objects[id].common.color
-                                : null,
+                                : undefined,
                         icon:
                             this.props.objects[id]?.common && this.props.objects[id].common.icon
                                 ? this.props.objects[id].common.icon
-                                : null,
+                                : undefined,
                     },
                     type: 'folder',
+                    native: {},
                 }),
         );
 
         stateIds[this.prefix] = {
+            _id: this.prefix,
             common: {
                 name: I18n.t('Root'),
                 nondeletable: true,
             },
             type: 'folder',
+            native: {},
         };
-        let functions = [];
-        let rooms = [];
+        let functions: string[] = [];
+        let rooms: string[] = [];
         try {
             functions = JSON.parse(window.localStorage.getItem('Devices.new.functions') || '[]');
             rooms = JSON.parse(window.localStorage.getItem('Devices.new.rooms') || '[]');
-        } catch (e) {
+        } catch {
             // ignore
         }
 
         let root = window.localStorage.getItem('NewDeviceRoot');
-        if (!root || this.props.prefix.includes('alias') !== root.includes('alias') || !this.props.objects[root]) {
+        if (!root || this.prefix.includes('alias') !== root.includes('alias') || !this.props.objects[root]) {
             root = null;
         }
 
-        if (this.props.selected.startsWith('alias') && this.props.prefix.startsWith('alias.0')) {
-            const checkIdSelected = (newPart = this.props.selected) => {
+        const selected = this.props.selected || 'alias.0';
+
+        if (selected.startsWith('alias') && this.prefix.startsWith('alias.0')) {
+            const checkIdSelected = (newPart = selected): string => {
                 if (this.props.objects[newPart]?.type && this.props.objects[newPart]?.type !== 'folder') {
-                    let parts = newPart.split('.');
+                    const parts = newPart.split('.');
                     parts.pop();
-                    parts = parts.join('.');
-                    return checkIdSelected(parts);
+                    return checkIdSelected(parts.join('.'));
                 }
                 return newPart;
             };
@@ -269,22 +321,22 @@ class DialogNewDevice extends React.Component {
             notUnique: false,
             functions,
             rooms,
-            type: window.localStorage.getItem('Devices.newType') || 'light',
+            type: (window.localStorage.getItem('Devices.newType') as Types) || Types.light,
             ids: stateIds,
             rootCheck: (root || this.prefix) === this.prefix ? this.prefix : null,
             open: {},
         };
     }
 
-    setStateAsync(newState) {
-        return new Promise(resolve => this.setState(newState, () => resolve()));
+    setStateAsync(newState: Partial<DialogNewDeviceState>): Promise<void> {
+        return new Promise<void>(resolve => this.setState(newState as DialogNewDeviceState, () => resolve()));
     }
 
-    renderSelectEnum(name, title) {
+    renderSelectEnum(name: 'functions' | 'rooms', title: string): React.JSX.Element {
         const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
         const language = I18n.getLanguage();
         const objs = enums.map(id => ({
-            name: Utils.getObjectName(this.props.objects, id, { language }),
+            name: Utils.getObjectName(this.props.objects, id, language),
             icon: Utils.getObjectIcon(id, this.props.objects[id]),
             id,
         }));
@@ -297,7 +349,6 @@ class DialogNewDevice extends React.Component {
                 <InputLabel>{title}</InputLabel>
                 <Select
                     variant="standard"
-                    style={styles.oidField}
                     open={!!this.state.open[name]}
                     onClick={() => this.setState({ open: { [name]: !this.state.open[name] } })}
                     onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
@@ -307,7 +358,7 @@ class DialogNewDevice extends React.Component {
                         const newArr =
                             arrId.length && typeof arrId !== 'string'
                                 ? arrId.map(id => ({
-                                      name: Utils.getObjectName(this.props.objects, id, { language }),
+                                      name: Utils.getObjectName(this.props.objects, id, language),
                                       icon: Utils.getObjectIcon(id, this.props.objects[id]),
                                       id,
                                   }))
@@ -338,13 +389,16 @@ class DialogNewDevice extends React.Component {
                     value={this.state[name] || []}
                     onChange={e => {
                         localStorage.setItem(`Devices.new.${name}`, JSON.stringify(e.target.value));
-                        this.setState({ [name]: e.target.value, open: { [name]: false } });
+                        if (name === 'functions') {
+                            this.setState({ functions: e.target.value as string[], open: { functions: false } });
+                        } else {
+                            this.setState({ rooms: e.target.value as string[], open: { rooms: false } });
+                        }
                     }}
                 >
                     {objs.map(obj => (
                         <MenuItem
                             key={obj.id}
-                            icon={obj.icon}
                             value={obj.id}
                         >
                             <Checkbox checked={(this.state[name] || []).includes(obj.id)} />
@@ -365,31 +419,36 @@ class DialogNewDevice extends React.Component {
         );
     }
 
-    generateId() {
+    generateId(): string {
         return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
     }
 
-    async onCopyDevice(newChannelId) {
+    async onCopyDevice(newChannelId: string): Promise<void> {
         // if this is device not from linkeddevices or from alias
-        this.channelId = this.props.copyDevice.channelId;
+        this.channelId = this.props.copyDevice!.channelId;
         const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
 
         const channelObj = this.props.objects[this.channelId];
-        const { functions, rooms, icon, states, color, type } = this.props.copyDevice;
-        const tasks = [];
+        const { functions, rooms, icon, states, color, type } = this.props.copyDevice!;
+        const tasks: {
+            id: string;
+            obj: ioBroker.Object;
+            enums?: string[];
+        }[] = [];
 
-        const patterns = this.props.detector.getPatterns();
-        const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
+        const patterns = SmartDetector.getPatterns();
+        const role = patterns[type]?.states?.find(item => item.defaultChannelRole);
 
         tasks.push({
             id: newChannelId,
             obj: {
+                _id: newChannelId,
                 common: {
                     name: channelObj.common.name,
-                    color: color,
+                    color: color || undefined,
                     desc: channelObj.common.desc,
                     role: role?.defaultChannelRole || type,
-                    icon: icon && icon.startsWith('adapter/') ? `../../${icon}` : icon,
+                    icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
                 },
                 type: 'channel',
                 native: channelObj.native || {},
@@ -416,8 +475,8 @@ class DialogNewDevice extends React.Component {
         await this.props.processTasks(tasks);
     }
 
-    handleOk = async () => {
-        // check if name is unique
+    handleOk = async (): Promise<void> => {
+        // check if the name is unique
         if (this.props.copyDevice) {
             await this.onCopyDevice(this.generateId());
             // await this.props.onChange();
@@ -430,55 +489,18 @@ class DialogNewDevice extends React.Component {
                 functions: this.state.functions,
                 icon: '',
                 states: [],
-                color: null,
+                color: undefined,
                 rooms: this.state.rooms,
                 prefix: this.prefix,
             });
         }
     };
 
-    handleCancel = () => {
-        // check if name is unique
-        this.props.onClose && this.props.onClose(null);
+    handleCancel = (): void => {
+        this.props.onClose();
     };
 
-    showEnumIcon(name) {
-        const obj = this.props.objects[this.state[name]];
-        if (obj && obj.common && obj.common.icon) {
-            return (
-                <Icon
-                    style={styles.icon}
-                    src={obj.icon}
-                    alt=""
-                />
-            );
-        } else {
-            return null;
-        }
-    }
-
-    async addNewFolder(name, parentId) {
-        const id = `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        const obj = {
-            _id: id,
-            common: { name: { [I18n.getLanguage()]: name } },
-            native: {},
-            type: 'folder',
-        };
-
-        await this.props.processTasks([{ id, obj }]);
-
-        // create folder
-        const ids = JSON.parse(JSON.stringify(this.state.ids));
-        ids[id] = {
-            common: { name },
-            type: 'folder',
-        };
-        this.prefix = id;
-        await this.setStateAsync({ ids, root: id });
-    }
-
-    render() {
+    render(): React.JSX.Element {
         return (
             <Dialog
                 open={!0}
@@ -501,7 +523,7 @@ class DialogNewDevice extends React.Component {
                             disabled={this.state.rootCheck === this.state.root}
                             control={
                                 <Checkbox
-                                    checked={this.state.rootCheck}
+                                    checked={!!this.state.rootCheck}
                                     onChange={() => {
                                         let newRootCheck = null;
                                         let newRoot = this.state.rootCheck;
@@ -509,7 +531,7 @@ class DialogNewDevice extends React.Component {
                                             newRootCheck = this.state.root;
                                             newRoot = this.prefix;
                                         }
-                                        this.setState({ rootCheck: newRootCheck, root: newRoot });
+                                        this.setState({ rootCheck: newRootCheck, root: newRoot! });
                                     }}
                                 />
                             }
@@ -533,7 +555,6 @@ class DialogNewDevice extends React.Component {
                             }}
                             label={I18n.t('Device name')}
                             error={!!this.props.objects[this.generateId()]}
-                            style={styles.name}
                             value={this.state.name}
                             onChange={e => this.setState({ name: e.target.value })}
                             margin="normal"
@@ -549,7 +570,7 @@ class DialogNewDevice extends React.Component {
                                     value={this.state.type}
                                     onChange={e => {
                                         localStorage.setItem('Devices.newType', e.target.value);
-                                        this.setState({ type: e.target.value });
+                                        this.setState({ type: e.target.value as Types });
                                     }}
                                 >
                                     {this.types
@@ -571,17 +592,15 @@ class DialogNewDevice extends React.Component {
                                                                         : '#000',
                                                             }}
                                                         />
-                                                        <span style={styles.selectText}>
-                                                            {this.typesWords[typeId]}
-                                                        </span>
+                                                        <span style={styles.selectText}>{this.typesWords[typeId]}</span>
                                                     </div>
                                                     <div style={styles.iconWrapper}>
-                                                        {Object.keys(TYPE_OPTIONS[typeId]).map(key =>
-                                                            TYPE_OPTIONS[typeId][key] ? (
+                                                        {Object.keys(TYPE_OPTIONS[typeId]!).map(key =>
+                                                            TYPE_OPTIONS[typeId]![key as ApplicationType] ? (
                                                                 <Icon
                                                                     key={key}
                                                                     style={styles.iconStyle}
-                                                                    src={ICONS_TYPE[key]}
+                                                                    src={ICONS_TYPE[key as ApplicationType]}
                                                                 />
                                                             ) : (
                                                                 <div
@@ -623,19 +642,5 @@ class DialogNewDevice extends React.Component {
         );
     }
 }
-
-DialogNewDevice.defaultProps = {
-    selected: 'alias.0',
-};
-
-DialogNewDevice.propTypes = {
-    onClose: PropTypes.func,
-    objects: PropTypes.object,
-    theme: PropTypes.object,
-    themeType: PropTypes.string,
-    enumIDs: PropTypes.array,
-    socket: PropTypes.object,
-    detector: PropTypes.object,
-};
 
 export default DialogNewDevice;

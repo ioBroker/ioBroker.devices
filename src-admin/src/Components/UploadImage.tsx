@@ -1,7 +1,6 @@
-import { Component, createRef } from 'react';
-import PropTypes from 'prop-types';
+import React, { Component, createRef } from 'react';
 
-import { Cropper } from 'react-cropper';
+import { Cropper, type ReactCropperElement } from 'react-cropper';
 import 'cropperjs/dist/cropper.css';
 
 import { Menu, MenuItem, Tooltip, IconButton } from '@mui/material';
@@ -10,7 +9,7 @@ import { Crop as CropIcon } from '@mui/icons-material';
 
 import { IconPicker } from '@iobroker/adapter-react-v5';
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
     image: {
         objectFit: 'contain',
         margin: 'auto',
@@ -44,8 +43,26 @@ const styles = {
     },
 };
 
-class UploadImage extends Component {
-    constructor(props) {
+interface UploadImageProps {
+    disabled: boolean;
+    crop: boolean;
+    error: boolean;
+    onChange: (base64: string) => void;
+    t: (el: string) => string;
+    icon?: string | null;
+    removeIconFunc?: () => void;
+    style?: React.CSSProperties;
+}
+
+interface UploadImageState {
+    anchorEl: HTMLElement | null;
+    cropHandler: boolean;
+}
+
+class UploadImage extends Component<UploadImageProps, UploadImageState> {
+    private readonly cropperRef: React.RefObject<ReactCropperElement>;
+
+    constructor(props: UploadImageProps) {
         super(props);
         this.state = {
             anchorEl: null,
@@ -54,17 +71,17 @@ class UploadImage extends Component {
         this.cropperRef = createRef();
     }
 
-    render() {
+    render(): React.JSX.Element {
         const { disabled, icon, t, crop, onChange, style } = this.props;
         const { anchorEl, cropHandler } = this.state;
         return (
             <div style={{ ...style, position: 'relative' }}>
                 {icon && crop && (
-                    <div
-                        style={styles.buttonCropWrapper}
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                    >
-                        <Tooltip title={t('Crop')}>
+                    <div style={styles.buttonCropWrapper}>
+                        <Tooltip
+                            title={t('Crop')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <IconButton
                                 onClick={e => {
                                     if (!cropHandler) {
@@ -88,7 +105,9 @@ class UploadImage extends Component {
                                 onClick={() =>
                                     this.setState({ anchorEl: null, cropHandler: false }, () => {
                                         const imageElement = this.cropperRef?.current?.cropper;
-                                        onChange(imageElement.getCroppedCanvas().toDataURL());
+                                        if (imageElement) {
+                                            onChange(imageElement.getCroppedCanvas().toDataURL());
+                                        }
                                     })
                                 }
                             >
@@ -127,27 +146,5 @@ class UploadImage extends Component {
         );
     }
 }
-
-UploadImage.defaultProps = {
-    disabled: false,
-    maxSize: 10 * 1024,
-    icon: null,
-    removeIconFunc: null,
-    accept: 'image/*',
-    error: false,
-    onChange: base64 => console.log(base64),
-    t: el => el,
-    crop: false,
-};
-
-UploadImage.propTypes = {
-    maxSize: PropTypes.number,
-    disabled: PropTypes.bool,
-    crop: PropTypes.bool,
-    error: PropTypes.bool,
-    onChange: PropTypes.func,
-    accept: PropTypes.string,
-    t: PropTypes.func,
-};
 
 export default UploadImage;

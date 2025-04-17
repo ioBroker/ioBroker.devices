@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
 
@@ -30,82 +29,121 @@ import {
 } from '@mui/icons-material';
 
 import { I18n } from '@iobroker/adapter-react-v5';
-const DragHandle = SortableHandle(() => <IconDragHandle style={{ cursor: 'grab' }} />);
+const DragHandle = SortableHandle((): React.JSX.Element => <IconDragHandle style={{ cursor: 'grab' }} />);
 
-const SortableItem = SortableElement(({ item, ownIndex, onDelete, onChange }) => (
-    <TableRow style={{ zIndex: 10000 }}>
-        <TableCell>
-            <DragHandle />
-        </TableCell>
-        <TableCell
-            component="th"
-            scope="row"
-        >
-            {
-                <TextField
-                    variant="standard"
-                    value={item.value}
-                    onChange={e => onChange(ownIndex, e.target.value)}
-                />
-            }
-        </TableCell>
-        <TableCell align="right">
-            {
-                <TextField
-                    variant="standard"
-                    value={item.label}
-                    onChange={e => onChange(ownIndex, undefined, e.target.value)}
-                />
-            }
-        </TableCell>
-        <TableCell>
-            <IconButton onClick={() => onDelete(ownIndex)}>
-                <IconDelete />
-            </IconButton>
-        </TableCell>
-    </TableRow>
-));
+const SortableItem = SortableElement<{
+    item: { label: string; value: string };
+    ownIndex: number;
+    onDelete: (i: number) => void;
+    onChange: (i: number, value?: string, label?: string) => void;
+}>(
+    (props: {
+        item: { label: string; value: string };
+        ownIndex: number;
+        onDelete: (i: number) => void;
+        onChange: (i: number, value?: string, label?: string) => void;
+    }): React.JSX.Element => {
+        const { item, ownIndex, onDelete, onChange } = props;
+        return (
+            <TableRow style={{ zIndex: 10000 }}>
+                <TableCell>
+                    <DragHandle />
+                </TableCell>
+                <TableCell
+                    component="th"
+                    scope="row"
+                >
+                    {
+                        <TextField
+                            variant="standard"
+                            value={item.value}
+                            onChange={e => onChange(ownIndex, e.target.value)}
+                        />
+                    }
+                </TableCell>
+                <TableCell align="right">
+                    {
+                        <TextField
+                            variant="standard"
+                            value={item.label}
+                            onChange={e => onChange(ownIndex, undefined, e.target.value)}
+                        />
+                    }
+                </TableCell>
+                <TableCell>
+                    <IconButton onClick={() => onDelete(ownIndex)}>
+                        <IconDelete />
+                    </IconButton>
+                </TableCell>
+            </TableRow>
+        );
+    },
+);
 
-const SortableList = SortableContainer(({ items, onDelete, onChange }) => {
-    return (
-        <TableBody>
-            {items.map((item, index) => (
-                <SortableItem
-                    key={`item-${index}`}
-                    index={index}
-                    ownIndex={index}
-                    onDelete={onDelete}
-                    onChange={onChange}
-                    item={item}
-                />
-            ))}
-        </TableBody>
-    );
-});
+const SortableList = SortableContainer<{
+    items: { label: string; value: string }[];
+    onDelete: (i: number) => void;
+    onChange: (i: number, value?: string, label?: string) => void;
+}>(
+    (props: {
+        items: { label: string; value: string }[];
+        onDelete: (i: number) => void;
+        onChange: (i: number, value?: string, label?: string) => void;
+    }): React.JSX.Element => {
+        const { items, onDelete, onChange } = props;
+        return (
+            <TableBody>
+                {items.map((item, index) => (
+                    <SortableItem
+                        key={`item-${index}`}
+                        index={index}
+                        ownIndex={index}
+                        onDelete={onDelete}
+                        onChange={onChange}
+                        item={item}
+                    />
+                ))}
+            </TableBody>
+        );
+    },
+);
 
-class DialogEditStates extends React.Component {
-    constructor(props) {
+interface DialogEditStatesProps {
+    states: { [value: string]: string } | undefined;
+    onClose: (result?: { [value: string]: string }) => void;
+}
+
+interface DialogEditStatesState {
+    states: { label: string; value: string }[];
+    error: boolean;
+}
+
+class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEditStatesState> {
+    constructor(props: DialogEditStatesProps) {
         super(props);
         this.state = {
-            states: Object.keys(this.props.states || {}).map(value => ({ label: this.props.states[value], value })),
+            states: Object.keys(this.props.states || {}).map(value => ({
+                label: (this.props.states || {})[value],
+                value,
+            })),
             error: false,
         };
     }
 
-    onClose() {
-        const result = {};
+    onClose(): void {
+        const result: { [value: string]: string } = {};
         this.state.states.forEach(item => (result[item.value] = item.label));
         this.props.onClose(result);
     }
 
-    onDelete = i => {
-        const states = JSON.parse(JSON.stringify(this.state.states));
+    onDelete = (i: number): void => {
+        const states: { label: string; value: string }[] = JSON.parse(JSON.stringify(this.state.states));
         states.splice(i, 1);
         this.setState({ states });
     };
 
-    onChange = (i, value, label) => {
-        const states = JSON.parse(JSON.stringify(this.state.states));
+    onChange = (i: number, value: string, label: string): void => {
+        const states: { label: string; value: string }[] = JSON.parse(JSON.stringify(this.state.states));
         if (value !== undefined) {
             states[i].value = value;
         }
@@ -115,20 +153,24 @@ class DialogEditStates extends React.Component {
         this.setState({ states });
     };
 
-    onSortEnd = ({ oldIndex, newIndex }) => {
-        const states = JSON.parse(JSON.stringify(this.state.states));
+    onSortEnd = (props: { oldIndex: number; newIndex: number }): void => {
+        const { oldIndex, newIndex } = props;
+        const states: { label: string; value: string }[] = JSON.parse(JSON.stringify(this.state.states));
         const item = states[oldIndex];
         states[oldIndex] = states[newIndex];
         states[newIndex] = item;
         this.setState({ states });
     };
 
-    render() {
+    render(): React.JSX.Element {
         return (
             <Dialog
                 open={!0}
-                disableBackdropClick
-                disableEscapeKeyDown
+                onClose={reason => {
+                    if (reason !== 'backdropClick' && reason !== 'escapeKeyDown') {
+                        this.onClose();
+                    }
+                }}
             >
                 <DialogTitle>{I18n.t('Edit states')}</DialogTitle>
                 <DialogContent>
@@ -156,10 +198,7 @@ class DialogEditStates extends React.Component {
                         <IconAdd />
                     </Fab>
                     <TableContainer component={Paper}>
-                        <Table
-                            className={this.props.classes.table}
-                            aria-label="simple table"
-                        >
+                        <Table>
                             <TableHead>
                                 <TableRow>
                                     <TableCell />
@@ -202,10 +241,5 @@ class DialogEditStates extends React.Component {
         );
     }
 }
-
-DialogEditStates.propTypes = {
-    states: PropTypes.object.isRequired,
-    onClose: PropTypes.func.isRequired,
-};
 
 export default DialogEditStates;

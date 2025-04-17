@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -21,9 +20,10 @@ import {
 
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
-import { I18n, Theme, Utils } from '@iobroker/adapter-react-v5';
+import { I18n, Theme, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
+import type { DetectorState } from '@iobroker/type-detector/types';
 
-const styles = {
+const styles: Record<string, any> = {
     paper: {
         maxWidth: 960,
         width: 'calc(100% - 64px)',
@@ -78,23 +78,33 @@ const styles = {
 
 const typeArray = ['string', 'boolean', 'number', 'file'];
 
-const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault, editState }) => {
+interface DialogAddStateProps {
+    editState: string | null;
+    objects: Record<string, ioBroker.Object>;
+    socket: AdminConnection;
+    channelId: string;
+    arrayStateDefault: DetectorState[];
+    onClose: (obj?: ioBroker.StateObject) => void;
+}
+
+function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
+    const { onClose, objects, socket, channelId, arrayStateDefault, editState } = props;
     const [open, setOpen] = useState(true);
-    const [role, setRole] = useState(null);
-    const [roleInput, setRoleInput] = useState(null);
-    const [roles, setRoles] = useState([]);
+    const [role, setRole] = useState<string | null>(null);
+    const [roleInput, setRoleInput] = useState<string | null>(null);
+    const [roles, setRoles] = useState<string[]>([]);
     const [name, setName] = useState('NEW_STATE');
-    const [unit, setUnit] = useState('');
-    const [type, setType] = useState('string');
+    const [unit, setUnit] = useState<undefined | string>('');
+    const [type, setType] = useState<ioBroker.CommonType>('string');
     const [checkedRead, setCheckedRead] = useState(true);
     const [checkedWrite, setCheckedWrite] = useState(true);
-    const [min, setMin] = useState(0);
-    const [max, setMax] = useState(100);
-    const [step, setStep] = useState(0);
+    const [min, setMin] = useState<undefined | number | string>(0);
+    const [max, setMax] = useState<undefined | number | string>(100);
+    const [step, setStep] = useState<undefined | number | string>(0);
     const [checkedStates, setCheckedStates] = useState(false);
 
     useEffect(() => {
-        let rolesArr = [];
+        const rolesArr: string[] = [];
         Object.keys(objects).forEach(key => {
             const obj = objects[key];
             if (obj) {
@@ -109,11 +119,21 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
         setRoles(rolesArr.sort());
 
         if (editState) {
-            const newObj = objects[editState];
+            const newObj: ioBroker.StateObject = objects[editState] as ioBroker.StateObject;
             if (newObj) {
                 setType(newObj.common.type);
                 setRole(newObj.common.role);
-                setName(newObj.common.name);
+                if (newObj.common.name && typeof newObj.common.name === 'object') {
+                    setName(
+                        newObj.common.name[I18n.getLanguage()] ||
+                            newObj.common.name.en ||
+                            newObj.common.name[Object.keys(newObj.common.name)[0] as ioBroker.Languages] ||
+                            '',
+                    );
+                } else {
+                    setName(newObj.common.name || '');
+                }
+
                 if (newObj.common.type === 'number') {
                     setMin(newObj.common.min);
                     setMax(newObj.common.max);
@@ -121,6 +141,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                     setStep(newObj.common.step);
                     setCheckedStates(!!newObj.common.states);
                 }
+                // @ts-expect-error file is deprecated
                 if (newObj.common.type !== 'file') {
                     setCheckedRead(newObj.common.read);
                     setCheckedWrite(newObj.common.write);
@@ -143,18 +164,15 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                     style={styles.overflowHidden}
                     dividers
                 >
-                    <Paper
-                        style={{ ...styles.showDialog, padding: `10px 20px` }}
-                        p={3}
-                    >
+                    <Paper style={{ ...styles.showDialog, padding: `10px 20px` }}>
                         <TextField
                             variant="standard"
                             fullWidth
-                            value={name}
+                            value={name || ''}
                             error={
                                 !name ||
                                 (objects[`${channelId}.${name}`] && editState !== `${channelId}.${name}`) ||
-                                arrayStateDefault.find(item => item.name === name)
+                                !!arrayStateDefault.find(item => item.name === name)
                             }
                             style={styles.nameField}
                             label={I18n.t('Name')}
@@ -164,7 +182,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                             freeSolo
                             options={roles}
                             style={{ ...styles.roleField, width: '100%' }}
-                            value={role}
+                            value={role || ''}
                             onChange={(event, role) => {
                                 setRole(role);
                                 setRoleInput(role);
@@ -188,8 +206,8 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                             <Select
                                 variant="standard"
                                 fullWidth
-                                value={type}
-                                onChange={e => setType(e.target.value)}
+                                value={type || ''}
+                                onChange={e => setType(e.target.value as ioBroker.CommonType)}
                             >
                                 {typeArray.map(key => (
                                     <MenuItem
@@ -201,6 +219,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                                 ))}
                             </Select>
                         </FormControl>
+                        {/* @ts-expect-error file is deprecated */}
                         {type !== 'file' && (
                             <>
                                 <FormControlLabel
@@ -227,7 +246,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                             <TextField
                                 variant="standard"
                                 fullWidth
-                                value={unit}
+                                value={unit || ''}
                                 style={styles.unitField}
                                 label={I18n.t('Unit')}
                                 onChange={e => setUnit(e.target.value)}
@@ -238,7 +257,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                                 <TextField
                                     variant="standard"
                                     fullWidth
-                                    value={min}
+                                    value={min === undefined ? '' : min}
                                     type="number"
                                     style={styles.minField}
                                     label={I18n.t('Min')}
@@ -247,7 +266,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                                 <TextField
                                     variant="standard"
                                     fullWidth
-                                    value={max}
+                                    value={max === undefined ? '' : max}
                                     type="number"
                                     style={styles.minField}
                                     label={I18n.t('Max')}
@@ -256,7 +275,7 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                                 <TextField
                                     variant="standard"
                                     fullWidth
-                                    value={step}
+                                    value={step === undefined ? '' : step}
                                     type="number"
                                     style={styles.maxField}
                                     label={I18n.t('Step')}
@@ -282,46 +301,50 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
                         disabled={
                             !name ||
                             (objects[`${channelId}.${name}`] && !editState) ||
-                            (editState && editState !== `${channelId}.${name}` && objects[`${channelId}.${name}`]) ||
-                            arrayStateDefault.find(item => item.name === name)
+                            !!(editState && editState !== `${channelId}.${name}` && objects[`${channelId}.${name}`]) ||
+                            !!arrayStateDefault.find(item => item.name === name)
                         }
                         onClick={async () => {
                             setOpen(false);
-                            let obj = {
+                            let obj: ioBroker.StateObject = {
                                 _id: `${channelId}.${name}`,
                                 common: {
                                     name,
-                                    role: roleInput,
+                                    role: roleInput || 'state',
                                     type,
-                                },
+                                } as ioBroker.StateCommon,
                                 type: 'state',
+                                native: {},
                             };
                             if (editState) {
                                 obj = JSON.parse(JSON.stringify(objects[editState]));
                                 obj._id = `${channelId}.${name}`;
                                 obj.common.name = name;
-                                obj.common.role = roleInput;
+                                obj.common.role = roleInput || 'state';
                                 obj.common.type = type;
                             }
                             if (type === 'number') {
-                                obj.common.min = parseFloat(min.toString().replace(',', '.'));
-                                obj.common.max = parseFloat(max.toString().replace(',', '.'));
+                                obj.common.min = parseFloat((min || 0).toString().replace(',', '.'));
+                                obj.common.max = parseFloat(
+                                    (max === undefined ? 100 : max).toString().replace(',', '.'),
+                                );
                                 obj.common.unit = unit;
                                 if (step || step === 0) {
                                     obj.common.step = parseFloat(step.toString().replace(',', '.'));
                                 }
                                 if (checkedStates) {
-                                    obj.common.states = obj.common.states || {};
+                                    obj.common.states ||= {};
                                 } else if (obj.common.states) {
                                     delete obj.common.states;
                                 }
                             }
+                            // @ts-expect-error file is deprecated
                             if (type !== 'file') {
                                 obj.common.read = checkedRead;
                                 obj.common.write = checkedWrite;
                             }
                             await socket.setObject(`${channelId}.${name}`, obj);
-                            onClose && onClose(obj);
+                            onClose(obj);
                         }}
                         startIcon={<IconCheck />}
                         color="primary"
@@ -340,14 +363,6 @@ const DialogAddState = ({ onClose, objects, socket, channelId, arrayStateDefault
             </Dialog>
         </ThemeProvider>
     );
-};
-
-DialogAddState.propTypes = {
-    editState: PropTypes.string,
-    objects: PropTypes.object,
-    socket: PropTypes.object,
-    arrayStateDefault: PropTypes.array,
-    onClose: PropTypes.func.isRequired,
-};
+}
 
 export default DialogAddState;
