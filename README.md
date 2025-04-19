@@ -22,6 +22,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 ## ToDo
 - add descriptions for states
 
+## Changelog
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**

@@ -10,9 +10,10 @@
     "license": "MIT",
     "keywords": [
         "ioBroker",
-        "template",
+        "devices",
         "Smart Home",
-        "home automation"
+        "home automation",
+        "device management"
     ],
     "repository": {
         "type": "git",

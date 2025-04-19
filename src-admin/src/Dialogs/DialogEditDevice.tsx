@@ -362,7 +362,9 @@ function TabPanel(props: { children: React.ReactNode; value: number | null; inde
     );
 }
 
-function normalizeStates(objStates: any): { [value: string]: string } | undefined {
+function normalizeStates(
+    objStates: string | string[] | undefined | null | { [value: string]: string },
+): { [value: string]: string } | undefined {
     if (objStates) {
         let states: { [value: string]: string } | undefined;
         if (typeof objStates === 'string') {
@@ -587,9 +589,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         }
 
                         this.setState({ editStates: null, states: newStates }, async () => {
-                            debugger;
-                            // @ts-expect-error
-                            const obj = id && (await this.props.socket.getObject(id));
+                            const obj =
+                                id &&
+                                (await this.props.socket.getObject(
+                                    typeof id === 'object' ? id.read || id.write || '' : id,
+                                ));
                             if (obj) {
                                 obj.common.states = states;
                                 await this.props.socket.setObject(obj._id, obj);
@@ -608,11 +612,19 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             return (
                 <DialogAddState
                     onClose={async (obj: ioBroker.StateObject): Promise<void> => {
-                        if (
-                            this.state.dialogAddState!.onClose &&
-                            obj?.common &&
-                            obj.common.name !== this.state.dialogAddState!.name
-                        ) {
+                        const objName = obj?.common?.name;
+                        let oldName: string;
+                        if (typeof objName === 'object') {
+                            oldName =
+                                objName[I18n.getLanguage()] ||
+                                objName.en ||
+                                objName[Object.keys(objName)[0] as ioBroker.Languages] ||
+                                '';
+                        } else {
+                            oldName = objName || '';
+                        }
+
+                        if (this.state.dialogAddState!.onClose && oldName !== this.state.dialogAddState!.name) {
                             await this.onDelete(this.state.dialogAddState!.item!.id);
                             const newIds: Record<
                                 string,
@@ -625,10 +637,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                             const newValue = newIds[this.state.dialogAddState!.name!];
                             delete newIds[this.state.dialogAddState!.name!];
-                            // investigate
-                            debugger;
-                            // @ts-expect-error
-                            newIds[obj.common.name] = newValue;
+                            newIds[oldName] = newValue;
                             this.setState({ ids: newIds, dialogAddState: null });
                         } else {
                             this.setState({ dialogAddState: null });
@@ -1457,7 +1466,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         onClick={() => this.setState({ editStates: name })}
                                         sx={styles.button}
                                     >
-                                        <IconEditStates size="small" />
+                                        <IconEditStates />
                                     </IconButton>
                                 </Tooltip>
                             )}

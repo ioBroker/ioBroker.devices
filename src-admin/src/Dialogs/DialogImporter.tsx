@@ -311,6 +311,7 @@ function RenderNewItemDialog(props: {
                     {I18n.t('Apply')}
                 </Button>
                 <Button
+                    color="grey"
                     variant="contained"
                     onClick={() => onClose()}
                     startIcon={<IconClose />}

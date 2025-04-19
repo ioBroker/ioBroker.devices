@@ -628,6 +628,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                     </Button>
                     <Button
                         variant="contained"
+                        color="grey"
                         onClick={this.handleCancel}
                         startIcon={<IconClose />}
                     >

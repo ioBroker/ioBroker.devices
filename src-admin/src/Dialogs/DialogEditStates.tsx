@@ -202,8 +202,8 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
                             <TableHead>
                                 <TableRow>
                                     <TableCell />
-                                    <TableCell>Value</TableCell>
-                                    <TableCell>Title</TableCell>
+                                    <TableCell>{I18n.t('Value')}</TableCell>
+                                    <TableCell>{I18n.t('Title')}</TableCell>
                                     <TableCell />
                                 </TableRow>
                             </TableHead>
@@ -230,6 +230,7 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
                         {I18n.t('Ok')}
                     </Button>
                     <Button
+                        color="grey"
                         variant="contained"
                         onClick={() => this.props.onClose()}
                         startIcon={<IconClose />}

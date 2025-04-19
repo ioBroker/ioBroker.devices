@@ -16,19 +16,6 @@
                 "uk": "фіксована: проблема з редагуванням імпортних станів\nфіксована: попередження\nвиправлено: дозволяючи iot знову (без налаштування користувацького smartName)\nвиправлено: можлива аварійна аварія / типограма в 1.1.3.",
                 "zh-cn": "固定:进口国编辑问题\n固定:警告\n固定:可再次引诱(没有制定习俗)\n固定:可能出现1.1.3的事故/类型。."
             },
-            "1.1.4": {
-                "en": "Updated packages",
-                "de": "Aktualisierte Pakete",
-                "ru": "Обновленные пакеты",
-                "pt": "Pacotes atualizados",
-                "nl": "Verouderde pakketten",
-                "fr": "Forfaits mis à jour",
-                "it": "Pacchetti aggiornati",
-                "es": "Paquetes actualizados",
-                "pl": "Pakiet upoważniony",
-                "uk": "Оновлені пакети",
-                "zh-cn": "最新一揽子计划"
-            },
             "1.1.3": {
                 "en": "Better behavior of category selection",
                 "de": "Besseres Verhalten der Kategorieauswahl",
@@ -93,7 +80,6 @@
                 "zh-cn": "允许与反导装置合作\n改为:"
             }
         },
-        "title": "Manage devices",
         "titleLang": {
             "en": "Manage devices",
             "de": "Geräte verwalten",
@@ -104,6 +90,7 @@
             "it": "Gestisci i dispositivi",
             "es": "Administrar dispositivos",
             "pl": "Zarządzaj urządzeniami",
+            "uk": "Управління пристроями",
             "zh-cn": "管理设备"
         },
         "desc": {
@@ -116,11 +103,15 @@
             "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
             "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
             "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
+            "uk": "Керування та створення пристроїв для використання в інших адаптерах, таких як матеріал, iot, ...",
             "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
         },
         "authors": ["bluefox <dogafox@gmail.com>"],
-        "keywords": ["ioBroker", "devices", "material", "iot", "Smart Home", "home automation"],
-        "license": "MIT",
+        "keywords": ["devices", "management"],
+        "licenseInformation": {
+            "type": "free",
+            "license": "MIT"
+        },
         "platform": "Javascript/Node.js",
         "connectionType": "none",
         "dataSource": "none",
@@ -130,7 +121,6 @@
         "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
         "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
         "loglevel": "info",
-        "noConfig": true,
         "onlyWWW": true,
         "singleton": true,
         "type": "general",
@@ -138,11 +128,26 @@
         "mode": "none",
         "adminTab": {
             "singleton": true,
-            "name": "Devices"
+            "name": {
+                "en": "Devices",
+                "de": "Geräte",
+                "ru": "Устройства",
+                "pt": "Dispositivos",
+                "nl": "Apparaten",
+                "fr": "Appareils",
+                "it": "Dispositivi",
+                "es": "Dispositivos",
+                "pl": "Urządzenia",
+                "uk": "Пристрої",
+                "zh-cn": "设备"
+            }
+        },
+        "adminUI": {
+            "config": "none"
         },
         "globalDependencies": [
             {
-                "admin": ">=5.1.0"
+                "admin": ">=7.0.0"
             }
         ]
     },
