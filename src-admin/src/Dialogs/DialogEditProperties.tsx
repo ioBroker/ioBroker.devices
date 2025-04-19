@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- **/
+ */
 import React, { Component } from 'react';
 
 import { TextField, Select, MenuItem, Switch, FormControlLabel, Checkbox, Box } from '@mui/material';
@@ -465,12 +465,10 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
                 </div>
                 <UploadImage
                     crop={false}
-                    disabled={disabled}
+                    disabled={!!disabled}
                     style={styles.dropZone}
-                    maxSize={256 * 1024}
                     icon={this.state.icon}
                     onChange={(base64: string): void => this.setState({ icon: base64 })}
-                    t={I18n.t}
                 />
             </div>
         );

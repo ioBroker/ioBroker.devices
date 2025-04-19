@@ -7,7 +7,7 @@ import { Menu, MenuItem, Tooltip, IconButton } from '@mui/material';
 
 import { Crop as CropIcon } from '@mui/icons-material';
 
-import { IconPicker } from '@iobroker/adapter-react-v5';
+import { IconPicker, I18n } from '@iobroker/adapter-react-v5';
 
 const styles: Record<string, React.CSSProperties> = {
     image: {
@@ -46,9 +46,8 @@ const styles: Record<string, React.CSSProperties> = {
 interface UploadImageProps {
     disabled: boolean;
     crop: boolean;
-    error: boolean;
+    error?: boolean;
     onChange: (base64: string) => void;
-    t: (el: string) => string;
     icon?: string | null;
     removeIconFunc?: () => void;
     style?: React.CSSProperties;
@@ -72,14 +71,14 @@ class UploadImage extends Component<UploadImageProps, UploadImageState> {
     }
 
     render(): React.JSX.Element {
-        const { disabled, icon, t, crop, onChange, style } = this.props;
+        const { disabled, icon, crop, onChange, style } = this.props;
         const { anchorEl, cropHandler } = this.state;
         return (
             <div style={{ ...style, position: 'relative' }}>
                 {icon && crop && (
                     <div style={styles.buttonCropWrapper}>
                         <Tooltip
-                            title={t('Crop')}
+                            title={I18n.t('Crop')}
                             slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <IconButton
@@ -111,17 +110,17 @@ class UploadImage extends Component<UploadImageProps, UploadImageState> {
                                     })
                                 }
                             >
-                                {t('Save')}
+                                {I18n.t('Save')}
                             </MenuItem>
                             <MenuItem onClick={() => this.setState({ anchorEl: null, cropHandler: false })}>
-                                {t('Close')}
+                                {I18n.t('Close')}
                             </MenuItem>
                         </Menu>
                     </div>
                 )}
 
                 <IconPicker
-                    label={this.props.t('Icon')}
+                    label={I18n.t('Icon')}
                     disabled={disabled}
                     customStyles={{ label: styles.iconPickerLabel, icon: styles.iconPickerIcon }}
                     onChange={base64 => onChange(base64)}

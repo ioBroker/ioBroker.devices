@@ -908,7 +908,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         }
                     });
 
-                this.detectDevices();
+                void this.detectDevices();
             });
     }
 
@@ -1470,7 +1470,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
-    renderTypeCell(type: Types): React.JSX.Element {
+    static renderTypeCell(type: Types): React.JSX.Element {
         return (
             <div style={{ ...styles.wrapperIconEnumCell, ...styles.spaceBetween }}>
                 <div style={styles.typeCellNameAndIcon}>
@@ -1848,7 +1848,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                         <TypeIcon
                                             src={item.icon}
                                             style={{ ...styles.tableIconImg, color }}
-                                            type={item.role}
+                                            type={item.role as Types}
                                         />
                                     </Box>
                                 </Tooltip>
@@ -1924,7 +1924,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         size="small"
                         style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
                     >
-                        {this.renderTypeCell(device.type)}
+                        {ListDevices.renderTypeCell(device.type)}
                     </TableCell>
                 ) : null}
                 {device && this.state.windowWidth >= WIDTHS[0] ? (

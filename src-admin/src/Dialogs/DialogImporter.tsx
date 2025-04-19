@@ -28,6 +28,7 @@ import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 import type { ListItem, PatternControlEx } from '../types';
+import type { Types } from '@iobroker/type-detector';
 
 const styles: Record<string, any> = {
     paper: {
@@ -755,8 +756,8 @@ export default function DialogImporter(props: {
                                                 <div style={styles.tableIcon}>
                                                     <TypeIcon
                                                         src={device.icon}
-                                                        styles={styles.tableIconImg}
-                                                        type={device.role}
+                                                        style={styles.tableIconImg}
+                                                        type={device.role as Types}
                                                     />
                                                 </div>
                                                 <div style={styles.wrapperTitleAndId}>

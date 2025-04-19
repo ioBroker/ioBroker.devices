@@ -99,9 +99,15 @@ const defaultStyle: React.CSSProperties = {
 export default function TypeIcon(props: {
     type?: Types;
     style?: React.CSSProperties;
-    src?: string;
+    src?: string | React.JSX.Element | null;
 }): React.JSX.Element | null {
     if (props.src) {
+        if (typeof props.src === 'object') {
+            return React.cloneElement(props.src, {
+                style: { ...defaultStyle, ...(props.style || undefined) },
+            });
+        }
+
         return (
             <IconAdapter
                 src={props.src}

@@ -328,10 +328,6 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
         };
     }
 
-    setStateAsync(newState: Partial<DialogNewDeviceState>): Promise<void> {
-        return new Promise<void>(resolve => this.setState(newState as DialogNewDeviceState, () => resolve()));
-    }
-
     renderSelectEnum(name: 'functions' | 'rooms', title: string): React.JSX.Element {
         const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
         const language = I18n.getLanguage();
@@ -545,7 +541,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                 if (this.props.copyDevice) {
                                     if (ev.key === 'Enter') {
                                         if (this.state.name && !this.props.objects[this.generateId()]) {
-                                            this.handleOk();
+                                            void this.handleOk();
                                         } else {
                                             this.handleCancel();
                                         }

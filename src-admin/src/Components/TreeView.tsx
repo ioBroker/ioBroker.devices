@@ -1,11 +1,10 @@
 /**
- * Copyright 2019-2020 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2025 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
- **/
+ */
 import React from 'react';
-import PropTypes from 'prop-types';
 import {
     List,
     ListItem,
@@ -21,26 +20,26 @@ import {
     DialogTitle,
 } from '@mui/material';
 
-import { FaFolderOpen as IconFolderOpened, FaFolder as IconFolder } from 'react-icons/fa';
+import type { IconType } from 'react-icons';
+
+import {
+    FaFolderOpen as IconFolderOpened,
+    FaFolder as IconFolder,
+    FaQuestion as IconTypeGeneric,
+} from 'react-icons/fa';
 import {
     TiLightbulb as IconTypeLight,
     TiLightbulb as IconTypeDimmer,
     TiLightbulb as IconTypeSwitch,
 } from 'react-icons/ti';
-import { FaQuestion as IconTypeGeneric } from 'react-icons/fa';
-import {
-    MdKeyboardArrowRight as IconExpand,
-    MdExpandMore as IconCollapse,
-    MdCheck as IconOK,
-    MdCancel as IconCancel,
-} from 'react-icons/md';
+import { MdCheck as IconOK, MdCancel as IconCancel } from 'react-icons/md';
 import { CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
 
-import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
 
 const LEVEL_OFFSET = 14;
 
-const styles = {
+const styles: Record<string, any> = {
     expandButton: {
         width: 37,
         height: 37,
@@ -92,7 +91,7 @@ const styles = {
     iconStyle: {
         minWidth: 25,
     },
-    buttonWrapper: theme => ({
+    buttonWrapper: (theme: IobTheme): any => ({
         display: 'flex',
         top: 0,
         background: theme.palette.mode === 'light' ? '#0000000d' : '#ffffff12',
@@ -128,10 +127,22 @@ const styles = {
     },
 };
 
-const prepareList = (data, root) => {
-    const result = [];
+interface TreeItem {
+    id: string;
+    title: string;
+    icon?: string;
+    color?: string;
+    depth: number;
+    type: ioBroker.ObjectType;
+    parent: string | null;
+    index: number;
+    parentIndex?: number;
+}
+
+function prepareList(data: Record<string, ioBroker.Object>, root?: string): TreeItem[] {
+    const result: TreeItem[] = [];
     const ids = Object.keys(data);
-    root = root || '';
+    root ||= '';
 
     // place common and global scripts at the end
     ids.sort((a, b) => {
@@ -140,17 +151,19 @@ const prepareList = (data, root) => {
             (b === 'script.js.common' || b === 'script.js.global')
         ) {
             return a > b ? 1 : -1;
-        } else if (
+        }
+        if (
             a === 'script.js.common' ||
             a === 'script.js.global' ||
             b === 'script.js.common' ||
             b === 'script.js.global'
         ) {
             return 1;
-        } else {
-            return a > b ? 1 : -1;
         }
+        return a > b ? 1 : -1;
     });
+
+    const language = I18n.getLanguage();
 
     for (let i = 0; i < ids.length; i++) {
         const obj = data[ids[i]];
@@ -158,13 +171,13 @@ const prepareList = (data, root) => {
         parts.pop();
         result.push({
             id: ids[i],
-            title: Utils.getObjectName(data, ids[i], { language: I18n.getLanguage() }),
-            icon: obj.common.icon || null,
-            color: obj.common.color || null,
+            title: Utils.getObjectName(data, ids[i], language),
+            icon: obj.common.icon || undefined,
+            color: obj.common.color || undefined,
             depth: parts.length - 1,
             type: obj.type,
             parent: parts.length > 2 ? parts.join('.') : null,
-            instance: obj.common.engine ? parseInt(obj.common.engine.split('.').pop(), 10) || 0 : null,
+            index: 0,
         });
     }
 
@@ -172,41 +185,44 @@ const prepareList = (data, root) => {
     result.sort((a, b) => {
         // without folders => always at start
         if (!a.parent && a.type !== 'folder' && !b.parent && b.type !== 'folder') {
-            if (a.id === b.id) return 0;
-            return a.id > b.id ? 1 : -1;
-        } else if (!a.parent && a.type !== 'folder') {
-            return -1;
-        } else if (!b.parent && b.type !== 'folder') {
-            return 1;
-        } else {
-            // common and global are always at the end
-            if (
-                (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) &&
-                (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global'))
-            ) {
-                if (a.id === b.id) return 0;
-                return a.id > b.id ? 1 : -1;
-            } else if (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) {
-                return 1;
-            } else if (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global')) {
-                return -1;
-            } else {
-                if (a.id === b.id) return 0;
-                return a.id > b.id ? 1 : -1;
+            if (a.id === b.id) {
+                return 0;
             }
+            return a.id > b.id ? 1 : -1;
         }
+        if (!a.parent && a.type !== 'folder') {
+            return -1;
+        }
+        if (!b.parent && b.type !== 'folder') {
+            return 1;
+        }
+        // common and global are always at the end
+        if (
+            (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) &&
+            (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global'))
+        ) {
+            if (a.id === b.id) {
+                return 0;
+            }
+            return a.id > b.id ? 1 : -1;
+        }
+        if (a.id.startsWith('script.js.common') || a.id.startsWith('script.js.global')) {
+            return 1;
+        }
+        if (b.id.startsWith('script.js.common') || b.id.startsWith('script.js.global')) {
+            return -1;
+        }
+        if (a.id === b.id) {
+            return 0;
+        }
+        return a.id > b.id ? 1 : -1;
     });
 
-    // Fill all index
-    result.forEach((item, i) => (item.index = i));
-
     let modified;
-    const regEx = new RegExp('^' + root.replace(/\./g, '\\.'));
+    const regEx = new RegExp(`^${root.replace(/\./g, '\\.')}`);
     do {
         modified = false;
-        // check if all parents exists
-
-        // eslint-disable-next-line no-loop-func
+        // check if all parents exist
         result.forEach(item => {
             if (item.parent) {
                 const parent = result.find(it => it.id === item.parent);
@@ -219,12 +235,16 @@ const prepareList = (data, root) => {
                         depth: parts.length - 1,
                         type: 'folder',
                         parent: parts.length >= 2 ? parts.join('.') : null,
+                        index: 0,
                     });
                     modified = true;
                 }
             }
         });
     } while (modified);
+
+    // Fill all indexes
+    result.forEach((item, i) => (item.index = i));
 
     // Fill all parentIndex
     result.forEach(item => {
@@ -237,65 +257,84 @@ const prepareList = (data, root) => {
     });
 
     return result;
-};
+}
 
-const images = {
+const images: Record<string, IconType> = {
     dimmer: IconTypeDimmer,
     light: IconTypeLight,
     socket: IconTypeSwitch,
     def: IconTypeGeneric,
 };
 
-class TreeView extends React.Component {
-    constructor(props) {
+interface TreeViewProps {
+    objects: Record<string, ioBroker.Object>;
+    onSelect: (id: string) => void;
+    selected?: string;
+    theme: IobTheme;
+    themeType: ThemeType;
+    root?: string;
+    onAddNew?: (name: string, parentId: string) => Promise<void>;
+    disabled?: boolean;
+    displayFlex?: boolean;
+    width?: number;
+}
+
+interface TreeViewState {
+    listItems: any[];
+    expanded: string[];
+    selected: string | undefined;
+    renaming: null | string;
+    deleting: null | string;
+    errorText: string;
+    width: number;
+    filterMenuOpened: boolean;
+    addNew: null | TreeItem;
+    addNewName: string;
+    typeFilter: string;
+    searchText: string;
+}
+
+export default class TreeView extends React.Component<TreeViewProps, TreeViewState> {
+    constructor(props: TreeViewProps) {
         super(props);
-        let expanded = window.localStorage ? window.localStorage.getItem('TreeView.expanded') : '';
+        const expandedStr = window.localStorage ? window.localStorage.getItem('TreeView.expanded') : '';
+        let expanded: null | string[];
         try {
-            expanded = expanded ? JSON.parse(expanded) || null : null;
-        } catch (e) {
+            expanded = expandedStr ? JSON.parse(expandedStr) || null : null;
+        } catch {
             expanded = null;
         }
         const listItems = prepareList(props.objects || {});
 
         if (expanded === null) {
             expanded = [];
-            listItems.forEach(item => expanded.includes(item.parent) && expanded.push(item.parent));
+            listItems.forEach(item => item.parent && expanded!.includes(item.parent) && expanded!.push(item.parent));
         }
 
         this.state = {
             listItems,
             expanded,
-            theme: this.props.theme,
             selected: this.props.selected || (listItems[0] && listItems[0].id) || '',
             renaming: null,
             deleting: null,
             errorText: '',
             width: this.props.width || 300,
             filterMenuOpened: false,
-            addNew: false,
+            addNew: null,
             addNewName: '',
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
         };
 
-        this.theme = this.props.theme || 'light';
-
         const newExp = this.ensureSelectedIsVisible();
         if (newExp) {
-            this.state.expanded = newExp;
+            Object.assign(this.state, { expanded: newExp });
         }
-        // debounce search process
-        this.filterTimer = null;
-        // setTimeout(() => this.props.onSelect && this.props.onSelect(this.state.selected), 200);
     }
 
-    handleOk() {
-        this.props.onClose && this.props.onClose();
-    }
-
-    static getDerivedStateFromProps(props, state) {
+    static getDerivedStateFromProps(props: TreeViewProps, state: TreeViewState): Partial<TreeViewState> | null {
         let changed = false;
-        const newState = {};
+        const newState: Partial<TreeViewState> = {};
         if (props.objects) {
             const listItems = prepareList(props.objects || {});
             if (JSON.stringify(listItems) !== JSON.stringify(state.listItems)) {
@@ -307,23 +346,23 @@ class TreeView extends React.Component {
         return changed ? newState : null;
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: TreeViewProps): void {
         if (prevProps.selected !== this.props.selected) {
             this.setState({ selected: this.props.selected });
         }
     }
 
-    generateId = () => {
+    generateId = (): string | true => {
         if (!this.state.addNewName) {
             return true;
         }
-        let parts = `${this.state.selected}.${this.state.addNewName.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        return parts;
+        return `${this.state.selected}.${this.state.addNewName.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
     };
 
-    renderNewItemDialog() {
-        // const id = this.state.addNew ? `${this.state.addNew.id}.${this.state.addNewName.replace(FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}` : null;
-        const error = this.generateId() === true ? true : this.props.objects[this.generateId()];
+    renderNewItemDialog(): React.JSX.Element {
+        const id = this.generateId();
+
+        const error = id === true ? true : this.props.objects[id];
         return (
             <Dialog
                 key="newDialog"
@@ -332,7 +371,7 @@ class TreeView extends React.Component {
                 style={styles.dialogNew}
             >
                 <DialogTitle sx={styles.addNewFolderTitle}>
-                    {I18n.t('Add new folder to "%s"', this.state.addNew && this.state.addNew.title)}
+                    {I18n.t('Add new folder to "%s"', this.state.addNew?.title)}
                 </DialogTitle>
                 <form
                     style={styles.dialogNewForm}
@@ -341,14 +380,16 @@ class TreeView extends React.Component {
                 >
                     <TextField
                         variant="standard"
-                        onKeyPress={async ev => {
+                        onKeyUp={async ev => {
                             if (ev.key === 'Enter') {
                                 ev.preventDefault();
                                 ev.stopPropagation();
 
                                 if (this.state.addNewName) {
                                     const id = this.state.selected;
-                                    await this.props.onAddNew(this.state.addNewName, this.state.addNew.id);
+                                    if (this.props.onAddNew) {
+                                        await this.props.onAddNew(this.state.addNewName, this.state.addNew!.id);
+                                    }
                                     this.toggleExpanded(id, true);
                                     this.setState({ addNew: null, addNewName: '' });
                                 } else {
@@ -370,7 +411,9 @@ class TreeView extends React.Component {
                         disabled={!!error}
                         onClick={async () => {
                             const id = this.state.selected;
-                            await this.props.onAddNew(this.state.addNewName, this.state.addNew.id);
+                            if (this.props.onAddNew) {
+                                await this.props.onAddNew(this.state.addNewName, this.state.addNew!.id);
+                            }
                             this.toggleExpanded(id, true);
                             this.setState({ addNew: null, addNewName: '' });
                         }}
@@ -392,32 +435,33 @@ class TreeView extends React.Component {
         );
     }
 
-    ensureSelectedIsVisible(selected, expanded) {
-        expanded = JSON.parse(JSON.stringify(expanded || this.state.expanded));
-        selected = selected || this.state.selected;
+    ensureSelectedIsVisible(selected?: string | TreeItem, expanded?: string[]): string[] | null {
+        const _expanded: string[] = JSON.parse(JSON.stringify(expanded || this.state.expanded));
+        const _selected: string | TreeItem | undefined = selected || this.state.selected;
         let changed = false;
         // ensure that the item is visible
-        let el = typeof selected === 'object' ? selected : this.state.listItems.find(it => it.id === selected);
+        let el: TreeItem | undefined =
+            typeof _selected === 'object' ? _selected : this.state.listItems.find(it => it.id === _selected);
         do {
-            // eslint-disable-next-line
-            el = el && el.parent && this.state.listItems.find(it => it.id === el.parent);
+            el = el?.parent && this.state.listItems.find(it => it.id === el!.parent);
             if (el) {
-                if (!expanded.includes(el.id)) {
-                    expanded.push(el.id);
+                if (!_expanded.includes(el.id)) {
+                    _expanded.push(el.id);
                     changed = true;
                 }
             }
         } while (el);
-        return changed && expanded;
+
+        return changed ? _expanded : null;
     }
 
-    onCollapseAll() {
+    onCollapseAll(): void {
         this.setState({ expanded: [] });
         this.saveExpanded([]);
     }
 
-    onExpandAll() {
-        const expanded = [];
+    onExpandAll(): void {
+        const expanded: string[] = [];
         this.state.listItems.forEach(item => {
             if (this.state.listItems.find(it => it.parent === item.id)) {
                 expanded.push(item.id);
@@ -427,12 +471,12 @@ class TreeView extends React.Component {
         this.saveExpanded(expanded);
     }
 
-    saveExpanded(expanded) {
+    saveExpanded(expanded?: string[]): void {
         window.localStorage.setItem('TreeView.expanded', JSON.stringify(expanded || this.state.expanded));
     }
 
-    toggleExpanded(id, onlyOpen) {
-        if (this.props.disabled) {
+    toggleExpanded(id: string | undefined, onlyOpen?: boolean): void {
+        if (this.props.disabled || !id) {
             return;
         }
         const expanded = this.state.expanded.slice();
@@ -450,11 +494,11 @@ class TreeView extends React.Component {
         this.saveExpanded(expanded);
     }
 
-    isFilteredOut(item) {
+    isFilteredOut(_item: TreeItem): boolean {
         return false;
     }
 
-    getTextStyle(item) {
+    getTextStyle(item: TreeItem): React.CSSProperties {
         if (item.type !== 'folder') {
             return {
                 //width: 130,
@@ -464,36 +508,21 @@ class TreeView extends React.Component {
                 flex: 'none',
                 padding: '0 16px 0 0',
             };
-        } else {
-            const style = {
-                whiteSpace: 'nowrap',
-                padding: '0 16px 0 0',
-            };
-
-            if (item.id === this.state.selected) {
-                style.fontWeight = 'bold';
-            }
-
-            return style;
         }
+
+        const style: React.CSSProperties = {
+            whiteSpace: 'nowrap',
+            padding: '0 16px 0 0',
+        };
+
+        if (item.id === this.state.selected) {
+            style.fontWeight = 'bold';
+        }
+
+        return style;
     }
 
-    renderFolderButtons(item, children, isExpanded) {
-        if (children && children.length) {
-            return (
-                <IconButton
-                    style={styles.expandButton}
-                    onClick={isExpanded ? e => this.onCollapse(item.id, e) : e => this.onExpand(item.id, e)}
-                >
-                    {isExpanded ? <IconCollapse fontSize="small" /> : <IconExpand fontSize="small" />}
-                </IconButton>
-            );
-        } else {
-            return <div style={styles.expandButton} />;
-        }
-    }
-
-    onClick(item, e) {
+    onClick(item: TreeItem): void {
         if (this.props.disabled) {
             return;
         }
@@ -502,23 +531,23 @@ class TreeView extends React.Component {
         this.props.onSelect(item.id);
     }
 
-    renderOneItem(items, item) {
-        let childrenFiltered =
+    renderOneItem(items: TreeItem[], item: TreeItem): (React.JSX.Element | null)[] | null {
+        const childrenFiltered =
             (this.state.searchText || this.state.typeFilter) &&
             items.filter(i => (i.parent === item.id ? !this.isFilteredOut(i) : false));
-        let children = items.filter(i => i.parent === item.id);
+        const children = items.filter(i => i.parent === item.id);
 
         if (this.isFilteredOut(item)) {
-            return;
+            return null;
         }
 
         if (item.type === 'folder' && (this.state.searchText || this.state.typeFilter) && !childrenFiltered.length) {
-            return;
+            return null;
         }
 
         const depthPx = item.depth * LEVEL_OFFSET + 10;
 
-        let title = item.title;
+        let title: string | React.JSX.Element[] = item.title;
 
         if (this.state.searchText) {
             const pos = title.toLowerCase().indexOf(this.state.searchText.toLowerCase());
@@ -540,8 +569,7 @@ class TreeView extends React.Component {
             {
                 paddingLeft: depthPx,
                 borderRadius: 3,
-                cursor: item.type === 'folder' && this.state.reorder ? 'default' : 'pointer',
-                opacity: item.filteredPartly ? 0.5 : 1,
+                cursor: 'pointer',
             },
             item.id === this.state.selected
                 ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' }
@@ -553,8 +581,8 @@ class TreeView extends React.Component {
             isExpanded = this.state.expanded.includes(item.id);
         }
 
-        let iconStyle = {};
-        let countSpan =
+        const iconStyle: React.CSSProperties = {};
+        const countSpan =
             (childrenFiltered && childrenFiltered.length) || children.length ? (
                 <span style={styles.childrenCount}>
                     {childrenFiltered && childrenFiltered.length !== children.length
@@ -575,16 +603,21 @@ class TreeView extends React.Component {
             iconStyle.color = item.color;
         }
 
+        const MyIconType = images[item.type] || images.def;
+        let icon: React.JSX.Element | null = null;
+        if (MyIconType) {
+            icon = <MyIconType />;
+        }
+
         const inner = (
             <ListItem
                 key={item.id}
-                style={style}
+                style={{
+                    ...style,
+                    ...(item.type === 'folder' ? styles.folder : styles.element),
+                }}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
-                className={Utils.clsx(
-                    item.type === 'folder' ? this.props.classes.folder : this.props.classes.element,
-                    this.state.reorder && this.props.classes.reorder,
-                )}
-                onClick={e => this.onClick(item, e)}
+                onClick={() => this.onClick(item)}
             >
                 <ListItemIcon style={styles.iconStyle}>
                     {item.type === 'folder' ? (
@@ -603,7 +636,7 @@ class TreeView extends React.Component {
                         <Icon
                             style={styles.itemIcon}
                             alt={item.type}
-                            src={images[item.type] || images.def}
+                            src={icon}
                         />
                     )}
                 </ListItemIcon>
@@ -615,11 +648,11 @@ class TreeView extends React.Component {
                     />
                 )}
                 <div
-                    style={this.getTextStyle(item)}
-                    className={Utils.clsx(
-                        item.id === this.state.selected && this.props.classes.selected,
-                        this.props.classes.fontStyle,
-                    )}
+                    style={{
+                        ...this.getTextStyle(item),
+                        ...(item.id === this.state.selected ? styles.selected : undefined),
+                        ...styles.fontStyle,
+                    }}
                 >
                     {title}
                 </div>
@@ -629,17 +662,17 @@ class TreeView extends React.Component {
             </ListItem>
         );
 
-        const result = [inner];
+        const result: (React.JSX.Element | null)[] = [inner];
 
         if (isExpanded) {
-            children.forEach(it => result.push(this.renderOneItem(items, it)));
+            children.forEach(it => result.push(this.renderOneItem(items, it) as any as React.JSX.Element));
         }
         return result;
     }
 
-    renderAllItems(items, dragging) {
-        const result = [];
-        items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item, dragging)));
+    renderAllItems(items: TreeItem[]): React.JSX.Element {
+        const result: (React.JSX.Element | null)[] = [];
+        items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item) as any as React.JSX.Element));
 
         return (
             <List
@@ -653,11 +686,10 @@ class TreeView extends React.Component {
         );
     }
 
-    renderAddButton() {
+    renderAddButton(): React.JSX.Element {
         return (
             <Paper
                 sx={styles.buttonWrapper}
-                position="sticky"
                 color="default"
             >
                 {this.props.onAddNew && (
@@ -712,35 +744,18 @@ class TreeView extends React.Component {
         );
     }
 
-    renderTree() {
-        return this.renderAllItems(this.state.listItems);
-    }
-
-    render() {
+    render(): React.JSX.Element {
         return (
             <Paper
-                className={Utils.clsx(
-                    this.props.classes.wrapperFoldersBlock,
-                    this.props.displayFlex && this.props.classes.displayFlex,
-                )}
+                style={{
+                    ...styles.wrapperFoldersBlock,
+                    ...(this.props.displayFlex ? styles.displayFlex : undefined),
+                }}
             >
                 {this.renderAddButton()}
-                {this.renderTree()}
+                {this.renderAllItems(this.state.listItems)}
                 {this.renderNewItemDialog()}
             </Paper>
         );
     }
 }
-
-TreeView.propTypes = {
-    objects: PropTypes.object,
-    onSelect: PropTypes.func,
-    selected: PropTypes.string,
-    theme: PropTypes.object,
-    themeType: PropTypes.string,
-    root: PropTypes.string,
-    onAddNew: PropTypes.func,
-    disabled: PropTypes.bool,
-};
-
-export default TreeView;

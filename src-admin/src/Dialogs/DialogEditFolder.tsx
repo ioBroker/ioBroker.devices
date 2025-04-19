@@ -408,9 +408,8 @@ function DialogEditFolder(props: {
                         </div>
                         <UploadImage
                             crop={false}
-                            icons
                             disabled={startTheProcess}
-                            maxSize={256 * 1024}
+                            // maxSize={256 * 1024}
                             icon={dataEdit?.common?.icon}
                             removeIconFunc={() => {
                                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
@@ -422,7 +421,6 @@ function DialogEditFolder(props: {
                                 newDataEdit.common.icon = base64;
                                 setDataEdit(newDataEdit);
                             }}
-                            t={I18n.t}
                         />
                     </div>
                 </DialogContent>

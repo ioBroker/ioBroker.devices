@@ -1682,7 +1682,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         );
     }
 
-    a11yProps(index: number): { id: string; 'aria-controls': string } {
+    static a11yProps(index: number): { id: string; 'aria-controls': string } {
         return {
             id: `scrollable-auto-tab-${index}`,
             'aria-controls': `scrollable-auto-tabpanel-${index}`,
@@ -1738,12 +1738,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             <Tab
                                 disabled={this.state.startTheProcess}
                                 label={I18n.t('General')}
-                                {...this.a11yProps(0)}
+                                {...DialogEditDevice.a11yProps(0)}
                             />
                             <Tab
                                 disabled={this.state.startTheProcess}
                                 label={I18n.t('States')}
-                                {...this.a11yProps(1)}
+                                {...DialogEditDevice.a11yProps(1)}
                             />
                         </Tabs>
                     </AppBar>
