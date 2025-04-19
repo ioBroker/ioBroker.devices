@@ -186,8 +186,8 @@ const prepareList = (
         result.push({
             id: obj.obj?._id || ids[i],
             title: Utils.getObjectName(data as any as Record<string, ioBroker.Object>, ids[i], I18n.getLanguage()),
-            icon: obj.common?.icon || null,
-            color: obj.common?.color || null,
+            icon: obj.common.icon || null,
+            color: obj.common.color || null,
             depth: parts.length - 1,
             type: obj.type,
             role: obj.role,
@@ -254,14 +254,14 @@ const prepareList = (
     const regEx = new RegExp(`^${root.replace(/\./g, '\\.')}`);
     do {
         modified = false;
-        // check if all parents exist
 
+        // check if all parents exist
         result.forEach(item => {
             if (item.parent) {
                 const parent = result.find(it => it.id === item.parent);
                 if (!parent) {
-                    let obj: ioBroker.Object = {} as ioBroker.Object;
-                    if (item.id.startsWith('linkeddevices.0.')) {
+                    let obj: ioBroker.Object = { common: {} } as ioBroker.Object;
+                    if (item.id.startsWith('linkeddevices.')) {
                         const partsLinkedDevices = item.id.split('.');
                         partsLinkedDevices.pop();
                         obj = objects[partsLinkedDevices.join('.')];
@@ -1963,7 +1963,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                     style={styles.emptyBlock}
                                     onClick={e => this.onEdit(item.id, e)}
                                 >
-                                    <IconEdit size="small" />
+                                    <IconEdit />
                                 </IconButton>
                             </Tooltip>
                             {device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES) ? (
@@ -1978,7 +1978,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                             this.setState({ deleteFolderAndDevice: { index: index!, device: true } })
                                         }
                                     >
-                                        <IconDelete size="small" />
+                                        <IconDelete />
                                     </IconButton>
                                 </Tooltip>
                             ) : (
@@ -2057,7 +2057,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                             size="small"
                                             onClick={_ => this.setState({ showEditFolder: item.obj })}
                                         >
-                                            <IconEdit size="small" />
+                                            <IconEdit />
                                         </IconButton>
                                     </Tooltip>
                                     {!countSpan ? (
@@ -2072,7 +2072,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                                     this.setState({ deleteFolderAndDevice: { id: item.id } })
                                                 }
                                             >
-                                                <IconDelete size="small" />
+                                                <IconDelete />
                                             </IconButton>
                                         </Tooltip>
                                     ) : (
@@ -2520,8 +2520,15 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             const channelId = device.channelId;
 
             if (channelId.startsWith(ALIAS)) {
+                const processed: string[] = [];
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
+                    // If state with the same name already processed, ignore it
+                    if (processed.includes(state.name)) {
+                        continue;
+                    }
+                    processed.push(state.name);
+
                     const obj = state.id ? await this.props.socket.getObject(state.id) : null;
                     if (obj?.common?.alias) {
                         if (
@@ -2638,8 +2645,14 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     }
                 }
             } else if (channelId.startsWith(LINKEDDEVICES)) {
+                const processed: string[] = [];
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
+                    // If state with the same name already processed, ignore it
+                    if (processed.includes(state.name)) {
+                        continue;
+                    }
+                    processed.push(state.name);
                     const obj = state.id
                         ? ((await this.props.socket.getObject(state.id)) as ioBroker.StateObject | null | undefined)
                         : null;
@@ -2662,9 +2675,9 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                 somethingChanged = true;
                             } else {
                                 // update state
-                                obj.common = obj.common || {};
-                                obj.common.custom = obj.common.custom || {};
-                                obj.common.custom[attr] = obj.common.custom[attr] || {};
+                                obj.common ||= {} as ioBroker.StateCommon;
+                                obj.common.custom ||= {};
+                                obj.common.custom[attr] ||= {};
                                 obj.common.custom[attr].parentId = data.ids[state.name];
                                 obj.common.custom[attr].enabled = true;
                                 obj.common.custom[attr].isLinked = true;
