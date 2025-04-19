@@ -35,6 +35,7 @@ import {
     ImportExport as ImportExportIcon,
 } from '@mui/icons-material';
 import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
+import type { IconType } from 'react-icons';
 
 import {
     I18n,
@@ -44,6 +45,8 @@ import {
     type IobTheme,
     type AdminConnection,
 } from '@iobroker/adapter-react-v5';
+import type { ExternalPatternControl } from '@iobroker/type-detector/types';
+import type { Types, DetectorState } from '@iobroker/type-detector';
 
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
@@ -51,10 +54,7 @@ import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEd
 import DialogAddState from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
 import DialogEditStates from './DialogEditStates';
-import type { DetectorState, ExternalPatternControl } from '@iobroker/type-detector/types';
 import type { PatternControlEx } from '../types';
-import type { IconType } from 'react-icons';
-import type { Types } from '@iobroker/type-detector';
 
 const styles: Record<string, any> = {
     header: {
@@ -564,6 +564,17 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     type => this.props.patterns[type].type === this.props.channelInfo.type,
                 )!
             ];
+    }
+
+    componentDidMount(): void {
+        if (this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.showIndicators) {
+            const checkIndicators = this.props.channelInfo.states
+                .filter(item => item.indicator && item.defaultRole)
+                .find(obj => this.state.ids[obj.name]);
+            if (checkIndicators) {
+                this.setState({ showIndicators: true });
+            }
+        }
     }
 
     renderEditStates(): React.JSX.Element | null {

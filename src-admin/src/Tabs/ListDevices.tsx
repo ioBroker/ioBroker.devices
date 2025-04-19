@@ -2599,9 +2599,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
                         if (state.read !== undefined) {
                             common.read = state.read;
+                        } else if (common.read !== undefined) {
+                            common.read = true;
                         }
                         if (state.write !== undefined) {
                             common.write = state.write;
+                        } else if (common.write !== undefined) {
+                            common.write = true;
                         }
 
                         if (state.defaultStates) {
@@ -2718,9 +2722,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
                         if (state.read !== undefined) {
                             common.read = state.read;
+                        }  else if (common.read !== undefined) {
+                            common.read = true;
                         }
                         if (state.write !== undefined) {
                             common.write = state.write;
+                        }  else if (common.write !== undefined) {
+                            common.write = true;
                         }
 
                         if (state.defaultStates) {
