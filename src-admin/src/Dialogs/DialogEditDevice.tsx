@@ -396,6 +396,7 @@ interface DialogEditDeviceProps {
     };
     enumIDs: string[];
     iotNoCommon: boolean;
+    iot: string;
     channelId: string;
     type: Types;
     // iot: Types;
@@ -415,7 +416,7 @@ interface DialogEditDeviceProps {
         },
         channelInfo?: PatternControlEx,
     ) => void;
-    onSaveProperties: (properties: DialogEditPropertiesState) => Promise<void>;
+    onSaveProperties: (properties: DialogEditPropertiesState, channelInfo: PatternControlEx) => Promise<void>;
     onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
 }
 
@@ -558,7 +559,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 // make valid name
                 name = name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
                 item.name = name;
-            } else if (obj._id) {
+            } else if (obj?._id) {
                 item.name = obj._id.split('.').pop() || '';
             }
         });
@@ -936,8 +937,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     handleOk = async (): Promise<void> => {
         this.setState({ startTheProcess: true });
-        if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties)) {
-            this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
+        if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties) && this.props.onSaveProperties) {
+            await this.props.onSaveProperties(this.state.changeProperties, this.state.channelInfo);
         }
 
         this.props.onClose(
@@ -1772,6 +1773,17 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     render(): React.JSX.Element {
+        let mainId;
+        if (this.state.tab === 0) {
+            // Find the first required state
+            this.state.channelInfo.states.find(state => {
+                if (state.required && state.id) {
+                    mainId = state.id;
+                    return true;
+                }
+            });
+        }
+
         return (
             <Dialog
                 key="editDialog"
@@ -1835,9 +1847,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     >
                         <DialogEditProperties
                             channelId={this.props.channelId}
+                            mainStateId={mainId}
                             disabled={this.state.startTheProcess}
                             type={this.props.type}
-                            // iot={this.props.iot}
+                            iot={this.props.iot}
                             iotNoCommon={this.props.iotNoCommon}
                             objects={this.props.objects}
                             enumIDs={this.props.enumIDs}

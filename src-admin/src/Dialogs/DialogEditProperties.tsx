@@ -181,9 +181,12 @@ interface DialogEditPropertiesProps {
     ) => void;
     changeProperties: DialogEditPropertiesState;
     type: string;
-    iot?: string;
-    iotNoCommon?: boolean;
+    /** iot instance */
+    iot: string;
+    /** If pro or net */
+    iotNoCommon: boolean;
     channelId: string;
+    mainStateId: string | undefined;
     objects: Record<string, ioBroker.Object>;
     enumIDs: string[];
     socket: AdminConnection;
@@ -191,6 +194,8 @@ interface DialogEditPropertiesProps {
 }
 
 class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEditPropertiesState> {
+    private readonly smartNameAvailable: boolean;
+
     constructor(props: DialogEditPropertiesProps) {
         super(props);
 
@@ -198,6 +203,10 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         const channelObj: ioBroker.ChannelObject | undefined = this.props.objects[this.props.channelId] as
             | ioBroker.ChannelObject
             | undefined;
+
+        const mainStateObj: ioBroker.StateObject | undefined = this.props.mainStateId
+            ? (this.props.objects[this.props.mainStateId] as ioBroker.StateObject | undefined)
+            : undefined;
 
         if (channelObj?.common) {
             const objName = Utils.getObjectNameFromObj(channelObj, I18n.getLanguage());
@@ -233,7 +242,11 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         });
 
         // ;common.custom[adapter.namespace].smartName
-        const smartName = channelObj ? this.getSmartName(channelObj as any as ioBroker.StateObject) : false;
+        const smartName = mainStateObj
+            ? DialogEditProperties.getSmartName(mainStateObj, this.props.iotNoCommon, this.props.iot)
+            : undefined;
+
+        this.smartNameAvailable = !!mainStateObj;
 
         this.state = Object.keys(this.props.changeProperties).length
             ? this.props.changeProperties
@@ -255,7 +268,7 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         }
     }
 
-    componentDidUpdate(prevProps: DialogEditPropertiesProps, prevState: DialogEditPropertiesState): void {
+    componentDidUpdate(_prevProps: DialogEditPropertiesProps, prevState: DialogEditPropertiesState): void {
         if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
             this.props.onChange(this.state, false, !!this.checkedName());
         }
@@ -336,33 +349,39 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         );
     }
 
-    getSmartName(obj: ioBroker.StateObject, language?: ioBroker.Languages): string | false {
-        language = language || I18n.getLanguage();
-        let smartName;
-        if (obj?.common?.custom) {
-            if (this.props.iotNoCommon) {
-                const iot = this.props.iot || 'iot.0';
-                if (obj.common.custom[iot] && obj.common.custom[iot].smartName) {
-                    smartName = obj.common.custom[iot].smartName;
-                }
-            } else {
-                smartName = obj.common.smartName;
+    static getSmartName(
+        obj: ioBroker.StateObject,
+        iotNoCommon: boolean | undefined,
+        iotInstance: string | undefined,
+        language?: ioBroker.Languages,
+    ): string | false | undefined {
+        language ||= I18n.getLanguage();
+        let smartName: false | string | undefined | { [lang: string]: string; byON: string; smartType: string };
+        if (obj?.common?.custom && iotNoCommon) {
+            const iot = iotInstance || 'iot.0';
+            if (obj.common.custom[iot]?.smartName) {
+                smartName = obj.common.custom[iot].smartName;
             }
         } else {
-            smartName = obj?.common?.smartName;
+            smartName = obj?.common?.smartName as any as
+                | false
+                | string
+                | undefined
+                | { [lang: string]: string; byON: string; smartType: string };
         }
 
         if (smartName === false) {
             return false;
         }
         if (smartName && typeof smartName === 'object') {
+            // @ts-expect-error this is impossible
             if (smartName[language] === false || smartName.en === false) {
                 return false;
             }
-            smartName = smartName[language] || smartName.en || '';
+            smartName = smartName[language] || smartName.en;
         }
 
-        return smartName || '';
+        return smartName;
     }
 
     checkedName = (): ioBroker.Object | undefined | boolean => {
@@ -396,23 +415,25 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
                         margin="normal"
                     />
                 </div>
-                <div style={styles.divOidField}>
-                    <Box sx={styles.oidName}>{I18n.t('Disable smart')}</Box>
-                    <FormControlLabel
-                        sx={styles.disableSwitchLabel}
-                        control={
-                            <Switch
-                                sx={styles.disableSwitch}
-                                disabled={disabled}
-                                checked={this.state.smartName === false}
-                                color="secondary"
-                                onChange={e => this.setState({ smartName: e.target.checked ? false : undefined })}
-                            />
-                        }
-                        label={I18n.t('Hide this name from smart assistance')}
-                    />
-                </div>
-                {this.state.smartName !== false ? (
+                {this.smartNameAvailable ? (
+                    <div style={styles.divOidField}>
+                        <Box sx={styles.oidName}>{I18n.t('Disable smart')}</Box>
+                        <FormControlLabel
+                            sx={styles.disableSwitchLabel}
+                            control={
+                                <Switch
+                                    sx={styles.disableSwitch}
+                                    disabled={disabled}
+                                    checked={this.state.smartName === false}
+                                    color="secondary"
+                                    onChange={e => this.setState({ smartName: e.target.checked ? false : undefined })}
+                                />
+                            }
+                            label={I18n.t('Hide this name from smart assistance')}
+                        />
+                    </div>
+                ) : null}
+                {this.smartNameAvailable && this.state.smartName !== false ? (
                     <div style={styles.divOidField}>
                         <Box sx={styles.oidName}>{I18n.t('Smart name')}</Box>
                         <TextField
@@ -467,7 +488,7 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
                     crop={false}
                     disabled={!!disabled}
                     style={styles.dropZone}
-                    icon={this.state.icon}
+                    icon={this.state.icon || ''}
                     onChange={(base64: string): void => this.setState({ icon: base64 })}
                 />
             </div>

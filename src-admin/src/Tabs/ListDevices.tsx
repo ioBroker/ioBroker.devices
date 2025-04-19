@@ -87,7 +87,7 @@ import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/Ty
 import DragWrapper from '../Components/DragWrapper';
 import DropWrapper from '../Components/DropWrapper';
 import DialogImporter from '../Dialogs/DialogImporter';
-import type { DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
+import DialogEditProperties, { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -704,10 +704,14 @@ const styles: Record<string, any> = {
         padding: '0 16px 0 16px',
     },
     cell: {
-        padding: '0 24px 0 16px',
+        paddingTop: 0,
+        paddingRight: 24,
+        paddingBottom: 0,
     },
     cellMobile: {
-        padding: '6px 24px 6px 16px',
+        paddingTop: 6,
+        paddingRight: 24,
+        paddingBottom: 6,
     },
 };
 
@@ -900,7 +904,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                 '';
                             changed = true;
                         }
-                        if (iot && iot.length && iot[0] && iot[0]._id) {
+                        // Read iot instance
+                        if (iot?.[0]?._id) {
                             newState.iotNoCommon = iot[0].native?.noCommon;
                             newState.iot = iot[0]._id.replace('system.adapter.', '') || '';
                             changed = true;
@@ -1107,8 +1112,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 // skip all before prefix
             } else if (
                 id.startsWith(prefix) &&
-                objects[id] &&
-                objects[id].common &&
+                objects[id]?.common &&
                 (objects[id].type === 'channel' || objects[id].type === 'device' || objects[id].type === 'folder')
             ) {
                 let parentId;
@@ -1149,7 +1153,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 common: {
                     name: objects[id]?.type === 'folder' ? Utils.getObjectName(objects, id, language) : getLastPart(id),
                     nondeletable: true,
-                    color: objects[id]?.common?.color || null,
+                    color: objects[id]?.common?.color || undefined,
                     icon,
                 },
                 obj: objects[id],
@@ -1168,9 +1172,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             type: 'folder',
         };
 
-        let devicesArr = devices || this.state.devices;
-
-        devicesArr = devicesArr.filter(
+        const devicesArr = (devices || this.state.devices).filter(
             ({ channelId }) => !channelId.startsWith('alias.0') && !channelId.startsWith('linkeddevices.0'),
         );
 
@@ -1201,14 +1203,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 common: {
                     name: Utils.getObjectName(objects, device.channelId, language),
                     nondeletable: true,
-                    color:
-                        objects[device.channelId]?.common && objects[device.channelId].common.color
-                            ? objects[device.channelId].common.color
-                            : null,
-                    icon:
-                        objects[device.channelId]?.common && objects[device.channelId].common.icon
-                            ? objects[device.channelId].common.icon
-                            : this.searchIcon(device.channelId),
+                    color: objects[device.channelId]?.common?.color || undefined,
+                    icon: objects[device.channelId]?.common?.icon || this.searchIcon(device.channelId),
                 },
                 obj: objects[device.channelId],
                 type: objects[device.channelId]?.type,
@@ -1248,10 +1244,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     common: {
                         name: Utils.getObjectName(objects, device.channelId, language),
                         nondeletable: true,
-                        color:
-                            objects[device.channelId]?.common && objects[device.channelId].common.color
-                                ? objects[device.channelId].common.color
-                                : null,
+                        color: objects[device.channelId]?.common?.color || undefined,
                         icon,
                     },
                     obj: objects[device.channelId],
@@ -1270,7 +1263,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         if (!device) {
             return;
         }
-        const stateId = device.states.find(state => state.id)!.id;
+        const stateId = device.states.find(state => state.id && state.required)!.id;
         const statesCount = device.states.filter(state => state.id).length;
         const pos = stateId.lastIndexOf('.');
         let channelId = stateId;
@@ -1741,11 +1734,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             }
         }
 
-        const style = Object.assign({
+        const style = {
             paddingLeft: depthPx,
             cursor: 'pointer',
             opacity: item.visible ? 1 : 0.5,
-        });
+        };
 
         const iconStyle: React.CSSProperties = {};
         const countSpan = children.length ? (
@@ -2310,7 +2303,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
     setSmartName(
         obj: ioBroker.StateObject | ioBroker.ChannelObject,
-        newSmartName: string | false,
+        newSmartName: string | false | undefined,
         language?: ioBroker.Languages,
     ): void {
         // set smartName
@@ -2338,15 +2331,28 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 }
             }
         } else {
+            // remove smartName completely
             if (this.state.iotNoCommon) {
                 const iot = this.state.iot || 'iot.0';
+                if (obj.common.custom?.[iot]?.smartName) {
+                    delete obj.common.custom[iot].smartName[language];
+                } else if (obj.common.custom?.[iot]?.smartName === false) {
+                    delete obj.common.custom[iot].smartName;
+                }
                 if (obj.common.custom?.[iot]) {
-                    obj.common.custom[iot].smartName[language] = '';
+                    if (Object.keys(obj.common.custom[iot]).length === 0) {
+                        // It will be deleted by js-controller
+                        obj.common.custom[iot] = null;
+                    }
                 }
             } else {
                 const common: ioBroker.StateCommon = obj.common as ioBroker.StateCommon;
                 if (common.smartName && typeof common.smartName === 'object') {
                     common.smartName[language] = '';
+                    if (Object.keys(common.smartName).length === 0) {
+                        // It will be deleted by js-controller
+                        common.smartName = null; // just delete smartName: false setting from common.
+                    }
                 } else {
                     common.smartName = null; // just delete smartName: false setting from common.
                 }
@@ -2354,12 +2360,17 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         }
     }
 
-    getSmartName(obj: ioBroker.StateObject | ioBroker.ChannelObject, language?: ioBroker.Languages): string {
-        language = language || I18n.getLanguage();
+    static getSmartName(
+        obj: ioBroker.StateObject | ioBroker.ChannelObject,
+        iotNoCommon: boolean,
+        iotInstance: string,
+        language?: ioBroker.Languages,
+    ): string {
+        language ||= I18n.getLanguage();
         let smartName;
         if (obj?.common?.custom) {
-            if (this.state.iotNoCommon) {
-                const iot = this.state.iot || 'iot.0';
+            if (iotNoCommon) {
+                const iot = iotInstance || 'iot.0';
                 if (obj.common.custom[iot]?.smartName) {
                     smartName = obj.common.custom[iot].smartName;
                 }
@@ -2824,16 +2835,30 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         Router.doNavigate(null, '', '');
     };
 
-    onSaveProperties = async (data: DialogEditPropertiesState): Promise<void> => {
+    onSaveProperties = async (data: DialogEditPropertiesState, channelInfo: PatternControlEx): Promise<void> => {
         let somethingChanged = false;
-        const device = this.state.devices.find(({ channelId }) => channelId === this.state.editId);
+        const device = channelInfo || this.state.devices.find(({ channelId }) => channelId === this.state.editId);
         if (data && device) {
             const language = I18n.getLanguage();
             const channelId = device.channelId;
             const oldName = Utils.getObjectNameFromObj(this.objects[channelId], language);
+            let mainState: ioBroker.StateObject | null | undefined;
+            let oldSmartName: string | false | undefined | null;
 
-            const oldSmartName = this.getSmartName(this.objects[channelId] as ioBroker.StateObject, language);
+            // Find mainStateID anew
+            const mainStateId = device.states.find(state => state.id && state.required)!.id;
 
+            if (mainStateId) {
+                mainState = (await this.props.socket.getObject(mainStateId)) as ioBroker.StateObject | null | undefined;
+                if (mainState) {
+                    oldSmartName = DialogEditProperties.getSmartName(
+                        mainState,
+                        this.state.iotNoCommon,
+                        this.state.iot,
+                        language,
+                    );
+                }
+            }
             if (
                 this.objects[channelId]?.common &&
                 (oldName !== data.name ||
@@ -2864,14 +2889,9 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 }
                 obj.type ||= 'channel';
 
-                if (data.smartName === false) {
-                    obj.common.smartName = false;
-                } else {
-                    this.setSmartName(
-                        obj as ioBroker.StateObject | ioBroker.ChannelObject,
-                        data.smartName || '',
-                        language,
-                    );
+                if (mainState && oldSmartName !== data.smartName) {
+                    this.setSmartName(mainState, data.smartName, language);
+                    await this.props.socket.setObject(mainState._id, mainState);
                 }
 
                 await this.props.socket.setObject(obj._id, obj);
@@ -2917,6 +2937,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 patterns={this.patterns}
                 theme={this.props.theme}
                 enumIDs={this.enumIDs}
+                iot={this.state.iot}
                 iotNoCommon={this.state.iotNoCommon}
                 socket={this.props.socket}
                 onCopyDevice={async (id, newId) => {
@@ -2926,7 +2947,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         await this.deleteDevice(this.state.devices.indexOf(copiedDevice));
                     }
                 }}
-                onSaveProperties={data => this.onSaveProperties(data)}
+                onSaveProperties={(data, channelInfo) => this.onSaveProperties(data, channelInfo)}
                 onClose={(data, channelInfo) => this.onEditFinished(data, channelInfo)}
             />
         );
