@@ -97,6 +97,7 @@
   "Smart name": "聪明的名字",
   "States": "状态",
   "Supported by \"%s\"": "由“%s”支持",
+  "Supported by %s": "由 %s 支持",
   "The list of devices to copy is empty": "要复制的设备列表为空",
   "This name will use be in smart assistance. (optional)": "此名称将用于智能协助。 （可选的）",
   "Title": "标题",

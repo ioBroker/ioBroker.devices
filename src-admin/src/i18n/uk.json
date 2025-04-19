@@ -97,6 +97,7 @@
   "Smart name": "Розумне ім'я",
   "States": "держави",
   "Supported by \"%s\"": "Підтримується \"%s\"",
+  "Supported by %s": "Підтримується %s",
   "The list of devices to copy is empty": "Список пристроїв для копіювання порожній",
   "This name will use be in smart assistance. (optional)": "Це ім’я використовуватиметься в розумній допомозі. (необов'язково)",
   "Title": "Назва",
