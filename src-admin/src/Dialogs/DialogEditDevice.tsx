@@ -280,9 +280,9 @@ const styles: Record<string, any> = {
     indicators: {
         color: '#4dabf5',
     },
-    helperText: {
-        opacity: 0.4,
-    },
+    helperText: (theme: IobTheme): React.CSSProperties => ({
+        opacity: theme.palette.mode === 'dark' ? 0.5 : 0.8,
+    }),
     titleHead: {
         '& h2': {
             textOverflow: 'ellipsis',
@@ -1292,17 +1292,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         fullWidth
                                         disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                         value={this.state.ids[name].read}
-                                        sx={styles.oidField}
+                                        sx={{
+                                            '& .MuiFormHelperText-root': styles.helperText,
+                                            ...styles.oidField,
+                                        }}
                                         style={{ paddingTop: 8 }}
                                         onChange={e => {
                                             const ids = JSON.parse(JSON.stringify(this.state.ids));
                                             ids[name].read = e.target.value;
                                             this.setState({ ids });
-                                        }}
-                                        slotProps={{
-                                            formHelperText: {
-                                                style: styles.helperText,
-                                            },
                                         }}
                                         helperText={`${props.join(', ')}`}
                                         margin="normal"
@@ -1368,17 +1366,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         fullWidth
                                         disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                                         value={this.state.ids[name].write}
-                                        sx={styles.oidField}
+                                        sx={{
+                                            '& .MuiFormHelperText-root': styles.helperText,
+                                            ...styles.oidField,
+                                        }}
                                         style={{ paddingTop: 8 }}
                                         onChange={e => {
                                             const ids = JSON.parse(JSON.stringify(this.state.ids));
                                             ids[name].write = e.target.value;
                                             this.setState({ ids });
-                                        }}
-                                        slotProps={{
-                                            formHelperText: {
-                                                style: styles.helperText,
-                                            },
                                         }}
                                         helperText={`${props.join(', ')}`}
                                         margin="normal"
@@ -1545,17 +1541,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         fullWidth
                         disabled={(!alias && !linkedDevices) || this.state.startTheProcess}
                         value={alias || linkedDevices ? this.state.ids[name] || '' : item.id || ''}
-                        sx={styles.oidField}
+                        sx={{
+                            '& .MuiFormHelperText-root': styles.helperText,
+                            ...styles.oidField,
+                        }}
                         style={{ paddingTop: 8 }}
                         onChange={e => {
                             const ids = JSON.parse(JSON.stringify(this.state.ids));
                             ids[name] = e.target.value;
                             this.setState({ ids });
-                        }}
-                        slotProps={{
-                            formHelperText: {
-                                style: styles.helperText,
-                            },
                         }}
                         helperText={props.join(', ')}
                         margin="normal"
