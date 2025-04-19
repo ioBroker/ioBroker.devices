@@ -430,6 +430,7 @@ interface DialogEditDeviceState {
     >;
     idsInit: string;
     statesInit: string;
+    fxInit: string;
     name: string;
     addedStates: AddedState[];
     showIndicators: boolean;
@@ -505,6 +506,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             ids,
             idsInit: JSON.stringify(ids),
             statesInit: JSON.stringify(states),
+            fxInit: JSON.stringify(this.fx),
             name,
             addedStates,
             showIndicators: indicatorsAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
@@ -1879,6 +1881,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             (JSON.stringify(this.state.initChangeProperties) ===
                                 JSON.stringify(this.state.changeProperties) &&
                                 JSON.stringify(this.state.states) === this.state.statesInit &&
+                                JSON.stringify(this.fx) === this.state.fxInit &&
                                 JSON.stringify(this.state.ids) === this.state.idsInit) ||
                             this.state.disabledButton ||
                             this.state.startTheProcess
