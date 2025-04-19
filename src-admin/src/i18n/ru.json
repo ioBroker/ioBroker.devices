@@ -99,6 +99,7 @@
   "Supported by \"%s\"": "Поддерживается \"%s\"",
   "The list of devices to copy is empty": "Список копируемых устройств пуст",
   "This name will use be in smart assistance. (optional)": "Это имя будет использоваться в умных помощниках. (по желанию)",
+  "Title": "Название",
   "Turn off": "Выкл",
   "Turn on": "Вкл",
   "Type": "Тип",

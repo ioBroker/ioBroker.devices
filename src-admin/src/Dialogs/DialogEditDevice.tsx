@@ -427,7 +427,8 @@ interface DialogEditDeviceState {
               write: string;
           }
     >;
-    idsInit: Record<string, string>;
+    idsInit: string;
+    statesInit: string;
     name: string;
     addedStates: AddedState[];
     showIndicators: boolean;
@@ -467,47 +468,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     constructor(props: DialogEditDeviceProps) {
         super(props);
-        const ids: Record<string, string> = {};
         this.fx = {};
+        const ids: Record<string, string | { read: string; write: string }> = {};
         const states: Record<string, { [value: string]: string } | undefined> = {};
 
-        this.props.channelInfo.states.forEach(state => {
-            if (state.id) {
-                const obj = this.props.objects[state.id];
-                if (obj?.common?.alias) {
-                    ids[state.name] = obj.common.alias.id || '';
-                    this.fx[state.name] = {
-                        read: obj.common.alias.read || '',
-                        write: obj.common.alias.write || '',
-                    };
-                    if (obj.common.states) {
-                        states[state.name] = normalizeStates(obj.common.states);
-                    }
-                } else {
-                    this.fx[state.name] = { read: '', write: '' };
-                }
-
-                if (obj?.common?.custom) {
-                    const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
-                    if (attr?.length && obj.common.custom[attr[0]] && obj.common.custom[attr[0]].parentId) {
-                        ids[state.name] = obj.common.custom[attr[0]].parentId;
-                    }
-                }
-
-                if (state.defaultRole?.startsWith('button')) {
-                    delete this.fx[state.name].read;
-                }
-                if (
-                    !state.write ||
-                    (state.defaultRole &&
-                        (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
-                ) {
-                    delete this.fx[state.name].write;
-                }
-            } else {
-                this.fx[state.name] = { read: '', write: '' };
-            }
-        });
+        // States of the state (common.states)
+        this.getStatesInformation(ids, states);
 
         const { addedStates } = this.updateFx(this.getAddedChannelStates(), ids, states);
 
@@ -530,7 +496,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         this.state = {
             ids,
-            idsInit: JSON.parse(JSON.stringify(ids)),
+            idsInit: JSON.stringify(ids),
+            statesInit: JSON.stringify(states),
             name,
             addedStates,
             showIndicators: indicatorsAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
@@ -571,6 +538,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             const checkIndicators = this.props.channelInfo.states
                 .filter(item => item.indicator && item.defaultRole)
                 .find(obj => this.state.ids[obj.name]);
+
             if (checkIndicators) {
                 this.setState({ showIndicators: true });
             }
@@ -591,25 +559,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             JSON.stringify(this.state.states),
                         );
                         newStates[name] = states;
-                        let id: string | { read: string; write: string } | undefined;
-                        if (this.state.ids[name]) {
-                            id = this.state.ids[name];
-                        } else {
-                            const added = this.state.addedStates.find(item => item.name === name);
-                            id = added?.id;
-                        }
-
-                        this.setState({ editStates: null, states: newStates }, async () => {
-                            const obj =
-                                id &&
-                                (await this.props.socket.getObject(
-                                    typeof id === 'object' ? id.read || id.write || '' : id,
-                                ));
-                            if (obj) {
-                                obj.common.states = states;
-                                await this.props.socket.setObject(obj._id, obj);
-                            }
-                        });
+                        this.setState({ editStates: null, states: newStates });
                     } else {
                         this.setState({ editStates: null });
                     }
@@ -620,6 +570,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     renderDialogAddState(): React.JSX.Element | null {
         if (this.state.dialogAddState) {
+            const processed: string[] = [];
+            const arrayStateDefault = this.props.channelInfo.states.filter(item => {
+                if (item.indicator && item.defaultRole && !processed.includes(item.name)) {
+                    processed.push(item.name);
+                    return true;
+                }
+                return false;
+            });
+
             return (
                 <DialogAddState
                     onClose={async (obj: ioBroker.StateObject): Promise<void> => {
@@ -658,11 +617,77 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     objects={this.props.objects}
                     socket={this.props.socket}
                     channelId={this.channelId}
-                    arrayStateDefault={this.props.channelInfo.states.filter(item => item.indicator && item.defaultRole)}
+                    arrayStateDefault={arrayStateDefault}
                 />
             );
         }
         return null;
+    }
+
+    processOneItem(
+        state: {
+            id: string;
+            name: string;
+            defaultRole?: string;
+            write?: boolean;
+        },
+        ids: Record<string, string | { read: string; write: string }>,
+        states: Record<string, { [value: string]: string } | undefined>,
+    ): void {
+        if (state.id) {
+            const obj = this.props.objects[state.id];
+            if (obj?.common?.alias) {
+                ids[state.name] = obj.common.alias.id || '';
+                this.fx[state.name] = {
+                    read: obj.common.alias.read || '',
+                    write: obj.common.alias.write || '',
+                };
+                if (obj.common.states) {
+                    states[state.name] = normalizeStates(obj.common.states);
+                }
+            } else {
+                this.fx[state.name] = { read: '', write: '' };
+                if (states[state.name]) {
+                    delete states[state.name];
+                }
+            }
+
+            if (obj?.common?.custom) {
+                const attr = Object.keys(obj.common.custom).filter(id => id.startsWith('linkeddevices.'));
+                if (attr?.length && obj.common.custom[attr[0]] && obj.common.custom[attr[0]].parentId) {
+                    ids[state.name] = obj.common.custom[attr[0]].parentId;
+                }
+            }
+
+            if (state.defaultRole?.startsWith('button')) {
+                delete this.fx[state.name].read;
+            }
+            if (
+                !state.write ||
+                (state.defaultRole &&
+                    (state.defaultRole.startsWith('indicator') || state.defaultRole.startsWith('value')))
+            ) {
+                delete this.fx[state.name].write;
+            }
+        } else {
+            this.fx[state.name] = { read: '', write: '' };
+            if (states[state.name]) {
+                delete states[state.name];
+            }
+        }
+    }
+
+    getStatesInformation(
+        ids: Record<string, string | { read: string; write: string }>,
+        states: Record<string, { [value: string]: string } | undefined>,
+    ): void {
+        const processed: string[] = [];
+        this.props.channelInfo.states.forEach(state => {
+            if (!processed.includes(state.name) || state.id) {
+                processed.push(state.name);
+                this.processOneItem(state, ids, states);
+            }
+        });
     }
 
     getAddedChannelStates(): {
@@ -687,7 +712,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             )
             .map(key => {
                 const objOriginal = this.props.objects[key];
-                let name = objOriginal?.common?.name;
+                let name: ioBroker.StringOrTranslated = objOriginal?.common?.name;
                 if (name && typeof name === 'object') {
                     name = name[I18n.getLanguage()] || name.en;
                 }
@@ -711,14 +736,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     updateFx(
         addedStates: AddedState[],
-        ids?: Record<string, string>,
+        ids?: Record<string, { read: string; write: string } | string>,
         states?: Record<string, { [value: string]: string } | undefined>,
     ): {
         addedStates: AddedState[];
-        newIds: Record<string, string>;
+        newIds: Record<string, { read: string; write: string } | string>;
         newStates: Record<string, { [value: string]: string }>;
     } {
-        const newIds: Record<string, string> = ids || JSON.parse(JSON.stringify(this.state.ids));
+        const newIds: Record<string, { read: string; write: string } | string> =
+            ids || JSON.parse(JSON.stringify(this.state.ids));
         const newStates: Record<string, { [value: string]: string }> =
             states || JSON.parse(JSON.stringify(this.state.states));
 
@@ -1244,6 +1270,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         const IconsState = DialogEditDevice.getStateIcon(name, role);
 
         if (typeof this.state.ids[name] === 'object') {
+            // { read: string; write: string }
             return (
                 <div key={`${name}_${index}`}>
                     <Box
@@ -1463,7 +1490,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     </IconButton>
                                 </Tooltip>
                             )}
-                            {this.state.states[name] && !this.state.startTheProcess && (
+                            {this.state.states[name] && !this.state.startTheProcess && this.state.ids[name] && (
                                 <Tooltip
                                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Edit states')}
@@ -1631,7 +1658,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             </Tooltip>
                         )}
 
-                        {this.state.states[name] && !this.state.startTheProcess && (
+                        {this.state.states[name] && !this.state.startTheProcess && this.state.ids[name] && (
                             <Tooltip
                                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Edit states')}
@@ -1667,14 +1694,18 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     renderVariables(): React.JSX.Element {
+        const processed: string[] = [];
         return (
             <div
                 key="vars"
                 style={styles.divOids}
             >
                 {this.props.channelInfo.states
-                    .filter(item => !item.indicator && item.defaultRole)
-                    .map((item, i) => this.renderVariable(item, 'def', i))}
+                    .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
+                    .map((item, i) => {
+                        processed.push(item.name);
+                        return this.renderVariable(item, 'def', i);
+                    })}
 
                 {this.state.extendedAvailable &&
                     this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
@@ -1690,8 +1721,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     this.state.showIndicators &&
                     this.state.indicatorsAvailable &&
                     this.props.channelInfo.states
-                        .filter(item => item.indicator && item.defaultRole)
-                        .map((item, i) => this.renderVariable(item, 'indicators', i))}
+                        .filter(item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
+                        .map((item, i) => {
+                            processed.push(item.name);
+                            return this.renderVariable(item, 'indicators', i);
+                        })}
             </div>
         );
     }
@@ -1812,7 +1846,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         disabled={
                             (JSON.stringify(this.state.initChangeProperties) ===
                                 JSON.stringify(this.state.changeProperties) &&
-                                JSON.stringify(this.state.ids) === JSON.stringify(this.state.idsInit)) ||
+                                JSON.stringify(this.state.states) === this.state.statesInit &&
+                                JSON.stringify(this.state.ids) === this.state.idsInit) ||
                             this.state.disabledButton ||
                             this.state.startTheProcess
                         }

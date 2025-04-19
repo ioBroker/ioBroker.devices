@@ -166,7 +166,7 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
         return (
             <Dialog
                 open={!0}
-                onClose={reason => {
+                onClose={(_e, reason): void => {
                     if (reason !== 'backdropClick' && reason !== 'escapeKeyDown') {
                         this.onClose();
                     }

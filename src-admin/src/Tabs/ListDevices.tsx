@@ -2547,6 +2547,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                         | ioBroker.StateObject
                                         | null
                                         | undefined;
+
                                 if (stateObj) {
                                     stateObj.common ||= {} as ioBroker.StateCommon;
                                     if (stateObj.common.alias) {
@@ -2563,6 +2564,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                         delete stateObj.common.alias.write;
                                     } else {
                                         stateObj.common.alias.write = data.fx[state.name].write;
+                                    }
+
+                                    // Update states of state
+                                    if (data.states[state.name]) {
+                                        stateObj.common.states = data.states[state.name];
                                     }
 
                                     await this.props.socket.setObject(stateObj._id, stateObj);
@@ -2645,6 +2651,12 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             common.unit = state.unit;
                         }
                         somethingChanged = true;
+
+                        // Update states of state
+                        if (data.states[state.name]) {
+                            common.states = data.states[state.name];
+                        }
+
                         await this.props.socket.setObject(stateObj._id, stateObj);
                     }
                 }
@@ -2722,12 +2734,12 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
                         if (state.read !== undefined) {
                             common.read = state.read;
-                        }  else if (common.read !== undefined) {
+                        } else if (common.read !== undefined) {
                             common.read = true;
                         }
                         if (state.write !== undefined) {
                             common.write = state.write;
-                        }  else if (common.write !== undefined) {
+                        } else if (common.write !== undefined) {
                             common.write = true;
                         }
 
@@ -2759,6 +2771,12 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         } else if (state.unit) {
                             common.unit = state.unit;
                         }
+
+                        // Update states of state
+                        if (data.states[state.name]) {
+                            stateObj.common.states = data.states[state.name];
+                        }
+
                         somethingChanged = true;
                         await this.props.socket.setObject(stateObj._id, stateObj);
                     }
