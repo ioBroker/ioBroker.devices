@@ -115,6 +115,7 @@
     "alias_read": "read",
     "alias_write": "write",
     "alive": "alive",
+    "auto_detected_empty_info": "You must add the devices to room or function categories to let the devices be detected automatically",
     "boolean": "boolean",
     "cloning method": "Structure on",
     "file": "file",

@@ -115,6 +115,7 @@
   "alias_read": "读",
   "alias_write": "写",
   "alive": "可连接",
+  "auto_detected_empty_info": "您必须将设备添加到房间或功能类别才能让设备被自动检测",
   "boolean": "布尔值",
   "cloning method": "结构上",
   "file": "文件",

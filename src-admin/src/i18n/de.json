@@ -115,6 +115,7 @@
     "alias_read": "lesen",
     "alias_write": "schreiben",
     "alive": "erreichbar",
+    "auto_detected_empty_info": "Die Geräte müssen zu Raum- oder Funktionskategorien hinzufügen werden, damit die Geräte automatisch erkannt werden",
     "boolean": "Boolescher Wert",
     "cloning method": "Strukturieren nach",
     "file": "Datei",

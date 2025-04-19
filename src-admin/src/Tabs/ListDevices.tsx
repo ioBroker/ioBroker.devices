@@ -183,10 +183,15 @@ const prepareList = (
         const parts = ids[i].split('.');
         parts.pop();
 
+        let icon = obj.common.icon || null;
+        if (icon && typeof icon === 'string' && !icon.includes('/')) {
+            icon = `'../../adapter/${(obj.obj?._id || ids[i]).split('.')[0]}/${icon}`;
+        }
+
         result.push({
             id: obj.obj?._id || ids[i],
             title: Utils.getObjectName(data as any as Record<string, ioBroker.Object>, ids[i], I18n.getLanguage()),
-            icon: obj.common.icon || null,
+            icon,
             color: obj.common.color || null,
             depth: parts.length - 1,
             type: obj.type,
@@ -274,10 +279,10 @@ const prepareList = (
                         depth: parts.length - 1,
                         type: 'folder',
                         obj,
-                        noEdit: !!obj?.common.noEdit,
-                        showId: !!obj?.common.showId,
+                        noEdit: false,
+                        showId: false,
                         originalId: obj?.native?.originalId || null,
-                        importer: !!obj?.common.importer,
+                        importer: false,
                         parent: parts.length >= 2 ? parts.join('.') : null,
                     });
                     modified = true;
@@ -708,9 +713,6 @@ const styles: Record<string, any> = {
 
 interface ListDevicesProps {
     adapterName: string;
-    onError: (error: string) => void;
-    onLoad: () => void;
-    onChange: (attr: string, value: any) => void;
     socket: AdminConnection;
     theme: IobTheme;
     themeType: ThemeType;
@@ -1134,13 +1136,21 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
         const stateIds: Record<string, InternalObject> = {};
         const language = I18n.getLanguage();
+
         ids.forEach(id => {
+            let icon = objects[id]?.common?.icon || this.searchIcon(id);
+            if (icon && !icon.includes('/')) {
+                // add adapter prefix
+                const parts = id.split('.');
+                icon = `'../../adapter/${parts[0]}/${icon}`;
+            }
+
             stateIds[id] = {
                 common: {
                     name: objects[id]?.type === 'folder' ? Utils.getObjectName(objects, id, language) : getLastPart(id),
                     nondeletable: true,
                     color: objects[id]?.common?.color || null,
-                    icon: objects[id]?.common?.icon || this.searchIcon(id),
+                    icon,
                 },
                 obj: objects[id],
                 type: objects[id].type,
@@ -1212,6 +1222,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             devicesArrLinkeddevices = devicesArrLinkeddevices.filter(({ channelId }) =>
                 channelId.startsWith('linkeddevices.0'),
             );
+
             stateIds[`${this.prefix}.linked_devices`] = {
                 common: {
                     name: I18n.t('Linked devices'),
@@ -1224,6 +1235,15 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             };
 
             devicesArrLinkeddevices.forEach(device => {
+                let icon = objects[device.channelId]?.common?.icon
+                    ? objects[device.channelId].common.icon
+                    : this.searchIcon(device.channelId);
+                if (icon && !icon.includes('/')) {
+                    // add adapter prefix
+                    const parts = device.channelId.split('.');
+                    icon = `../../adapter/${parts[0]}/${icon}`;
+                }
+
                 stateIds[`${this.prefix}.linked_devices.${device.channelId.replace('linkeddevices.0.', '')}`] = {
                     common: {
                         name: Utils.getObjectName(objects, device.channelId, language),
@@ -1232,10 +1252,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             objects[device.channelId]?.common && objects[device.channelId].common.color
                                 ? objects[device.channelId].common.color
                                 : null,
-                        icon:
-                            objects[device.channelId]?.common && objects[device.channelId].common.icon
-                                ? objects[device.channelId].common.icon
-                                : this.searchIcon(device.channelId),
+                        icon,
                     },
                     obj: objects[device.channelId],
                     type: objects[device.channelId]?.type,
@@ -1361,7 +1378,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         const cIcon = icon;
         const id = channelId;
 
-        if (cIcon && !cIcon.startsWith('data:image/') && cIcon.includes('.')) {
+        if (cIcon?.includes('.') && !cIcon.includes('data:image/')) {
             let instance;
             if (objects[id].type === 'instance' || objects[id].type === 'adapter') {
                 icon = `${imagePrefix}/adapter/${objects[id].common.name}/${cIcon}`;
@@ -1919,6 +1936,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         {this.renderEnumCell(device.rooms, roomsEnums, index!)}
                     </TableCell>
                 ) : null}
+
                 {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
                     <TableCell
                         size="small"
@@ -2088,9 +2106,19 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         const result: (React.JSX.Element | null)[] = [inner];
 
         if (isExpanded) {
-            children.forEach((it: ListItem, i: number) =>
-                result.push(this.renderOneItem(items, it, i) as any as React.JSX.Element | null),
-            );
+            if (!children.length && item.id === 'alias.0.automatically_detected') {
+                // Add text about enums
+                result.push(
+                    <TableRow key="automatically_detected_info">
+                        <TableCell />
+                        <TableCell colSpan={3}>{I18n.t('auto_detected_empty_info')}</TableCell>
+                    </TableRow>,
+                );
+            } else {
+                children.forEach((it: ListItem, i: number) =>
+                    result.push(this.renderOneItem(items, it, i) as any as React.JSX.Element | null),
+                );
+            }
         }
         return result;
     }
@@ -3314,6 +3342,14 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         return (
             <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
                 <div style={styles.tab}>
+                    {this.renderMessage()}
+                    {this.renderEditDialog()}
+                    {this.renderAddDialog()}
+                    {this.renderEditEnumDialog()}
+                    {this.renderImporterDialog()}
+                    {this.renderEditFolder()}
+                    {this.renderDeleteDialog()}
+
                     <Toolbar variant="dense">
                         <div style={styles.wrapperHeadButtons}>
                             <Tooltip
@@ -3448,14 +3484,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             <span>{I18n.t('Devices')}</span>
                         </Box>
                     </Toolbar>
+
                     {this.renderDevices()}
-                    {this.renderMessage()}
-                    {this.renderEditDialog()}
-                    {this.renderAddDialog()}
-                    {this.renderEditEnumDialog()}
-                    {this.renderImporterDialog()}
-                    {this.renderEditFolder()}
-                    {this.renderDeleteDialog()}
                 </div>
             </DndProvider>
         );

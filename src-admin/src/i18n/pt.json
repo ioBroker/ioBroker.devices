@@ -115,6 +115,7 @@
   "alias_read": "ler",
   "alias_write": "escrever",
   "alive": "vivo",
+  "auto_detected_empty_info": "Você deve adicionar os dispositivos às categorias de sala ou função para que eles sejam detectados automaticamente",
   "boolean": "boleano",
   "cloning method": "Estrutura em",
   "file": "Arquivo",

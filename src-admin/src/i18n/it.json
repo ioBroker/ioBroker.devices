@@ -115,6 +115,7 @@
   "alias_read": "Leggere",
   "alias_write": "scrivere",
   "alive": "vivo",
+  "auto_detected_empty_info": "È necessario aggiungere i dispositivi alle categorie di stanza o funzione per consentire il rilevamento automatico dei dispositivi",
   "boolean": "booleano",
   "cloning method": "Struttura attiva",
   "file": "file",

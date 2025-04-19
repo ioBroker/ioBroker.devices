@@ -115,6 +115,7 @@
   "alias_read": "lire",
   "alias_write": "écrire",
   "alive": "vivant",
+  "auto_detected_empty_info": "Vous devez ajouter les appareils aux catégories de pièces ou de fonctions pour permettre la détection automatique des appareils.",
   "boolean": "booléen",
   "cloning method": "Structurer sur",
   "file": "déposer",

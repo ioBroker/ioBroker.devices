@@ -115,6 +115,7 @@
     "alias_read": "Czytać",
     "alias_write": "pisać",
     "alive": "żywy",
+    "auto_detected_empty_info": "Aby umożliwić automatyczne wykrywanie urządzeń, należy dodać je do kategorii pomieszczeń lub funkcji",
     "boolean": "logiczne",
     "cloning method": "Struktura włączona",
     "file": "plik",

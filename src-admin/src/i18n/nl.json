@@ -115,6 +115,7 @@
   "alias_read": "lezen",
   "alias_write": "schrijven",
   "alive": "levend",
+  "auto_detected_empty_info": "U moet de apparaten toevoegen aan kamer- of functiecategorieën om de apparaten automatisch te laten detecteren",
   "boolean": "booleaans",
   "cloning method": "Structuur aan",
   "file": "het dossier",
