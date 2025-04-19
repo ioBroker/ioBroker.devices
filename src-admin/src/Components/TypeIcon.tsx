@@ -59,10 +59,10 @@ const TYPE_ICONS: Partial<Record<Types, IconType>> = {
     [Types.dimmer]: TypeIconDimmer,
     [Types.door]: TypeIconDoor,
     [Types.fireAlarm]: TypeIconFireAlarm,
-    // @ts-expect-error fix-later
+    // @ts-expect-error special case
     'sensor.alarm.fire': TypeIconFireAlarm,
     [Types.floodAlarm]: TypeIconFloodAlarm,
-    'sensor.alarm.flood': TypeIconFireAlarm,
+    'sensor.alarm.flood': TypeIconFloodAlarm,
     [Types.gate]: TypeIconGate,
     [Types.humidity]: TypeIconHumidity,
     [Types.info]: TypeIconInfo,
