@@ -2512,9 +2512,10 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             fx: Record<string, { read?: string; write?: string }>;
             states: Record<string, { [value: string]: string } | undefined>;
         } | null,
+        channelInfo?: PatternControlEx,
     ): Promise<void> => {
         let somethingChanged = false;
-        const device = this.state.devices.find(({ channelId }) => channelId === this.state.editId)!;
+        const device = channelInfo || this.state.devices.find(({ channelId }) => channelId === this.state.editId)!;
         if (data) {
             // const device = this.state.devices[this.state.editIndex];
             const channelId = device.channelId;
@@ -2782,16 +2783,15 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     }
                 }
             }
+
+            if (somethingChanged) {
+                // update enums, name
+                this.updateEnumsForOneDevice(device); // TODO: here the device will be changed directly in state!
+            }
         }
 
         // update expert mode if was changed
         const newState = { editId: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true' };
-        if (somethingChanged) {
-            //const devices = JSON.parse(JSON.stringify(this.state.devices));
-            // update enums, name
-            this.updateEnumsForOneDevice(device); // TODO: here the device will be changed directly in state!
-            //newState.devices = devices;
-        }
         await this.setStateAsync(newState);
         Router.doNavigate(null, '', '');
     };
@@ -2899,7 +2899,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     }
                 }}
                 onSaveProperties={data => this.onSaveProperties(data)}
-                onClose={data => this.onEditFinished(data)}
+                onClose={(data, channelInfo) => this.onEditFinished(data, channelInfo)}
             />
         );
     }

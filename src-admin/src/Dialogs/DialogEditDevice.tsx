@@ -413,6 +413,7 @@ interface DialogEditDeviceProps {
             fx: Record<string, { read?: string; write?: string }>;
             states: Record<string, { [value: string]: string } | undefined>;
         },
+        channelInfo?: PatternControlEx,
     ) => void;
     onSaveProperties: (properties: DialogEditPropertiesState) => Promise<void>;
     onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
@@ -459,6 +460,7 @@ interface DialogEditDeviceState {
         item?: DetectorState | AddedState;
         onClose: boolean | null;
     } | null;
+    channelInfo: PatternControlEx;
 }
 
 class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEditDeviceState> {
@@ -472,24 +474,29 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         const ids: Record<string, string | { read: string; write: string }> = {};
         const states: Record<string, { [value: string]: string } | undefined> = {};
 
+        // Process multiple states
+        const channelInfo: PatternControlEx = JSON.parse(JSON.stringify(props.channelInfo));
+
+        DialogEditDevice.renameMultipleEntries(channelInfo, props.objects);
+
         // States of the state (common.states)
-        this.getStatesInformation(ids, states);
+        this.getStatesInformation(ids, states, channelInfo);
 
-        const { addedStates } = this.updateFx(this.getAddedChannelStates(), ids, states);
+        const { addedStates } = this.updateFx(this.getAddedChannelStates(channelInfo), ids, states);
 
-        this.channelId = this.props.channelInfo.channelId;
+        this.channelId = channelInfo.channelId;
         let name = '';
-        const channelObj = this.props.objects[this.channelId];
+        const channelObj = props.objects[this.channelId];
 
         if (channelObj?.common) {
             name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
         }
 
-        const indicatorsAvailable = !!this.props.channelInfo.states.filter(item => item.indicator).length;
+        const indicatorsAvailable = !!channelInfo.states.filter(item => item.indicator).length;
         const indicatorsVisible =
             this.channelId.startsWith('alias.') ||
             this.channelId.startsWith('linkeddevices.') ||
-            (indicatorsAvailable && !!this.props.channelInfo.states.filter(item => item.indicator && item.id).length);
+            (indicatorsAvailable && !!channelInfo.states.filter(item => item.indicator && item.id).length);
 
         const extendedAvailable =
             indicatorsAvailable && (this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.'));
@@ -523,19 +530,41 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             editStates: null,
             states,
             dialogAddState: null,
+            channelInfo,
         };
 
         this.pattern =
-            this.props.patterns[
-                Object.keys(this.props.patterns).find(
-                    type => this.props.patterns[type].type === this.props.channelInfo.type,
-                )!
-            ];
+            props.patterns[Object.keys(props.patterns).find(type => props.patterns[type].type === channelInfo.type)!];
+    }
+
+    static renameMultipleEntries(channelInfo: PatternControlEx, objects: Record<string, ioBroker.Object>): void {
+        // find if any multiple entries found
+        const entries = channelInfo.states.filter(item => item.multiple && item.id);
+        if (!entries.length) {
+            return;
+        }
+
+        // Rename multiple entries to variable names
+        entries.forEach(item => {
+            const obj = objects[item.id];
+            if (obj?.common?.name) {
+                let name = obj.common.name;
+                if (typeof name === 'object') {
+                    name =
+                        name[I18n.getLanguage()] || name.en || name[Object.keys(name)[0] as ioBroker.Languages] || '';
+                }
+                // make valid name
+                name = name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+                item.name = name;
+            } else if (obj._id) {
+                item.name = obj._id.split('.').pop() || '';
+            }
+        });
     }
 
     componentDidMount(): void {
         if (this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.showIndicators) {
-            const checkIndicators = this.props.channelInfo.states
+            const checkIndicators = this.state.channelInfo.states
                 .filter(item => item.indicator && item.defaultRole)
                 .find(obj => this.state.ids[obj.name]);
 
@@ -571,7 +600,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     renderDialogAddState(): React.JSX.Element | null {
         if (this.state.dialogAddState) {
             const processed: string[] = [];
-            const arrayStateDefault = this.props.channelInfo.states.filter(item => {
+            const arrayStateDefault = this.state.channelInfo.states.filter(item => {
                 if (item.indicator && item.defaultRole && !processed.includes(item.name)) {
                     processed.push(item.name);
                     return true;
@@ -680,9 +709,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     getStatesInformation(
         ids: Record<string, string | { read: string; write: string }>,
         states: Record<string, { [value: string]: string } | undefined>,
+        _channelInfo?: PatternControlEx,
     ): void {
+        const channelInfo = _channelInfo || this.state.channelInfo;
         const processed: string[] = [];
-        this.props.channelInfo.states.forEach(state => {
+        channelInfo.states.forEach(state => {
             if (!processed.includes(state.name) || state.id) {
                 processed.push(state.name);
                 this.processOneItem(state, ids, states);
@@ -690,7 +721,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         });
     }
 
-    getAddedChannelStates(): {
+    getAddedChannelStates(_channelInfo?: PatternControlEx): {
         defaultRole?: string;
         id: string;
         noType: boolean;
@@ -701,14 +732,13 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         required: boolean;
         states?: { [value: string]: string };
     }[] {
-        const channelIds: string[] = getChannelItems(this.props.objects, this.props.channelInfo.channelId);
+        const channelInfo = _channelInfo || this.state.channelInfo;
+        const channelIds: string[] = getChannelItems(this.props.objects, channelInfo.channelId);
 
         // Add states, that could not be detected by type-detector
         return channelIds
             .filter(
-                key =>
-                    !this.props.channelInfo.states.find(item => item.id === key) &&
-                    this.props.objects[key].type === 'state',
+                key => !channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state',
             )
             .map(key => {
                 const objOriginal = this.props.objects[key];
@@ -728,10 +758,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     states: normalizeStates(objOriginal?.common?.states),
                 };
             })
-            .filter(
-                item =>
-                    !this.props.channelInfo.states.filter(item => item.defaultRole).find(el => el.name === item.name),
-            );
+            .filter(item => !channelInfo.states.filter(item => item.defaultRole).find(el => el.name === item.name));
     }
 
     updateFx(
@@ -911,11 +938,14 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             this.props.onSaveProperties && (await this.props.onSaveProperties(this.state.changeProperties));
         }
 
-        this.props.onClose({
-            ids: this.state.ids,
-            fx: this.fx,
-            states: this.state.states,
-        });
+        this.props.onClose(
+            {
+                ids: this.state.ids,
+                fx: this.fx,
+                states: this.state.states,
+            },
+            this.state.channelInfo,
+        );
 
         await this.updateNewState();
 
@@ -937,7 +967,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         return (
             <Box sx={styles.icon}>
                 <TypeIcon
-                    type={this.props.channelInfo.type}
+                    type={this.state.channelInfo.type}
                     style={{
                         ...styles.deviceIconStyle,
                         color: this.props.theme.palette.mode === 'dark' ? '#FFFFFF' : '#000',
@@ -948,7 +978,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     renderHeader(): React.JSX.Element {
-        const checkIndicators = this.props.channelInfo.states
+        const checkIndicators = this.state.channelInfo.states
             .filter(item => item.indicator && item.defaultRole)
             .find(obj => this.state.ids[obj.name]);
 
@@ -1234,7 +1264,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         }
 
         if (pattern?.enums) {
-            const type = this.props.channelInfo.type;
+            const type = this.state.channelInfo.type;
             if (type === 'dimmer' || type === 'light') {
                 props.push('enum light');
             } else if (type === 'blind' || type === 'window' || type === 'windowTilt') {
@@ -1242,7 +1272,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             } else if (type === 'door') {
                 props.push('enum door');
             } else {
-                props.push(`enum ${this.props.channelInfo.type}`);
+                props.push(`enum ${this.state.channelInfo.type}`);
             }
         }
 
@@ -1700,7 +1730,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 key="vars"
                 style={styles.divOids}
             >
-                {this.props.channelInfo.states
+                {this.state.channelInfo.states
                     .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
                     .map((item, i) => {
                         processed.push(item.name);
@@ -1720,8 +1750,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 {this.state.indicatorsVisible &&
                     this.state.showIndicators &&
                     this.state.indicatorsAvailable &&
-                    this.props.channelInfo.states
-                        .filter(item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
+                    this.state.channelInfo.states
+                        .filter(
+                            item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id),
+                        )
                         .map((item, i) => {
                             processed.push(item.name);
                             return this.renderVariable(item, 'indicators', i);
@@ -1769,7 +1801,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 component="span"
                                 sx={styles.deviceText}
                             >
-                                {I18n.t(`type-${this.props.channelInfo.type}`)}
+                                {I18n.t(`type-${this.state.channelInfo.type}`)}
                             </Box>
                         </div>
                         <Tabs
