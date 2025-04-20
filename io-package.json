@@ -78,6 +78,7 @@
         "it": "GUI emigrata a v5",
         "es": "GUI migrado al v5",
         "pl": "Migrated GUI (ang.)",
+        "uk": "Migrated GUI для v5",
         "zh-cn": "第5条"
       },
       "1.0.12": {
@@ -90,6 +91,7 @@
         "it": "Consente di lavorare con dispositivi dietro proxy inverso\nSostituito l'icona della funzione",
         "es": "Permitido trabajar con dispositivos detrás del proxy inverso\nReemplazado el icono de la función",
         "pl": "Wszystkie zawdzięczają pracę z urządzeniami za przesunięciem proxy\nZrezygnował ikonę funkcji",
+        "uk": "Дозволено працювати з пристроями за зворотним проксі\nЗамінено іконку функції",
         "zh-cn": "允许与反导装置合作\n改为:"
       }
     },
@@ -134,9 +136,9 @@
     "connectionType": "none",
     "dataSource": "none",
     "tier": 3,
-    "icon": "devices.png",
+    "icon": "devices.svg",
     "enabled": true,
-    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.png",
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.svg",
     "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
     "loglevel": "info",
     "onlyWWW": true,

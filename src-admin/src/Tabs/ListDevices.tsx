@@ -3305,9 +3305,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 />
                 <div style={styles.emptyBlockFlex} />
                 <Box sx={styles.wrapperName}>
-                    <DvrIcon
+                    <img
+                        src="./devices.svg"
                         color="primary"
-                        style={{ marginRight: 5 }}
+                        alt="logo"
+                        style={{ marginRight: 5, width: 32, height: 32 }}
                     />
                     <span>{I18n.t('Devices')}</span>
                 </Box>

@@ -1,4 +1,4 @@
-![Logo](admin/devices.png)
+![Logo](admin/devices.svg)
 # ioBroker.devices
 
 ![Number of Installations](http://iobroker.live/badges/devices-installed.svg)
@@ -128,6 +128,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Updated logo
+
 ### 1.2.0 (2025-04-20)
 * (@GermanBluefox) Updated packages
 * (@GermanBluefox) Used vite

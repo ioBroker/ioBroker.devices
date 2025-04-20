@@ -16,7 +16,7 @@ async function copyAllFiles() {
 }
 
 function clean() {
-    deleteFoldersRecursive(`${__dirname}/admin`, ['devices.png']);
+    deleteFoldersRecursive(`${__dirname}/admin`, ['devices.png', 'devices.svg']);
     deleteFoldersRecursive(`${__dirname}/src-admin/build`);
 }
 
