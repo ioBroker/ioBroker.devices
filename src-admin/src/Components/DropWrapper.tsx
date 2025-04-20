@@ -6,6 +6,7 @@ import { TableRow } from '@mui/material';
 import { Utils, I18n } from '@iobroker/adapter-react-v5';
 
 import type { PatternControlEx } from '../types';
+import { getLastPart } from './helpers/utils';
 
 export interface DropWrapperProps {
     openFolder: () => void;
@@ -27,20 +28,20 @@ export default function DropWrapper(props: DropWrapperProps): React.JSX.Element 
     const [{ isOver, canDrop }, drop] = useDrop({
         accept: 'box',
         canDrop: item => {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
-                parts = item.id.split('.');
-                parts = parts.pop();
+            } else {
+                lastPart = getLastPart(item.id);
             }
             return !(
                 !props.id?.includes('alias.0') ||
                 props.id?.includes('automatically_detected') ||
                 props.id?.includes('linked_devices') ||
-                props.objects[`${props.id}.${parts}`]
+                props.objects[`${props.id}.${lastPart}`]
             );
         },
         collect: monitor => ({
@@ -49,39 +50,37 @@ export default function DropWrapper(props: DropWrapperProps): React.JSX.Element 
             canDrop: monitor.canDrop(),
         }),
         drop: async (item: { id: string; deviceIdx: number }) => {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
             setError(false);
-            await props.onCopyDevice(item.id, `${props.id}.${parts}`);
+            await props.onCopyDevice(item.id, `${props.id}.${lastPart}`);
             props.openFolder();
             if (item.id.includes('alias.0')) {
                 await props.deleteDevice(item.deviceIdx);
             }
         },
         hover(item: { id: string }) {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
             if (
                 !props.id?.includes('alias.0') ||
                 props.id?.includes('automatically_detected') ||
                 props.id?.includes('linked_devices') ||
-                props.objects[`${props.id}.${parts}`]
+                props.objects[`${props.id}.${lastPart}`]
             ) {
                 setError(true);
             } else {

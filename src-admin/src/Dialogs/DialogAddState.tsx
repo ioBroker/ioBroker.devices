@@ -21,7 +21,7 @@ import {
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
 import { I18n, Theme, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
-import type { DetectorState } from '@iobroker/type-detector/types';
+import type { DetectorState } from '@iobroker/type-detector';
 
 const styles: Record<string, any> = {
     paper: {

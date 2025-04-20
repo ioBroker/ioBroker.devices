@@ -3,8 +3,6 @@ import type { PatternControl } from '@iobroker/type-detector';
 
 export interface PatternControlEx extends PatternControl {
     channelId: string;
-    mainStateId: string;
-    usedStates: number;
     functions: string[];
     functionsNames: string; // functions joined by comma
     rooms: string[];

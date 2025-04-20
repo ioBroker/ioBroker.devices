@@ -5,8 +5,11 @@
  *
  */
 
-import ChannelDetector, { type PatternControl, type DetectOptions } from '@iobroker/type-detector';
-import type { ExternalPatternControl } from '@iobroker/type-detector/types';
+import ChannelDetector, {
+    type PatternControl,
+    type DetectOptions,
+    type ExternalPatternControl,
+} from '@iobroker/type-detector';
 
 export default class IOBChannelDetector {
     private detector: ChannelDetector = new ChannelDetector();

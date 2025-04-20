@@ -11,6 +11,8 @@ import { TextField, Select, MenuItem, Switch, FormControlLabel, Checkbox, Box } 
 import { I18n, Utils, Icon, type AdminConnection } from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
+import { findMainStateId, getParentId, getSmartName } from '../Components/helpers/utils';
+import type { PatternControlEx } from '../types';
 
 const styles: Record<string, any> = {
     divOidField: {
@@ -81,35 +83,35 @@ const styles: Record<string, any> = {
             '& img': {
                 width: 14,
                 height: 14,
-                marginRight: 5,
+                marginRight: '5px',
             },
             '& svg': {
                 width: 14,
                 height: 14,
-                marginRight: 5,
+                marginRight: '5px',
             },
         },
     },
     renderValueCurrent: {
         display: 'flex',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: '10px',
         '@media screen and (max-width: 650px)': {
             fontSize: 12,
             '& img': {
                 width: 14,
                 height: 14,
-                marginRight: 5,
+                marginRight: '5px',
             },
             '& svg': {
                 width: 14,
                 height: 14,
-                marginRight: 5,
+                marginRight: '5px',
             },
             '& div': {
                 width: 14,
                 height: 14,
-                marginRight: 5,
+                marginRight: '5px',
             },
         },
     },
@@ -182,15 +184,15 @@ interface DialogEditPropertiesProps {
     changeProperties: DialogEditPropertiesState;
     type: string;
     /** iot instance */
-    iot: string;
+    iotInstance: string;
     /** If pro or net */
     iotNoCommon: boolean;
     channelId: string;
-    mainStateId: string | undefined;
     objects: Record<string, ioBroker.Object>;
     enumIDs: string[];
     socket: AdminConnection;
     disabled?: boolean;
+    channelInfo: PatternControlEx;
 }
 
 class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEditPropertiesState> {
@@ -204,8 +206,10 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
             | ioBroker.ChannelObject
             | undefined;
 
-        const mainStateObj: ioBroker.StateObject | undefined = this.props.mainStateId
-            ? (this.props.objects[this.props.mainStateId] as ioBroker.StateObject | undefined)
+        const mainStateId = findMainStateId(this.props.channelInfo);
+
+        const mainStateObj: ioBroker.StateObject | undefined = mainStateId
+            ? (this.props.objects[mainStateId] as ioBroker.StateObject | undefined)
             : undefined;
 
         if (channelObj?.common) {
@@ -243,7 +247,7 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
 
         // ;common.custom[adapter.namespace].smartName
         const smartName = mainStateObj
-            ? DialogEditProperties.getSmartName(mainStateObj, this.props.iotNoCommon, this.props.iot)
+            ? getSmartName(mainStateObj, this.props.iotNoCommon, this.props.iotInstance)
             : undefined;
 
         this.smartNameAvailable = !!mainStateObj;
@@ -349,41 +353,6 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         );
     }
 
-    static getSmartName(
-        obj: ioBroker.StateObject,
-        iotNoCommon: boolean | undefined,
-        iotInstance: string | undefined,
-        language?: ioBroker.Languages,
-    ): string | false | undefined {
-        language ||= I18n.getLanguage();
-        let smartName: false | string | undefined | { [lang: string]: string; byON: string; smartType: string };
-        if (obj?.common?.custom && iotNoCommon) {
-            const iot = iotInstance || 'iot.0';
-            if (obj.common.custom[iot]?.smartName) {
-                smartName = obj.common.custom[iot].smartName;
-            }
-        } else {
-            smartName = obj?.common?.smartName as any as
-                | false
-                | string
-                | undefined
-                | { [lang: string]: string; byON: string; smartType: string };
-        }
-
-        if (smartName === false) {
-            return false;
-        }
-        if (smartName && typeof smartName === 'object') {
-            // @ts-expect-error this is impossible
-            if (smartName[language] === false || smartName.en === false) {
-                return false;
-            }
-            smartName = smartName[language] || smartName.en;
-        }
-
-        return smartName;
-    }
-
     checkedName = (): ioBroker.Object | undefined | boolean => {
         if (!this.state.name) {
             return true;
@@ -391,9 +360,7 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         if (this.state.name === this.state.initName) {
             return false;
         }
-        const parts = this.props.channelId.split('.');
-        parts.pop();
-        const parentId = `${parts.join('.')}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const parentId = `${getParentId(this.props.channelId)}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         return this.props.objects[parentId];
     };
 

@@ -494,6 +494,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
         this.saveExpanded(expanded);
     }
 
+    // eslint-disable-next-line class-methods-use-this
     isFilteredOut(_item: TreeItem): boolean {
         return false;
     }

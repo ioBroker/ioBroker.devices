@@ -23,13 +23,14 @@ import {
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Utils, Icon, type ThemeType } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type ThemeType, type AdminConnection } from '@iobroker/adapter-react-v5';
+import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
 import TypeIcon from '../Components/TypeIcon';
 import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
-import SmartDetector from '../Devices/SmartDetector';
+import type SmartDetector from '../Devices/SmartDetector';
 import type { PatternControlEx } from '../types';
-import type { ExternalDetectorState } from '@iobroker/type-detector/types';
+import { copyDevice, getLastPart, getParentId } from '../Components/helpers/utils';
 
 const styles: Record<string, any> = {
     header: {
@@ -129,23 +130,6 @@ const styles: Record<string, any> = {
 
 const UNSUPPORTED_TYPES: Types[] = [Types.unknown, Types.instance, Types.chart];
 
-function getParentId(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(0, pos);
-    }
-    return '';
-}
-
-function getLastPart(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(pos + 1);
-    }
-
-    return id;
-}
-
 interface DialogNewDeviceProps {
     onClose: (data?: {
         id: string;
@@ -162,7 +146,8 @@ interface DialogNewDeviceProps {
     detector: SmartDetector;
     enumIDs: string[];
     themeType: ThemeType;
-    copyDevice: PatternControlEx | null;
+    deviceToCopy: PatternControlEx | null;
+    socket: AdminConnection;
     prefix?: string;
     selected?: string;
     processTasks: (
@@ -187,9 +172,7 @@ interface DialogNewDeviceState {
 }
 
 class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDeviceState> {
-    private prefix: string;
-
-    private channelId: string;
+    private readonly prefix: string;
 
     private types: Types[];
 
@@ -302,9 +285,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
         if (selected.startsWith('alias') && this.prefix.startsWith('alias.0')) {
             const checkIdSelected = (newPart = selected): string => {
                 if (this.props.objects[newPart]?.type && this.props.objects[newPart]?.type !== 'folder') {
-                    const parts = newPart.split('.');
-                    parts.pop();
-                    return checkIdSelected(parts.join('.'));
+                    return checkIdSelected(getParentId(newPart));
                 }
                 return newPart;
             };
@@ -317,7 +298,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
 
         this.state = {
             root: root?.startsWith(this.prefix) ? root : this.prefix,
-            name: this.props.copyDevice ? `${this.props.copyDevice.name}-copy` : `${I18n.t('Device')} ${i}`,
+            name: this.props.deviceToCopy ? `${this.props.deviceToCopy.name}-copy` : `${I18n.t('Device')} ${i}`,
             notUnique: false,
             functions,
             rooms,
@@ -416,66 +397,25 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
     }
 
     generateId(): string {
+        if (this.props.deviceToCopy) {
+            const channelId = this.props.deviceToCopy.channelId;
+            const parentId = getParentId(channelId);
+            return `${parentId || this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
+        }
+
         return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
-    }
-
-    async onCopyDevice(newChannelId: string): Promise<void> {
-        // if this is device not from linkeddevices or from alias
-        this.channelId = this.props.copyDevice!.channelId;
-        const isAlias = this.channelId.startsWith('alias.') || this.channelId.startsWith('linkeddevices.');
-
-        const channelObj = this.props.objects[this.channelId];
-        const { functions, rooms, icon, states, color, type } = this.props.copyDevice!;
-        const tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[] = [];
-
-        const patterns = SmartDetector.getPatterns();
-        const role = patterns[type]?.states?.find(item => item.defaultChannelRole);
-
-        tasks.push({
-            id: newChannelId,
-            obj: {
-                _id: newChannelId,
-                common: {
-                    name: channelObj.common.name,
-                    color: color || undefined,
-                    desc: channelObj.common.desc,
-                    role: role?.defaultChannelRole || type,
-                    icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
-                },
-                type: 'channel',
-                native: channelObj.native || {},
-            },
-            enums: rooms.concat(functions),
-        });
-
-        states.forEach(state => {
-            if (!state.id) {
-                return;
-            }
-            const obj = JSON.parse(JSON.stringify(this.props.objects[state.id]));
-            obj._id = `${newChannelId}.${state.name}`;
-
-            if (!obj.native) {
-                obj.native = {};
-            }
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
-            tasks.push({ id: obj._id, obj });
-        });
-
-        await this.props.processTasks(tasks);
     }
 
     handleOk = async (): Promise<void> => {
         // check if the name is unique
-        if (this.props.copyDevice) {
-            await this.onCopyDevice(this.generateId());
-            // await this.props.onChange();
+        if (this.props.deviceToCopy) {
+            await copyDevice(this.generateId(), {
+                newName: this.state.name,
+                socket: this.props.socket,
+                deviceToCopy: this.props.deviceToCopy,
+                language: I18n.getLanguage(),
+                objects: this.props.objects,
+            });
             this.props.onClose();
         } else {
             this.props.onClose({
@@ -492,17 +432,13 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
         }
     };
 
-    handleCancel = (): void => {
-        this.props.onClose();
-    };
-
     render(): React.JSX.Element {
         return (
             <Dialog
                 open={!0}
                 maxWidth="md"
                 fullWidth
-                onClose={() => this.handleCancel()}
+                onClose={() => this.props.onClose()}
                 aria-labelledby="alert-dialog-title"
                 aria-describedby="alert-dialog-description"
             >
@@ -536,14 +472,14 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                         <TextField
                             variant="standard"
                             fullWidth
-                            autoFocus={!!this.props.copyDevice}
-                            onKeyPress={ev => {
-                                if (this.props.copyDevice) {
+                            autoFocus={!!this.props.deviceToCopy}
+                            onKeyUp={ev => {
+                                if (this.props.deviceToCopy) {
                                     if (ev.key === 'Enter') {
                                         if (this.state.name && !this.props.objects[this.generateId()]) {
                                             void this.handleOk();
                                         } else {
-                                            this.handleCancel();
+                                            this.props.onClose();
                                         }
                                         ev.preventDefault();
                                     }
@@ -555,7 +491,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                             onChange={e => this.setState({ name: e.target.value })}
                             margin="normal"
                         />
-                        {!this.props.copyDevice && (
+                        {!this.props.deviceToCopy && (
                             <FormControl
                                 style={styles.type}
                                 variant="standard"
@@ -612,8 +548,8 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                 </Select>
                             </FormControl>
                         )}
-                        {!this.props.copyDevice && this.renderSelectEnum('functions', I18n.t('Function'))}
-                        {!this.props.copyDevice && this.renderSelectEnum('rooms', I18n.t('Room'))}
+                        {!this.props.deviceToCopy && this.renderSelectEnum('functions', I18n.t('Function'))}
+                        {!this.props.deviceToCopy && this.renderSelectEnum('rooms', I18n.t('Room'))}
                     </div>
                 </DialogContent>
                 <DialogActions>
@@ -629,7 +565,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                     <Button
                         variant="contained"
                         color="grey"
-                        onClick={this.handleCancel}
+                        onClick={() => this.props.onClose()}
                         startIcon={<IconClose />}
                     >
                         {I18n.t('Cancel')}

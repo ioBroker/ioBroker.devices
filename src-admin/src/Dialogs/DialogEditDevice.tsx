@@ -45,14 +45,14 @@ import {
     type IobTheme,
     type AdminConnection,
 } from '@iobroker/adapter-react-v5';
-import type { ExternalPatternControl } from '@iobroker/type-detector/types';
-import type { Types, DetectorState } from '@iobroker/type-detector';
+import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/type-detector';
 
 import TypeIcon from '../Components/TypeIcon';
 import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
+import { getParentId, renameMultipleEntries } from '../Components/helpers/utils';
 import DialogEditStates from './DialogEditStates';
 import type { PatternControlEx } from '../types';
 
@@ -396,10 +396,9 @@ interface DialogEditDeviceProps {
     };
     enumIDs: string[];
     iotNoCommon: boolean;
-    iot: string;
+    iotInstance: string;
     channelId: string;
     type: Types;
-    // iot: Types;
     channelInfo: PatternControlEx;
     onClose: (
         data: null | {
@@ -479,7 +478,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         // Process multiple states
         const channelInfo: PatternControlEx = JSON.parse(JSON.stringify(props.channelInfo));
 
-        DialogEditDevice.renameMultipleEntries(channelInfo, props.objects);
+        renameMultipleEntries(channelInfo, props.objects);
 
         // States of the state (common.states)
         this.getStatesInformation(ids, states, channelInfo);
@@ -538,31 +537,6 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         this.pattern =
             props.patterns[Object.keys(props.patterns).find(type => props.patterns[type].type === channelInfo.type)!];
-    }
-
-    static renameMultipleEntries(channelInfo: PatternControlEx, objects: Record<string, ioBroker.Object>): void {
-        // find if any multiple entries found
-        const entries = channelInfo.states.filter(item => item.multiple && item.id);
-        if (!entries.length) {
-            return;
-        }
-
-        // Rename multiple entries to variable names
-        entries.forEach(item => {
-            const obj = objects[item.id];
-            if (obj?.common?.name) {
-                let name = obj.common.name;
-                if (typeof name === 'object') {
-                    name =
-                        name[I18n.getLanguage()] || name.en || name[Object.keys(name)[0] as ioBroker.Languages] || '';
-                }
-                // make valid name
-                name = name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
-                item.name = name;
-            } else if (obj?._id) {
-                item.name = obj._id.split('.').pop() || '';
-            }
-        });
     }
 
     componentDidMount(): void {
@@ -937,7 +911,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     handleOk = async (): Promise<void> => {
         this.setState({ startTheProcess: true });
-        if (JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties) && this.props.onSaveProperties) {
+        if (
+            JSON.stringify(this.state.initChangeProperties) !== JSON.stringify(this.state.changeProperties) &&
+            this.props.onSaveProperties
+        ) {
             await this.props.onSaveProperties(this.state.changeProperties, this.state.channelInfo);
         }
 
@@ -1068,12 +1045,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             if (typeof realParent === 'string') {
                 const parts = realParent.split('.');
                 parts.pop();
-                realParent = parts.join('.');
+                realParent = getParentId(realParent);
             } else if (typeof realParent === 'object') {
                 realParent = Object.keys(realParent)[0];
-                const parts = realParent.split('.');
-                parts.pop();
-                realParent = parts.join('.');
+                realParent = getParentId(realParent);
             }
         }
         return realParent || '';
@@ -1773,17 +1748,6 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     render(): React.JSX.Element {
-        let mainId;
-        if (this.state.tab === 0) {
-            // Find the first required state
-            this.state.channelInfo.states.find(state => {
-                if (state.required && state.id) {
-                    mainId = state.id;
-                    return true;
-                }
-            });
-        }
-
         return (
             <Dialog
                 key="editDialog"
@@ -1847,10 +1811,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     >
                         <DialogEditProperties
                             channelId={this.props.channelId}
-                            mainStateId={mainId}
+                            channelInfo={this.state.channelInfo}
                             disabled={this.state.startTheProcess}
                             type={this.props.type}
-                            iot={this.props.iot}
+                            iotInstance={this.props.iotInstance}
                             iotNoCommon={this.props.iotNoCommon}
                             objects={this.props.objects}
                             enumIDs={this.props.enumIDs}

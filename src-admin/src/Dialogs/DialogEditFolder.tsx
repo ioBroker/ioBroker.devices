@@ -18,7 +18,7 @@ import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/adapter-reac
 
 import UploadImage from '../Components/UploadImage';
 import type { PatternControlEx } from '../types';
-import SmartDetector from '../Devices/SmartDetector';
+import { copyDevice, getParentId } from '../Components/helpers/utils';
 
 const styles: Record<string, React.CSSProperties> = {
     paper: {
@@ -68,19 +68,14 @@ function DialogEditFolder(props: {
     devices: PatternControlEx[];
     objects: Record<string, ioBroker.Object>;
     deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
-    processTasks: (
-        tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[],
-    ) => Promise<void>;
     selected?: string;
     newFolder?: boolean;
 }): React.JSX.Element {
-    const { onClose, data, socket, devices, objects, deleteDevice, processTasks, selected, newFolder } = props;
+    const { onClose, data, socket, devices, objects, deleteDevice, selected, newFolder } = props;
     const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
-    const [arrayObjects, setArrayObjects] = useState<ioBroker.Object[]>([]);
+    const [arrayObjects, setArrayObjects] = useState<
+        (ioBroker.FolderObject | ioBroker.ChannelObject | ioBroker.DeviceObject)[]
+    >([]);
     const [name, setName] = useState(
         Utils.getObjectNameFromObj(dataEdit, I18n.getLanguage()) === 'undefined'
             ? dataEdit.common.name[Object.keys(dataEdit.common.name)[0]]
@@ -91,9 +86,7 @@ function DialogEditFolder(props: {
     const checkIdSelected = (newPart?: string): string | undefined => {
         newPart ||= selected;
         if (newPart && objects[newPart]?.type && objects[newPart]?.type !== 'folder') {
-            const parts = newPart.split('.');
-            parts.pop();
-            return checkIdSelected(parts.join('.'));
+            return checkIdSelected(getParentId(newPart));
         }
         return newPart?.startsWith('alias.0') ? newPart : 'alias.0';
     };
@@ -111,7 +104,7 @@ function DialogEditFolder(props: {
                           objects[id].type === 'channel' ||
                           objects[id].type === 'device',
                   )
-                  .map(id => objects[id])
+                  .map(id => objects[id] as ioBroker.FolderObject | ioBroker.ChannelObject | ioBroker.DeviceObject)
             : [];
 
         setArrayObjects(idsObject);
@@ -158,69 +151,6 @@ function DialogEditFolder(props: {
         await socket.setObject(id, obj);
     };
 
-    const onCopyDevice = async (
-        copyDevice: PatternControlEx,
-        newChannelId: string,
-        obj: ioBroker.Object,
-    ): Promise<void> => {
-        if (!copyDevice?.channelId) {
-            return;
-        }
-        // if this is a device not from linkeddevice or from alias
-        const channelId = copyDevice.channelId;
-        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
-        let channelObj = objects[channelId];
-        if (!channelObj?.common) {
-            if (obj) {
-                channelObj = obj;
-            } else {
-                return;
-            }
-        }
-        const { functions, rooms, icon, states, color, type } = copyDevice;
-        const tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[] = [];
-
-        const patterns = SmartDetector.getPatterns();
-        const role = patterns[type]?.states && patterns[type].states.find(item => item.defaultChannelRole);
-
-        tasks.push({
-            id: newChannelId,
-            obj: {
-                _id: newChannelId,
-                common: {
-                    name: channelObj.common.name,
-                    color: color || undefined,
-                    desc: channelObj.common.desc,
-                    role: role?.defaultChannelRole || type,
-                    icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
-                },
-                type: 'channel',
-                native: channelObj.native || {},
-            },
-            enums: rooms.concat(functions),
-        });
-
-        states.forEach(state => {
-            if (!state.id) {
-                return;
-            }
-            const obj: ioBroker.Object = JSON.parse(JSON.stringify(objects[state.id]));
-            obj._id = `${newChannelId}.${state.name}`;
-
-            obj.native ||= {};
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
-            tasks.push({ id: obj._id, obj });
-        });
-
-        await processTasks(tasks);
-    };
-
     const getIdFromName = (obj?: ioBroker.Object): string => {
         obj ||= dataEdit;
 
@@ -243,9 +173,7 @@ function DialogEditFolder(props: {
         if (newFolder) {
             parentId = newId!;
         } else {
-            const parts = data!._id.split('.');
-            parts.pop();
-            parentId = parts.join('.');
+            parentId = getParentId(data!._id);
         }
         return `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
     };
@@ -253,9 +181,7 @@ function DialogEditFolder(props: {
     const onChangeCopy = async (): Promise<void> => {
         let newDevices: PatternControlEx[] = JSON.parse(JSON.stringify(devices));
 
-        const parts = data!._id.split('.');
-        parts.pop();
-        const parentId = `${parts.join('.')}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const parentId = `${getParentId(data!._id)}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
 
         let deleteFolderID = '';
         for (let i = 0; i < arrayObjects.length; i++) {
@@ -266,11 +192,16 @@ function DialogEditFolder(props: {
                 deleteFolderID = el._id;
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
-                if (!device) {
-                    continue;
+                if (device?.channelId) {
+                    await copyDevice(newId, {
+                        socket: this.props.socket,
+                        objects: this.props.objects,
+                        deviceToCopy: device,
+                        channelObj: el,
+                    });
+
+                    newDevices = await deleteDevice(newDevices.indexOf(device));
                 }
-                await onCopyDevice(device, newId, el);
-                newDevices = await deleteDevice(newDevices.indexOf(device));
             }
         }
 
@@ -364,12 +295,10 @@ function DialogEditFolder(props: {
                                     setDataEdit(newDataEdit);
 
                                     if (!newFolder) {
-                                        let parts;
-                                        parts = data!._id.split('.');
-                                        parts.pop();
-                                        parts = parts.join('.');
-                                        parts = `${parts}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-                                        setId(parts);
+                                        const parentId = getParentId(data!._id);
+                                        setId(
+                                            `${parentId}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`,
+                                        );
                                     }
 
                                     setName(e.target.value);

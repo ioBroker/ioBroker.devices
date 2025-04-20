@@ -23,12 +23,13 @@ import {
 import { ModeEdit as IconEdit, Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
 import { I18n, Utils, Icon, type AdminConnection, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
+import type { Types } from '@iobroker/type-detector';
 
 import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 import type { ListItem, PatternControlEx } from '../types';
-import type { Types } from '@iobroker/type-detector';
+import { getLastPart, getParentId } from '../Components/helpers/utils';
 
 const styles: Record<string, any> = {
     paper: {
@@ -234,23 +235,6 @@ const styles: Record<string, any> = {
     },
 };
 
-function getParentId(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(0, pos);
-    }
-
-    return '';
-}
-
-function getLastPart(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(pos + 1);
-    }
-    return id;
-}
-
 function RenderNewItemDialog(props: {
     object?: ListItem;
     open: boolean;
@@ -376,12 +360,12 @@ export default function DialogImporter(props: {
                     _id: id,
                     common: {
                         name:
-                            objects[id] && objects[id].type === 'folder'
+                            objects[id]?.type === 'folder'
                                 ? Utils.getObjectName(objects, id, language)
                                 : getLastPart(id),
                         nondeletable: true,
-                        color: objects[id]?.common && objects[id].common.color ? objects[id].common.color : undefined,
-                        icon: objects[id]?.common && objects[id].common.icon ? objects[id].common.icon : undefined,
+                        color: objects[id].common?.color || undefined,
+                        icon: objects[id].common?.icon || undefined,
                     },
                     type: 'folder',
                     native: {},
@@ -543,8 +527,7 @@ export default function DialogImporter(props: {
 
     const onChangeCopy = async (): Promise<void> => {
         if (!objects[selectFolder] && selectFolder !== 'alias.0') {
-            const parts = selectFolder.split('.');
-            const lastPart = parts.pop() || '';
+            const lastPart = getLastPart(selectFolder);
             await addNewFolder(
                 {
                     name: lastPart.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_'),

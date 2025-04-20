@@ -5,6 +5,7 @@ import { TableRow } from '@mui/material';
 
 import { Utils, I18n } from '@iobroker/adapter-react-v5';
 import type { PatternControlEx } from '../types';
+import { getLastPart, getParentId } from './helpers/utils';
 
 export interface DragWrapperProps {
     openFolder: () => void;
@@ -30,21 +31,20 @@ export default function DragWrapper(props: DragWrapperProps): React.JSX.Element 
             return !props.id?.includes('linked_devices') && !props.id?.includes('linkeddevices.0');
         },
         end: async (item, monitor) => {
-            let parts;
+            let lastPart;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
             const result = monitor.getDropResult();
             const targetId = monitor.getTargetIds();
             const didDrop = monitor.didDrop();
-            if (props.id !== `alias.0.${parts}` && !result && !targetId.length && !didDrop) {
-                await props.onCopyDevice(props.id, `alias.0.${parts}`);
+            if (props.id !== `alias.0.${lastPart}` && !result && !targetId.length && !didDrop) {
+                await props.onCopyDevice(props.id, `alias.0.${lastPart}`);
                 props.openFolder();
                 if (props.id.includes('alias.0')) {
                     await props.deleteDevice(item.deviceIdx);
@@ -57,28 +57,23 @@ export default function DragWrapper(props: DragWrapperProps): React.JSX.Element 
     const [{ isOver, canDrop }, dropRef] = useDrop({
         accept: 'box',
         canDrop: (item: { id: string }): boolean => {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
-            const partsId = props.id.split('.');
-            partsId.pop();
-            const parentId = partsId.join('.');
-            if (
+            const parentId = getParentId(props.id);
+
+            return !(
                 !props.id?.includes('alias.0') ||
                 props.id?.includes('automatically_detected') ||
                 props.id?.includes('linked_devices') ||
-                props.objects[`${parentId}.${parts}`]
-            ) {
-                return false;
-            }
-            return true;
+                props.objects[`${parentId}.${lastPart}`]
+            );
         },
         collect: monitor => ({
             handlerId: monitor.getHandlerId(),
@@ -86,45 +81,39 @@ export default function DragWrapper(props: DragWrapperProps): React.JSX.Element 
             canDrop: monitor.canDrop(),
         }),
         drop: async (item: { id: string; deviceIdx: number }) => {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
-            const partsId = props.id.split('.');
-            partsId.pop();
-            const parentId = partsId.join('.');
+            const parentId = getParentId(props.id);
             setError(false);
-            await props.onCopyDevice(item.id, `${parentId}.${parts}`);
+            await props.onCopyDevice(item.id, `${parentId}.${lastPart}`);
             props.openFolder();
             if (item.id.includes('alias.0')) {
                 await props.deleteDevice(item.deviceIdx);
             }
         },
         hover(item) {
-            let parts;
+            let lastPart: string;
             if (props.objects[item.id]?.common?.name) {
-                parts = Utils.getObjectName(props.objects, item.id, language)
+                lastPart = Utils.getObjectName(props.objects, item.id, language)
                     .replace(Utils.FORBIDDEN_CHARS, '_')
                     .replace(/\s/g, '_')
                     .replace(/\./g, '_');
             } else {
-                parts = item.id.split('.');
-                parts = parts.pop();
+                lastPart = getLastPart(item.id);
             }
-            const partsId = props.id.split('.');
-            partsId.pop();
-            const parentId = partsId.join('.');
+            const parentId = getParentId(props.id);
             if (
                 !props.id?.includes('alias.0') ||
                 props.id?.includes('automatically_detected') ||
                 props.id?.includes('linked_devices') ||
-                props.objects[`${parentId}.${parts}`]
+                props.objects[`${parentId}.${lastPart}`]
             ) {
                 setError(true);
             } else {

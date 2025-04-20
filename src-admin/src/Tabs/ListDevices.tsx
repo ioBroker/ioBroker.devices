@@ -59,7 +59,8 @@ import { HiLink } from 'react-icons/hi';
 
 import { Dvr as DvrIcon, FileCopy as CopyIcon, CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
 
-import { Types } from '@iobroker/type-detector';
+import { Types, type ExternalPatternControl } from '@iobroker/type-detector';
+import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 import {
     Icon,
     Utils,
@@ -71,9 +72,17 @@ import {
     type IobTheme,
     type AdminConnection,
     type ThemeType,
+    Loader,
 } from '@iobroker/adapter-react-v5';
-import type { ExternalDetectorState, ExternalPatternControl } from '@iobroker/type-detector/types';
 
+import {
+    copyDevice,
+    findMainStateId,
+    getLastPart,
+    getParentId,
+    getSmartName,
+    setSmartName,
+} from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
 import SmartDetector from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
@@ -87,7 +96,7 @@ import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/Ty
 import DragWrapper from '../Components/DragWrapper';
 import DropWrapper from '../Components/DropWrapper';
 import DialogImporter from '../Dialogs/DialogImporter';
-import DialogEditProperties, { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
+import { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -131,22 +140,6 @@ const TYPES_MAPPING: Record<string, 'boolean' | 'number'> = {
 };
 
 const UNSUPPORTED_TYPES = [Types.unknown];
-
-function getParentId(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(0, pos);
-    }
-    return '';
-}
-
-function getLastPart(id: string): string {
-    const pos = id.lastIndexOf('.');
-    if (pos !== -1) {
-        return id.substring(pos + 1);
-    }
-    return id;
-}
 
 interface InternalObject {
     common: {
@@ -267,9 +260,7 @@ const prepareList = (
                 if (!parent) {
                     let obj: ioBroker.Object = { common: {} } as ioBroker.Object;
                     if (item.id.startsWith('linkeddevices.')) {
-                        const partsLinkedDevices = item.id.split('.');
-                        partsLinkedDevices.pop();
-                        obj = objects[partsLinkedDevices.join('.')];
+                        obj = objects[getParentId(item.id)];
                     }
                     const parts = item.parent.split('.');
                     parts.pop();
@@ -752,7 +743,7 @@ interface ListDevicesState {
         noInfo: boolean;
     };
     selected: string;
-    iot: string;
+    iotInstance: string;
     iotNoCommon: boolean;
     showImporterDialog: ListItem | null;
     showEditFolder?: ioBroker.Object;
@@ -864,7 +855,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 noInfo: window.localStorage.getItem('Devices.filter.noInfo') !== 'false',
             },
             selected,
-            iot: '',
+            iotInstance: '',
             iotNoCommon: false,
             showImporterDialog: null,
             newFolder: false,
@@ -888,26 +879,35 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         // read if linkeddevices installed
         void this.props.socket
             .getAdapterInstances('linkeddevices')
-            .catch(() => [])
+            .catch(() => [] as ioBroker.InstanceObject[])
             .then(linkedDevices => {
                 // read if iot installed
                 void this.props.socket
                     .getAdapterInstances('iot')
-                    .catch(() => [])
+                    .catch(() => [] as ioBroker.InstanceObject[])
                     .then(iot => {
                         const newState: Partial<ListDevicesState> = {};
                         let changed = false;
+                        let linkedDeviceInstance = linkedDevices.find(it => it?._id && it?.common?.enabled);
+                        linkedDeviceInstance ||= linkedDevices.find(it => it?._id);
                         // always take the first one
-                        if (linkedDevices?.[0]?._id) {
+                        if (linkedDeviceInstance?._id) {
                             newState.linkeddevices =
-                                (linkedDevices[0]._id.replace('system.adapter.', '') as `linkeddevices.${number}`) ||
-                                '';
+                                (linkedDeviceInstance._id.replace(
+                                    'system.adapter.',
+                                    '',
+                                ) as `linkeddevices.${number}`) || '';
                             changed = true;
                         }
+
+                        // take first enabled
+                        let iotInstance = iot.find(it => it?._id && it?.common?.enabled);
+                        iotInstance ||= iot.find(it => it?._id);
+
                         // Read iot instance
-                        if (iot?.[0]?._id) {
-                            newState.iotNoCommon = iot[0].native?.noCommon;
-                            newState.iot = iot[0]._id.replace('system.adapter.', '') || '';
+                        if (iotInstance?._id) {
+                            newState.iotNoCommon = iotInstance.native?.noCommon;
+                            newState.iotInstance = iotInstance._id.replace('system.adapter.', '') || '';
                             changed = true;
                         }
                         if (changed) {
@@ -1033,10 +1033,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 if (this.objects[keys[i]].type === 'device') {
                     idsInEnums.push(keys[i]);
                 } else if (this.objects[keys[i]].type === 'channel') {
-                    const parts = keys[i].split('.');
-                    parts.pop();
-
-                    const parentId = parts.join('.');
+                    const parentId = getParentId(keys[i]);
                     // if parent was not yet included
                     if (!this.objects[parentId] || !idsInEnums.includes(parentId)) {
                         idsInEnums.push(keys[i]);
@@ -1263,29 +1260,33 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         if (!device) {
             return;
         }
-        const stateId = device.states.find(state => state.id && state.required)!.id;
-        const statesCount = device.states.filter(state => state.id).length;
-        const pos = stateId.lastIndexOf('.');
-        let channelId = stateId;
-        if (pos !== -1 && (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))) {
-            channelId = stateId.substring(0, pos);
-            if (
-                !this.objects[channelId] ||
-                !this.objects[channelId].common ||
-                (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')
-            ) {
-                channelId = stateId;
+        const stateId = findMainStateId(device);
+        if (stateId) {
+            const statesCount = device.states.filter(state => state.id).length;
+            const pos = stateId.lastIndexOf('.');
+            let channelId = stateId;
+            if (pos !== -1 && (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))) {
+                channelId = stateId.substring(0, pos);
+                if (
+                    !this.objects[channelId] ||
+                    !this.objects[channelId].common ||
+                    (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')
+                ) {
+                    channelId = stateId;
+                }
             }
+            device.channelId = channelId;
+        } else {
+            console.log('Should never happen!!');
+            device.channelId = '';
+            throw new Error('Device without any states');
         }
-        device.usedStates = device.states.filter(state => state.id).length;
-        device.mainStateId = stateId;
-        device.channelId = channelId;
 
         const functions = funcEnums.filter(id => {
             const obj = this.objects[id];
             return (
                 obj?.common?.members &&
-                (obj.common.members.includes(device.channelId) || obj.common.members.includes(device.mainStateId))
+                (obj.common.members.includes(device.channelId) || (stateId && obj.common.members.includes(stateId)))
             );
         });
 
@@ -1293,7 +1294,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             const obj = this.objects[id];
             return (
                 obj?.common?.members &&
-                (obj.common.members.includes(device.channelId) || obj.common.members.includes(device.mainStateId))
+                (obj.common.members.includes(device.channelId) || (stateId && obj.common.members.includes(stateId)))
             );
         });
 
@@ -1310,7 +1311,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         device.icon =
             Utils.getObjectIcon(device.channelId, this.objects[device.channelId]) || this.searchIcon(device.channelId);
 
-        device.color = this.objects[channelId]?.common?.color || null;
+        device.color = this.objects[device.channelId]?.common?.color || null;
         if (!device.icon) {
             const parts = device.channelId.split('.');
             parts.pop();
@@ -1343,7 +1344,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         icon = channelObj.common?.icon;
                     } else {
                         // check the parent
-                        const deviceId = Utils.getParentId(channelId);
+                        const deviceId = getParentId(channelId);
                         if (deviceId && deviceId.split('.').length > 2) {
                             const arrayParent = deviceId.split('.');
                             let parentId: string | null = deviceId;
@@ -1356,7 +1357,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                             break;
                                         }
                                     }
-                                    parentId = Utils.getParentId(parentId);
+                                    parentId = getParentId(parentId);
                                 }
                             }
                         }
@@ -1940,7 +1941,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 ) : null}
                 {device && this.state.windowWidth >= WIDTHS[0] ? (
                     <TableCell style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}>
-                        {device.usedStates}
+                        {device.states.filter(state => state.id).length}
                     </TableCell>
                 ) : null}
                 {device && (
@@ -2301,90 +2302,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
-    setSmartName(
-        obj: ioBroker.StateObject | ioBroker.ChannelObject,
-        newSmartName: string | false | undefined,
-        language?: ioBroker.Languages,
-    ): void {
-        // set smartName
-        language = language || I18n.getLanguage();
-        if (newSmartName || newSmartName === false) {
-            if (this.state.iotNoCommon) {
-                const iot = this.state.iot || 'iot.0';
-                obj.common.custom ||= {};
-                obj.common.custom[iot] ||= {};
-                if (!newSmartName) {
-                    obj.common.custom[iot].smartName = false;
-                } else {
-                    obj.common.custom[iot].smartName ||= {};
-                    obj.common.custom[iot].smartName[language] = newSmartName;
-                }
-            } else {
-                const common: ioBroker.StateCommon = obj.common as ioBroker.StateCommon;
-                if (!newSmartName) {
-                    common.smartName = false;
-                } else if (common.smartName && typeof common.smartName === 'object') {
-                    common.smartName[language] = newSmartName;
-                } else {
-                    common.smartName = {};
-                    common.smartName[language] = newSmartName;
-                }
-            }
-        } else {
-            // remove smartName completely
-            if (this.state.iotNoCommon) {
-                const iot = this.state.iot || 'iot.0';
-                if (obj.common.custom?.[iot]?.smartName) {
-                    delete obj.common.custom[iot].smartName[language];
-                } else if (obj.common.custom?.[iot]?.smartName === false) {
-                    delete obj.common.custom[iot].smartName;
-                }
-                if (obj.common.custom?.[iot]) {
-                    if (Object.keys(obj.common.custom[iot]).length === 0) {
-                        // It will be deleted by js-controller
-                        obj.common.custom[iot] = null;
-                    }
-                }
-            } else {
-                const common: ioBroker.StateCommon = obj.common as ioBroker.StateCommon;
-                if (common.smartName && typeof common.smartName === 'object') {
-                    common.smartName[language] = '';
-                    if (Object.keys(common.smartName).length === 0) {
-                        // It will be deleted by js-controller
-                        common.smartName = null; // just delete smartName: false setting from common.
-                    }
-                } else {
-                    common.smartName = null; // just delete smartName: false setting from common.
-                }
-            }
-        }
-    }
-
-    static getSmartName(
-        obj: ioBroker.StateObject | ioBroker.ChannelObject,
-        iotNoCommon: boolean,
-        iotInstance: string,
-        language?: ioBroker.Languages,
-    ): string {
-        language ||= I18n.getLanguage();
-        let smartName;
-        if (obj?.common?.custom) {
-            if (iotNoCommon) {
-                const iot = iotInstance || 'iot.0';
-                if (obj.common.custom[iot]?.smartName) {
-                    smartName = obj.common.custom[iot].smartName;
-                }
-            } else {
-                smartName = obj.common.smartName;
-            }
-        }
-
-        if (smartName && typeof smartName === 'object') {
-            smartName = smartName[language] || smartName.en || '';
-        }
-        return smartName || '';
-    }
-
     addToEnum = async (enumId: string, id: string): Promise<void> => {
         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(enumId)) as
             | ioBroker.EnumObject
@@ -2460,82 +2377,15 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
     onCopyDevice = async (id: string, newChannelId: string): Promise<void> => {
         // if this is a device not from linkeddevices or from alias
-        const copyDevice = this.state.devices.find(device => device.channelId === id);
+        const deviceToCopy = this.state.devices.find(device => device.channelId === id);
 
-        if (!copyDevice) {
-            return;
+        if (deviceToCopy) {
+            await copyDevice(newChannelId, {
+                socket: this.props.socket,
+                objects: this.objects,
+                deviceToCopy: deviceToCopy,
+            });
         }
-
-        const channelId = copyDevice.channelId;
-        const isAlias = channelId.startsWith('alias.') || channelId.startsWith('linkeddevices.');
-
-        const channelObj = this.objects[channelId];
-        const { functions, rooms, icon, states, color, type } = copyDevice;
-        const tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[] = [];
-
-        const patterns = SmartDetector.getPatterns();
-        const role = patterns[type]?.states?.find(item => item.defaultChannelRole);
-
-        const obj: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        } = {
-            id: newChannelId,
-            obj: {
-                _id: newChannelId,
-                common: {
-                    name: channelObj.common.name,
-                    color: color || undefined,
-                    desc: channelObj.common.desc,
-                    role: role?.defaultChannelRole || type,
-                    icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
-                },
-                native: {},
-                type: 'channel',
-            },
-            enums: rooms.concat(functions),
-        };
-
-        if (!obj.obj.common.color) {
-            delete obj.obj.common.color;
-        }
-
-        if (!isAlias) {
-            obj.obj.native.originalId = id;
-        }
-
-        tasks.push(obj);
-
-        states.forEach(state => {
-            if (!state.id) {
-                return;
-            }
-            const obj: ioBroker.Object = JSON.parse(JSON.stringify(this.objects[state.id]));
-            obj._id = `${newChannelId}.${state.name}`;
-
-            obj.native = {};
-
-            if (obj?.common?.custom) {
-                delete obj.common.custom;
-            }
-
-            if (obj?.common?.smartName) {
-                delete obj.common.smartName;
-            }
-
-            if (!isAlias) {
-                obj.common.alias = { id: state.id };
-            }
-
-            tasks.push({ id: obj._id, obj });
-        });
-
-        await this.processTasks(tasks);
     };
 
     onEditFinished = async (
@@ -2842,21 +2692,19 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             const language = I18n.getLanguage();
             const channelId = device.channelId;
             const oldName = Utils.getObjectNameFromObj(this.objects[channelId], language);
-            let mainState: ioBroker.StateObject | null | undefined;
+            let mainStateObj: ioBroker.StateObject | null | undefined;
             let oldSmartName: string | false | undefined | null;
 
             // Find mainStateID anew
-            const mainStateId = device.states.find(state => state.id && state.required)!.id;
+            const mainStateId = findMainStateId(device);
 
             if (mainStateId) {
-                mainState = (await this.props.socket.getObject(mainStateId)) as ioBroker.StateObject | null | undefined;
-                if (mainState) {
-                    oldSmartName = DialogEditProperties.getSmartName(
-                        mainState,
-                        this.state.iotNoCommon,
-                        this.state.iot,
-                        language,
-                    );
+                mainStateObj = (await this.props.socket.getObject(mainStateId)) as
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
+                if (mainStateObj) {
+                    oldSmartName = getSmartName(mainStateObj, this.state.iotNoCommon, this.state.iotInstance, language);
                 }
             }
             if (
@@ -2889,9 +2737,15 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 }
                 obj.type ||= 'channel';
 
-                if (mainState && oldSmartName !== data.smartName) {
-                    this.setSmartName(mainState, data.smartName, language);
-                    await this.props.socket.setObject(mainState._id, mainState);
+                if (mainStateObj && oldSmartName !== data.smartName) {
+                    setSmartName(
+                        mainStateObj,
+                        data.smartName,
+                        this.state.iotNoCommon,
+                        this.state.iotInstance,
+                        language,
+                    );
+                    await this.props.socket.setObject(mainStateObj._id, mainStateObj);
                 }
 
                 await this.props.socket.setObject(obj._id, obj);
@@ -2937,7 +2791,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 patterns={this.patterns}
                 theme={this.props.theme}
                 enumIDs={this.enumIDs}
-                iot={this.state.iot}
+                iotInstance={this.state.iotInstance}
                 iotNoCommon={this.state.iotNoCommon}
                 socket={this.props.socket}
                 onCopyDevice={async (id, newId) => {
@@ -3085,7 +2939,9 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             }
         }
 
-        if (device.channelId && device.channelId !== device.mainStateId) {
+        const mainStateId = findMainStateId(device);
+
+        if (device.channelId && mainStateId && device.channelId !== mainStateId) {
             await this.props.socket.delObject(device.channelId);
         }
 
@@ -3204,6 +3060,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         if (!this.state.showAddDialog) {
             return null;
         }
+
+        const deviceToCopy = this.state.copyId
+            ? this.state.devices.find(el => el.channelId === this.state.copyId) || null
+            : null;
+
         return (
             <DialogNew
                 themeType={this.props.themeType}
@@ -3213,11 +3074,14 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 enumIDs={this.enumIDs}
                 selected={this.state.selected}
                 prefix={this.state.showAddDialog}
-                copyDevice={
-                    this.state.copyId ? this.state.devices.find(el => el.channelId === this.state.copyId) || null : null
-                }
+                socket={this.props.socket}
+                deviceToCopy={deviceToCopy}
                 onClose={options =>
-                    this.setState({ showAddDialog: '', copyId: '' }, () => options && this.createDevice(options))
+                    this.setState({ showAddDialog: '', copyId: '' }, () => {
+                        if (options) {
+                            void this.createDevice(options);
+                        }
+                    })
                 }
             />
         );
@@ -3248,10 +3112,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         }
         return (
             <DialogEditFolder
-                processTasks={this.processTasks}
-                deleteDevice={async (index: number, devices?: PatternControlEx[]): Promise<PatternControlEx[]> =>
-                    await this.deleteDevice(index, devices)
-                }
+                deleteDevice={this.deleteDevice}
                 objects={this.objects}
                 socket={this.props.socket}
                 devices={this.state.devices}
@@ -3262,35 +3123,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             />
         );
     };
-
-    // renderDeleteDialog() {
-    //     if (this.state.deleteIndex === null) {
-    //         return null;
-    //     } else {
-    //         const time = window.localStorage.getItem('DeleteDeviceTime');
-    //         const fiveMin = 1000 * 60 * 5;
-    //         const index = this.state.deleteIndex;
-    //         if (time && new Date().getTime() - time < fiveMin) {
-    //             return this.setState({ deleteIndex: null }, () => {
-    //                 this.deleteDevice(index);
-    //             })
-    //         }
-    //         return <DialogConfirm
-    //             title={I18n.t('Please confirm...')}
-    //             text={I18n.t('Device and all states will be deleted. Are you sure?')}
-    //             onClose={result => {
-    //                 const index = this.state.deleteIndex;
-    //                 this.setState({ deleteIndex: null }, async () => {
-    //                     if (result) {
-    //                         window.localStorage.setItem('DeleteDeviceTime', new Date().getTime());
-    //                         const devices = await this.deleteDevice(index);
-    //                         this.setState({ devices });
-    //                     }
-    //                 })
-    //             }}
-    //         />;
-    //     }
-    // }
 
     renderEditEnumDialog(): React.JSX.Element | null {
         if (!this.state.editEnum) {
@@ -3355,7 +3187,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
     render(): React.JSX.Element {
         if (this.state.loading) {
-            return <CircularProgress />;
+            return <Loader themeType={this.props.themeType} />;
         }
         const small = this.props.width === 'xs' || this.props.width === 'sm';
         const disabledButtons = this.disabledButtons();
