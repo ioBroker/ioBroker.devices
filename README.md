@@ -11,16 +11,18 @@
 
 ## devices adapter for ioBroker
 
-Manage and create devices for using it in other adapters like material, iot,...
+Manage and create devices for using it in other adapters like material, iot, matter...
 
 **Important: enable tab in admin, like log and scripts**
 
 ![Screen](img/screen.png)
 
-**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
+**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting, see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
 
-## ToDo
-- add descriptions for states
+## How to use
+
+## Type of devices
+This adapter is built with the help of `type-detector`. The possible devices could be found [here](https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md) 
 
 ## Changelog
 <!--
@@ -31,6 +33,7 @@ Manage and create devices for using it in other adapters like material, iot,...
 * (@GermanBluefox) Updated packages
 * (@GermanBluefox) Used vite
 * (@GermanBluefox) Used eslint-config of ioBroker
+* (@GermanBluefox) Rewritten to TypeScript and corrected all known bugs (Except extension requests)
 
 ### 1.1.5 (2023-06-06)
 * (Garfonso) fixed: problem with editing imported states
