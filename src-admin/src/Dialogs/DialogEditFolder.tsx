@@ -194,8 +194,8 @@ function DialogEditFolder(props: {
                 const device = newDevices.find(device => el._id === device.channelId);
                 if (device?.channelId) {
                     await copyDevice(newId, {
-                        socket: this.props.socket,
-                        objects: this.props.objects,
+                        socket: props.socket,
+                        objects: props.objects,
                         deviceToCopy: device,
                         channelObj: el,
                     });
@@ -367,7 +367,7 @@ function DialogEditFolder(props: {
                         startIcon={<IconCheck />}
                         color="primary"
                     >
-                        {I18n.t('Save')}
+                        {I18n.t('Apply')}
                     </Button>
                     <Button
                         variant="contained"

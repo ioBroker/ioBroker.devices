@@ -859,7 +859,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             iotNoCommon: false,
             showImporterDialog: null,
             newFolder: false,
-            // onlyAliases: window.localStorage.getItem('Devices.onlyAliases') ? JSON.parse(window.localStorage.getItem('Devices.onlyAliases')) : true,
             onlyAliases: false,
             updating: [],
             deleteFolderAndDevice: null,
@@ -968,18 +967,21 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         window.localStorage.setItem('Devices.selected', selected);
     }
 
-    disabledButtons = (): boolean => {
+    disabledButtons(): boolean {
         return (
             this.state.selected.startsWith('alias.0.automatically_detected') ||
             this.state.selected.startsWith('alias.0.linked_devices') ||
-            !this.state.selected.startsWith('alias.0')
+            (!!this.state.selected && !this.state.selected.startsWith('alias.0'))
         );
-    };
+    }
 
     onObjectChanged = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (this.state.loading) {
             return;
         }
+
+        // this console output slows down the updateListItems and updates work better
+        console.log(`[ListDevices] onObjectChanged ${id} ${obj?.type}`);
 
         if (!obj) {
             if (this.objects[id]) {
@@ -995,7 +997,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         this.updateTimeout = setTimeout(async () => {
             this.updateTimeout = null;
             await this.updateListItems();
-        }, 300);
+        }, 400);
     };
 
     onResize = (): void => {
@@ -1260,33 +1262,38 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         if (!device) {
             return;
         }
-        const stateId = findMainStateId(device);
-        if (stateId) {
+        const mainStateId = findMainStateId(device);
+
+        if (mainStateId) {
             const statesCount = device.states.filter(state => state.id).length;
-            const pos = stateId.lastIndexOf('.');
-            let channelId = stateId;
-            if (pos !== -1 && (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))) {
-                channelId = stateId.substring(0, pos);
+            let channelId = mainStateId;
+            if (
+                mainStateId.includes('.') &&
+                (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))
+            ) {
+                channelId = getParentId(mainStateId);
                 if (
-                    !this.objects[channelId] ||
-                    !this.objects[channelId].common ||
-                    (this.objects[channelId].type !== 'channel' && this.objects[channelId].type !== 'device')
+                    !this.objects[channelId]?.common ||
+                    (this.objects[channelId].type !== 'channel' &&
+                        this.objects[channelId].type !== 'device' &&
+                        this.objects[channelId].type !== 'folder')
                 ) {
-                    channelId = stateId;
+                    channelId = mainStateId;
                 }
             }
+
             device.channelId = channelId;
         } else {
-            console.log('Should never happen!!');
-            device.channelId = '';
-            throw new Error('Device without any states');
+            // Should never happen!!
+            throw new Error(`Device without main state: ${JSON.stringify(device)}`);
         }
 
         const functions = funcEnums.filter(id => {
             const obj = this.objects[id];
             return (
                 obj?.common?.members &&
-                (obj.common.members.includes(device.channelId) || (stateId && obj.common.members.includes(stateId)))
+                (obj.common.members.includes(device.channelId) ||
+                    (mainStateId && obj.common.members.includes(mainStateId)))
             );
         });
 
@@ -1294,7 +1301,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             const obj = this.objects[id];
             return (
                 obj?.common?.members &&
-                (obj.common.members.includes(device.channelId) || (stateId && obj.common.members.includes(stateId)))
+                (obj.common.members.includes(device.channelId) ||
+                    (mainStateId && obj.common.members.includes(mainStateId)))
             );
         });
 
@@ -1312,6 +1320,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             Utils.getObjectIcon(device.channelId, this.objects[device.channelId]) || this.searchIcon(device.channelId);
 
         device.color = this.objects[device.channelId]?.common?.color || null;
+
         if (!device.icon) {
             const parts = device.channelId.split('.');
             parts.pop();
@@ -1325,6 +1334,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     Utils.getObjectIcon(deviceId, this.objects[deviceId]) || this.searchIcon(device.channelId);
             }
         }
+        // all new created or modified objects will be reported to onObjectChange and there is no need to update
     }
 
     searchIcon = (channelId: string): string | null => {
@@ -2675,7 +2685,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
             if (somethingChanged) {
                 // update enums, name
-                this.updateEnumsForOneDevice(device); // TODO: here the device will be changed directly in state!
+                this.updateEnumsForOneDevice(device);
             }
         }
 
@@ -2758,12 +2768,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         }
 
         if (somethingChanged) {
-            const devices = JSON.parse(JSON.stringify(this.state.devices));
-            // update enums, name
-            if (device) {
-                this.updateEnumsForOneDevice(device);
-            }
-            this.setState({ devices });
+            const devices: PatternControlEx[] = JSON.parse(JSON.stringify(this.state.devices));
+            this.setState({ devices }, () => {
+                // update enums, name
+                if (device) {
+                    this.updateEnumsForOneDevice(device);
+                }
+            });
         }
     };
 
@@ -3041,19 +3052,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
         }
 
-        /*const devices = JSON.parse(JSON.stringify(this.state.devices));
-        const result = this.detector.detect({ id: options.id, objects: this.objects, forceRebuildKeys: true });
-
-        if (result) {
-            for (let r = 0; r < result.length; r++) {
-                this.updateEnumsForOneDevice(result[r]);
-                devices.push(result[r]);
-            }
-        }*/
-
         this.editCreatedId = obj._id;
-        /*await this.setStateAsync({ devices, editId: obj._id });
-        Router.doNavigate('list', 'edit', obj._id);*/
     }
 
     renderAddDialog(): React.JSX.Element | null {
@@ -3185,12 +3184,142 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         ListDevices.saveExpanded(expandedIDs);
     }
 
+    renderToolbar(): React.JSX.Element {
+        const disabledButtons = this.disabledButtons();
+
+        return (
+            <Toolbar variant="dense">
+                <div style={styles.wrapperHeadButtons}>
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Create new device with Aliases')}
+                    >
+                        <div>
+                            <IconButton
+                                disabled={disabledButtons}
+                                onClick={() => this.setState({ showAddDialog: `${ALIAS}0` })}
+                            >
+                                <IconAdd />
+                            </IconButton>
+                        </div>
+                    </Tooltip>
+                    {this.state.linkeddevices && (
+                        <Tooltip
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            title={I18n.t('Create new device with LinkedDevices')}
+                        >
+                            <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
+                                <IconAdd style={{ color: colorLinkedDevices }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Refresh')}
+                    >
+                        <IconButton
+                            onClick={() => this.detectDevices()}
+                            disabled={this.state.browse}
+                        >
+                            {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Hide info devices')}
+                    >
+                        <IconButton
+                            color={this.state.filter.noInfo ? 'primary' : 'inherit'}
+                            onClick={() =>
+                                this.changeFilter(undefined, undefined, undefined, undefined, !this.state.filter.noInfo)
+                            }
+                        >
+                            <IconInfo />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                        title={disabledButtons ? I18n.t('Create new folder in root') : I18n.t('Create new folder')}
+                    >
+                        <IconButton
+                            color={disabledButtons ? 'secondary' : 'primary'}
+                            onClick={_ => this.setState({ newFolder: true })}
+                        >
+                            <CreateNewFolderIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Expand all nodes')}
+                    >
+                        <IconButton
+                            color="primary"
+                            onClick={() => this.onExpandAll()}
+                        >
+                            <IconFolderOpened />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Collapse all nodes')}
+                    >
+                        <IconButton
+                            color="primary"
+                            onClick={() => this.onCollapseAll()}
+                        >
+                            <IconFolder />
+                        </IconButton>
+                    </Tooltip>
+                </div>
+                <TextField
+                    variant="standard"
+                    margin="dense"
+                    inputRef={this.inputRef}
+                    placeholder={I18n.t('Filter')}
+                    defaultValue={this.filter}
+                    sx={styles.hide700}
+                    onChange={e => this.setFilter(e.target.value)}
+                    slotProps={{
+                        inputLabel: {
+                            shrink: true,
+                        },
+                        input: {
+                            endAdornment: this.filter ? (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            this.setFilter('');
+                                            if (this.inputRef.current) {
+                                                this.inputRef.current.value = '';
+                                            }
+                                        }}
+                                    >
+                                        <IconClear />
+                                    </IconButton>
+                                </InputAdornment>
+                            ) : (
+                                <div style={styles.emptyClear} />
+                            ),
+                        },
+                    }}
+                />
+                <div style={styles.emptyBlockFlex} />
+                <Box sx={styles.wrapperName}>
+                    <DvrIcon
+                        color="primary"
+                        style={{ marginRight: 5 }}
+                    />
+                    <span>{I18n.t('Devices')}</span>
+                </Box>
+            </Toolbar>
+        );
+    }
+
     render(): React.JSX.Element {
         if (this.state.loading) {
             return <Loader themeType={this.props.themeType} />;
         }
         const small = this.props.width === 'xs' || this.props.width === 'sm';
-        const disabledButtons = this.disabledButtons();
 
         return (
             <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
@@ -3203,140 +3332,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     {this.renderEditFolder()}
                     {this.renderDeleteDialog()}
 
-                    <Toolbar variant="dense">
-                        <div style={styles.wrapperHeadButtons}>
-                            <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                title={I18n.t('Create new device with Aliases')}
-                            >
-                                <div>
-                                    <IconButton
-                                        disabled={disabledButtons}
-                                        onClick={() => this.setState({ showAddDialog: `${ALIAS}0` })}
-                                    >
-                                        <IconAdd />
-                                    </IconButton>
-                                </div>
-                            </Tooltip>
-                            {this.state.linkeddevices && (
-                                <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                    title={I18n.t('Create new device with LinkedDevices')}
-                                >
-                                    <IconButton
-                                        onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}
-                                    >
-                                        <IconAdd style={{ color: colorLinkedDevices }} />
-                                    </IconButton>
-                                </Tooltip>
-                            )}
-                            <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                title={I18n.t('Refresh')}
-                            >
-                                <IconButton
-                                    onClick={() => this.detectDevices()}
-                                    disabled={this.state.browse}
-                                >
-                                    {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                title={I18n.t('Hide info devices')}
-                            >
-                                <IconButton
-                                    color={this.state.filter.noInfo ? 'primary' : 'inherit'}
-                                    onClick={() =>
-                                        this.changeFilter(
-                                            undefined,
-                                            undefined,
-                                            undefined,
-                                            undefined,
-                                            !this.state.filter.noInfo,
-                                        )
-                                    }
-                                >
-                                    <IconInfo />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip
-                                title={
-                                    disabledButtons ? I18n.t('Create new folder in root') : I18n.t('Create new folder')
-                                }
-                            >
-                                <IconButton
-                                    color={disabledButtons ? 'secondary' : 'primary'}
-                                    onClick={_ => this.setState({ newFolder: true })}
-                                >
-                                    <CreateNewFolderIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                title={I18n.t('Expand all nodes')}
-                            >
-                                <IconButton
-                                    color="primary"
-                                    onClick={() => this.onExpandAll()}
-                                >
-                                    <IconFolderOpened />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                                title={I18n.t('Collapse all nodes')}
-                            >
-                                <IconButton
-                                    color="primary"
-                                    onClick={() => this.onCollapseAll()}
-                                >
-                                    <IconFolder />
-                                </IconButton>
-                            </Tooltip>
-                        </div>
-                        <TextField
-                            variant="standard"
-                            margin="dense"
-                            inputRef={this.inputRef}
-                            placeholder={I18n.t('Filter')}
-                            defaultValue={this.filter}
-                            sx={styles.hide700}
-                            onChange={e => this.setFilter(e.target.value)}
-                            slotProps={{
-                                inputLabel: {
-                                    shrink: true,
-                                },
-                                input: {
-                                    endAdornment: this.filter ? (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => {
-                                                    this.setFilter('');
-                                                    if (this.inputRef.current) {
-                                                        this.inputRef.current.value = '';
-                                                    }
-                                                }}
-                                            >
-                                                <IconClear />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ) : (
-                                        <div style={styles.emptyClear} />
-                                    ),
-                                },
-                            }}
-                        />
-                        <div style={styles.emptyBlockFlex} />
-                        <Box sx={styles.wrapperName}>
-                            <DvrIcon
-                                color="primary"
-                                style={{ marginRight: 5 }}
-                            />
-                            <span>{I18n.t('Devices')}</span>
-                        </Box>
-                    </Toolbar>
+                    {this.renderToolbar()}
 
                     {this.renderDevices()}
                 </div>

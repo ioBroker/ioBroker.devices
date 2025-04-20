@@ -1748,6 +1748,14 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     render(): React.JSX.Element {
+        const okDisabled =
+            (JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) &&
+                JSON.stringify(this.state.states) === this.state.statesInit &&
+                JSON.stringify(this.fx) === this.state.fxInit &&
+                JSON.stringify(this.state.ids) === this.state.idsInit) ||
+            this.state.disabledButton ||
+            this.state.startTheProcess;
+
         return (
             <Dialog
                 key="editDialog"
@@ -1854,15 +1862,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 <DialogActions>
                     <Button
                         variant="contained"
-                        disabled={
-                            (JSON.stringify(this.state.initChangeProperties) ===
-                                JSON.stringify(this.state.changeProperties) &&
-                                JSON.stringify(this.state.states) === this.state.statesInit &&
-                                JSON.stringify(this.fx) === this.state.fxInit &&
-                                JSON.stringify(this.state.ids) === this.state.idsInit) ||
-                            this.state.disabledButton ||
-                            this.state.startTheProcess
-                        }
+                        disabled={okDisabled}
                         onClick={async () => await this.handleOk()}
                         startIcon={<IconCheck />}
                         color="primary"
@@ -1876,7 +1876,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         onClick={this.handleClose}
                         startIcon={<IconClose />}
                     >
-                        {I18n.t('Cancel')}
+                        {okDisabled ? I18n.t('Close') : I18n.t('Cancel')}
                     </Button>
                 </DialogActions>
                 {this.renderEditStates()}
