@@ -29,6 +29,13 @@ These virtual devices provide a standardized interface for physical devices, mak
 
 The adapter ensures consistency in data point naming and structure, reducing the need to modify scripts or visualizations when hardware changes.
 
+It wraps any collection of states in ioBroker (physical **or** virtual) into well‑formed **devices** with rich information:
+* `type`, `role`, `smartName`, `color`, `room`, `function`, `icon`, `unit` and more
+
+The result is consumed by dashboards (Material UI, VIS‑2), voice assistants (Alexa/Google), matter adapter, the **iot/cloud** adapter and scripts, giving you a clean, future‑proof object tree.
+
+**Note:** The adapter does **not** poll hardware. It runs as a tab‑only “web” instance → zero CPU/RAM footprint.
+
 ### Purpose
 
 The `ioBroker.devices` adapter serves the following purposes:
@@ -100,7 +107,11 @@ If you created e.g. a temperature device named `Temperature` and provided both s
 - `alias.0.Temperature.temperature` - state with unit '°C'. It should have a virtual link to some real state with temperature. If you remove the alias in `ioBroker.devices` adapter, this state will stay without a link.
 - `alias.0.Temperature.humidity` - state with unit '%'. This will have a virtual link to real state (e.g., to `hm-rpc.0.JHAGHGJJJ.1.HUMIDITY`). If you remove alias in `ioBroker.devices` adapter, this state will be deleted.
 
-Almost every device type could have additional states (indicators) for battery, connectivity, error and some more else. They are optional, but some adapters (e.g., material or matter) could interpret it.
+Almost every device type could have additional states (indicators) for battery, connectivity, error and some more else. They are optional, but some adapters (e.g., `material` or `matter`) could interpret it.
+
+For every state, you can provide all settings, that aliases support:
+- Different states for read and write
+- Convert formula for read and write
 
 #### Managing Devices
 Edit Device: In the Devices tab, click the pencil icon next to a device to modify its name, type, category, color, name, icon or data point mappings.
