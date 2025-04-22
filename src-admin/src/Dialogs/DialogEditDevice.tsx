@@ -44,11 +44,11 @@ import {
     IconFx as IconFunction,
     type IobTheme,
     type AdminConnection,
+    DeviceTypeIcon,
+    STATES_NAME_ICONS,
 } from '@iobroker/adapter-react-v5';
 import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/type-detector';
 
-import TypeIcon from '../Components/TypeIcon';
-import { STATES_NAME_ICONS } from '../Components/TypeOptions';
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
 import { getChannelItems } from '../Components/helpers/search';
@@ -946,7 +946,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     showDeviceIcon(): React.JSX.Element {
         return (
             <Box sx={styles.icon}>
-                <TypeIcon
+                <DeviceTypeIcon
                     type={this.state.channelInfo.type}
                     style={{
                         ...styles.deviceIconStyle,

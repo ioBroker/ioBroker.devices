@@ -130,6 +130,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Updated logo
+* (@GermanBluefox) Updated type-detector
 
 ### 1.2.0 (2025-04-20)
 * (@GermanBluefox) Updated packages

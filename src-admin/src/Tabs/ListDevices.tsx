@@ -57,7 +57,7 @@ import {
 
 import { HiLink } from 'react-icons/hi';
 
-import { Dvr as DvrIcon, FileCopy as CopyIcon, CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
+import { FileCopy as CopyIcon, CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
 
 import { Types, type ExternalPatternControl } from '@iobroker/type-detector';
 import type { ExternalDetectorState } from '@iobroker/type-detector/types';
@@ -73,6 +73,7 @@ import {
     type AdminConnection,
     type ThemeType,
     Loader,
+    DeviceTypeIcon,
 } from '@iobroker/adapter-react-v5';
 
 import {
@@ -89,7 +90,6 @@ import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
 import LocalUtils from '../Components/helpers/LocalUtils';
 import DialogEditEnums from '../Dialogs/DialogEditEnums';
-import TypeIcon from '../Components/TypeIcon';
 import DialogDeleteFolder from '../Dialogs/DialogDeleteFolder';
 import DialogEditFolder from '../Dialogs/DialogEditFolder';
 import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
@@ -1495,7 +1495,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         return (
             <div style={{ ...styles.wrapperIconEnumCell, ...styles.spaceBetween }}>
                 <div style={styles.typeCellNameAndIcon}>
-                    <TypeIcon
+                    <DeviceTypeIcon
                         style={styles.enumIcon}
                         type={type}
                     />
@@ -1504,7 +1504,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 <div style={styles.iconWrapper}>
                     {TYPE_OPTIONS[type]
                         ? Object.keys(TYPE_OPTIONS[type]).map(key =>
-                              TYPE_OPTIONS[type]![key as ApplicationType] ? (
+                              TYPE_OPTIONS[type][key as ApplicationType] ? (
                                   <Icon
                                       key={key}
                                       style={styles.iconStyleType}
@@ -1866,7 +1866,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                         style={{ background: background || undefined }}
                                         sx={styles.tableIcon}
                                     >
-                                        <TypeIcon
+                                        <DeviceTypeIcon
                                             src={item.icon}
                                             style={{ ...styles.tableIconImg, color }}
                                             type={item.role as Types}
@@ -2202,7 +2202,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         key={item.value}
                         value={item.value}
                     >
-                        <TypeIcon
+                        <DeviceTypeIcon
                             style={{ ...styles.enumIcon, ...styles.iconInSelect }}
                             type={item.value}
                         />

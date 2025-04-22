@@ -1,62 +1,15 @@
 import React from 'react';
 import { Types } from '@iobroker/type-detector';
 
-import { FcGoogle, FcElectricalSensor } from 'react-icons/fc';
-import { SiAmazonalexa, SiBoost } from 'react-icons/si';
-import { TiCogOutline as IconWorking } from 'react-icons/ti';
-import {
-    MdPermScanWifi as IconUnreach,
-    MdPriorityHigh as IconMaintain,
-    MdBatteryAlert as IconLowbat,
-    MdError as IconError,
-    MdDirections,
-    MdGpsFixed,
-    MdWork,
-    MdDeveloperMode,
-} from 'react-icons/md';
-import {
-    AiOutlineAppstoreAdd,
-    AiOutlineRadiusBottomleft,
-    AiOutlineColumnHeight,
-    AiOutlineColumnWidth,
-    AiOutlineSwap,
-    AiFillPauseCircle,
-    AiOutlinePoweroff,
-} from 'react-icons/ai';
-import { BiLastPage } from 'react-icons/bi';
-import {
-    FaCompressArrowsAlt,
-    FaRunning,
-    FaSun,
-    FaCompress,
-    FaVolumeMute,
-    FaToggleOn,
-    FaDoorOpen,
-} from 'react-icons/fa';
-import {
-    GiElectricalResistance,
-    GiLaserPrecision,
-    GiStopSign,
-    GiNuclearWaste,
-    GiMatterStates,
-    GiTreeSwing,
-    GiSpeedometer,
-    GiElectric,
-    GiLightningFrequency,
-} from 'react-icons/gi';
-import { IoIosColorPalette, IoIosWater } from 'react-icons/io';
-import { WiDaySunny, WiFire, WiHumidity, WiSmoke, WiThermometer } from 'react-icons/wi';
-import { FiPower } from 'react-icons/fi';
-import { HiOutlineLightBulb } from 'react-icons/hi';
-import { ImPower } from 'react-icons/im';
-import WindowTilted from './icons/WindowTilted';
-import MaterialIcon from './icons/Material';
-import type { IconType } from 'react-icons';
+import { FcGoogle } from 'react-icons/fc';
+import { SiAmazonalexa } from 'react-icons/si';
+
+import { Material as MaterialIcon } from '@iobroker/adapter-react-v5/build/Components/DeviceType/icons/Material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 export type ApplicationType = 'alexa' | 'alisa' | 'google' | 'material';
 
-const TYPE_OPTIONS: Partial<Record<Types, Record<ApplicationType, boolean>>> = {
+const TYPE_OPTIONS: Record<Types, Record<ApplicationType, boolean>> = {
     [Types.airCondition]: { alexa: false, alisa: true, google: false, material: false },
     [Types.blindButtons]: { alexa: false, alisa: false, google: false, material: false },
     [Types.blind]: { alexa: false, alisa: true, google: true, material: true },
@@ -73,12 +26,15 @@ const TYPE_OPTIONS: Partial<Record<Types, Record<ApplicationType, boolean>>> = {
     [Types.humidity]: { alexa: false, alisa: true, google: false, material: true },
     [Types.image]: { alexa: false, alisa: false, google: false, material: false },
     [Types.info]: { alexa: false, alisa: false, google: true, material: false },
+    [Types.illuminance]: { alexa: false, alisa: false, google: true, material: false },
     [Types.light]: { alexa: true, alisa: true, google: true, material: false },
     [Types.location]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.location_one]: { alexa: false, alisa: false, google: false, material: false },
     [Types.lock]: { alexa: true, alisa: true, google: false, material: true },
     [Types.media]: { alexa: false, alisa: false, google: true, material: true },
     [Types.motion]: { alexa: false, alisa: true, google: false, material: false },
     [Types.rgbSingle]: { alexa: false, alisa: true, google: true, material: false },
+    [Types.rgbwSingle]: { alexa: false, alisa: true, google: true, material: false },
     [Types.rgb]: { alexa: false, alisa: false, google: true, material: true },
     [Types.cie]: { alexa: false, alisa: false, google: false, material: false },
     [Types.slider]: { alexa: false, alisa: false, google: true, material: false },
@@ -95,6 +51,9 @@ const TYPE_OPTIONS: Partial<Record<Types, Record<ApplicationType, boolean>>> = {
     [Types.weatherForecast]: { alexa: false, alisa: false, google: false, material: true },
     [Types.windowTilt]: { alexa: false, alisa: false, google: true, material: true },
     [Types.window]: { alexa: false, alisa: true, google: true, material: true },
+    [Types.unknown]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.chart]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.instance]: { alexa: false, alisa: false, google: false, material: false },
 };
 
 export const ICONS_TYPE: Record<ApplicationType, React.JSX.Element> = {
@@ -124,61 +83,6 @@ export const ICONS_TYPE: Record<ApplicationType, React.JSX.Element> = {
             title={I18n.t('Supported by %s', 'Material Adapter')}
         />
     ),
-};
-
-export const STATES_NAME_ICONS: Record<string, IconType> = {
-    SET: AiOutlineAppstoreAdd,
-    WORKING: MdWork,
-    UNREACH: IconUnreach,
-    LOWBAT: IconLowbat,
-    MAINTAIN: IconMaintain,
-    ERROR: IconError,
-    DIRECTION: MdDirections,
-    CONNECTED: IconUnreach,
-    ACTUAL: IconWorking,
-    SECOND: BiLastPage,
-    PRESS_LONG: FaCompressArrowsAlt,
-    PRESS: FaCompress,
-    MUTE: FaVolumeMute,
-    ACCURACY: GiLaserPrecision,
-    RADIUS: AiOutlineRadiusBottomleft,
-    ELEVATION: AiOutlineColumnHeight,
-    LATITUDE: AiOutlineColumnWidth,
-    LONGITUDE: AiOutlineSwap,
-    GPS: MdGpsFixed,
-    ON_ACTUAL: FaToggleOn,
-    ON_SET: FaToggleOn,
-    OPEN: FaDoorOpen,
-    STOP: GiStopSign,
-    WATER_ALARM: IoIosWater, // water
-    WASTE_ALARM: GiNuclearWaste,
-    PAUSE: AiFillPauseCircle,
-    STATE: GiMatterStates,
-    BATTERY: IconLowbat,
-    WASTE: GiNuclearWaste,
-    WATER: IoIosWater,
-    WORK_MODE: MdWork,
-    MODE: MdDeveloperMode,
-    POWER: AiOutlinePoweroff,
-    BOOST: SiBoost,
-    HUMIDITY: WiHumidity,
-    TEMPERATURE: WiThermometer,
-    BRIGHTNESS: WiDaySunny,
-    MOTION: FaRunning,
-    FIRE: WiFire,
-    WINDOW: WindowTilted,
-    SMOKE: WiSmoke,
-    SWING: GiTreeSwing,
-    SPEED: GiSpeedometer,
-    DIMMER: HiOutlineLightBulb,
-    ON: FiPower,
-    COLOR_TEMP: FaSun,
-    ELECTRIC_POWER: ImPower,
-    CURRENT: GiElectric,
-    VOLTAGE: GiElectricalResistance,
-    CONSUMPTION: FcElectricalSensor,
-    FREQUENCY: GiLightningFrequency,
-    HUE: IoIosColorPalette,
 };
 
 export default TYPE_OPTIONS;

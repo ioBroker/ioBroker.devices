@@ -23,10 +23,17 @@ import {
 import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Utils, Icon, type ThemeType, type AdminConnection } from '@iobroker/adapter-react-v5';
+import {
+    I18n,
+    Utils,
+    Icon,
+    type ThemeType,
+    type AdminConnection,
+    DeviceTypeSelector,
+    DeviceTypeIcon,
+} from '@iobroker/adapter-react-v5';
 import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
-import TypeIcon from '../Components/TypeIcon';
 import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';
 import type { PatternControlEx } from '../types';
@@ -491,6 +498,22 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                             onChange={e => this.setState({ name: e.target.value })}
                             margin="normal"
                         />
+                        {!this.props.deviceToCopy ? (
+                            <DeviceTypeSelector
+                                themeType={this.props.themeType}
+                                style={styles.type}
+                                value={this.state.type}
+                                unsupportedDevices={UNSUPPORTED_TYPES}
+                                showApplications={{
+                                    TYPE_OPTIONS,
+                                    ICONS_TYPE,
+                                }}
+                                onChange={value => {
+                                    localStorage.setItem('Devices.newType', value);
+                                    this.setState({ type: value });
+                                }}
+                            />
+                        ) : null}
                         {!this.props.deviceToCopy && (
                             <FormControl
                                 style={styles.type}
@@ -514,7 +537,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                             >
                                                 <div style={styles.itemChildrenWrapper}>
                                                     <div>
-                                                        <TypeIcon
+                                                        <DeviceTypeIcon
                                                             type={Types[typeId]}
                                                             style={{
                                                                 ...styles.selectIcon,
@@ -527,8 +550,8 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                                         <span style={styles.selectText}>{this.typesWords[typeId]}</span>
                                                     </div>
                                                     <div style={styles.iconWrapper}>
-                                                        {Object.keys(TYPE_OPTIONS[typeId]!).map(key =>
-                                                            TYPE_OPTIONS[typeId]![key as ApplicationType] ? (
+                                                        {Object.keys(TYPE_OPTIONS[typeId]).map(key =>
+                                                            TYPE_OPTIONS[typeId][key as ApplicationType] ? (
                                                                 <Icon
                                                                     key={key}
                                                                     style={styles.iconStyle}

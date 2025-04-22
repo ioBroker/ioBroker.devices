@@ -22,10 +22,17 @@ import {
 
 import { ModeEdit as IconEdit, Close as IconClose, Check as IconCheck } from '@mui/icons-material';
 
-import { I18n, Utils, Icon, type AdminConnection, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
+import {
+    I18n,
+    Utils,
+    Icon,
+    type AdminConnection,
+    type IobTheme,
+    type ThemeType,
+    DeviceTypeIcon,
+} from '@iobroker/adapter-react-v5';
 import type { Types } from '@iobroker/type-detector';
 
-import TypeIcon from '../Components/TypeIcon';
 import TreeView from '../Components/TreeView';
 import { useStateLocal } from '../Components/helpers/hooks/useStateLocal';
 import type { ListItem, PatternControlEx } from '../types';
@@ -738,7 +745,7 @@ export default function DialogImporter(props: {
                                                     }}
                                                 />
                                                 <div style={styles.tableIcon}>
-                                                    <TypeIcon
+                                                    <DeviceTypeIcon
                                                         src={device.icon}
                                                         style={styles.tableIconImg}
                                                         type={device.role as Types}
