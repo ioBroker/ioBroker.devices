@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "news": {
+      "1.2.1": {
+        "en": "Updated logo\nUpdated type-detector",
+        "de": "Aktualisiertes Logo\nAktualisierter Typ-Detektor",
+        "ru": "Обновленный логотип\nОбновленный детектор типов",
+        "pt": "Logotipo atualizado\nDetetor de tipo atualizado",
+        "nl": "Bijgewerkt logo\nBijgewerkt type-detector",
+        "fr": "Logo actualisé\nDétecteur de type mis à jour",
+        "it": "Logo aggiornato\nTipo di rilevatore aggiornato",
+        "es": "Logo Actualizado\nActualizado tipo-detector",
+        "pl": "Aktualizacja logo\nAktualizacja czujnika typu",
+        "uk": "Оновлений логотип\nОновлений тип-детектор",
+        "zh-cn": "更新的标志\n更新类型检测器"
+      },
       "1.2.0": {
         "en": "Updated packages\nUsed vite\nUsed eslint-config of ioBroker\nRewritten to TypeScript and corrected all known bugs (Except extension requests)",
         "de": "Aktualisierte Pakete\nGebrauchte Vite\nGebraucht eslint-config von ioBroker\nRewritten zu TypeScript und korrigiert alle bekannten Fehler (Except Erweiterung Anfragen)",
@@ -80,19 +93,6 @@
         "pl": "Migrated GUI (ang.)",
         "uk": "Migrated GUI для v5",
         "zh-cn": "第5条"
-      },
-      "1.0.12": {
-        "en": "Allowed to work with devices behind reverse proxy\nReplaced the function icon",
-        "de": "Erlaubt, mit Geräten hinter Reverse Proxy zu arbeiten\nErsetzt das Funktionssymbol",
-        "ru": "Разрешено работать с устройствами позади обратных прокси\nЗаменил иконку функции",
-        "pt": "Permite trabalhar com dispositivos por trás do proxy reverso\nSubstituir o ícone da função",
-        "nl": "Genoemd om te werken met apparatuur achter omgekeerde proxy\nVervang het functionele icoon",
-        "fr": "Permet de travailler avec des dispositifs derrière le proxy inverse\nRemplacer l'icône de la fonction",
-        "it": "Consente di lavorare con dispositivi dietro proxy inverso\nSostituito l'icona della funzione",
-        "es": "Permitido trabajar con dispositivos detrás del proxy inverso\nReemplazado el icono de la función",
-        "pl": "Wszystkie zawdzięczają pracę z urządzeniami za przesunięciem proxy\nZrezygnował ikonę funkcji",
-        "uk": "Дозволено працювати з пристроями за зворотним проксі\nЗамінено іконку функції",
-        "zh-cn": "允许与反导装置合作\n改为:"
       }
     },
     "titleLang": {
