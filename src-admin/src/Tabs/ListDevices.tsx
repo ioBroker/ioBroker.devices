@@ -992,7 +992,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             clearTimeout(this.updateTimeout);
         }
         this.updateTimeout = setTimeout(async () => {
-            console.log(`[ListDevices, ${new Date().toISOString()}] updateListItems`);
             this.updateTimeout = null;
             await this.updateListItems();
         }, 400);

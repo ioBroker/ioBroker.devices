@@ -29,7 +29,7 @@ const TYPE_OPTIONS: Record<Types, Record<ApplicationType, boolean>> = {
     [Types.illuminance]: { alexa: false, alisa: false, google: true, material: false },
     [Types.light]: { alexa: true, alisa: true, google: true, material: false },
     [Types.location]: { alexa: false, alisa: false, google: false, material: false },
-    [Types.location_one]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.locationOne]: { alexa: false, alisa: false, google: false, material: false },
     [Types.lock]: { alexa: true, alisa: true, google: false, material: true },
     [Types.media]: { alexa: false, alisa: false, google: true, material: true },
     [Types.motion]: { alexa: false, alisa: true, google: false, material: false },
