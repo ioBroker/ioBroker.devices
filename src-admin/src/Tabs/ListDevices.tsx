@@ -3069,7 +3069,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 themeType={this.props.themeType}
                 detector={this.detector}
                 objects={this.objects}
-                processTasks={this.processTasks}
                 enumIDs={this.enumIDs}
                 selected={this.state.selected}
                 prefix={this.state.showAddDialog}

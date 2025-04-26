@@ -1,6 +1,7 @@
 import type { PatternControlEx } from '../../types';
 import { type AdminConnection, I18n, Utils } from '@iobroker/adapter-react-v5';
 import type { PatternControl } from '@iobroker/type-detector';
+import {getChannelItems} from "./search";
 
 export function renameMultipleEntries(
     channelInfo: PatternControlEx,
@@ -221,6 +222,70 @@ export async function processTasks(
     }
 }
 
+export function normalizeStates(
+    objStates: string | string[] | undefined | null | { [value: string]: string },
+): { [value: string]: string } | undefined {
+    if (objStates) {
+        let states: { [value: string]: string } | undefined;
+        if (typeof objStates === 'string') {
+            states = {};
+            // Old format: 'state1:name1;state2:name2'
+            objStates.split(';').forEach(it => {
+                const parts = it.split(':');
+                states![parts[0].trim()] = parts[1] === undefined ? parts[0].trim() : parts[1].trim();
+            });
+        } else if (Array.isArray(objStates)) {
+            states = {};
+            objStates.forEach(it => (states![it] = it));
+        } else if (typeof objStates === 'object') {
+            states = JSON.parse(JSON.stringify(objStates)) as { [value: string]: string };
+        } else {
+            console.error(`Invalid States format: ${JSON.stringify(objStates)}`);
+        }
+        return states;
+    }
+    return undefined;
+}
+
+export function getAddedChannelStates(channelInfo: PatternControlEx, objects: Record<string, ioBroker.Object>): {
+    defaultRole?: string;
+    id: string;
+    noType: boolean;
+    name: string;
+    type: ioBroker.CommonType;
+    write?: boolean;
+    indicator: boolean;
+    required: boolean;
+    states?: { [value: string]: string };
+}[] {
+    const channelIds: string[] = getChannelItems(objects, channelInfo.channelId);
+
+    // Add states, that could not be detected by type-detector
+    return channelIds
+        .filter(
+            key => !channelInfo.states.find(item => item.id === key) && objects[key].type === 'state',
+        )
+        .map(key => {
+            const objOriginal = objects[key];
+            let name: ioBroker.StringOrTranslated = objOriginal?.common?.name;
+            if (name && typeof name === 'object') {
+                name = name[I18n.getLanguage()] || name.en;
+            }
+            return {
+                defaultRole: objOriginal?.common?.role,
+                id: objOriginal?._id,
+                noType: true,
+                name,
+                type: objOriginal?.common?.type,
+                write: objOriginal?.common?.write,
+                indicator: false,
+                required: false,
+                states: normalizeStates(objOriginal?.common?.states),
+            };
+        })
+        .filter(item => !channelInfo.states.filter(item => item.defaultRole).find(el => el.name === item.name));
+}
+
 export async function copyDevice(
     newChannelId: string,
     options: {
@@ -236,6 +301,7 @@ export async function copyDevice(
     // if this is a device not from linkeddevices or from alias
     const deviceToCopy: PatternControlEx = JSON.parse(JSON.stringify(options.deviceToCopy));
     renameMultipleEntries(deviceToCopy, options.objects, language);
+    const addedStates = getAddedChannelStates(deviceToCopy, options.objects)
 
     const originalChannelId = deviceToCopy.channelId;
     const isAlias = originalChannelId.startsWith('alias.') || originalChannelId.startsWith('linkeddevices.');
@@ -303,6 +369,30 @@ export async function copyDevice(
 
     // Add a task to create states
     states.forEach(state => {
+        if (!state.id) {
+            return;
+        }
+        const obj = JSON.parse(JSON.stringify(options.objects[state.id]));
+        obj._id = `${newChannelId}.${state.name}`;
+
+        obj.native ||= {};
+
+        if (obj?.common?.custom) {
+            delete obj.common.custom;
+        }
+
+        if (obj?.common?.smartName) {
+            delete obj.common.smartName;
+        }
+
+        if (!isAlias) {
+            obj.common.alias = { id: state.id };
+        }
+
+        tasks.push({ id: obj._id, obj });
+    });
+
+    addedStates.forEach(state => {
         if (!state.id) {
             return;
         }

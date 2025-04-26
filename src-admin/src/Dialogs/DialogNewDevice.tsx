@@ -157,13 +157,6 @@ interface DialogNewDeviceProps {
     socket: AdminConnection;
     prefix?: string;
     selected?: string;
-    processTasks: (
-        tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[],
-    ) => Promise<void>;
 }
 
 interface DialogNewDeviceState {

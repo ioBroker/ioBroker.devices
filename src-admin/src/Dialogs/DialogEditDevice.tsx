@@ -51,20 +51,16 @@ import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/typ
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
-import { getChannelItems } from '../Components/helpers/search';
-import { getParentId, renameMultipleEntries } from '../Components/helpers/utils';
+import {
+    getAddedChannelStates,
+    getParentId,
+    normalizeStates,
+    renameMultipleEntries,
+} from '../Components/helpers/utils';
 import DialogEditStates from './DialogEditStates';
 import type { PatternControlEx } from '../types';
 
 const styles: Record<string, any> = {
-    header: {
-        width: '100%',
-        fontSize: 16,
-        textTransform: 'capitalize',
-        textAlign: 'center',
-        paddingBottom: 20,
-        color: '#000',
-    },
     divOidField: {
         width: '100%',
         display: 'flex',
@@ -112,11 +108,6 @@ const styles: Record<string, any> = {
         '@media screen and (max-width: 450px)': {
             paddingTop: '0 !important',
         },
-    },
-    divOids: {
-        display: 'inline-block',
-        verticalAlign: 'top',
-        width: '100%',
     },
     divIndicators: {
         display: 'inline-block',
@@ -200,9 +191,6 @@ const styles: Record<string, any> = {
     },
     iconStyle: {
         marginRight: 7,
-    },
-    content: {
-        paddingTop: 0,
     },
     wrapperItemButtons: {
         display: 'flex',
@@ -338,7 +326,13 @@ interface AddedState {
 
 // const FORBIDDEN_CHARS = /[\][*,;'"`<>\\?]/g;
 
-function TabPanel(props: { children: React.ReactNode; value: number | null; index: number }): React.JSX.Element {
+function TabPanel(props: {
+    children: React.ReactNode;
+    value: number | null;
+    index: number;
+    style?: React.CSSProperties;
+    paperStyle?: React.CSSProperties;
+}): React.JSX.Element {
     const { children, value, index } = props;
 
     return (
@@ -347,44 +341,21 @@ function TabPanel(props: { children: React.ReactNode; value: number | null; inde
             hidden={value !== index}
             id={`scrollable-auto-tabpanel-${index}`}
             aria-labelledby={`scrollable-auto-tab-${index}`}
+            style={props.style}
         >
             {value === index && (
                 <Paper
                     style={{
                         padding: 24,
+                        ...props.paperStyle,
                     }}
                     sx={styles.wrapperTabPanel}
                 >
-                    <Typography component="div">{children}</Typography>
+                    {children}
                 </Paper>
             )}
         </div>
     );
-}
-
-function normalizeStates(
-    objStates: string | string[] | undefined | null | { [value: string]: string },
-): { [value: string]: string } | undefined {
-    if (objStates) {
-        let states: { [value: string]: string } | undefined;
-        if (typeof objStates === 'string') {
-            states = {};
-            // Old format: 'state1:name1;state2:name2'
-            objStates.split(';').forEach(it => {
-                const parts = it.split(':');
-                states![parts[0].trim()] = parts[1] === undefined ? parts[0].trim() : parts[1].trim();
-            });
-        } else if (Array.isArray(objStates)) {
-            states = {};
-            objStates.forEach(it => (states![it] = it));
-        } else if (typeof objStates === 'object') {
-            states = JSON.parse(JSON.stringify(objStates)) as { [value: string]: string };
-        } else {
-            console.error(`Invalid States format: ${JSON.stringify(objStates)}`);
-        }
-        return states;
-    }
-    return undefined;
 }
 
 interface DialogEditDeviceProps {
@@ -483,7 +454,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         // States of the state (common.states)
         this.getStatesInformation(ids, states, channelInfo);
 
-        const { addedStates } = this.updateFx(this.getAddedChannelStates(channelInfo), ids, states);
+        const { addedStates } = this.updateFx(getAddedChannelStates(channelInfo, props.objects), ids, states);
 
         this.channelId = channelInfo.channelId;
         let name = '';
@@ -698,46 +669,6 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         });
     }
 
-    getAddedChannelStates(_channelInfo?: PatternControlEx): {
-        defaultRole?: string;
-        id: string;
-        noType: boolean;
-        name: string;
-        type: ioBroker.CommonType;
-        write?: boolean;
-        indicator: boolean;
-        required: boolean;
-        states?: { [value: string]: string };
-    }[] {
-        const channelInfo = _channelInfo || this.state.channelInfo;
-        const channelIds: string[] = getChannelItems(this.props.objects, channelInfo.channelId);
-
-        // Add states, that could not be detected by type-detector
-        return channelIds
-            .filter(
-                key => !channelInfo.states.find(item => item.id === key) && this.props.objects[key].type === 'state',
-            )
-            .map(key => {
-                const objOriginal = this.props.objects[key];
-                let name: ioBroker.StringOrTranslated = objOriginal?.common?.name;
-                if (name && typeof name === 'object') {
-                    name = name[I18n.getLanguage()] || name.en;
-                }
-                return {
-                    defaultRole: objOriginal?.common?.role,
-                    id: objOriginal?._id,
-                    noType: true,
-                    name,
-                    type: objOriginal?.common?.type,
-                    write: objOriginal?.common?.write,
-                    indicator: false,
-                    required: false,
-                    states: normalizeStates(objOriginal?.common?.states),
-                };
-            })
-            .filter(item => !channelInfo.states.filter(item => item.defaultRole).find(el => el.name === item.name));
-    }
-
     updateFx(
         addedStates: AddedState[],
         ids?: Record<string, { read: string; write: string } | string>,
@@ -795,7 +726,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     UNSAFE_componentWillReceiveProps(): void {
-        const addedStates = this.getAddedChannelStates();
+        const addedStates = getAddedChannelStates(this.state.channelInfo, this.props.objects);
         const newStates: Record<string, { [value: string]: string }> = JSON.parse(JSON.stringify(this.state.states));
 
         addedStates.forEach(state => {
@@ -963,8 +894,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             .find(obj => this.state.ids[obj.name]);
 
         return (
-            <div style={styles.header}>
-                <div style={{ ...styles.divOids, ...styles.headerButtons, ...styles.divExtended }} />
+            <div
+                style={{
+                    width: '100%',
+                    fontSize: 16,
+                    textTransform: 'capitalize',
+                    textAlign: 'center',
+                    color: '#000',
+                }}
+            >
                 <div style={styles.menuWrapperIcons}>
                     {this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.startTheProcess && (
                         <Tooltip
@@ -1706,7 +1644,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         return (
             <div
                 key="vars"
-                style={styles.divOids}
+                style={{
+                    display: 'inline-block',
+                    verticalAlign: 'top',
+                    width: 'calc(100% - 24px)',
+                    height: 'calc(100% - 52px)',
+                    overflow: 'auto',
+                    paddingRight: 24,
+                    paddingBottom: 12,
+                }}
             >
                 {this.state.channelInfo.states
                     .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
@@ -1762,7 +1708,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 open={!0}
                 maxWidth="md"
                 fullWidth
-                sx={{ '& .MuiDialog-paper': styles.mobileWidth }}
+                sx={{
+                    '& .MuiDialog-paper': {
+                        height: '100%',
+                        ...styles.mobileWidth,
+                    },
+                }}
                 aria-labelledby="alert-dialog-title"
                 aria-describedby="alert-dialog-description"
             >
@@ -1774,7 +1725,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 >
                     {I18n.t('Edit device')} <b>{this.channelId}</b>
                 </DialogTitle>
-                <DialogContent style={styles.content}>
+                <DialogContent style={{ paddingTop: 0, overflow: 'hidden' }}>
                     <AppBar
                         style={{ top: 0 }}
                         position="sticky"
@@ -1813,51 +1764,62 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             />
                         </Tabs>
                     </AppBar>
-                    <TabPanel
-                        value={this.state.tab}
-                        index={0}
-                    >
-                        <DialogEditProperties
-                            channelId={this.props.channelId}
-                            channelInfo={this.state.channelInfo}
-                            disabled={this.state.startTheProcess}
-                            type={this.props.type}
-                            iotInstance={this.props.iotInstance}
-                            iotNoCommon={this.props.iotNoCommon}
-                            objects={this.props.objects}
-                            enumIDs={this.props.enumIDs}
-                            socket={this.props.socket}
-                            changeProperties={this.state.changeProperties}
-                            onChange={(state, initState, disabledButton) => {
-                                if (initState) {
-                                    // TODO unclear! why immediately after setstate the settings are reset
-                                    this.setState(
-                                        {
-                                            initChangeProperties: initState,
-                                            changeProperties: initState,
-                                            disabledButton: false,
-                                        },
-                                        () =>
-                                            this.setState({
-                                                changeProperties: state,
-                                                disabledButton: !!disabledButton,
-                                            }),
-                                    );
-                                } else {
-                                    this.setState({ changeProperties: state, disabledButton: !!disabledButton });
-                                }
+                    {this.state.tab === 0 ? (
+                        <TabPanel
+                            value={this.state.tab}
+                            index={0}
+                            style={{ height: 'calc(100% - 90px)', overflow: 'auto' }}
+                        >
+                            <DialogEditProperties
+                                channelId={this.props.channelId}
+                                channelInfo={this.state.channelInfo}
+                                disabled={this.state.startTheProcess}
+                                type={this.props.type}
+                                iotInstance={this.props.iotInstance}
+                                iotNoCommon={this.props.iotNoCommon}
+                                objects={this.props.objects}
+                                enumIDs={this.props.enumIDs}
+                                socket={this.props.socket}
+                                changeProperties={this.state.changeProperties}
+                                onChange={(state, initState, disabledButton) => {
+                                    if (initState) {
+                                        // TODO unclear! why immediately after setstate the settings are reset
+                                        this.setState(
+                                            {
+                                                initChangeProperties: initState,
+                                                changeProperties: initState,
+                                                disabledButton: false,
+                                            },
+                                            () =>
+                                                this.setState({
+                                                    changeProperties: state,
+                                                    disabledButton: !!disabledButton,
+                                                }),
+                                        );
+                                    } else {
+                                        this.setState({ changeProperties: state, disabledButton: !!disabledButton });
+                                    }
+                                }}
+                            />
+                        </TabPanel>
+                    ) : null}
+                    {this.state.tab === 1 ? (
+                        <TabPanel
+                            value={this.state.tab}
+                            index={1}
+                            style={{ height: 'calc(100% - 90px)', overflow: 'hidden' }}
+                            paperStyle={{
+                                height: 'calc(100% - 24px)',
+                                overflow: 'hidden',
+                                padding: '12px 0 0 24px',
                             }}
-                        />
-                    </TabPanel>
-                    <TabPanel
-                        value={this.state.tab}
-                        index={1}
-                    >
-                        <div style={styles.divDialogContent}>
-                            {this.renderHeader()}
-                            {this.renderVariables()}
-                        </div>
-                    </TabPanel>
+                        >
+                            <div style={{ ...styles.divDialogContent, overflow: 'hidden', height: '100%' }}>
+                                {this.renderHeader()}
+                                {this.renderVariables()}
+                            </div>
+                        </TabPanel>
+                    ) : null}
                 </DialogContent>
                 <DialogActions>
                     <Button
