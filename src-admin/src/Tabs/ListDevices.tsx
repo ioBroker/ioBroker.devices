@@ -980,9 +980,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             return;
         }
 
-        // this console output slows down the updateListItems and updates work better
-        console.log(`[ListDevices] onObjectChanged ${id} ${obj?.type}`);
-
         if (!obj) {
             if (this.objects[id]) {
                 delete this.objects[id];
@@ -995,6 +992,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             clearTimeout(this.updateTimeout);
         }
         this.updateTimeout = setTimeout(async () => {
+            console.log(`[ListDevices, ${new Date().toISOString()}] updateListItems`);
             this.updateTimeout = null;
             await this.updateListItems();
         }, 400);
@@ -1049,7 +1047,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         const _usedIdsOptional: string[] = [];
         const devices: PatternControlEx[] = [];
         idsInEnums.forEach(id => {
-            const result = this.detector.detect({ id, objects: this.objects, _usedIdsOptional, _keysOptional: keys });
+            const result = this.detector.detect({ id, objects: this.objects, _usedIdsOptional, _keysOptional: keys, ignoreCache: true });
             result?.forEach(device => devices.push(device as PatternControlEx));
         });
 
