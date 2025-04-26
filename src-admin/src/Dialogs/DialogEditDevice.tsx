@@ -268,9 +268,9 @@ const styles: Record<string, any> = {
     indicators: {
         color: '#4dabf5',
     },
-    helperText: (theme: IobTheme): React.CSSProperties => ({
-        opacity: theme.palette.mode === 'dark' ? 0.5 : 0.8,
-    }),
+    helperText: {
+        opacity: 0.8,
+    },
     titleHead: {
         '& h2': {
             textOverflow: 'ellipsis',
