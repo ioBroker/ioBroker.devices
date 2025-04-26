@@ -8,29 +8,29 @@ import React from 'react';
 
 import {
     Button,
+    Checkbox,
     Dialog,
     DialogActions,
     DialogContent,
-    TextField,
+    DialogTitle,
     FormControl,
-    Select,
+    FormControlLabel,
     InputLabel,
     MenuItem,
-    Checkbox,
-    FormControlLabel,
-    DialogTitle,
+    Select,
+    TextField,
 } from '@mui/material';
-import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
+import { Check as IconCheck, Close as IconClose } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
 import {
+    type AdminConnection,
+    DeviceTypeIcon,
+    DeviceTypeSelector,
     I18n,
-    Utils,
     Icon,
     type ThemeType,
-    type AdminConnection,
-    DeviceTypeSelector,
-    DeviceTypeIcon,
+    Utils,
 } from '@iobroker/adapter-react-v5';
 import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
@@ -157,6 +157,8 @@ interface DialogNewDeviceProps {
     socket: AdminConnection;
     prefix?: string;
     selected?: string;
+    noInfo: boolean;
+    toggleInfo: () => void;
 }
 
 interface DialogNewDeviceState {
@@ -418,6 +420,10 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
             });
             this.props.onClose();
         } else {
+            if (this.state.type === Types.info && this.props.noInfo) {
+                this.props.toggleInfo();
+            }
+
             this.props.onClose({
                 id: this.generateId(),
                 type: this.state.type,
@@ -504,6 +510,22 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                 onChange={value => {
                                     localStorage.setItem('Devices.newType', value);
                                     this.setState({ type: value });
+                                }}
+                            />
+                        ) : null}
+                        {!this.props.deviceToCopy ? (
+                            <DeviceTypeSelector
+                                themeType={this.props.themeType}
+                                style={styles.type}
+                                value={this.state.type}
+                                onChange={type => {
+                                    localStorage.setItem('Devices.newType', type);
+                                    this.setState({ type });
+                                }}
+                                unsupportedDevices={UNSUPPORTED_TYPES}
+                                showApplications={{
+                                    TYPE_OPTIONS,
+                                    ICONS_TYPE,
                                 }}
                             />
                         ) : null}

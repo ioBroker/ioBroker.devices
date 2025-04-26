@@ -1901,6 +1901,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                         )}
                                 </div>
                             }
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <Box sx={styles.wrapperTitleAndId}>
                                 <Box
@@ -2691,6 +2692,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
         // update expert mode if was changed
         const newState = { editId: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true' };
+
         await this.setStateAsync(newState);
         Router.doNavigate(null, '', '');
     };
@@ -3074,6 +3076,10 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 prefix={this.state.showAddDialog}
                 socket={this.props.socket}
                 deviceToCopy={deviceToCopy}
+                noInfo={this.state.filter.noInfo}
+                toggleInfo={() =>
+                    this.changeFilter(undefined, undefined, undefined, undefined, !this.state.filter.noInfo)
+                }
                 onClose={options =>
                     this.setState({ showAddDialog: '', copyId: '' }, () => {
                         if (options) {
@@ -3228,7 +3234,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         title={I18n.t('Hide info devices')}
                     >
                         <IconButton
-                            color={this.state.filter.noInfo ? 'primary' : 'inherit'}
+                            color={this.state.filter.noInfo ? 'inherit' : 'primary'}
                             onClick={() =>
                                 this.changeFilter(undefined, undefined, undefined, undefined, !this.state.filter.noInfo)
                             }
@@ -3237,6 +3243,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         </IconButton>
                     </Tooltip>
                     <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={disabledButtons ? I18n.t('Create new folder in root') : I18n.t('Create new folder')}
                     >
                         <IconButton
