@@ -8,6 +8,29 @@ export function renameMultipleEntries(
     objects: Record<string, ioBroker.Object>,
     language?: ioBroker.Languages,
 ): void {
+    // Rename double names
+    const counts: Record<string, number> = {};
+    channelInfo.states.forEach((state) => {
+        counts[state.name] ||= 0;
+        counts[state.name]++;
+    });
+
+    const double = Object.keys(counts).filter(attr => counts[attr] > 1);
+    for (const attr of double) {
+        // Rename all but first entry
+        let isFirst = 0;
+        for (let s = 0; s < channelInfo.states.length; s += 1) {
+            if (channelInfo.states[s].name === attr) {
+                isFirst++;
+                if (isFirst > 1) {
+                    const text = (channelInfo.states[s].type || channelInfo.states[s].defaultRole || isFirst).toString();
+
+                    channelInfo.states[s].name = `${attr}_${text.toUpperCase().split('.')[0]}`;
+                }
+            }
+        }
+    }
+
     // find if any multiple entries found
     const entries = channelInfo.states.filter(item => item.multiple && item.id);
     if (!entries.length) {
