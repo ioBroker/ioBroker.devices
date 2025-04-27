@@ -529,63 +529,6 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                 }}
                             />
                         ) : null}
-                        {!this.props.deviceToCopy && (
-                            <FormControl
-                                style={styles.type}
-                                variant="standard"
-                            >
-                                <InputLabel>{I18n.t('Device type')}</InputLabel>
-                                <Select
-                                    variant="standard"
-                                    value={this.state.type}
-                                    onChange={e => {
-                                        localStorage.setItem('Devices.newType', e.target.value);
-                                        this.setState({ type: e.target.value as Types });
-                                    }}
-                                >
-                                    {this.types
-                                        .filter(id => !UNSUPPORTED_TYPES.includes(id) && TYPE_OPTIONS[id])
-                                        .map(typeId => (
-                                            <MenuItem
-                                                key={Types[typeId]}
-                                                value={Types[typeId]}
-                                            >
-                                                <div style={styles.itemChildrenWrapper}>
-                                                    <div>
-                                                        <DeviceTypeIcon
-                                                            type={Types[typeId]}
-                                                            style={{
-                                                                ...styles.selectIcon,
-                                                                color:
-                                                                    this.props.themeType === 'dark'
-                                                                        ? '#FFFFFF'
-                                                                        : '#000',
-                                                            }}
-                                                        />
-                                                        <span style={styles.selectText}>{this.typesWords[typeId]}</span>
-                                                    </div>
-                                                    <div style={styles.iconWrapper}>
-                                                        {Object.keys(TYPE_OPTIONS[typeId]).map(key =>
-                                                            TYPE_OPTIONS[typeId][key as ApplicationType] ? (
-                                                                <Icon
-                                                                    key={key}
-                                                                    style={styles.iconStyle}
-                                                                    src={ICONS_TYPE[key as ApplicationType]}
-                                                                />
-                                                            ) : (
-                                                                <div
-                                                                    key={key}
-                                                                    style={styles.emptyIcon}
-                                                                />
-                                                            ),
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </MenuItem>
-                                        ))}
-                                </Select>
-                            </FormControl>
-                        )}
                         {!this.props.deviceToCopy && this.renderSelectEnum('functions', I18n.t('Function'))}
                         {!this.props.deviceToCopy && this.renderSelectEnum('rooms', I18n.t('Room'))}
                     </div>
