@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "news": {
+      "1.2.4": {
+        "en": "Corrected many GUI issues",
+        "de": "Viele GUI Probleme korrigiert",
+        "ru": "Исправлено много проблем GUI",
+        "pt": "Corrigido muitos problemas de GUI",
+        "nl": "Veel GUI-problemen gecorrigeerd",
+        "fr": "Correction de nombreux problèmes d'interface utilisateur",
+        "it": "Corretto molti problemi GUI",
+        "es": "Corregidos muchos problemas de GUI",
+        "pl": "Poprawiono wiele problemów GUI",
+        "uk": "Виправлено багато питань GUI",
+        "zh-cn": "更正了许多图形用户界面问题"
+      },
       "1.2.1": {
         "en": "Updated logo\nUpdated type-detector",
         "de": "Aktualisiertes Logo\nAktualisierter Typ-Detektor",
