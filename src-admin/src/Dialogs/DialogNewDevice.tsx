@@ -25,7 +25,6 @@ import { Check as IconCheck, Close as IconClose } from '@mui/icons-material';
 import { Types } from '@iobroker/type-detector';
 import {
     type AdminConnection,
-    DeviceTypeIcon,
     DeviceTypeSelector,
     I18n,
     Icon,
@@ -34,7 +33,7 @@ import {
 } from '@iobroker/adapter-react-v5';
 import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
-import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
+import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';
 import type { PatternControlEx } from '../types';
 import { copyDevice, getLastPart, getParentId } from '../Components/helpers/utils';
@@ -439,6 +438,9 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
     };
 
     render(): React.JSX.Element {
+        // TODO remove it after admin 7.6.15, as no more required
+        const supportedDevices = Object.keys(Types);
+
         return (
             <Dialog
                 open={!0}
@@ -502,26 +504,11 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                 themeType={this.props.themeType}
                                 style={styles.type}
                                 value={this.state.type}
-                                unsupportedDevices={UNSUPPORTED_TYPES}
-                                showApplications={{
-                                    TYPE_OPTIONS,
-                                    ICONS_TYPE,
-                                }}
-                                onChange={value => {
-                                    localStorage.setItem('Devices.newType', value);
-                                    this.setState({ type: value });
-                                }}
-                            />
-                        ) : null}
-                        {!this.props.deviceToCopy ? (
-                            <DeviceTypeSelector
-                                themeType={this.props.themeType}
-                                style={styles.type}
-                                value={this.state.type}
                                 onChange={type => {
                                     localStorage.setItem('Devices.newType', type);
                                     this.setState({ type });
                                 }}
+                                supportedDevices={supportedDevices as Types[]}
                                 unsupportedDevices={UNSUPPORTED_TYPES}
                                 showApplications={{
                                     TYPE_OPTIONS,
