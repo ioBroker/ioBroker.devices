@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.4",
+    "version": "1.2.5",
     "news": {
+      "1.2.5": {
+        "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector",
+        "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien",
+        "ru": "Обновленный детектор\nВыполнить формулу преобразования по текущей стоимости\nЛучший выбор категорий",
+        "pt": "Tipo de detetor atualizado\nExecutar a fórmula de conversão no valor atual\nMelhor seleção de categorias",
+        "nl": "Type-detector bijgewerkt\nVoer de conversieformule uit op de huidige waarde\nBetere categorieënkiezer",
+        "fr": "Détecteur de type mis à jour\nExécuter la formule de conversion sur la valeur courante\nSélecteur de catégories meilleures",
+        "it": "Tipo di rilevamento aggiornato\nEseguire la formula di conversione sul valore attuale\nSelezione categorie migliori",
+        "es": "Tipo-detector actualizado\nEjecutar la fórmula de conversión en valor actual\nMejor selección de categorías",
+        "pl": "Aktualizacja czujnika typu\nWykonaj wzór konwersji na wartość bieżącą\nWybór lepszych kategorii",
+        "uk": "Type-detector оновлений\nВиконувати формулу перетворення на поточну вартість\nКращий вибір категорій",
+        "zh-cn": "类型检测器更新\n执行当前值的转换公式\n更好的类别选择器"
+      },
       "1.2.4": {
         "en": "Corrected many GUI issues",
         "de": "Viele GUI Probleme korrigiert",
@@ -80,19 +93,6 @@
         "pl": "poprawiono podwójne stany w lekkich urządzeniach\ndodano kolor CIE jako odpowiednik rgbSingle",
         "uk": "виправлено подвійні стани в легких пристроях\nдодано тип кольору CIE як еквівалент rgbSingle",
         "zh-cn": "更正了照旧装置的双重国家。\n添加了CIE颜色,相当于乙型肝炎。"
-      },
-      "1.1.1": {
-        "en": "Corrected delete dialog\nAdded ukrainian translation",
-        "de": "Korrigiert Löschen Dialog\nHinzugefügt ukrainische Übersetzung",
-        "ru": "Исправлен диалог удаления\nДобавлен украинский перевод",
-        "pt": "Eliminação correta diálogo\nAdicionado tradução ukrainian",
-        "nl": "Vertaling:\nVertaling:",
-        "fr": "Correction du dialogue de suppression\nAjout de la traduction ukrainienne",
-        "it": "Cancella finestra di dialogo corretta\nAggiunto ukrainian traduzione",
-        "es": "Diálogo de borrado corregido\nTraducción ucraniana",
-        "pl": "Poprawka\nAddedukrainian translation",
-        "uk": "Виправлено видалення діалогу\nДодано переклад українською мовою",
-        "zh-cn": "更正\n增加培训员"
       }
     },
     "titleLang": {
