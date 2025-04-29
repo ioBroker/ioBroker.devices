@@ -1046,7 +1046,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         const _usedIdsOptional: string[] = [];
         const devices: PatternControlEx[] = [];
         idsInEnums.forEach(id => {
-            const result = this.detector.detect({ id, objects: this.objects, _usedIdsOptional, _keysOptional: keys, ignoreCache: true });
+            const result = this.detector.detect({
+                id,
+                objects: this.objects,
+                _usedIdsOptional,
+                _keysOptional: keys,
+                ignoreCache: true,
+            });
             result?.forEach(device => devices.push(device as PatternControlEx));
         });
 
@@ -2309,79 +2315,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             </Paper>
         );
     }
-
-    addToEnum = async (enumId: string, id: string): Promise<void> => {
-        const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(enumId)) as
-            | ioBroker.EnumObject
-            | null
-            | undefined;
-        if (obj?.common) {
-            obj.common.members ||= [];
-            if (!obj.common.members.includes(id)) {
-                obj.common.members.push(id);
-                obj.common.members.sort();
-                return this.props.socket.setObject(enumId, obj);
-            }
-        }
-    };
-
-    removeFromEnum = async (enumId: string, id: string): Promise<void> => {
-        const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(enumId)) as
-            | ioBroker.EnumObject
-            | null
-            | undefined;
-
-        if (obj?.common?.members) {
-            const pos = obj.common.members.indexOf(id);
-            if (pos !== -1) {
-                obj.common.members.splice(pos, 1);
-                await this.props.socket.setObject(enumId, obj);
-            }
-        }
-    };
-
-    processTasks = async (
-        tasks: {
-            id: string;
-            obj: ioBroker.Object;
-            enums?: string[];
-        }[],
-    ): Promise<void> => {
-        for (let t = 0; t < tasks.length; t++) {
-            const task = tasks[t];
-
-            if (task.obj) {
-                if (task.enums) {
-                    for (let i = 0; i < task.enums.length; i++) {
-                        const enumId = task.enums[i];
-                        try {
-                            await this.addToEnum(enumId, task.id);
-                        } catch (e) {
-                            window.alert(`Cannot change enum: ${e}`);
-                        }
-                    }
-                }
-
-                try {
-                    await this.props.socket.setObject(task.id, task.obj);
-                } catch (e) {
-                    window.alert(`Cannot change object: ${e}`);
-                }
-            } else {
-                // delete
-                if (task.enums) {
-                    for (let i = 0; i < task.enums.length; i++) {
-                        const enumId = task.enums[i];
-                        try {
-                            await this.removeFromEnum(enumId, task.id);
-                        } catch (e) {
-                            window.alert(`Cannot change enum: ${e}`);
-                        }
-                    }
-                }
-            }
-        }
-    };
 
     onCopyDevice = async (id: string, newChannelId: string): Promise<void> => {
         // if this is a device not from linkeddevices or from alias

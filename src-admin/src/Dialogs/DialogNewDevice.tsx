@@ -13,30 +13,20 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControl,
     FormControlLabel,
-    InputLabel,
-    MenuItem,
-    Select,
     TextField,
 } from '@mui/material';
 import { Check as IconCheck, Close as IconClose } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
-import {
-    type AdminConnection,
-    DeviceTypeSelector,
-    I18n,
-    Icon,
-    type ThemeType,
-    Utils,
-} from '@iobroker/adapter-react-v5';
+import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
 import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';
 import type { PatternControlEx } from '../types';
 import { copyDevice, getLastPart, getParentId } from '../Components/helpers/utils';
+import EnumSelector from '../Components/EnumSelector';
 
 const styles: Record<string, any> = {
     header: {
@@ -81,6 +71,7 @@ const styles: Record<string, any> = {
     },
     renderValueWrapper: {
         display: 'flex',
+        gap: 4,
     },
     renderValueCurrent: {
         display: 'flex',
@@ -175,10 +166,6 @@ interface DialogNewDeviceState {
 class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDeviceState> {
     private readonly prefix: string;
 
-    private types: Types[];
-
-    private readonly typesWords: Partial<Record<Types, string>>;
-
     constructor(props: DialogNewDeviceProps) {
         super(props);
         let i = 1;
@@ -215,22 +202,6 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                 }
             }
         });
-
-        this.typesWords = {};
-        Object.keys(Types)
-            .filter(id => !UNSUPPORTED_TYPES.includes(id as Types))
-            .forEach(typeId => (this.typesWords[typeId as Types] = I18n.t(`type-${Types[typeId as Types]}`)));
-
-        // sort types by ABC in the current language
-        this.types = Object.keys(this.typesWords).sort((a, b) => {
-            if (this.typesWords[a as Types] === this.typesWords[b as Types]) {
-                return 0;
-            }
-            if (this.typesWords[a as Types]! > this.typesWords[b as Types]!) {
-                return 1;
-            }
-            return -1;
-        }) as Types[];
 
         const stateIds: Record<string, ioBroker.FolderObject> = {};
         const language = I18n.getLanguage();
@@ -311,89 +282,23 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
     }
 
     renderSelectEnum(name: 'functions' | 'rooms', title: string): React.JSX.Element {
-        const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
-        const language = I18n.getLanguage();
-        const objs = enums.map(id => ({
-            name: Utils.getObjectName(this.props.objects, id, language),
-            icon: Utils.getObjectIcon(id, this.props.objects[id]),
-            id,
-        }));
-
         return (
-            <FormControl
+            <EnumSelector
+                name={name}
                 style={styles.type}
-                variant="standard"
-            >
-                <InputLabel>{title}</InputLabel>
-                <Select
-                    variant="standard"
-                    open={!!this.state.open[name]}
-                    onClick={() => this.setState({ open: { [name]: !this.state.open[name] } })}
-                    onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
-                    fullWidth
-                    multiple
-                    renderValue={arrId => {
-                        const newArr =
-                            arrId.length && typeof arrId !== 'string'
-                                ? arrId.map(id => ({
-                                      name: Utils.getObjectName(this.props.objects, id, language),
-                                      icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                                      id,
-                                  }))
-                                : [];
-
-                        return (
-                            <div style={styles.renderValueWrapper}>
-                                {newArr.map(obj => (
-                                    <div
-                                        style={styles.renderValueCurrent}
-                                        key={`${obj.id}-render`}
-                                    >
-                                        {obj.icon ? (
-                                            <Icon
-                                                style={styles.enumIcon}
-                                                src={obj.icon}
-                                                alt={obj.id}
-                                            />
-                                        ) : (
-                                            <div style={styles.enumIcon} />
-                                        )}
-                                        {obj.name}
-                                    </div>
-                                ))}
-                            </div>
-                        );
-                    }}
-                    value={this.state[name] || []}
-                    onChange={e => {
-                        localStorage.setItem(`Devices.new.${name}`, JSON.stringify(e.target.value));
-                        if (name === 'functions') {
-                            this.setState({ functions: e.target.value as string[], open: { functions: false } });
-                        } else {
-                            this.setState({ rooms: e.target.value as string[], open: { rooms: false } });
-                        }
-                    }}
-                >
-                    {objs.map(obj => (
-                        <MenuItem
-                            key={obj.id}
-                            value={obj.id}
-                        >
-                            <Checkbox checked={(this.state[name] || []).includes(obj.id)} />
-                            {obj.icon ? (
-                                <Icon
-                                    style={styles.enumIcon}
-                                    src={obj.icon}
-                                    alt={obj.id}
-                                />
-                            ) : (
-                                <div style={styles.enumIcon} />
-                            )}
-                            {obj.name}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
+                title={title}
+                objects={this.props.objects}
+                enumIDs={this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`))}
+                value={this.state[name] || []}
+                onChange={newSelected => {
+                    localStorage.setItem(`Devices.new.${name}`, JSON.stringify(newSelected));
+                    if (name === 'functions') {
+                        this.setState({ functions: newSelected });
+                    } else {
+                        this.setState({ rooms: newSelected });
+                    }
+                }}
+            />
         );
     }
 

@@ -6,13 +6,14 @@
  */
 import React, { Component } from 'react';
 
-import { TextField, Select, MenuItem, Switch, FormControlLabel, Checkbox, Box } from '@mui/material';
+import { TextField, Switch, FormControlLabel, Box } from '@mui/material';
 
-import { I18n, Utils, Icon, type AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
 
 import UploadImage from '../Components/UploadImage';
 import { findMainStateId, getParentId, getSmartName } from '../Components/helpers/utils';
 import type { PatternControlEx } from '../types';
+import EnumSelector from '../Components/EnumSelector';
 
 const styles: Record<string, any> = {
     divOidField: {
@@ -279,77 +280,23 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
     }
 
     renderSelectEnum(name: 'functions' | 'rooms'): React.JSX.Element {
-        const enums = this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`));
-        const language = I18n.getLanguage();
-        const objs = enums.map(id => ({
-            name: Utils.getObjectName(this.props.objects, id, language),
-            icon: Utils.getObjectIcon(id, this.props.objects[id]),
-            id,
-        }));
-
         return (
-            <Select
-                variant="standard"
+            <EnumSelector
+                name={name}
                 sx={styles.oidField}
-                value={this.state[name]}
-                fullWidth
-                multiple
-                open={!!this.state.open?.[name]}
-                onClick={() => this.setState({ open: { [name]: !this.state.open?.[name] } })}
                 disabled={this.props.disabled}
-                onClose={() => this.state[name] && this.setState({ open: { [name]: false } })}
-                renderValue={arrId => {
-                    const newArr = arrId.map(id => ({
-                        name: Utils.getObjectName(this.props.objects, id, language),
-                        icon: Utils.getObjectIcon(id, this.props.objects[id]),
-                        id,
-                    }));
-
-                    return (
-                        <div style={styles.renderValueWrapper}>
-                            {newArr.map(obj => (
-                                <Box
-                                    sx={styles.renderValueCurrent}
-                                    key={`${obj.id}-render`}
-                                >
-                                    {obj.icon ? (
-                                        <Icon
-                                            style={styles.enumIcon}
-                                            src={obj.icon}
-                                            alt={obj.id}
-                                        />
-                                    ) : (
-                                        <Box sx={styles.enumIcon} />
-                                    )}
-                                    {obj.name}
-                                </Box>
-                            ))}
-                        </div>
-                    );
+                objects={this.props.objects}
+                enumIDs={this.props.enumIDs.filter(id => id.startsWith(`enum.${name}.`))}
+                value={this.state[name] || []}
+                onChange={newSelected => {
+                    localStorage.setItem(`Devices.new.${name}`, JSON.stringify(newSelected));
+                    if (name === 'functions') {
+                        this.setState({ functions: newSelected });
+                    } else {
+                        this.setState({ rooms: newSelected });
+                    }
                 }}
-                onChange={e => this.setState({ [name]: e.target.value, open: { [name]: false } })}
-            >
-                {objs.map(obj => (
-                    <MenuItem
-                        key={obj.id}
-                        value={obj.id}
-                    >
-                        <Checkbox checked={this.state[name]?.includes(obj.id)} />
-                        <Box sx={styles.preImage}>
-                            {obj.icon ? (
-                                <Icon
-                                    style={styles.enumIcon}
-                                    src={obj.icon}
-                                    alt={obj.id}
-                                />
-                            ) : (
-                                <div style={styles.enumIcon} />
-                            )}
-                        </Box>
-                        {obj.name}
-                    </MenuItem>
-                ))}
-            </Select>
+            />
         );
     }
 

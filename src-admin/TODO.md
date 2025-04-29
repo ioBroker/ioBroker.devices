@@ -10,13 +10,11 @@
 
 ## Add new device dialog
 ## Set states
-- Verify Read/write functions with current value
 
 ## Types (type-detector)
 - !Automatically convert % to lowBattery alarm (adapter must be modified!)
 
 ## Functionality
-- (? cannot reproduce) Do not search in parent if it is folder (only in devices/channels)
 
 ## Importer
 

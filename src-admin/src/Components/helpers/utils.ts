@@ -1,7 +1,7 @@
 import type { PatternControlEx } from '../../types';
 import { type AdminConnection, I18n, Utils } from '@iobroker/adapter-react-v5';
 import type { PatternControl } from '@iobroker/type-detector';
-import {getChannelItems} from "./search";
+import { getChannelItems } from './search';
 
 export function renameMultipleEntries(
     channelInfo: PatternControlEx,
@@ -10,7 +10,7 @@ export function renameMultipleEntries(
 ): void {
     // Rename double names
     const counts: Record<string, number> = {};
-    channelInfo.states.forEach((state) => {
+    channelInfo.states.forEach(state => {
         counts[state.name] ||= 0;
         counts[state.name]++;
     });
@@ -23,7 +23,11 @@ export function renameMultipleEntries(
             if (channelInfo.states[s].name === attr) {
                 isFirst++;
                 if (isFirst > 1) {
-                    const text = (channelInfo.states[s].type || channelInfo.states[s].defaultRole || isFirst).toString();
+                    const text = (
+                        channelInfo.states[s].type ||
+                        channelInfo.states[s].defaultRole ||
+                        isFirst
+                    ).toString();
 
                     channelInfo.states[s].name = `${attr}_${text.toUpperCase().split('.')[0]}`;
                 }
@@ -270,7 +274,10 @@ export function normalizeStates(
     return undefined;
 }
 
-export function getAddedChannelStates(channelInfo: PatternControlEx, objects: Record<string, ioBroker.Object>): {
+export function getAddedChannelStates(
+    channelInfo: PatternControlEx,
+    objects: Record<string, ioBroker.Object>,
+): {
     defaultRole?: string;
     id: string;
     noType: boolean;
@@ -285,9 +292,7 @@ export function getAddedChannelStates(channelInfo: PatternControlEx, objects: Re
 
     // Add states, that could not be detected by type-detector
     return channelIds
-        .filter(
-            key => !channelInfo.states.find(item => item.id === key) && objects[key].type === 'state',
-        )
+        .filter(key => !channelInfo.states.find(item => item.id === key) && objects[key].type === 'state')
         .map(key => {
             const objOriginal = objects[key];
             let name: ioBroker.StringOrTranslated = objOriginal?.common?.name;
@@ -324,7 +329,7 @@ export async function copyDevice(
     // if this is a device not from linkeddevices or from alias
     const deviceToCopy: PatternControlEx = JSON.parse(JSON.stringify(options.deviceToCopy));
     renameMultipleEntries(deviceToCopy, options.objects, language);
-    const addedStates = getAddedChannelStates(deviceToCopy, options.objects)
+    const addedStates = getAddedChannelStates(deviceToCopy, options.objects);
 
     const originalChannelId = deviceToCopy.channelId;
     const isAlias = originalChannelId.startsWith('alias.') || originalChannelId.startsWith('linkeddevices.');

@@ -10,7 +10,7 @@
         "@types/react": "^18.3.20",
         "@types/react-dom": "^18.3.6",
         "@vitejs/plugin-react": "^4.4.1",
-        "@iobroker/type-detector": "^4.3.1",
+        "@iobroker/type-detector": "^4.5.0",
         "react": "^18.3.1",
         "react-color": "^2.19.3",
         "react-cropper": "^2.3.3",

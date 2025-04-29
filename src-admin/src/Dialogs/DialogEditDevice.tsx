@@ -20,7 +20,6 @@ import {
     Tab,
     Tabs,
     Tooltip,
-    Typography,
     Box,
 } from '@mui/material';
 
@@ -51,6 +50,7 @@ import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/typ
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
+import DialogEditFx from './DialogEditFx';
 import {
     getAddedChannelStates,
     getParentId,
@@ -136,29 +136,6 @@ const styles: Record<string, any> = {
     enumIcon: {
         width: 24,
         height: 24,
-    },
-    funcDivEdit: {
-        width: '100%',
-    },
-    funcEditName: {
-        display: 'inline-block',
-        width: 85,
-    },
-    funcEdit: {
-        display: 'inline-block',
-        marginTop: 0,
-        marginBottom: 0,
-        width: 'calc(100% - 85px)',
-    },
-    idEditName: {
-        display: 'inline-block',
-        width: 200,
-    },
-    idEdit: {
-        width: 'calc(100% - 200px)',
-        display: 'inline-block',
-        marginTop: 0,
-        marginBottom: 0,
     },
     icon: (theme: IobTheme): any => ({
         color: theme.palette.mode === 'light' ? 'black' : 'white',
@@ -996,102 +973,21 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         if (!this.state.editFxFor) {
             return null;
         }
-        const fx = this.fx[this.state.editFxFor];
 
         return (
-            <Dialog
-                open={!0}
-                key="editFxDialog"
-                maxWidth="sm"
-                onClose={() =>
-                    this.setState({ editFxFor: '', fxRead: '', fxWrite: '', fxWriteOriginal: '', fxReadOriginal: '' })
-                }
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="edit-device-dialog-title">
-                    {I18n.t('Edit read/write functions')} <b>{this.state.editFxFor}</b>
-                </DialogTitle>
-                <DialogContent>
-                    <div style={styles.divDialogContent}>
-                        {fx.read !== undefined ? (
-                            <div style={styles.funcDivEdit}>
-                                <div style={{ ...styles.funcEditName, fontWeight: 'bold' }}>
-                                    {I18n.t('Read function')}
-                                </div>
-                                <TextField
-                                    variant="standard"
-                                    fullWidth
-                                    value={this.state.fxRead}
-                                    style={styles.funcEdit}
-                                    onChange={e => this.setState({ fxRead: e.target.value })}
-                                    helperText={`${I18n.t('JS function like')} "val / 5 + 21"`}
-                                    margin="normal"
-                                />
-                            </div>
-                        ) : null}
-                        {fx.write !== undefined ? (
-                            <div style={styles.funcDivEdit}>
-                                <div style={{ ...styles.funcEditName, fontWeight: 'bold' }}>
-                                    {I18n.t('Write function')}
-                                </div>
-                                <TextField
-                                    variant="standard"
-                                    fullWidth
-                                    value={this.state.fxWrite}
-                                    helperText={`${I18n.t('JS function like')} "(val - 21) * 5"`}
-                                    style={styles.funcEdit}
-                                    onChange={e => this.setState({ fxWrite: e.target.value })}
-                                    margin="normal"
-                                />
-                            </div>
-                        ) : null}
-                    </div>
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        disabled={
-                            this.state.fxRead === this.state.fxReadOriginal &&
-                            this.state.fxWrite === this.state.fxWriteOriginal
-                        }
-                        onClick={() => {
-                            if (this.fx[this.state.editFxFor].read !== undefined) {
-                                this.fx[this.state.editFxFor].read = this.state.fxRead;
-                            }
-                            if (this.fx[this.state.editFxFor].write !== undefined) {
-                                this.fx[this.state.editFxFor].write = this.state.fxWrite;
-                            }
-                            this.setState({
-                                editFxFor: '',
-                                fxRead: '',
-                                fxWrite: '',
-                                fxWriteOriginal: '',
-                                fxReadOriginal: '',
-                            });
-                        }}
-                        color="primary"
-                        autoFocus
-                    >
-                        {I18n.t('Ok')}
-                    </Button>
-                    <Button
-                        color="grey"
-                        variant="contained"
-                        onClick={() =>
-                            this.setState({
-                                editFxFor: '',
-                                fxRead: '',
-                                fxWrite: '',
-                                fxWriteOriginal: '',
-                                fxReadOriginal: '',
-                            })
-                        }
-                    >
-                        {I18n.t('Cancel')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <DialogEditFx
+                socket={this.props.socket}
+                aliasId={this.state.ids[this.state.editFxFor]}
+                editFxFor={`${this.props.channelId}.${this.state.editFxFor}`}
+                fxRead={this.fx[this.state.editFxFor]?.read}
+                fxWrite={this.fx[this.state.editFxFor]?.write}
+                onClose={(result: { read?: string; write?: string }): void => {
+                    if (result) {
+                        this.fx[this.state.editFxFor] = { read: result.read, write: result.write };
+                    }
+                    this.setState({ editFxFor: '' });
+                }}
+            />
         );
     }
 
@@ -1399,15 +1295,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 >
                                     <IconButton
                                         size="small"
-                                        onClick={() =>
-                                            this.setState({
-                                                editFxFor: name,
-                                                fxRead: this.fx[name]?.read || '',
-                                                fxWrite: this.fx[name]?.write || '',
-                                                fxReadOriginal: this.fx[name]?.read || '',
-                                                fxWriteOriginal: this.fx[name]?.write || '',
-                                            })
-                                        }
+                                        onClick={() => this.setState({ editFxFor: name })}
                                         sx={styles.button}
                                     >
                                         <IconFunction />
