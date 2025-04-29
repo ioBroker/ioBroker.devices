@@ -18,9 +18,8 @@ import {
 } from '@mui/material';
 import { Check as IconCheck, Close as IconClose } from '@mui/icons-material';
 
-import { Types } from '@iobroker/type-detector';
+import { Types, type ExternalDetectorState } from '@iobroker/type-detector';
 import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
-import type { ExternalDetectorState } from '@iobroker/type-detector/types';
 
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';
@@ -343,9 +342,6 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
     };
 
     render(): React.JSX.Element {
-        // TODO remove it after admin 7.6.15, as no more required
-        const supportedDevices = Object.keys(Types);
-
         return (
             <Dialog
                 open={!0}
@@ -413,7 +409,6 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                     localStorage.setItem('Devices.newType', type);
                                     this.setState({ type });
                                 }}
-                                supportedDevices={supportedDevices as Types[]}
                                 unsupportedDevices={UNSUPPORTED_TYPES}
                                 showApplications={{
                                     TYPE_OPTIONS,

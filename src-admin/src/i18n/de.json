@@ -119,6 +119,7 @@
     "auto_detected_empty_info": "Die Geräte müssen zu Raum- oder Funktionskategorien hinzufügen werden, damit die Geräte automatisch erkannt werden",
     "boolean": "Boolescher Wert",
     "cloning method": "Strukturieren nach",
+    "do not import devices without category": "keine Geräte ohne Kategorie importieren",
     "file": "Datei",
     "filter_customs": "Einstellungen",
     "filter_func": "Funktion",

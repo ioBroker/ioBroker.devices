@@ -371,8 +371,8 @@ export default function DialogImporter(props: {
                                 ? Utils.getObjectName(objects, id, language)
                                 : getLastPart(id),
                         nondeletable: true,
-                        color: objects[id].common?.color || undefined,
-                        icon: objects[id].common?.icon || undefined,
+                        color: objects[id]?.common?.color || undefined,
+                        icon: objects[id]?.common?.icon || undefined,
                     },
                     type: 'folder',
                     native: {},
@@ -471,7 +471,7 @@ export default function DialogImporter(props: {
         return !!objects[newId];
     };
 
-    const checkEnumsScip = (id: string): boolean => {
+    const checkEnumsSkip = (id: string): boolean => {
         const device = devices.find(device => id === device.channelId);
 
         if (cloningMethod === 'rooms' && skipElement) {
@@ -486,7 +486,7 @@ export default function DialogImporter(props: {
     const arrayDeviceFunction = async (): Promise<void> => {
         for (let s = 0; s < arrayDevice.length; s++) {
             const el = arrayDevice[s];
-            if (!checkedSelect.includes(el.id) || checkDeviceInObjects(el.title, el.id) || checkEnumsScip(el.id)) {
+            if (!checkedSelect.includes(el.id) || checkDeviceInObjects(el.title, el.id) || checkEnumsSkip(el.id)) {
                 continue;
             }
             let newId = `${selectFolder}`;
@@ -699,7 +699,7 @@ export default function DialogImporter(props: {
                                                 onChange={() => setSkipElement(!skipElement)}
                                             />
                                         }
-                                        label={I18n.t('do not export devices without category')}
+                                        label={I18n.t('do not import devices without category')}
                                     />
                                 )}
                             </Box>
@@ -719,7 +719,7 @@ export default function DialogImporter(props: {
                                             ...(checkDeviceInObjects(device.title, device.id)
                                                 ? styles.backgroundRed
                                                 : undefined),
-                                            ...(checkEnumsScip(device.id) ? styles.backgroundSilver : undefined),
+                                            ...(checkEnumsSkip(device.id) ? styles.backgroundSilver : undefined),
                                         }}
                                         key={device.id}
                                     >
@@ -728,10 +728,10 @@ export default function DialogImporter(props: {
                                                 <Checkbox
                                                     disabled={
                                                         checkDeviceInObjects(device.title, device.id) ||
-                                                        checkEnumsScip(device.id) ||
+                                                        checkEnumsSkip(device.id) ||
                                                         startTheProcess
                                                     }
-                                                    checked={checkedSelect.indexOf(device.id) !== -1}
+                                                    checked={!checkEnumsSkip(device.id) && checkedSelect.includes(device.id)}
                                                     onChange={() => {
                                                         const newArray = JSON.parse(JSON.stringify(checkedSelect));
                                                         const indexCurrent = checkedSelect.indexOf(device.id);

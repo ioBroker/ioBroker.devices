@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "Debe agregar los dispositivos a categorías de sala o función para permitir que se detecten automáticamente",
   "boolean": "booleano",
   "cloning method": "Estructura en",
+  "do not import devices without category": "No importar dispositivos sin categoría",
   "file": "expediente",
   "filter_customs": "Configuraciones",
   "filter_func": "Función",

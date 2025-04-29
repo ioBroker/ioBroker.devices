@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "Vous devez ajouter les appareils aux catégories de pièces ou de fonctions pour permettre la détection automatique des appareils.",
   "boolean": "booléen",
   "cloning method": "Structurer sur",
+  "do not import devices without category": "n'importez pas d'appareils sans catégorie",
   "file": "déposer",
   "filter_customs": "Réglages",
   "filter_func": "Une fonction",

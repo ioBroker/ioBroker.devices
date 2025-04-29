@@ -119,6 +119,7 @@
     "auto_detected_empty_info": "Aby umożliwić automatyczne wykrywanie urządzeń, należy dodać je do kategorii pomieszczeń lub funkcji",
     "boolean": "logiczne",
     "cloning method": "Struktura włączona",
+    "do not import devices without category": "nie importuj urządzeń bez kategorii",
     "file": "plik",
     "filter_customs": "Ustawienia",
     "filter_func": "Funkcja",

@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "È necessario aggiungere i dispositivi alle categorie di stanza o funzione per consentire il rilevamento automatico dei dispositivi",
   "boolean": "booleano",
   "cloning method": "Struttura attiva",
+  "do not import devices without category": "non importare dispositivi senza categoria",
   "file": "file",
   "filter_customs": "impostazioni",
   "filter_func": "Funzione",

@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "Ви повинні додати пристрої до категорій кімнат або функцій, щоб дозволити автоматичне виявлення пристроїв",
   "boolean": "логічний",
   "cloning method": "Структура на",
+  "do not import devices without category": "не імпортувати пристрої без категорії",
   "file": "файл",
   "filter_customs": "Налаштування",
   "filter_func": "функція",

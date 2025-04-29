@@ -59,8 +59,7 @@ import { HiLink } from 'react-icons/hi';
 
 import { FileCopy as CopyIcon, CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
 
-import { Types, type ExternalPatternControl } from '@iobroker/type-detector';
-import type { ExternalDetectorState } from '@iobroker/type-detector/types';
+import { Types, type ExternalPatternControl, type ExternalDetectorState } from '@iobroker/type-detector';
 import {
     Icon,
     Utils,

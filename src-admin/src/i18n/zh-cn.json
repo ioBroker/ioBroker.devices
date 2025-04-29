@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "您必须将设备添加到房间或功能类别才能让设备被自动检测",
   "boolean": "布尔值",
   "cloning method": "结构上",
+  "do not import devices without category": "不导入无类别的设备",
   "file": "文件",
   "filter_customs": "设定值",
   "filter_func": "功能",

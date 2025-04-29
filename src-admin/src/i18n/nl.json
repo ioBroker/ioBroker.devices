@@ -119,6 +119,7 @@
   "auto_detected_empty_info": "U moet de apparaten toevoegen aan kamer- of functiecategorieën om de apparaten automatisch te laten detecteren",
   "boolean": "booleaans",
   "cloning method": "Structuur aan",
+  "do not import devices without category": "importeer geen apparaten zonder categorie",
   "file": "het dossier",
   "filter_customs": "Instellingen",
   "filter_func": "Functie",

@@ -314,7 +314,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
         this.state = {
             listItems,
             expanded,
-            selected: this.props.selected || (listItems[0] && listItems[0].id) || '',
+            selected: this.props.selected || listItems[0]?.id || '',
             renaming: null,
             deleting: null,
             errorText: '',
@@ -566,25 +566,21 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
             }
         }
 
-        const style = Object.assign(
-            {
-                paddingLeft: depthPx,
-                borderRadius: 3,
-                cursor: 'pointer',
-            },
-            item.id === this.state.selected
-                ? { background: this.props.theme.palette.secondary.dark, color: '#FFF' }
-                : {},
-        );
+        const style = {
+            borderRadius: 3,
+            cursor: 'pointer',
+            background: item.id === this.state.selected ? this.props.theme.palette.secondary.dark : undefined,
+            color: item.id === this.state.selected ? '#FFF' : undefined,
+        };
 
         let isExpanded = false;
-        if (children && children.length) {
+        if (children?.length) {
             isExpanded = this.state.expanded.includes(item.id);
         }
 
         const iconStyle: React.CSSProperties = {};
         const countSpan =
-            (childrenFiltered && childrenFiltered.length) || children.length ? (
+            childrenFiltered?.length || children.length ? (
                 <span style={styles.childrenCount}>
                     {childrenFiltered && childrenFiltered.length !== children.length
                         ? `${childrenFiltered.length}(${children.length})`
@@ -616,6 +612,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                 style={{
                     ...style,
                     ...(item.type === 'folder' ? styles.folder : styles.element),
+                    paddingLeft: depthPx,
                 }}
                 onDoubleClick={() => this.toggleExpanded(item.id)}
                 onClick={() => this.onClick(item)}
@@ -657,9 +654,8 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                 >
                     {title}
                 </div>
-                <ListItemSecondaryAction style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>
-                    {countSpan}
-                </ListItemSecondaryAction>
+                <div style={{ flexGrow: 1 }} />
+                <div style={{ color: item.id === this.state.selected ? 'white' : 'inherit' }}>{countSpan}</div>
             </ListItem>
         );
 

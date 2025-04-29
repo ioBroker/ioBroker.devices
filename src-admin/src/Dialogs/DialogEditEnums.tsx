@@ -13,7 +13,6 @@ import {
     DialogContent,
     DialogActions,
     List,
-    ListItemSecondaryAction,
     ListItemIcon,
     ListItemText,
     Checkbox,
@@ -108,13 +107,13 @@ class DialogEditEnums extends React.Component<DialogEditEnumsProps, DialogEditEn
                             )}
                         </ListItemIcon>
                         <ListItemText primary={obj.name} />
-                        <ListItemSecondaryAction>
+                        <div>
                             <Checkbox
                                 edge="end"
                                 onChange={() => this.onToggle(obj.id)}
                                 checked={this.state.values.includes(obj.id)}
                             />
-                        </ListItemSecondaryAction>
+                        </div>
                     </ListItemButton>
                 ))}
             </List>

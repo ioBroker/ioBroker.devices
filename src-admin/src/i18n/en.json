@@ -119,6 +119,7 @@
     "auto_detected_empty_info": "You must add the devices to room or function categories to let the devices be detected automatically",
     "boolean": "boolean",
     "cloning method": "Structure on",
+    "do not import devices without category": "do not import devices without category",
     "file": "file",
     "filter_customs": "Settings",
     "filter_func": "Function",
