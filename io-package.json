@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.5",
+    "version": "1.2.6",
     "news": {
+      "1.2.6": {
+        "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector\nCorrected device importer",
+        "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien\nKorrigierter Geräteimporteur",
+        "ru": "Обновленный детектор\nВыполнить формулу преобразования по текущей стоимости\nЛучший выбор категорий\nИсправленный импортер устройств",
+        "pt": "Tipo de detetor atualizado\nExecutar a fórmula de conversão no valor atual\nMelhor seleção de categorias\nImportador de dispositivo correto",
+        "nl": "Type-detector bijgewerkt\nVoer de conversieformule uit op de huidige waarde\nBetere categorieënkiezer\nGecorrigeerde importeur van hulpmiddelen",
+        "fr": "Détecteur de type mis à jour\nExécuter la formule de conversion sur la valeur courante\nSélecteur de catégories meilleures\nImportateur de matériel corrigé",
+        "it": "Tipo di rilevamento aggiornato\nEseguire la formula di conversione sul valore attuale\nSelezione categorie migliori\nImportatore corretto del dispositivo",
+        "es": "Tipo-detector actualizado\nEjecutar la fórmula de conversión en valor actual\nMejor selección de categorías\nImportador de dispositivo corregido",
+        "pl": "Aktualizacja czujnika typu\nWykonaj wzór konwersji na wartość bieżącą\nWybór lepszych kategorii\nPoprawiony importer wyrobów",
+        "uk": "Type-detector оновлений\nВиконувати формулу перетворення на поточну вартість\nКращий вибір категорій\nВиправлений пристрій імпортера",
+        "zh-cn": "类型检测器更新\n执行当前值的转换公式\n更好的类别选择器\n修正设备导入器"
+      },
       "1.2.4": {
         "en": "Corrected many GUI issues",
         "de": "Viele GUI Probleme korrigiert",
