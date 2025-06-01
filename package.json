@@ -30,7 +30,7 @@
     "@types/node": "^22.15.3",
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
-    "mocha": "^11.1.0",
+    "mocha": "^11.5.0",
     "puppeteer": "^24.7.2"
   },
   "main": "admin/tab.html",
