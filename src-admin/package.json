@@ -6,7 +6,7 @@
         "@iobroker/adapter-react-v5": "^7.6.18",
         "@mui/icons-material": "^6.4.11",
         "@mui/material": "^6.4.11",
-        "@sentry/browser": "^9.14.0",
+        "@sentry/browser": "^9.24.0",
         "@types/react": "^18.3.20",
         "@types/react-dom": "^18.3.6",
         "@vitejs/plugin-react": "^4.4.1",
