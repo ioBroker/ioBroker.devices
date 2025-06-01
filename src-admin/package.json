@@ -23,7 +23,7 @@
         "react-image-crop": "^11.0.10",
         "react-input-color": "^4.0.1",
         "react-sortable-hoc": "^2.0.0",
-        "vite": "^6.3.4"
+        "vite": "^6.3.5"
     },
     "scripts": {
         "start": "vite --host",
