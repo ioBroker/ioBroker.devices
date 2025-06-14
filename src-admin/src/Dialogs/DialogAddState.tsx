@@ -89,7 +89,6 @@ interface DialogAddStateProps {
 
 function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
     const { onClose, objects, socket, channelId, arrayStateDefault, editState } = props;
-    const [open, setOpen] = useState(true);
     const [role, setRole] = useState<string | null>(null);
     const [roleInput, setRoleInput] = useState<string | null>(null);
     const [roles, setRoles] = useState<string[]>([]);
@@ -153,8 +152,8 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
     return (
         <ThemeProvider theme={Theme(Utils.getThemeName())}>
             <Dialog
-                onClose={() => setOpen(false)}
-                open={open}
+                onClose={() => onClose()}
+                open={!0}
                 sx={{ '& .MuiDialog-paper': styles.paper }}
             >
                 <DialogTitle sx={styles.overflowText}>
@@ -281,6 +280,10 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                                     label={I18n.t('Step')}
                                     onChange={e => setStep(e.target.value)}
                                 />
+                            </div>
+                        )}
+                        {type === 'number' && (
+                            <div style={styles.minMax}>
                                 <FormControlLabel
                                     control={
                                         <Checkbox
@@ -305,7 +308,6 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                             !!arrayStateDefault.find(item => item.name === name)
                         }
                         onClick={async () => {
-                            setOpen(false);
                             let obj: ioBroker.StateObject = {
                                 _id: `${channelId}.${name}`,
                                 common: {
@@ -353,7 +355,7 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                     </Button>
                     <Button
                         variant="contained"
-                        onClick={() => setOpen(false)}
+                        onClick={() => onClose()}
                         startIcon={<IconClose />}
                         color="grey"
                     >

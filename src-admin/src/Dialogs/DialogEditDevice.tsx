@@ -28,6 +28,7 @@ import {
     Check as IconCheck,
     Delete as IconDelete,
     Add as IconAdd,
+    Publish as IconPublish,
     Edit as IconEdit,
     OpenInNew as IconExtended,
     HelpOutline as IconHelpOutline,
@@ -45,6 +46,7 @@ import {
     type AdminConnection,
     DeviceTypeIcon,
     STATES_NAME_ICONS,
+    extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
 import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/type-detector';
 
@@ -433,6 +435,9 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         const { addedStates } = this.updateFx(getAddedChannelStates(channelInfo, props.objects), ids, states);
 
+        // Load types translations
+        extendDeviceTypeTranslation();
+
         this.channelId = channelInfo.channelId;
         let name = '';
         const channelObj = props.objects[this.channelId];
@@ -535,7 +540,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
             return (
                 <DialogAddState
-                    onClose={async (obj: ioBroker.StateObject): Promise<void> => {
+                    onClose={async (obj?: ioBroker.StateObject): Promise<void> => {
+                        if (!obj) {
+                            this.setState({ dialogAddState: null });
+                            return;
+                        }
                         const objName = obj?.common?.name;
                         let oldName: string;
                         if (typeof objName === 'object') {
@@ -545,7 +554,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 objName[Object.keys(objName)[0] as ioBroker.Languages] ||
                                 '';
                         } else {
-                            oldName = objName || '';
+                            oldName = '';
                         }
 
                         if (this.state.dialogAddState!.onClose && oldName !== this.state.dialogAddState!.name) {
@@ -934,7 +943,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 style={{ color: '#e67e229e' }}
                                 onClick={() => this.setState({ newState: true })}
                             >
-                                <IconAdd />
+                                <IconPublish />
                             </IconButton>
                         </Tooltip>
                     )}
