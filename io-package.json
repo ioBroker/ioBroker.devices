@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.6",
+    "version": "1.2.7",
     "news": {
+      "1.2.7": {
+        "en": "Replaced icon for the state import\nCorrected the edit dialog",
+        "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
+        "ru": "Замена иконки для государственного импорта\nИсправлен диалог редактирования",
+        "pt": "Ícone substituído para a importação do estado\nCorrigido o diálogo de edição",
+        "nl": "Pictogram vervangen door het status-importeren\nHet bewerkingsdialoogvenster corrigeren",
+        "fr": "Icône remplacée pour l'importation d'état\nCorrection de la boîte de dialogue d'édition",
+        "it": "Icona sostituita per l'importazione dello stato\nCorretto la finestra di dialogo Modifica",
+        "es": "Icono reemplazado para la importación del estado\nCorregido el diálogo de edición",
+        "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
+        "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
+        "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
+      },
       "1.2.6": {
         "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector\nCorrected device importer",
         "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien\nKorrigierter Geräteimporteur",
@@ -80,19 +93,6 @@
         "pl": "Lepsze zachowanie kategorii",
         "uk": "Краще поведінка вибору категорії",
         "zh-cn": "B. 改进类别选择行为"
-      },
-      "1.1.2": {
-        "en": "corrected the double states in light devices\nadded CIE color type as equivalent to `rgbSingle` type",
-        "de": "die doppelten zustände in lichtgeräten korrigiert\nhinzugefügt CIE-Farbtyp als äquivalent zu rgbSingle-Typ",
-        "ru": "исправлены двойные состояния на легких устройствах\nдобавлен тип цвета CIE как эквивалент rgbSingle типа",
-        "pt": "corrigido os estados duplos em dispositivos de luz\nadicionado tipo de cor CIE como equivalente ao tipo rgbSingle",
-        "nl": "vertaling:\nvoegde CIE kleurtype toe als equivalent aan rgbSingle type",
-        "fr": "corrigé les doubles états dans les dispositifs de lumière\ncouleur CIE ajouté comme équivalent au type rgbSingle",
-        "it": "corretto il doppio stato in dispositivi leggeri\naggiunto CIE tipo di colore equivalente a rgbSingle tipo",
-        "es": "corregido los estados dobles en dispositivos ligeros\nañadido CIE tipo de color como equivalente a rgbSingle tipo",
-        "pl": "poprawiono podwójne stany w lekkich urządzeniach\ndodano kolor CIE jako odpowiednik rgbSingle",
-        "uk": "виправлено подвійні стани в легких пристроях\nдодано тип кольору CIE як еквівалент rgbSingle",
-        "zh-cn": "更正了照旧装置的双重国家。\n添加了CIE颜色,相当于乙型肝炎。"
       }
     },
     "titleLang": {
