@@ -27,11 +27,11 @@
     "@iobroker/eslint-config": "^2.0.2",
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.0.4",
-    "@types/node": "^24.0.1",
+    "@types/node": "^24.0.7",
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
-    "mocha": "^11.6.0",
-    "puppeteer": "^24.10.1"
+    "mocha": "^11.7.1",
+    "puppeteer": "^24.11.1"
   },
   "main": "admin/tab.html",
   "files": [
