@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.7",
+    "version": "1.2.8",
     "news": {
+      "1.2.8": {
+        "en": "Corrected error in GUI",
+        "de": "Fehler behoben in GUI",
+        "ru": "Исправленная ошибка в GUI",
+        "pt": "Erro corrigido na interface gráfica",
+        "nl": "Gecorrigeerde fout in GUI",
+        "fr": "Erreur corrigée dans l'interface graphique",
+        "it": "Errore corretto in GUI",
+        "es": "Error corregido en GUI",
+        "pl": "Skorygowany błąd w GUI",
+        "uk": "Виправлена помилка в GUI",
+        "zh-cn": "在图形界面中更正错误"
+      },
       "1.2.7": {
         "en": "Replaced icon for the state import\nCorrected the edit dialog",
         "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
@@ -80,19 +93,6 @@
         "pl": "stabilizacja: problem z edytowaniem importowanych państw\nostrzeżenie:\nuruchomiono: umożliwianie iotowi ponownie (bez ustalania odpowiedniego inteligentnego nazw)\nuruchomiono: możliwy wypadek/typo w 1.1.3.",
         "uk": "фіксована: проблема з редагуванням імпортних станів\nфіксована: попередження\nвиправлено: дозволяючи iot знову (без налаштування користувацького smartName)\nвиправлено: можлива аварійна аварія / типограма в 1.1.3.",
         "zh-cn": "固定:进口国编辑问题\n固定:警告\n固定:可再次引诱(没有制定习俗)\n固定:可能出现1.1.3的事故/类型。."
-      },
-      "1.1.3": {
-        "en": "Better behavior of category selection",
-        "de": "Besseres Verhalten der Kategorieauswahl",
-        "ru": "Лучшее поведение выбора категории",
-        "pt": "Melhor comportamento da seleção de categorias",
-        "nl": "Beter gedrag van categorie selectie",
-        "fr": "Meilleur comportement de sélection de catégorie",
-        "it": "Migliore comportamento della selezione di categoria",
-        "es": "Mejor comportamiento de la selección de la categoría",
-        "pl": "Lepsze zachowanie kategorii",
-        "uk": "Краще поведінка вибору категорії",
-        "zh-cn": "B. 改进类别选择行为"
       }
     },
     "titleLang": {
