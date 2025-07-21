@@ -128,6 +128,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Corrected error in GUI
+
 ### 1.2.7 (2025-06-14)
 * (@GermanBluefox) Replaced icon for the state import
 * (@GermanBluefox) Corrected the edit dialog
