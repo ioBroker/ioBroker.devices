@@ -31,7 +31,7 @@
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
     "mocha": "^11.7.1",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^24.17.1"
   },
   "main": "admin/tab.html",
   "files": [
