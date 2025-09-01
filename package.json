@@ -28,7 +28,7 @@
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.1.1",
     "@types/node": "^24.3.0",
-    "chai": "^4.5.0",
+    "chai": "^6.0.1",
     "colorette": "^2.0.20",
     "mocha": "^11.7.1",
     "puppeteer": "^24.17.1"
