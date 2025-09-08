@@ -128,6 +128,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Created for new created states of devices the full name and not just last part, like `ACTUAL` 
+
 ### 1.2.8 (2025-07-21)
 * (@GermanBluefox) Corrected error in GUI
 

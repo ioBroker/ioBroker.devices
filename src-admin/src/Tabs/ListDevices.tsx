@@ -2406,7 +2406,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             }
                         } // else nothing changed
                     } else if (data.ids[state.name]) {
-                        state.id = state.id || `${channelId}.${state.name}`;
+                        state.id ||= `${channelId}.${state.name}`;
 
                         // Object not yet exists or invalid
                         let stateObj: ioBroker.StateObject | null | undefined;
@@ -2430,7 +2430,19 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         } else {
                             common.alias = { id: data.ids[state.name] };
                         }
-                        common.name ||= state.name;
+                        if (!common.name) {
+                            // Take as name the full path without alias.0, so the user understands what state it is
+                            common.name = state.id.replace(/^alias\.0\./, '').replace(/^linkeddevices\.0\./, '');
+
+                            // Replace dots with spaces and make the first letter of every word big
+                            common.name = common.name
+                                .replace(/_/g, ' ')
+                                .replace(/\./g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim()
+                                .replace(/(^|\s)\S/g, l => l.toUpperCase());
+                        }
+
                         common.role = state.defaultRole || 'state';
 
                         if (state.read !== undefined) {

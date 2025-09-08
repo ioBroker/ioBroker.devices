@@ -196,7 +196,7 @@ interface DialogEditPropertiesProps {
     channelInfo: PatternControlEx;
 }
 
-class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEditPropertiesState> {
+export default class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEditPropertiesState> {
     private readonly smartNameAvailable: boolean;
 
     constructor(props: DialogEditPropertiesProps) {
@@ -413,5 +413,3 @@ class DialogEditProperties extends Component<DialogEditPropertiesProps, DialogEd
         return <div style={styles.divDialogContent}>{this.renderProperties()}</div>;
     }
 }
-
-export default DialogEditProperties;

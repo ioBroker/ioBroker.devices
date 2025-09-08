@@ -643,9 +643,9 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     getStatesInformation(
         ids: Record<string, string | { read: string; write: string }>,
         states: Record<string, { [value: string]: string } | undefined>,
-        _channelInfo?: PatternControlEx,
+        channelInfo?: PatternControlEx,
     ): void {
-        const channelInfo = _channelInfo || this.state.channelInfo;
+        channelInfo ||= this.state.channelInfo;
         const processed: string[] = [];
         channelInfo.states.forEach(state => {
             if (!processed.includes(state.name) || state.id) {
@@ -782,7 +782,17 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         const lastPart = parts.pop() || '';
                         obj._id = `${this.channelId}.${lastPart}`;
                         obj.native = {};
-                        obj.common.name = lastPart;
+                        // Take as name the full path without alias.0, so the user understands what state it is
+                        obj.common.name = obj._id.replace(/^alias\.0\./, '').replace(/^linkeddevices\.0\./, '');
+
+                        // Replace dots with spaces and make the first letter of every word big
+                        obj.common.name = obj.common.name
+                            .replace(/_/g, ' ')
+                            .replace(/\./g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim()
+                            .replace(/(^|\s)\S/g, l => l.toUpperCase());
+
                         if (!isAlias) {
                             obj.common.alias = { id };
                         }
@@ -809,8 +819,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
             const stateObj = this.props.objects[item.id];
-            stateObj.common = stateObj.common || {};
-            stateObj.common.alias = stateObj.common.alias || {};
+            stateObj.common ||= {} as ioBroker.StateCommon;
+            stateObj.common.alias ||= {};
             stateObj.common.alias.id = this.state.ids[item.name];
             if (!this.fx[item.name].read) {
                 delete stateObj.common.alias.read;
@@ -846,6 +856,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         await this.updateNewState();
 
+        // Destroy and create new device if name was changed
         if (
             this.state.changeProperties.name &&
             this.state.initChangeProperties.name &&
