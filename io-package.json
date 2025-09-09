@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.8",
+    "version": "1.2.9",
     "news": {
+      "1.2.9": {
+        "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
+        "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
+        "ru": "Для новых состояний устройств создается полное имя, а не только последняя часть, например `ACTUAL`",
+        "pt": "Criado para novos estados criados de dispositivos o nome completo e não apenas a última parte, como `REAL`",
+        "nl": "Gemaakt voor nieuw aangemaakte toestanden van apparaten, de volledige naam en niet alleen het laatste deel, zoals `ACTUAL`",
+        "fr": "Créé pour les nouveaux états créés des appareils, le nom complet et pas seulement la dernière partie, comme « ACTUAL »",
+        "it": "Creato per i nuovi stati creati dei dispositivi il nome completo e non solo l'ultima parte, come `ATTUALE`",
+        "es": "Creado para nuevos estados creados de dispositivos, el nombre completo y no solo la última parte, como \"ACTUAL\"",
+        "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
+        "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
+        "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
+      },
       "1.2.8": {
         "en": "Corrected error in GUI",
         "de": "Fehler behoben in GUI",
