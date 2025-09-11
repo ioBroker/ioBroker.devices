@@ -731,7 +731,9 @@ export default function DialogImporter(props: {
                                                         checkEnumsSkip(device.id) ||
                                                         startTheProcess
                                                     }
-                                                    checked={!checkEnumsSkip(device.id) && checkedSelect.includes(device.id)}
+                                                    checked={
+                                                        !checkEnumsSkip(device.id) && checkedSelect.includes(device.id)
+                                                    }
                                                     onChange={() => {
                                                         const newArray = JSON.parse(JSON.stringify(checkedSelect));
                                                         const indexCurrent = checkedSelect.indexOf(device.id);
