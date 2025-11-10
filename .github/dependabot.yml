@@ -1,24 +1,29 @@
+# Dependabot will run on day 18 of each month at 03:46 (Europe/Berlin timezone)
 version: 2
 updates:
-    - package-ecosystem: github-actions
-      directory: '/'
-      schedule:
-          interval: monthly
-          time: '04:00'
-          timezone: Europe/Berlin
-    - package-ecosystem: npm
-      directory: '/'
-      schedule:
-          interval: monthly
-          time: '04:00'
-          timezone: Europe/Berlin
-      open-pull-requests-limit: 20
-      versioning-strategy: increase
-    - package-ecosystem: npm
-      directory: '/src-admin'
-      schedule:
-          interval: monthly
-          time: '04:00'
-          timezone: Europe/Berlin
-      open-pull-requests-limit: 20
-      versioning-strategy: increase
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      timezone: "Europe/Berlin"
+      cronjob: "46 3 18 * *"
+    open-pull-requests-limit: 15
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "cron"
+      timezone: "Europe/Berlin"
+      cronjob: "46 3 18 * *"
+    open-pull-requests-limit: 20
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/src-admin"
+    schedule:
+      interval: "cron"
+      timezone: "Europe/Berlin"
+      cronjob: "46 3 18 * *"
+    open-pull-requests-limit: 20
+    versioning-strategy: "increase"
