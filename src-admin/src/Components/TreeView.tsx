@@ -10,7 +10,6 @@ import {
     ListItem,
     ListItemIcon,
     IconButton,
-    ListItemSecondaryAction,
     Dialog,
     DialogActions,
     Button,
@@ -33,7 +32,7 @@ import {
     TiLightbulb as IconTypeSwitch,
 } from 'react-icons/ti';
 import { MdCheck as IconOK, MdCancel as IconCancel } from 'react-icons/md';
-import { CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
+import { CreateNewFolder as CreateNewFolderIcon, Clear as ClearIcon } from '@mui/icons-material';
 
 import { I18n, Utils, Icon, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
 
@@ -400,6 +399,18 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                         error={!!error}
                         style={styles.dialogNewInput}
                         autoFocus
+                        slotProps={{
+                            input: {
+                                endAdornment: this.state.addNewName ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.setState({ addNewName: '' })}
+                                    >
+                                        <ClearIcon />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
                         label={I18n.t('Folder name')}
                         value={this.state.addNewName}
                         onChange={e => this.setState({ addNewName: e.target.value })}

@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
 import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+import { Clear as ClearIcon } from '@mui/icons-material';
 
 const styles: Record<string, React.CSSProperties> = {
     divDialogContent: {
@@ -171,6 +172,18 @@ export default class DialogEditFx extends Component<DialogEditFxProps, DialogEdi
                                 <TextField
                                     variant="standard"
                                     fullWidth
+                                    slotProps={{
+                                        input: {
+                                            endAdornment: this.state.fxRead ? (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => this.setState({ fxRead: '' })}
+                                                >
+                                                    <ClearIcon />
+                                                </IconButton>
+                                            ) : null,
+                                        },
+                                    }}
                                     value={this.state.fxRead}
                                     style={styles.funcEdit}
                                     onChange={e => this.setState({ fxRead: e.target.value })}
@@ -193,6 +206,18 @@ export default class DialogEditFx extends Component<DialogEditFxProps, DialogEdi
                                 <TextField
                                     variant="standard"
                                     fullWidth
+                                    slotProps={{
+                                        input: {
+                                            endAdornment: this.state.fxWrite ? (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => this.setState({ fxWrite: '' })}
+                                                >
+                                                    <ClearIcon />
+                                                </IconButton>
+                                            ) : null,
+                                        },
+                                    }}
                                     value={this.state.fxWrite}
                                     helperText={`${I18n.t('JS function like')} "(val - 21) * 5"`}
                                     style={styles.funcEdit}

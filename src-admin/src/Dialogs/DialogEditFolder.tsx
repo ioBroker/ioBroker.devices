@@ -10,9 +10,10 @@ import {
     FormControlLabel,
     TextField,
     ThemeProvider,
+    IconButton,
 } from '@mui/material';
 
-import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
+import { Close as IconClose, Check as IconCheck, Clear as ClearIcon } from '@mui/icons-material';
 
 import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/adapter-react-v5';
 
@@ -303,6 +304,29 @@ function DialogEditFolder(props: {
 
                                     setName(e.target.value);
                                 }}
+                                slotProps={{
+                                    input: {
+                                        endAdornment: name ? (
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => {
+                                                    const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
+                                                    newDataEdit.common.name = '';
+                                                    setDataEdit(newDataEdit);
+
+                                                    if (!newFolder) {
+                                                        const parentId = getParentId(data!._id);
+                                                        setId(`${parentId}.`);
+                                                    }
+
+                                                    setName('');
+                                                }}
+                                            >
+                                                <ClearIcon />
+                                            </IconButton>
+                                        ) : null,
+                                    },
+                                }}
                                 margin="normal"
                             />
                         </div>
@@ -320,6 +344,22 @@ function DialogEditFolder(props: {
                                     newDataEdit.common.color = e.target.value;
                                     setDataEdit(newDataEdit);
                                 }}
+                                slotProps={{
+                                    input: {
+                                        endAdornment: dataEdit?.common?.color ? (
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => {
+                                                    const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
+                                                    newDataEdit.common.color = '';
+                                                    setDataEdit(newDataEdit);
+                                                }}
+                                            >
+                                                <ClearIcon />
+                                            </IconButton>
+                                        ) : null,
+                                    },
+                                }}
                             />
                             <TextField
                                 variant="standard"
@@ -332,6 +372,22 @@ function DialogEditFolder(props: {
                                     const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
                                     newDataEdit.common.color = e.target.value;
                                     setDataEdit(newDataEdit);
+                                }}
+                                slotProps={{
+                                    input: {
+                                        endAdornment: dataEdit?.common?.color ? (
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => {
+                                                    const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
+                                                    newDataEdit.common.color = '';
+                                                    setDataEdit(newDataEdit);
+                                                }}
+                                            >
+                                                <ClearIcon />
+                                            </IconButton>
+                                        ) : null,
+                                    },
                                 }}
                             />
                         </div>

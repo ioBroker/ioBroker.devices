@@ -10,6 +10,7 @@ import {
     DialogTitle,
     FormControl,
     FormControlLabel,
+    IconButton,
     InputLabel,
     MenuItem,
     Paper,
@@ -18,7 +19,7 @@ import {
     ThemeProvider,
 } from '@mui/material';
 
-import { Close as IconClose, Check as IconCheck } from '@mui/icons-material';
+import { Close as IconClose, Check as IconCheck, Clear as ClearIcon } from '@mui/icons-material';
 
 import { I18n, Theme, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
 import type { DetectorState } from '@iobroker/type-detector';
@@ -176,6 +177,18 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                             style={styles.nameField}
                             label={I18n.t('Name')}
                             onChange={e => setName(e.target.value?.toUpperCase())}
+                            slotProps={{
+                                input: {
+                                    endAdornment: name ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setName('')}
+                                        >
+                                            <ClearIcon />
+                                        </IconButton>
+                                    ) : null,
+                                },
+                            }}
                         />
                         <Autocomplete
                             freeSolo

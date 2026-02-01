@@ -14,9 +14,10 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
+    IconButton,
     TextField,
 } from '@mui/material';
-import { Check as IconCheck, Close as IconClose } from '@mui/icons-material';
+import { Check as IconCheck, Close as IconClose, Clear as ClearIcon } from '@mui/icons-material';
 
 import { Types, type ExternalDetectorState } from '@iobroker/type-detector';
 import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
@@ -393,6 +394,18 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                                         ev.preventDefault();
                                     }
                                 }
+                            }}
+                            slotProps={{
+                                input: {
+                                    endAdornment: this.state.name ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => this.setState({ name: '' })}
+                                        >
+                                            <ClearIcon />
+                                        </IconButton>
+                                    ) : null,
+                                },
                             }}
                             label={I18n.t('Device name')}
                             error={!!this.props.objects[this.generateId()]}

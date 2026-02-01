@@ -33,6 +33,7 @@ import {
     OpenInNew as IconExtended,
     HelpOutline as IconHelpOutline,
     ImportExport as ImportExportIcon,
+    Clear as ClearIcon,
 } from '@mui/icons-material';
 import { AiOutlineEdit as IconEditStates } from 'react-icons/ai';
 import type { IconType } from 'react-icons';
@@ -1193,6 +1194,22 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         }}
                                         helperText={`${props.join(', ')}`}
                                         margin="normal"
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: this.state.ids[name].read ? (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                                            ids[name].read = '';
+                                                            this.setState({ ids });
+                                                        }}
+                                                    >
+                                                        <ClearIcon />
+                                                    </IconButton>
+                                                ) : null,
+                                            },
+                                        }}
                                     />
                                     <Box sx={styles.wrapperItemButtons}>
                                         {(alias || linkedDevices) && !this.state.startTheProcess && (
@@ -1265,6 +1282,22 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                             ids[name].write = e.target.value;
                                             this.setState({ ids });
                                         }}
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: this.state.ids[name].write ? (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                                            ids[name].write = '';
+                                                            this.setState({ ids });
+                                                        }}
+                                                    >
+                                                        <ClearIcon />
+                                                    </IconButton>
+                                                ) : null,
+                                            },
+                                        }}
                                         helperText={`${props.join(', ')}`}
                                         margin="normal"
                                     />
@@ -1315,6 +1348,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 >
                                     <IconButton
                                         size="small"
+                                        color={
+                                            this.state.ids[name].read || this.state.ids[name].write
+                                                ? 'primary'
+                                                : undefined
+                                        }
                                         onClick={() => this.setState({ editFxFor: name })}
                                         sx={styles.button}
                                     >
@@ -1432,6 +1470,22 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             ids[name] = e.target.value;
                             this.setState({ ids });
                         }}
+                        slotProps={{
+                            input: {
+                                endAdornment: (alias || linkedDevices ? this.state.ids[name] : item.id) ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            const ids = JSON.parse(JSON.stringify(this.state.ids));
+                                            ids[name] = '';
+                                            this.setState({ ids });
+                                        }}
+                                    >
+                                        <ClearIcon />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
                         helperText={props.join(', ')}
                         margin="normal"
                     />
@@ -1473,6 +1527,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             >
                                 <IconButton
                                     size="small"
+                                    color={this.fx[name]?.read || this.fx[name]?.write ? 'primary' : undefined}
                                     onClick={() =>
                                         this.setState({
                                             editFxFor: name,

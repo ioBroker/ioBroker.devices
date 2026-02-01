@@ -20,18 +20,17 @@
     "url": "https://github.com/ioBroker/ioBroker.devices"
   },
   "devDependencies": {
-    "@alcalzone/release-script": "^3.8.0",
-    "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
-    "@alcalzone/release-script-plugin-license": "^3.7.0",
+    "@alcalzone/release-script": "^5.0.0",
+    "@alcalzone/release-script-plugin-iobroker": "^4.0.0",
+    "@alcalzone/release-script-plugin-license": "^4.0.0",
     "@iobroker/build-tools": "^2.0.15",
     "@iobroker/eslint-config": "^2.2.0",
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.2.2",
-    "@types/node": "^24.10.1",
-    "chai": "^4.5.0",
+    "@types/node": "^25.2.0",
     "colorette": "^2.0.20",
     "mocha": "^11.7.5",
-    "puppeteer": "^24.34.0"
+    "puppeteer": "^24.36.1"
   },
   "main": "admin/tab.html",
   "files": [

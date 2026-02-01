@@ -6,7 +6,7 @@
  */
 import React, { Component } from 'react';
 
-import { TextField, Switch, FormControlLabel, Box } from '@mui/material';
+import { TextField, Switch, FormControlLabel, Box, IconButton } from '@mui/material';
 
 import { I18n, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
 
@@ -14,6 +14,7 @@ import UploadImage from '../Components/UploadImage';
 import { findMainStateId, getParentId, getSmartName } from '../Components/helpers/utils';
 import type { PatternControlEx } from '../types';
 import EnumSelector from '../Components/EnumSelector';
+import { Clear as ClearIcon } from '@mui/icons-material';
 
 const styles: Record<string, any> = {
     divOidField: {
@@ -327,6 +328,18 @@ export default class DialogEditProperties extends Component<DialogEditProperties
                         sx={styles.oidField}
                         onChange={e => this.setState({ name: e.target.value })}
                         margin="normal"
+                        slotProps={{
+                            input: {
+                                endAdornment: this.state.name ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.setState({ name: '' })}
+                                    >
+                                        <ClearIcon />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
                     />
                 </div>
                 {this.smartNameAvailable ? (
@@ -357,6 +370,18 @@ export default class DialogEditProperties extends Component<DialogEditProperties
                             disabled={disabled}
                             placeholder={this.state.name!.replace(/[-^#_%&{}!?()§"'`+*~/\\]/g, ' ') || ''}
                             value={this.state.smartName || ''}
+                            slotProps={{
+                                input: {
+                                    endAdornment: this.state.smartName ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => this.setState({ smartName: '' })}
+                                        >
+                                            <ClearIcon />
+                                        </IconButton>
+                                    ) : null,
+                                },
+                            }}
                             sx={styles.oidField}
                             helperText={I18n.t('This name will use be in smart assistance. (optional)')}
                             onChange={e =>
@@ -384,6 +409,18 @@ export default class DialogEditProperties extends Component<DialogEditProperties
                             disabled={disabled}
                             value={this.state.color || ''}
                             onChange={e => this.setState({ color: e.target.value })}
+                            slotProps={{
+                                input: {
+                                    endAdornment: this.state.color ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => this.setState({ color: '' })}
+                                        >
+                                            <ClearIcon />
+                                        </IconButton>
+                                    ) : null,
+                                },
+                            }}
                         />
                         <TextField
                             variant="standard"
@@ -394,6 +431,18 @@ export default class DialogEditProperties extends Component<DialogEditProperties
                             value={this.state.color || ''}
                             sx={{ ...styles.oidField, ...styles.colorButton }}
                             onChange={e => this.setState({ color: e.target.value })}
+                            slotProps={{
+                                input: {
+                                    endAdornment: this.state.color ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => this.setState({ color: '' })}
+                                        >
+                                            <ClearIcon />
+                                        </IconButton>
+                                    ) : null,
+                                },
+                            }}
                             margin="normal"
                         />
                     </Box>

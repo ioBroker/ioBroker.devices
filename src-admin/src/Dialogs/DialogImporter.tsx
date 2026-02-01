@@ -20,7 +20,7 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { ModeEdit as IconEdit, Close as IconClose, Check as IconCheck } from '@mui/icons-material';
+import { ModeEdit as IconEdit, Close as IconClose, Check as IconCheck, Clear as ClearIcon } from '@mui/icons-material';
 
 import {
     I18n,
@@ -288,6 +288,18 @@ function RenderNewItemDialog(props: {
                     fullWidth
                     label={I18n.t('Name')}
                     value={name}
+                    slotProps={{
+                        input: {
+                            endAdornment: name ? (
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setName('')}
+                                >
+                                    <ClearIcon />
+                                </IconButton>
+                            ) : null,
+                        },
+                    }}
                     onChange={e => setName(e.target.value)}
                 />
             </form>
