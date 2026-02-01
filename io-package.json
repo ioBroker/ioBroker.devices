@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.10",
+    "version": "1.2.11",
     "news": {
+      "1.2.11": {
+        "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
+        "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
+        "ru": "Показать цвет, если fx не пустой\nДобавлено для всех текстовых полей четкая кнопка",
+        "pt": "Mostrar na cor se o fx não estiver vazio\nAdicionado para todos os campos de texto o botão limpar",
+        "nl": "In kleur tonen als fx niet leeg is\nToegevoegd voor alle tekstvelden de knop wissen",
+        "fr": "Afficher en couleur si fx n'est pas vide\nAjouté pour tous les champs de texte le bouton clair",
+        "it": "Mostra nel colore se fx non è vuoto\nAggiunto per tutti i campi di testo il pulsante chiaro",
+        "es": "Mostrar en color si el fx no está vacío\nAñadido para todos los campos de texto el botón claro",
+        "pl": "Pokaż kolor, jeśli fx nie jest pusty\nDodano dla wszystkich pól tekstowych czysty przycisk",
+        "uk": "Показати в кольорі якщо fx не порожній\nДодано для всіх текстових полів чітку кнопку",
+        "zh-cn": "如果 fx 不为空, 以颜色显示\n为所有文本字段添加了清晰的按钮"
+      },
       "1.2.9": {
         "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
         "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
