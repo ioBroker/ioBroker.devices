@@ -128,7 +128,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.2.10 (2026-02-01)
 * (@GermanBluefox) Show in color if fx is not empty
 * (@GermanBluefox) Added for all text fields the clear button
 
