@@ -42,6 +42,7 @@
     "scripts": {
         "prepublishOnly": "node tasks",
         "build": "node tasks",
+        "lint": "cd src-admin && npm run lint",
         "test:package": "mocha test/package.test.js --exit",
         "test:integration": "mocha test/testAdapter.gui.test.js --exit",
         "release": "release-script",
