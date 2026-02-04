@@ -753,6 +753,15 @@ interface ListDevicesState {
     deleteFolderAndDevice: null | { id: string; device?: false } | { index: number; device: true };
 }
 
+const isTouchDevice = (): boolean => {
+    return (
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        // @ts-ignore - legacy property
+        navigator.msMaxTouchPoints > 0
+    );
+};
+
 class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     private readonly inputRef: RefObject<HTMLInputElement>;
 
@@ -786,6 +795,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     private roomsEnums: string[];
 
     private readonly detector: SmartDetector;
+
+    private isTouchDevice: boolean = isTouchDevice();
 
     constructor(props: ListDevicesProps) {
         super(props);
@@ -3264,29 +3275,36 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
+    renderContent(): React.JSX.Element {
+        return (
+            <div style={styles.tab}>
+                {this.renderMessage()}
+                {this.renderEditDialog()}
+                {this.renderAddDialog()}
+                {this.renderEditEnumDialog()}
+                {this.renderImporterDialog()}
+                {this.renderEditFolder()}
+                {this.renderDeleteDialog()}
+
+                {this.renderToolbar()}
+
+                {this.renderDevices()}
+            </div>
+        );
+    }
+
     render(): React.JSX.Element {
         if (this.state.loading) {
             return <Loader themeType={this.props.themeType} />;
         }
+        // Do not allow to move elements on touch devices, as scroll could be misunderstood as reordering
+        if (this.isTouchDevice) {
+            return this.renderContent();
+        }
+
         const small = this.props.width === 'xs' || this.props.width === 'sm';
 
-        return (
-            <DndProvider backend={!small ? HTML5Backend : TouchBackend}>
-                <div style={styles.tab}>
-                    {this.renderMessage()}
-                    {this.renderEditDialog()}
-                    {this.renderAddDialog()}
-                    {this.renderEditEnumDialog()}
-                    {this.renderImporterDialog()}
-                    {this.renderEditFolder()}
-                    {this.renderDeleteDialog()}
-
-                    {this.renderToolbar()}
-
-                    {this.renderDevices()}
-                </div>
-            </DndProvider>
-        );
+        return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>{this.renderContent()}</DndProvider>;
     }
 }
 
