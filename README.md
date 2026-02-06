@@ -128,7 +128,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### 1.2.13 (2026-02-06)
+### **WORK IN PROGRESS**
 * (@GermanBluefox) Correcting the scrolling on the touch devices
 * (@GermanBluefox) Fixing a problem with `ACTUAL` state
 
