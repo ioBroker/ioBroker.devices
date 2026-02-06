@@ -130,13 +130,14 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Correcting the scrolling on the touch devices
+* (@GermanBluefox) Fixing a problem with `ACTUAL` state
 
 ### 1.2.12 (2026-02-04)
 * (@GermanBluefox) Show in color if fx is not empty
 * (@GermanBluefox) Added for all text fields the clear button
 
 ### 1.2.9 (2025-09-08)
-* (@GermanBluefox) Created for new created states of devices the full name and not just last part, like `ACTUAL`
+* (@GermanBluefox) Created for newly created states of devices the full name and not just last part, like `ACTUAL`
 
 ### 1.2.8 (2025-07-21)
 * (@GermanBluefox) Corrected error in GUI
