@@ -2364,7 +2364,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 const processed: string[] = [];
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
-                    // If state with the same name already processed, ignore it
+                    // If a state with the same name already processed, ignore it
                     if (processed.includes(state.name)) {
                         continue;
                     }
@@ -2517,7 +2517,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 const processed: string[] = [];
                 for (let s = 0; s < device.states.length; s++) {
                     const state = device.states[s];
-                    // If state with the same name already processed, ignore it
+                    // If a state with the same name already processed, ignore it
                     if (processed.includes(state.name)) {
                         continue;
                     }
@@ -2642,10 +2642,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             }
         }
 
-        // update expert mode if was changed
-        const newState = { editId: null, expertMode: window.localStorage.getItem('Devices.expertMode') === 'true' };
-
-        await this.setStateAsync(newState);
+        await this.setStateAsync({ editId: null });
         Router.doNavigate(null, '', '');
     };
 

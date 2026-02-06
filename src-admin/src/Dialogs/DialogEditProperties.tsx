@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2025 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2026 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -7,6 +7,7 @@
 import React, { Component } from 'react';
 
 import { TextField, Switch, FormControlLabel, Box, IconButton } from '@mui/material';
+import { Clear as ClearIcon } from '@mui/icons-material';
 
 import { I18n, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
 
@@ -14,7 +15,6 @@ import UploadImage from '../Components/UploadImage';
 import { findMainStateId, getParentId, getSmartName } from '../Components/helpers/utils';
 import type { PatternControlEx } from '../types';
 import EnumSelector from '../Components/EnumSelector';
-import { Clear as ClearIcon } from '@mui/icons-material';
 
 const styles: Record<string, any> = {
     divOidField: {
@@ -44,7 +44,7 @@ const styles: Record<string, any> = {
         },
     },
     colorButton: {
-        marginLeft: 5,
+        marginLeft: '5px',
         '&>div': {
             width: '100%',
         },
@@ -426,23 +426,11 @@ export default class DialogEditProperties extends Component<DialogEditProperties
                             variant="standard"
                             key="_color1"
                             type="color"
-                            style={{ width: 40 }}
+                            style={{ width: 40, marginTop: 2 }}
                             disabled={disabled}
                             value={this.state.color || ''}
                             sx={{ ...styles.oidField, ...styles.colorButton }}
                             onChange={e => this.setState({ color: e.target.value })}
-                            slotProps={{
-                                input: {
-                                    endAdornment: this.state.color ? (
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => this.setState({ color: '' })}
-                                        >
-                                            <ClearIcon />
-                                        </IconButton>
-                                    ) : null,
-                                },
-                            }}
                             margin="normal"
                         />
                     </Box>

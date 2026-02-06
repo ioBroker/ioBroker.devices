@@ -365,7 +365,7 @@ interface DialogEditDeviceProps {
             states: Record<string, { [value: string]: string } | undefined>;
         },
         channelInfo?: PatternControlEx,
-    ) => void;
+    ) => Promise<void>;
     onSaveProperties: (properties: DialogEditPropertiesState, channelInfo: PatternControlEx) => Promise<void>;
     onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
 }
@@ -385,7 +385,6 @@ interface DialogEditDeviceState {
     name: string;
     addedStates: AddedState[];
     showIndicators: boolean;
-    expertMode: boolean;
     selectIdFor: string;
     newState: boolean;
     selectIdPrefix: 'read' | 'write' | '';
@@ -464,7 +463,6 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             name,
             addedStates,
             showIndicators: indicatorsAvailable && window.localStorage.getItem('Devices.editExtended') === 'true',
-            expertMode: true,
             selectIdFor: '',
             newState: false,
             selectIdPrefix: '',
@@ -812,7 +810,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     handleClose = (): void => {
-        this.props.onClose(null);
+        void this.props.onClose(null);
     };
 
     updateNewState = async (): Promise<void> => {
@@ -846,7 +844,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             await this.props.onSaveProperties(this.state.changeProperties, this.state.channelInfo);
         }
 
-        this.props.onClose(
+        await this.props.onClose(
             {
                 ids: this.state.ids,
                 fx: this.fx,
@@ -870,6 +868,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             await this.props.onCopyDevice(this.channelId, lastPart);
         }
         this.setState({ startTheProcess: false });
+        void this.props.onClose(null);
     };
 
     showDeviceIcon(): React.JSX.Element {
