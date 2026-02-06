@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.12",
+    "version": "1.2.13",
     "news": {
+      "1.2.13": {
+        "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state",
+        "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben",
+        "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием",
+        "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'",
+        "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"",
+        "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`",
+        "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`",
+        "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"",
+        "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'",
+        "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'",
+        "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题"
+      },
       "1.2.12": {
         "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
         "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
@@ -80,19 +93,6 @@
         "pl": "Poprawiono wiele problemów GUI",
         "uk": "Виправлено багато питань GUI",
         "zh-cn": "更正了许多图形用户界面问题"
-      },
-      "1.2.1": {
-        "en": "Updated logo\nUpdated type-detector",
-        "de": "Aktualisiertes Logo\nAktualisierter Typ-Detektor",
-        "ru": "Обновленный логотип\nОбновленный детектор типов",
-        "pt": "Logotipo atualizado\nDetetor de tipo atualizado",
-        "nl": "Bijgewerkt logo\nBijgewerkt type-detector",
-        "fr": "Logo actualisé\nDétecteur de type mis à jour",
-        "it": "Logo aggiornato\nTipo di rilevatore aggiornato",
-        "es": "Logo Actualizado\nActualizado tipo-detector",
-        "pl": "Aktualizacja logo\nAktualizacja czujnika typu",
-        "uk": "Оновлений логотип\nОновлений тип-детектор",
-        "zh-cn": "更新的标志\n更新类型检测器"
       }
     },
     "titleLang": {
