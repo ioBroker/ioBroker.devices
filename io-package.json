@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "1.2.13",
+    "version": "1.2.14",
     "news": {
+      "1.2.14": {
+        "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state\nCorrecting the hover effect under safari",
+        "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben\nKorrektur der Hover-Effekt unter Safari",
+        "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием\nКоррекция эффекта парения под сафари",
+        "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'\nCorrigindo o efeito hover sob safari",
+        "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"\nCorrigeren van het zweefeffect onder safari",
+        "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`\nCorrection de l'effet hover sous safari",
+        "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`\nCorreggere l'effetto hover sotto safari",
+        "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"\nCorregir el efecto del tubo bajo safari",
+        "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'\nKorekta efektu unoszenia się pod safari",
+        "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'\nКорекція ефекту конюшини під сафарі",
+        "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题\n校正 Safari 下的悬浮效应"
+      },
       "1.2.12": {
         "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
         "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
