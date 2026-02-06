@@ -131,6 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Correcting the scrolling on the touch devices
 * (@GermanBluefox) Fixing a problem with `ACTUAL` state
+* (@GermanBluefox) Correcting the hover effect under safari
 
 ### 1.2.12 (2026-02-04)
 * (@GermanBluefox) Show in color if fx is not empty

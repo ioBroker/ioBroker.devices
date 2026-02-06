@@ -664,7 +664,7 @@ const styles: Record<string, any> = {
             position: 'absolute',
             top: 0,
             left: 0,
-            height: '100%',
+            height: 37,
             background: '#ffffff36',
             pointerEvents: 'none',
         },
