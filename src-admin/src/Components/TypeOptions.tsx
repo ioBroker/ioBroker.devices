@@ -2,10 +2,9 @@ import React from 'react';
 import { Types } from '@iobroker/type-detector';
 
 import { FcGoogle } from 'react-icons/fc';
-import { SiAmazonalexa } from 'react-icons/si';
+import { BsAlexa as Alexa } from 'react-icons/bs';
 
-import { Material as MaterialIcon } from '@iobroker/adapter-react-v5/build/Components/DeviceType/icons/Material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Material as MaterialIcon } from '@iobroker/adapter-react-v5';
 
 export type ApplicationType = 'alexa' | 'alisa' | 'google' | 'material';
 
@@ -59,7 +58,7 @@ const TYPE_OPTIONS: Record<Types, Record<ApplicationType, boolean>> = {
 
 export const ICONS_TYPE: Record<ApplicationType, React.JSX.Element> = {
     alexa: (
-        <SiAmazonalexa
+        <Alexa
             style={{ margin: '0 3px', width: 16, height: 16 }}
             title={I18n.t('Supported by %s', 'Amazon Alexa')}
         />
