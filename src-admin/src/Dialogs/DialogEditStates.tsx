@@ -1,6 +1,16 @@
 import React from 'react';
 
-import { SortableContainer, SortableElement, SortableHandle } from 'react-sortable-hoc';
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    KeyboardSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import {
     Dialog,
@@ -29,84 +39,109 @@ import {
 } from '@mui/icons-material';
 
 import { I18n } from '@iobroker/adapter-react-v5';
-const DragHandle = SortableHandle((): React.JSX.Element => <IconDragHandle style={{ cursor: 'grab' }} />);
 
-const SortableItem = SortableElement<{
+function SortableItem(props: {
+    id: string;
     item: { label: string; value: string };
     ownIndex: number;
     onDelete: (i: number) => void;
     onChange: (i: number, value?: string, label?: string) => void;
-}>(
-    (props: {
-        item: { label: string; value: string };
-        ownIndex: number;
-        onDelete: (i: number) => void;
-        onChange: (i: number, value?: string, label?: string) => void;
-    }): React.JSX.Element => {
-        const { item, ownIndex, onDelete, onChange } = props;
-        return (
-            <TableRow style={{ zIndex: 10000 }}>
-                <TableCell>
-                    <DragHandle />
-                </TableCell>
-                <TableCell
-                    component="th"
-                    scope="row"
-                >
-                    {
-                        <TextField
-                            variant="standard"
-                            value={item.value}
-                            onChange={e => onChange(ownIndex, e.target.value)}
-                        />
-                    }
-                </TableCell>
-                <TableCell align="right">
-                    {
-                        <TextField
-                            variant="standard"
-                            value={item.label}
-                            onChange={e => onChange(ownIndex, undefined, e.target.value)}
-                        />
-                    }
-                </TableCell>
-                <TableCell>
-                    <IconButton onClick={() => onDelete(ownIndex)}>
-                        <IconDelete />
-                    </IconButton>
-                </TableCell>
-            </TableRow>
-        );
-    },
-);
+}): React.JSX.Element {
+    const { item, ownIndex, onDelete, onChange } = props;
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id });
 
-const SortableList = SortableContainer<{
+    const style: React.CSSProperties = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        zIndex: isDragging ? 10000 : undefined,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <TableRow
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+        >
+            <TableCell>
+                <IconDragHandle
+                    style={{ cursor: 'grab' }}
+                    {...listeners}
+                />
+            </TableCell>
+            <TableCell
+                component="th"
+                scope="row"
+            >
+                <TextField
+                    variant="standard"
+                    value={item.value}
+                    onChange={e => onChange(ownIndex, e.target.value)}
+                />
+            </TableCell>
+            <TableCell align="right">
+                <TextField
+                    variant="standard"
+                    value={item.label}
+                    onChange={e => onChange(ownIndex, undefined, e.target.value)}
+                />
+            </TableCell>
+            <TableCell>
+                <IconButton onClick={() => onDelete(ownIndex)}>
+                    <IconDelete />
+                </IconButton>
+            </TableCell>
+        </TableRow>
+    );
+}
+
+function SortableList(props: {
     items: { label: string; value: string }[];
+    onSortEnd: (args: { oldIndex: number; newIndex: number }) => void;
     onDelete: (i: number) => void;
     onChange: (i: number, value?: string, label?: string) => void;
-}>(
-    (props: {
-        items: { label: string; value: string }[];
-        onDelete: (i: number) => void;
-        onChange: (i: number, value?: string, label?: string) => void;
-    }): React.JSX.Element => {
-        const { items, onDelete, onChange } = props;
-        return (
-            <TableBody>
-                {items.map((item, index) => (
-                    <SortableItem
-                        key={`item-${index}`}
-                        index={index}
-                        ownIndex={index}
-                        onDelete={onDelete}
-                        onChange={onChange}
-                        item={item}
-                    />
-                ))}
-            </TableBody>
-        );
-    },
-);
+}): React.JSX.Element {
+    const { items, onSortEnd, onDelete, onChange } = props;
+
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+
+    const itemIds = items.map((_item, index) => `item-${index}`);
+
+    const handleDragEnd = (event: DragEndEvent): void => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = itemIds.indexOf(active.id as string);
+            const newIndex = itemIds.indexOf(over.id as string);
+            onSortEnd({ oldIndex, newIndex });
+        }
+    };
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+        >
+            <SortableContext
+                items={itemIds}
+                strategy={verticalListSortingStrategy}
+            >
+                <TableBody>
+                    {items.map((item, index) => (
+                        <SortableItem
+                            key={`item-${index}`}
+                            id={`item-${index}`}
+                            ownIndex={index}
+                            onDelete={onDelete}
+                            onChange={onChange}
+                            item={item}
+                        />
+                    ))}
+                </TableBody>
+            </SortableContext>
+        </DndContext>
+    );
+}
 
 interface DialogEditStatesProps {
     states: { [value: string]: string } | undefined;
@@ -208,7 +243,6 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
                                 </TableRow>
                             </TableHead>
                             <SortableList
-                                useDragHandle
                                 items={this.state.states}
                                 onSortEnd={this.onSortEnd}
                                 onDelete={this.onDelete}

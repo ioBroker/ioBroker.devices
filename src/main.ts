@@ -9,6 +9,9 @@ export default class DevicesAdapter extends Adapter {
         super({
             ...options,
             name: 'devices',
+            objectChange: (id: string, obj: ioBroker.Object | null | undefined): void => {
+                this.deviceManagement?.objectChange(id, obj);
+            },
             ready: () => this.main(),
             unload: cb => this.unload(cb),
         });
@@ -16,7 +19,7 @@ export default class DevicesAdapter extends Adapter {
         this.deviceManagement = new DevicesDeviceManagement(this);
     }
 
-    unload(cb: () => void) {
+    unload(cb: () => void): void {
         //this.deviceManagement?.destroy();
         cb?.();
     }
