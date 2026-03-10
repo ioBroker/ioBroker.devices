@@ -41,6 +41,7 @@
     "files": [
         "admin/",
         "img/",
+        "build/",
         "io-package.json",
         "LICENSE"
     ],
@@ -48,7 +49,7 @@
         "prepublishOnly": "node tasks",
         "build:backend": "tsc -p tsconfig.build.json",
         "build": "npm run build:backend && node tasks",
-        "lint": "cd src-admin && npm run lint",
+        "lint": "eslint -c eslint.config.mjs && cd src-admin && npm run lint",
         "test:package": "mocha test/package.test.js --exit",
         "test:integration": "mocha test/testAdapter.gui.test.js --exit",
         "release": "release-script",

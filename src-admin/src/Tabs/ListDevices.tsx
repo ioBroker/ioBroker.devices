@@ -4,11 +4,16 @@
  * MIT License
  *
  */
-import React, { Component, createRef, type RefObject } from 'react';
-
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { TouchBackend } from 'react-dnd-touch-backend';
+import React, { Component, createRef, useState, type RefObject } from 'react';
+import {
+    DndContext,
+    DragOverlay,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
 
 import {
     ButtonBase,
@@ -76,6 +81,7 @@ import {
     type IobTheme,
     type AdminConnection,
     type ThemeType,
+    type ThemeName,
     Loader,
     DeviceTypeIcon,
 } from '@iobroker/adapter-react-v5';
@@ -101,6 +107,7 @@ import DragWrapper from '../Components/DragWrapper';
 import DropWrapper from '../Components/DropWrapper';
 import DialogImporter from '../Dialogs/DialogImporter';
 import { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
+import DeviceManagerComponent from '../Components/DeviceManager';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -722,6 +729,7 @@ interface ListDevicesProps {
     adapterName: string;
     instance: number;
     socket: AdminConnection;
+    themeName: ThemeName;
     theme: IobTheme;
     themeType: ThemeType;
     prefix?: string;
@@ -778,6 +786,35 @@ const isTouchDevice = (): boolean => {
         navigator.msMaxTouchPoints > 0
     );
 };
+
+function DndWrapper(props: {
+    children: React.ReactNode;
+    onDragEnd: (event: DragEndEvent) => void;
+    renderOverlay?: (data: Record<string, unknown>) => React.ReactNode;
+}): React.JSX.Element {
+    const [activeData, setActiveData] = useState<Record<string, unknown> | null>(null);
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    );
+
+    return (
+        <DndContext
+            sensors={sensors}
+            onDragStart={event => setActiveData((event.active.data.current as Record<string, unknown>) || null)}
+            onDragEnd={event => {
+                setActiveData(null);
+                props.onDragEnd(event);
+            }}
+            onDragCancel={() => setActiveData(null)}
+        >
+            {props.children}
+            <DragOverlay dropAnimation={null}>
+                {activeData && props.renderOverlay ? props.renderOverlay(activeData) : null}
+            </DragOverlay>
+        </DndContext>
+    );
+}
 
 class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     private readonly inputRef: RefObject<HTMLInputElement>;
@@ -2432,6 +2469,64 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
+    handleDragEnd = async (event: DragEndEvent): Promise<void> => {
+        const { active, over } = event;
+        if (!active?.data?.current) {
+            return;
+        }
+
+        const draggedItem = active.data.current as { id: string; deviceIdx: number };
+        const language = I18n.getLanguage();
+
+        let lastPart: string;
+        if (this.objects[draggedItem.id]?.common?.name) {
+            lastPart = Utils.getObjectName(this.objects, draggedItem.id, language)
+                .replace(Utils.FORBIDDEN_CHARS, '_')
+                .replace(/\s/g, '_')
+                .replace(/\./g, '_');
+        } else {
+            lastPart = getLastPart(draggedItem.id);
+        }
+
+        if (over?.data?.current) {
+            const dropTarget = over.data.current as { id: string; type: string };
+
+            let targetPath: string;
+            if (dropTarget.type === 'folder') {
+                targetPath = `${dropTarget.id}.${lastPart}`;
+            } else {
+                const parentId = getParentId(dropTarget.id);
+                targetPath = `${parentId}.${lastPart}`;
+            }
+
+            // Validate drop target
+            if (
+                !dropTarget.id?.includes('alias.0') ||
+                dropTarget.id?.includes('automatically_detected') ||
+                dropTarget.id?.includes('linked_devices') ||
+                this.objects[targetPath]
+            ) {
+                return;
+            }
+
+            await this.onCopyDevice(draggedItem.id, targetPath);
+            this.toggleExpanded(dropTarget.id, true);
+            if (draggedItem.id.includes('alias.0')) {
+                await this.deleteDevice(draggedItem.deviceIdx);
+            }
+        } else {
+            // Dropped outside any target — copy to alias.0 root
+            if (draggedItem.id === `alias.0.${lastPart}`) {
+                return;
+            }
+
+            await this.onCopyDevice(draggedItem.id, `alias.0.${lastPart}`);
+            if (draggedItem.id.includes('alias.0')) {
+                await this.deleteDevice(draggedItem.deviceIdx);
+            }
+        }
+    };
+
     onCopyDevice = async (id: string, newChannelId: string): Promise<void> => {
         // if this is a device not from linkeddevices or from alias
         const deviceToCopy = this.state.devices.find(device => device.channelId === id);
@@ -3393,6 +3488,19 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
+    renderDeviceManager(): React.JSX.Element {
+        return (
+            <DeviceManagerComponent
+                socket={this.props.socket}
+                adapterName={this.props.adapterName}
+                instance={this.props.instance}
+                themeName={this.props.themeName}
+                themeType={this.props.themeType}
+                theme={this.props.theme}
+            />
+        );
+    }
+
     renderContent(): React.JSX.Element {
         const narrow = this.state.windowWidth < 1300;
 
@@ -3420,7 +3528,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                 opacity: 0.5,
                             }}
                         >
-                            {I18n.t('Drop or select a device to configure')}
+                            {this.renderDeviceManager()}
                         </div>
                     ) : (
                         <div
@@ -3468,7 +3576,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                     userSelect: this.state.splitDragging ? 'none' : undefined,
                                 }}
                             >
-                                {I18n.t('Drop or select a device to configure')}
+                                {this.renderDeviceManager()}
                             </div>
                             {/* Overlay to capture mouse while dragging */}
                             {this.state.splitDragging ? (
@@ -3502,9 +3610,35 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             return this.renderContent();
         }
 
-        const small = this.props.width === 'xs' || this.props.width === 'sm';
-
-        return <DndProvider backend={!small ? HTML5Backend : TouchBackend}>{this.renderContent()}</DndProvider>;
+        return (
+            <DndWrapper
+                onDragEnd={this.handleDragEnd}
+                renderOverlay={data => {
+                    const id = data.id as string;
+                    const name = this.objects[id]?.common?.name
+                        ? Utils.getObjectName(this.objects, id, I18n.getLanguage())
+                        : getLastPart(id);
+                    return (
+                        <div
+                            style={{
+                                padding: '8px 16px',
+                                background: this.props.themeType === 'dark' ? '#333' : '#fff',
+                                color: this.props.themeType === 'dark' ? '#fff' : '#000',
+                                border: '1px solid rgba(128,128,128,0.5)',
+                                borderRadius: 4,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                fontSize: 14,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {name}
+                        </div>
+                    );
+                }}
+            >
+                {this.renderContent()}
+            </DndWrapper>
+        );
     }
 }
 
