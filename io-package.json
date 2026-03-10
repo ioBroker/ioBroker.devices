@@ -1,175 +1,172 @@
 {
   "common": {
-    "name": "devices",
-    "version": "1.2.14",
-    "news": {
-      "1.2.14": {
-        "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state\nCorrecting the hover effect under safari",
-        "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben\nKorrektur der Hover-Effekt unter Safari",
-        "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием\nКоррекция эффекта парения под сафари",
-        "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'\nCorrigindo o efeito hover sob safari",
-        "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"\nCorrigeren van het zweefeffect onder safari",
-        "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`\nCorrection de l'effet hover sous safari",
-        "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`\nCorreggere l'effetto hover sotto safari",
-        "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"\nCorregir el efecto del tubo bajo safari",
-        "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'\nKorekta efektu unoszenia się pod safari",
-        "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'\nКорекція ефекту конюшини під сафарі",
-        "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题\n校正 Safari 下的悬浮效应"
+      "name": "devices",
+      "version": "1.2.14",
+      "news": {
+          "1.2.14": {
+              "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state\nCorrecting the hover effect under safari",
+              "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben\nKorrektur der Hover-Effekt unter Safari",
+              "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием\nКоррекция эффекта парения под сафари",
+              "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'\nCorrigindo o efeito hover sob safari",
+              "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"\nCorrigeren van het zweefeffect onder safari",
+              "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`\nCorrection de l'effet hover sous safari",
+              "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`\nCorreggere l'effetto hover sotto safari",
+              "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"\nCorregir el efecto del tubo bajo safari",
+              "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'\nKorekta efektu unoszenia się pod safari",
+              "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'\nКорекція ефекту конюшини під сафарі",
+              "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题\n校正 Safari 下的悬浮效应"
+          },
+          "1.2.12": {
+              "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
+              "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
+              "ru": "Показать цвет, если fx не пустой\nДобавлено для всех текстовых полей четкая кнопка",
+              "pt": "Mostrar na cor se o fx não estiver vazio\nAdicionado para todos os campos de texto o botão limpar",
+              "nl": "In kleur tonen als fx niet leeg is\nToegevoegd voor alle tekstvelden de knop wissen",
+              "fr": "Afficher en couleur si fx n'est pas vide\nAjouté pour tous les champs de texte le bouton clair",
+              "it": "Mostra nel colore se fx non è vuoto\nAggiunto per tutti i campi di testo il pulsante chiaro",
+              "es": "Mostrar en color si el fx no está vacío\nAñadido para todos los campos de texto el botón claro",
+              "pl": "Pokaż kolor, jeśli fx nie jest pusty\nDodano dla wszystkich pól tekstowych czysty przycisk",
+              "uk": "Показати в кольорі якщо fx не порожній\nДодано для всіх текстових полів чітку кнопку",
+              "zh-cn": "如果 fx 不为空, 以颜色显示\n为所有文本字段添加了清晰的按钮"
+          },
+          "1.2.9": {
+              "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
+              "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
+              "ru": "Для новых состояний устройств создается полное имя, а не только последняя часть, например `ACTUAL`",
+              "pt": "Criado para novos estados criados de dispositivos o nome completo e não apenas a última parte, como `REAL`",
+              "nl": "Gemaakt voor nieuw aangemaakte toestanden van apparaten, de volledige naam en niet alleen het laatste deel, zoals `ACTUAL`",
+              "fr": "Créé pour les nouveaux états créés des appareils, le nom complet et pas seulement la dernière partie, comme « ACTUAL »",
+              "it": "Creato per i nuovi stati creati dei dispositivi il nome completo e non solo l'ultima parte, come `ATTUALE`",
+              "es": "Creado para nuevos estados creados de dispositivos, el nombre completo y no solo la última parte, como \"ACTUAL\"",
+              "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
+              "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
+              "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
+          },
+          "1.2.8": {
+              "en": "Corrected error in GUI",
+              "de": "Fehler behoben in GUI",
+              "ru": "Исправленная ошибка в GUI",
+              "pt": "Erro corrigido na interface gráfica",
+              "nl": "Gecorrigeerde fout in GUI",
+              "fr": "Erreur corrigée dans l'interface graphique",
+              "it": "Errore corretto in GUI",
+              "es": "Error corregido en GUI",
+              "pl": "Skorygowany błąd w GUI",
+              "uk": "Виправлена помилка в GUI",
+              "zh-cn": "在图形界面中更正错误"
+          },
+          "1.2.7": {
+              "en": "Replaced icon for the state import\nCorrected the edit dialog",
+              "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
+              "ru": "Замена иконки для государственного импорта\nИсправлен диалог редактирования",
+              "pt": "Ícone substituído para a importação do estado\nCorrigido o diálogo de edição",
+              "nl": "Pictogram vervangen door het status-importeren\nHet bewerkingsdialoogvenster corrigeren",
+              "fr": "Icône remplacée pour l'importation d'état\nCorrection de la boîte de dialogue d'édition",
+              "it": "Icona sostituita per l'importazione dello stato\nCorretto la finestra di dialogo Modifica",
+              "es": "Icono reemplazado para la importación del estado\nCorregido el diálogo de edición",
+              "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
+              "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
+              "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
+          },
+          "1.2.6": {
+              "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector\nCorrected device importer",
+              "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien\nKorrigierter Geräteimporteur",
+              "ru": "Обновленный детектор\nВыполнить формулу преобразования по текущей стоимости\nЛучший выбор категорий\nИсправленный импортер устройств",
+              "pt": "Tipo de detetor atualizado\nExecutar a fórmula de conversão no valor atual\nMelhor seleção de categorias\nImportador de dispositivo correto",
+              "nl": "Type-detector bijgewerkt\nVoer de conversieformule uit op de huidige waarde\nBetere categorieënkiezer\nGecorrigeerde importeur van hulpmiddelen",
+              "fr": "Détecteur de type mis à jour\nExécuter la formule de conversion sur la valeur courante\nSélecteur de catégories meilleures\nImportateur de matériel corrigé",
+              "it": "Tipo di rilevamento aggiornato\nEseguire la formula di conversione sul valore attuale\nSelezione categorie migliori\nImportatore corretto del dispositivo",
+              "es": "Tipo-detector actualizado\nEjecutar la fórmula de conversión en valor actual\nMejor selección de categorías\nImportador de dispositivo corregido",
+              "pl": "Aktualizacja czujnika typu\nWykonaj wzór konwersji na wartość bieżącą\nWybór lepszych kategorii\nPoprawiony importer wyrobów",
+              "uk": "Type-detector оновлений\nВиконувати формулу перетворення на поточну вартість\nКращий вибір категорій\nВиправлений пристрій імпортера",
+              "zh-cn": "类型检测器更新\n执行当前值的转换公式\n更好的类别选择器\n修正设备导入器"
+          },
+          "1.2.4": {
+              "en": "Corrected many GUI issues",
+              "de": "Viele GUI Probleme korrigiert",
+              "ru": "Исправлено много проблем GUI",
+              "pt": "Corrigido muitos problemas de GUI",
+              "nl": "Veel GUI-problemen gecorrigeerd",
+              "fr": "Correction de nombreux problèmes d'interface utilisateur",
+              "it": "Corretto molti problemi GUI",
+              "es": "Corregidos muchos problemas de GUI",
+              "pl": "Poprawiono wiele problemów GUI",
+              "uk": "Виправлено багато питань GUI",
+              "zh-cn": "更正了许多图形用户界面问题"
+          }
       },
-      "1.2.12": {
-        "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
-        "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
-        "ru": "Показать цвет, если fx не пустой\nДобавлено для всех текстовых полей четкая кнопка",
-        "pt": "Mostrar na cor se o fx não estiver vazio\nAdicionado para todos os campos de texto o botão limpar",
-        "nl": "In kleur tonen als fx niet leeg is\nToegevoegd voor alle tekstvelden de knop wissen",
-        "fr": "Afficher en couleur si fx n'est pas vide\nAjouté pour tous les champs de texte le bouton clair",
-        "it": "Mostra nel colore se fx non è vuoto\nAggiunto per tutti i campi di testo il pulsante chiaro",
-        "es": "Mostrar en color si el fx no está vacío\nAñadido para todos los campos de texto el botón claro",
-        "pl": "Pokaż kolor, jeśli fx nie jest pusty\nDodano dla wszystkich pól tekstowych czysty przycisk",
-        "uk": "Показати в кольорі якщо fx не порожній\nДодано для всіх текстових полів чітку кнопку",
-        "zh-cn": "如果 fx 不为空, 以颜色显示\n为所有文本字段添加了清晰的按钮"
+      "titleLang": {
+          "en": "Manage devices",
+          "de": "Geräte verwalten",
+          "ru": "Управление устройствами",
+          "pt": "Gerenciar dispositivos",
+          "nl": "Beheer apparaten",
+          "fr": "Gérer les appareils",
+          "it": "Gestisci i dispositivi",
+          "es": "Administrar dispositivos",
+          "pl": "Zarządzaj urządzeniami",
+          "uk": "Управління пристроями",
+          "zh-cn": "管理设备"
       },
-      "1.2.9": {
-        "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
-        "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
-        "ru": "Для новых состояний устройств создается полное имя, а не только последняя часть, например `ACTUAL`",
-        "pt": "Criado para novos estados criados de dispositivos o nome completo e não apenas a última parte, como `REAL`",
-        "nl": "Gemaakt voor nieuw aangemaakte toestanden van apparaten, de volledige naam en niet alleen het laatste deel, zoals `ACTUAL`",
-        "fr": "Créé pour les nouveaux états créés des appareils, le nom complet et pas seulement la dernière partie, comme « ACTUAL »",
-        "it": "Creato per i nuovi stati creati dei dispositivi il nome completo e non solo l'ultima parte, come `ATTUALE`",
-        "es": "Creado para nuevos estados creados de dispositivos, el nombre completo y no solo la última parte, como \"ACTUAL\"",
-        "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
-        "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
-        "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
+      "desc": {
+          "en": "Manage and create devices for using it in other adapters like material, iot,...",
+          "de": "Verwalten und erstellen Sie Geräte für die Verwendung in anderen Adaptern wie Material, iot, ...",
+          "ru": "Управляйте и создавайте устройства для использования в других адаптерах, таких как material, iot, ...",
+          "pt": "Gerenciar e criar dispositivos para usá-lo em outros adaptadores como material, iot, ...",
+          "nl": "Beheer en maak apparaten voor gebruik in andere adapters zoals materiaal, iot, ...",
+          "fr": "Gérez et créez des périphériques pour l’utiliser dans d’autres adaptateurs, tels que Material, Iot, ...",
+          "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
+          "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
+          "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
+          "uk": "Керування та створення пристроїв для використання в інших адаптерах, таких як матеріал, iot, ...",
+          "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
       },
-      "1.2.8": {
-        "en": "Corrected error in GUI",
-        "de": "Fehler behoben in GUI",
-        "ru": "Исправленная ошибка в GUI",
-        "pt": "Erro corrigido na interface gráfica",
-        "nl": "Gecorrigeerde fout in GUI",
-        "fr": "Erreur corrigée dans l'interface graphique",
-        "it": "Errore corretto in GUI",
-        "es": "Error corregido en GUI",
-        "pl": "Skorygowany błąd w GUI",
-        "uk": "Виправлена помилка в GUI",
-        "zh-cn": "在图形界面中更正错误"
+      "authors": ["bluefox <dogafox@gmail.com>"],
+      "keywords": ["devices", "management"],
+      "licenseInformation": {
+          "type": "free",
+          "license": "MIT"
       },
-      "1.2.7": {
-        "en": "Replaced icon for the state import\nCorrected the edit dialog",
-        "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
-        "ru": "Замена иконки для государственного импорта\nИсправлен диалог редактирования",
-        "pt": "Ícone substituído para a importação do estado\nCorrigido o diálogo de edição",
-        "nl": "Pictogram vervangen door het status-importeren\nHet bewerkingsdialoogvenster corrigeren",
-        "fr": "Icône remplacée pour l'importation d'état\nCorrection de la boîte de dialogue d'édition",
-        "it": "Icona sostituita per l'importazione dello stato\nCorretto la finestra di dialogo Modifica",
-        "es": "Icono reemplazado para la importación del estado\nCorregido el diálogo de edición",
-        "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
-        "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
-        "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
-      },
-      "1.2.6": {
-        "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector\nCorrected device importer",
-        "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien\nKorrigierter Geräteimporteur",
-        "ru": "Обновленный детектор\nВыполнить формулу преобразования по текущей стоимости\nЛучший выбор категорий\nИсправленный импортер устройств",
-        "pt": "Tipo de detetor atualizado\nExecutar a fórmula de conversão no valor atual\nMelhor seleção de categorias\nImportador de dispositivo correto",
-        "nl": "Type-detector bijgewerkt\nVoer de conversieformule uit op de huidige waarde\nBetere categorieënkiezer\nGecorrigeerde importeur van hulpmiddelen",
-        "fr": "Détecteur de type mis à jour\nExécuter la formule de conversion sur la valeur courante\nSélecteur de catégories meilleures\nImportateur de matériel corrigé",
-        "it": "Tipo di rilevamento aggiornato\nEseguire la formula di conversione sul valore attuale\nSelezione categorie migliori\nImportatore corretto del dispositivo",
-        "es": "Tipo-detector actualizado\nEjecutar la fórmula de conversión en valor actual\nMejor selección de categorías\nImportador de dispositivo corregido",
-        "pl": "Aktualizacja czujnika typu\nWykonaj wzór konwersji na wartość bieżącą\nWybór lepszych kategorii\nPoprawiony importer wyrobów",
-        "uk": "Type-detector оновлений\nВиконувати формулу перетворення на поточну вартість\nКращий вибір категорій\nВиправлений пристрій імпортера",
-        "zh-cn": "类型检测器更新\n执行当前值的转换公式\n更好的类别选择器\n修正设备导入器"
-      },
-      "1.2.4": {
-        "en": "Corrected many GUI issues",
-        "de": "Viele GUI Probleme korrigiert",
-        "ru": "Исправлено много проблем GUI",
-        "pt": "Corrigido muitos problemas de GUI",
-        "nl": "Veel GUI-problemen gecorrigeerd",
-        "fr": "Correction de nombreux problèmes d'interface utilisateur",
-        "it": "Corretto molti problemi GUI",
-        "es": "Corregidos muchos problemas de GUI",
-        "pl": "Poprawiono wiele problemów GUI",
-        "uk": "Виправлено багато питань GUI",
-        "zh-cn": "更正了许多图形用户界面问题"
-      }
-    },
-    "titleLang": {
-      "en": "Manage devices",
-      "de": "Geräte verwalten",
-      "ru": "Управление устройствами",
-      "pt": "Gerenciar dispositivos",
-      "nl": "Beheer apparaten",
-      "fr": "Gérer les appareils",
-      "it": "Gestisci i dispositivi",
-      "es": "Administrar dispositivos",
-      "pl": "Zarządzaj urządzeniami",
-      "uk": "Управління пристроями",
-      "zh-cn": "管理设备"
-    },
-    "desc": {
-      "en": "Manage and create devices for using it in other adapters like material, iot,...",
-      "de": "Verwalten und erstellen Sie Geräte für die Verwendung in anderen Adaptern wie Material, iot, ...",
-      "ru": "Управляйте и создавайте устройства для использования в других адаптерах, таких как material, iot, ...",
-      "pt": "Gerenciar e criar dispositivos para usá-lo em outros adaptadores como material, iot, ...",
-      "nl": "Beheer en maak apparaten voor gebruik in andere adapters zoals materiaal, iot, ...",
-      "fr": "Gérez et créez des périphériques pour l’utiliser dans d’autres adaptateurs, tels que Material, Iot, ...",
-      "it": "Gestisci e crea dispositivi per utilizzarlo in altri adattatori come materiale, iot, ...",
-      "es": "Administre y cree dispositivos para usarlo en otros adaptadores como material, iot, ...",
-      "pl": "Zarządzaj urządzeniami i wykorzystuj je w innych adapterach, takich jak materiał, iot, ...",
-      "uk": "Керування та створення пристроїв для використання в інших адаптерах, таких як матеріал, iot, ...",
-      "zh-cn": "管理和创建设备，以便在其他适配器中使用它，例如材料，iot，......"
-    },
-    "authors": [
-      "bluefox <dogafox@gmail.com>"
-    ],
-    "keywords": [
-      "devices",
-      "management"
-    ],
-    "licenseInformation": {
-      "type": "free",
-      "license": "MIT"
-    },
-    "platform": "Javascript/Node.js",
-    "connectionType": "none",
-    "dataSource": "none",
-    "tier": 3,
-    "icon": "devices.svg",
-    "enabled": true,
-    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.svg",
-    "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
-    "loglevel": "info",
-    "onlyWWW": true,
-    "singleton": true,
-    "type": "general",
-    "eraseOnUpload": true,
-    "mode": "none",
-    "adminTab": {
+      "platform": "Javascript/Node.js",
+      "connectionType": "none",
+      "dataSource": "none",
+      "tier": 3,
+      "icon": "devices.svg",
+      "enabled": true,
+      "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.svg",
+      "readme": "https://github.com/ioBroker/ioBroker.devices/blob/master/README.md",
+      "loglevel": "info",
       "singleton": true,
-      "name": {
-        "en": "Devices",
-        "de": "Geräte",
-        "ru": "Устройства",
-        "pt": "Dispositivos",
-        "nl": "Apparaten",
-        "fr": "Appareils",
-        "it": "Dispositivi",
-        "es": "Dispositivos",
-        "pl": "Urządzenia",
-        "uk": "Пристрої",
-        "zh-cn": "设备"
-      }
-    },
-    "adminUI": {
-      "config": "none"
-    },
-    "globalDependencies": [
-      {
-        "admin": ">=7.6.17"
-      }
-    ]
+      "type": "general",
+      "eraseOnUpload": true,
+      "mode": "none",
+      "adminTab": {
+          "singleton": true,
+          "name": {
+              "en": "Devices",
+              "de": "Geräte",
+              "ru": "Устройства",
+              "pt": "Dispositivos",
+              "nl": "Apparaten",
+              "fr": "Appareils",
+              "it": "Dispositivi",
+              "es": "Dispositivos",
+              "pl": "Urządzenia",
+              "uk": "Пристрої",
+              "zh-cn": "设备"
+          }
+      },
+      "supportedMessages": {
+          "deviceManager": true
+      },
+      "adminUI": {
+          "config": "none"
+      },
+      "globalDependencies": [
+          {
+              "admin": ">=7.6.17"
+          }
+      ]
   },
   "native": {},
   "objects": [],

@@ -28,6 +28,7 @@ import {
     MenuItem,
     Select,
     Box,
+    Switch,
 } from '@mui/material';
 
 import {
@@ -57,7 +58,11 @@ import {
 
 import { HiLink } from 'react-icons/hi';
 
-import { FileCopy as CopyIcon, CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
+import {
+    FileCopy as CopyIcon,
+    CreateNewFolder as CreateNewFolderIcon,
+    VerticalSplit as VerticalSplitIcon,
+} from '@mui/icons-material';
 
 import { Types, type ExternalPatternControl, type ExternalDetectorState } from '@iobroker/type-detector';
 import {
@@ -484,6 +489,14 @@ const styles: Record<string, any> = {
     buttonsCellHeader: {
         width: 90,
     },
+    toggleCellHeader: {
+        width: 60,
+        padding: 0,
+    },
+    toggleCell: {
+        width: 60,
+        padding: '0 !important',
+    },
     buttonsCell: {
         width: IS_CHROME ? undefined : 90,
         padding: '0 !important',
@@ -707,6 +720,7 @@ const styles: Record<string, any> = {
 
 interface ListDevicesProps {
     adapterName: string;
+    instance: number;
     socket: AdminConnection;
     theme: IobTheme;
     themeType: ThemeType;
@@ -751,6 +765,9 @@ interface ListDevicesState {
     updating: string[];
 
     deleteFolderAndDevice: null | { id: string; device?: false } | { index: number; device: true };
+    splitScreen: boolean;
+    splitLeftWidth: number | null;
+    splitDragging: boolean;
 }
 
 const isTouchDevice = (): boolean => {
@@ -764,6 +781,9 @@ const isTouchDevice = (): boolean => {
 
 class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     private readonly inputRef: RefObject<HTMLInputElement>;
+
+    private readonly splitContainerRef: RefObject<HTMLDivElement>;
+    private readonly customKey = `${this.props.adapterName}.${this.props.instance}`;
 
     private updateTimeout: ReturnType<typeof setTimeout> | null = null;
     private resizeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -872,9 +892,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             onlyAliases: false,
             updating: [],
             deleteFolderAndDevice: null,
+            splitScreen: window.localStorage.getItem('Devices.splitScreen') === 'true',
+            splitLeftWidth: parseFloat(window.localStorage.getItem('Devices.splitLeftWidth') || '0') || null,
+            splitDragging: false,
         };
 
         this.inputRef = createRef();
+        this.splitContainerRef = createRef();
 
         this.objects = {};
         this.instances = [];
@@ -946,6 +970,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     componentWillUnmount(): void {
         window.removeEventListener('resize', this.onResize, false);
         window.removeEventListener('hashchange', this.onHashChange, false);
+        window.removeEventListener('mousemove', this.onSplitDividerMouseMove);
+        window.removeEventListener('mouseup', this.onSplitDividerMouseUp);
         void this.props.socket.unsubscribeObject('*', this.onObjectChanged);
         if (this.updateTimeout) {
             clearTimeout(this.updateTimeout);
@@ -976,6 +1002,21 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         this.setState({ selected });
         window.localStorage.setItem('Devices.selected', selected);
     }
+
+    onToggleDeviceEnabled = async (channelId: string): Promise<void> => {
+        const obj = await this.props.socket.getObject(channelId);
+        if (!obj) {
+            return;
+        }
+        obj.common ||= {} as ioBroker.StateCommon;
+        obj.common.custom ||= {};
+        obj.common.custom[this.customKey] ||= {};
+        obj.common.custom[this.customKey].enabled = !obj.common.custom[this.customKey].enabled;
+        await this.props.socket.setObject(channelId, obj);
+        // Update local cache so the UI re-renders immediately
+        this.objects[channelId] = obj;
+        this.forceUpdate();
+    };
 
     disabledButtons(): boolean {
         return (
@@ -1015,6 +1056,43 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             this.resizeTimer = null;
             this.setState({ windowWidth: window.innerWidth });
         }, 300);
+    };
+
+    private static readonly MIN_SPLIT_LEFT_WIDTH = 1000;
+    private static readonly MIN_SPLIT_RIGHT_WIDTH = 300;
+
+    onSplitDividerMouseDown = (e: React.MouseEvent): void => {
+        e.preventDefault();
+        this.setState({ splitDragging: true });
+        window.addEventListener('mousemove', this.onSplitDividerMouseMove);
+        window.addEventListener('mouseup', this.onSplitDividerMouseUp);
+    };
+
+    onSplitDividerMouseMove = (e: MouseEvent): void => {
+        const container = this.splitContainerRef.current;
+        if (!container) {
+            return;
+        }
+        const rect = container.getBoundingClientRect();
+        const totalWidth = rect.width;
+        let leftWidth = e.clientX - rect.left;
+
+        // enforce min widths (subtract 6 for divider)
+        if (leftWidth < ListDevices.MIN_SPLIT_LEFT_WIDTH) {
+            leftWidth = ListDevices.MIN_SPLIT_LEFT_WIDTH;
+        }
+        if (totalWidth - leftWidth - 6 < ListDevices.MIN_SPLIT_RIGHT_WIDTH) {
+            leftWidth = totalWidth - ListDevices.MIN_SPLIT_RIGHT_WIDTH - 6;
+        }
+
+        this.setState({ splitLeftWidth: leftWidth });
+        window.localStorage.setItem('Devices.splitLeftWidth', leftWidth.toString());
+    };
+
+    onSplitDividerMouseUp = (): void => {
+        this.setState({ splitDragging: false });
+        window.removeEventListener('mousemove', this.onSplitDividerMouseMove);
+        window.removeEventListener('mouseup', this.onSplitDividerMouseUp);
     };
 
     updateListItems = async (): Promise<void> => {
@@ -1970,6 +2048,24 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 ) : null}
                 {device && (
                     <TableCell
+                        size="small"
+                        style={styles.toggleCell}
+                    >
+                        <Tooltip
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            title={I18n.t('Enable or disable device')}
+                        >
+                            <Switch
+                                size="small"
+                                checked={!!this.objects[device.channelId]?.common?.custom?.[this.customKey]?.enabled}
+                                onClick={e => e.stopPropagation()}
+                                onChange={() => this.onToggleDeviceEnabled(device.channelId)}
+                            />
+                        </Tooltip>
+                    </TableCell>
+                )}
+                {device && (
+                    <TableCell
                         align="right"
                         size="small"
                         style={{
@@ -2053,6 +2149,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         {countSpan}
                     </TableCell>
                 ) : null}
+                {!device ? <TableCell style={styles.toggleCell} /> : null}
                 {!device ? (
                     <TableCell
                         size="small"
@@ -2292,7 +2389,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         let j = 0;
 
         return (
-            <Paper style={styles.paperTable}>
+            <Paper
+                style={
+                    this.state.splitScreen ? { ...styles.paperTable, height: '100%', marginTop: 0 } : styles.paperTable
+                }
+            >
                 <Table
                     stickyHeader
                     sx={styles.table}
@@ -2317,6 +2418,11 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             {this.state.windowWidth >= WIDTHS[0] ? (
                                 <TableCell style={{ ...styles.headerCell, width: 50 }}>{I18n.t('States')}</TableCell>
                             ) : null}
+                            <TableCell
+                                style={{ ...styles.headerCell, ...styles.toggleCellHeader, textAlign: 'center' }}
+                            >
+                                {I18n.t('GUI')}
+                            </TableCell>
                             <TableCell style={{ ...styles.headerCell, ...styles.buttonsCellHeader }} />
                         </TableRow>
                     </TableHead>
@@ -3224,6 +3330,21 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             <IconFolder />
                         </IconButton>
                     </Tooltip>
+                    <Tooltip
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        title={I18n.t('Toggle split screen')}
+                    >
+                        <IconButton
+                            color={this.state.splitScreen ? 'primary' : 'inherit'}
+                            onClick={() => {
+                                const splitScreen = !this.state.splitScreen;
+                                window.localStorage.setItem('Devices.splitScreen', splitScreen.toString());
+                                this.setState({ splitScreen });
+                            }}
+                        >
+                            <VerticalSplitIcon />
+                        </IconButton>
+                    </Tooltip>
                 </div>
                 <TextField
                     variant="standard"
@@ -3273,6 +3394,8 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     }
 
     renderContent(): React.JSX.Element {
+        const narrow = this.state.windowWidth < 1300;
+
         return (
             <div style={styles.tab}>
                 {this.renderMessage()}
@@ -3285,7 +3408,87 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
 
                 {this.renderToolbar()}
 
-                {this.renderDevices()}
+                {this.state.splitScreen ? (
+                    narrow ? (
+                        <div
+                            style={{
+                                height: 'calc(100% - 57px)',
+                                overflow: 'auto',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: 0.5,
+                            }}
+                        >
+                            {I18n.t('Drop or select a device to configure')}
+                        </div>
+                    ) : (
+                        <div
+                            ref={this.splitContainerRef}
+                            style={{
+                                display: 'flex',
+                                height: 'calc(100% - 57px)',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: this.state.splitLeftWidth || undefined,
+                                    flex: this.state.splitLeftWidth ? undefined : 1,
+                                    minWidth: ListDevices.MIN_SPLIT_LEFT_WIDTH,
+                                    overflow: 'auto',
+                                }}
+                            >
+                                {this.renderDevices()}
+                            </div>
+                            {/* Draggable divider */}
+                            <div
+                                onMouseDown={this.onSplitDividerMouseDown}
+                                style={{
+                                    width: 6,
+                                    cursor: 'col-resize',
+                                    background: this.state.splitDragging
+                                        ? 'rgba(100,149,237,0.5)'
+                                        : 'rgba(128,128,128,0.3)',
+                                    flexShrink: 0,
+                                    zIndex: 1,
+                                    transition: this.state.splitDragging ? undefined : 'background 0.2s',
+                                }}
+                                title={I18n.t('Drag to resize')}
+                            />
+                            <div
+                                style={{
+                                    flex: 1,
+                                    minWidth: ListDevices.MIN_SPLIT_RIGHT_WIDTH,
+                                    overflow: 'auto',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: 0.5,
+                                    userSelect: this.state.splitDragging ? 'none' : undefined,
+                                }}
+                            >
+                                {I18n.t('Drop or select a device to configure')}
+                            </div>
+                            {/* Overlay to capture mouse while dragging */}
+                            {this.state.splitDragging ? (
+                                <div
+                                    style={{
+                                        position: 'fixed',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        cursor: 'col-resize',
+                                        zIndex: 9999,
+                                    }}
+                                />
+                            ) : null}
+                        </div>
+                    )
+                ) : (
+                    this.renderDevices()
+                )}
             </div>
         );
     }

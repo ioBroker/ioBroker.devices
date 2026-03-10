@@ -112,6 +112,8 @@ export default class App extends GenericApp {
                                 theme={this.state.theme}
                                 themeType={this.state.themeType}
                                 socket={this.socket}
+                                adapterName="devices"
+                                instance={this.instance}
                             />
                         ) : null}
                     </Paper>
