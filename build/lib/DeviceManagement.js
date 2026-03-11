@@ -15,6 +15,216 @@ function getParentId(id) {
     const pos = id.lastIndexOf('.');
     return pos !== -1 ? id.substring(0, pos) : '';
 }
+/**
+ * Build dm-utils controls from the detected device states.
+ * Controls use `stateId` so the GUI reads/writes the ioBroker state directly — no handler needed.
+ */
+function buildControls(device) {
+    const controls = [];
+    const stateMap = new Map();
+    for (const s of device.states) {
+        if (s.id) {
+            stateMap.set(s.name, s);
+        }
+    }
+    const type = device.type;
+    // ── ON/OFF switches ────────────────────────────────────────────
+    // light, socket, lock, gate — boolean SET
+    const setState = stateMap.get('SET');
+    if (setState?.id && setState.write) {
+        if (type === 'light' || type === 'socket' || type === 'lock' || type === 'gate') {
+            controls.push({
+                id: 'power',
+                type: 'switch',
+                stateId: setState.id,
+                label: { en: 'Power', de: 'Strom' },
+            });
+        }
+    }
+    // dimmer, ct, hue, cie, rgb*, percentage, volume, volumeGroup — ON_SET or ON switch
+    const onSetState = stateMap.get('ON_SET') || stateMap.get('ON');
+    if (onSetState?.id && onSetState.write) {
+        controls.push({
+            id: 'power',
+            type: 'switch',
+            stateId: onSetState.id,
+            label: { en: 'Power', de: 'Strom' },
+        });
+    }
+    // thermostat / airCondition — POWER
+    const powerState = stateMap.get('POWER');
+    if (powerState?.id && powerState.write) {
+        if (!controls.find(c => c.id === 'power')) {
+            controls.push({
+                id: 'power',
+                type: 'switch',
+                stateId: powerState.id,
+                label: { en: 'Power', de: 'Strom' },
+            });
+        }
+    }
+    // ── Sliders ────────────────────────────────────────────────────
+    // dimmer — SET (level)
+    if (setState?.id && setState.write) {
+        if (type === 'dimmer' ||
+            type === 'ct' ||
+            type === 'hue' ||
+            type === 'cie' ||
+            type === 'blind' ||
+            type === 'percentage' ||
+            type === 'slider') {
+            controls.push({
+                id: 'level',
+                type: 'slider',
+                stateId: setState.id,
+                min: 0,
+                max: 100,
+                unit: '%',
+                label: type === 'blind' ? { en: 'Position', de: 'Position' } : { en: 'Level', de: 'Stufe' },
+            });
+        }
+    }
+    // volume / volumeGroup — SET (volume level)
+    if (setState?.id && setState.write && (type === 'volume' || type === 'volumeGroup')) {
+        controls.push({
+            id: 'volume',
+            type: 'slider',
+            stateId: setState.id,
+            min: 0,
+            max: 100,
+            unit: '%',
+            label: { en: 'Volume', de: 'Lautstärke' },
+        });
+    }
+    // thermostat / airCondition — SET (temperature setpoint)
+    if (setState?.id && setState.write && (type === 'thermostat' || type === 'airCondition')) {
+        controls.push({
+            id: 'setpoint',
+            type: 'slider',
+            stateId: setState.id,
+            min: 5,
+            max: 35,
+            step: 0.5,
+            unit: '°C',
+            label: { en: 'Setpoint', de: 'Sollwert' },
+        });
+    }
+    // DIMMER state for color devices
+    const dimmerState = stateMap.get('DIMMER') || stateMap.get('BRIGHTNESS');
+    if (dimmerState?.id && dimmerState.write && !controls.find(c => c.id === 'level')) {
+        controls.push({
+            id: 'level',
+            type: 'slider',
+            stateId: dimmerState.id,
+            min: 0,
+            max: 100,
+            unit: '%',
+            label: { en: 'Brightness', de: 'Helligkeit' },
+        });
+    }
+    // Color temperature
+    const ctState = stateMap.get('TEMPERATURE');
+    if (ctState?.id &&
+        ctState.write &&
+        (type === 'ct' ||
+            type === 'hue' ||
+            type === 'cie' ||
+            type === 'rgb' ||
+            type === 'rgbSingle' ||
+            type === 'rgbwSingle')) {
+        controls.push({
+            id: 'colorTemp',
+            type: 'slider',
+            stateId: ctState.id,
+            min: 2700,
+            max: 6500,
+            unit: 'K',
+            label: { en: 'Color temperature', de: 'Farbtemperatur' },
+        });
+    }
+    // ── Color control ──────────────────────────────────────────────
+    const rgbState = stateMap.get('RGB') || stateMap.get('RGBW');
+    if (rgbState?.id && rgbState.write) {
+        controls.push({
+            id: 'color',
+            type: 'color',
+            stateId: rgbState.id,
+            label: { en: 'Color', de: 'Farbe' },
+        });
+    }
+    // ── Mute ───────────────────────────────────────────────────────
+    const muteState = stateMap.get('MUTE');
+    if (muteState?.id && muteState.write) {
+        controls.push({
+            id: 'mute',
+            type: 'switch',
+            stateId: muteState.id,
+            label: { en: 'Mute', de: 'Stumm' },
+        });
+    }
+    // ── Info controls (read-only sensors) ──────────────────────────
+    const actualState = stateMap.get('ACTUAL');
+    if (actualState?.id) {
+        // Sensors: temperature, humidity, door, window, motion, fire, flood
+        if (type === 'temperature' ||
+            type === 'humidity' ||
+            type === 'door' ||
+            type === 'window' ||
+            type === 'windowTilt' ||
+            type === 'motion' ||
+            type === 'fireAlarm' ||
+            type === 'floodAlarm') {
+            let unit;
+            if (type === 'temperature') {
+                unit = '°C';
+            }
+            else if (type === 'humidity') {
+                unit = '%';
+            }
+            controls.push({
+                id: 'value',
+                type: 'info',
+                stateId: actualState.id,
+                unit,
+                label: type === 'temperature'
+                    ? { en: 'Temperature', de: 'Temperatur' }
+                    : type === 'humidity'
+                        ? { en: 'Humidity', de: 'Feuchtigkeit' }
+                        : type === 'door'
+                            ? { en: 'Door', de: 'Tür' }
+                            : type === 'window' || type === 'windowTilt'
+                                ? { en: 'Window', de: 'Fenster' }
+                                : type === 'motion'
+                                    ? { en: 'Motion', de: 'Bewegung' }
+                                    : type === 'fireAlarm'
+                                        ? { en: 'Fire', de: 'Feuer' }
+                                        : { en: 'Flood', de: 'Überflutung' },
+            });
+        }
+        // Thermostat actual temperature
+        if ((type === 'thermostat' || type === 'airCondition') && actualState.id) {
+            controls.push({
+                id: 'actualTemp',
+                type: 'info',
+                stateId: actualState.id,
+                unit: '°C',
+                label: { en: 'Temperature', de: 'Temperatur' },
+            });
+        }
+    }
+    // ── Electric power info ────────────────────────────────────────
+    const powerInfo = stateMap.get('ELECTRIC_POWER');
+    if (powerInfo?.id) {
+        controls.push({
+            id: 'electricPower',
+            type: 'info',
+            stateId: powerInfo.id,
+            unit: 'W',
+            label: { en: 'Power', de: 'Leistung' },
+        });
+    }
+    return controls;
+}
 class DevicesDeviceManagement extends dm_utils_1.DeviceManagement {
     detector = new type_detector_1.default();
     objects = {};
@@ -22,7 +232,7 @@ class DevicesDeviceManagement extends dm_utils_1.DeviceManagement {
     /** IDs collected from enum members only */
     enumMemberIds = [];
     idsInEnums = [];
-    /** All detected devices (enabled + disabled) */
+    /** All detected devices */
     allDevices = [];
     /** Only devices with common.custom[namespace].enabled === true */
     enabledDevices = [];
@@ -169,6 +379,7 @@ class DevicesDeviceManagement extends dm_utils_1.DeviceManagement {
     }
     /**
      * Rebuild enabledDevices from allDevices (cheap, no I/O, no detection).
+     * Only devices with common.custom[namespace].enabled === true are included.
      */
     rebuildEnabledDevices() {
         const customKey = this.adapter.namespace;
@@ -257,15 +468,11 @@ class DevicesDeviceManagement extends dm_utils_1.DeviceManagement {
         if (id.startsWith(ALIAS) || id.startsWith(LINKEDDEVICES)) {
             const oldIds = [...this.idsInEnums];
             this.rebuildAliasIds();
-            // IDs affected by this specific object change
             const affected = this.getAffectedChannelIds(id);
-            // IDs removed from idsInEnums (e.g., channel/device deleted)
             const removedFromEnums = oldIds.filter(x => !this.idsInEnums.includes(x));
-            // IDs added to idsInEnums (e.g., new channel/device created)
             const addedToEnums = this.idsInEnums.filter(x => !oldIds.includes(x));
             const toRemove = [...new Set([...affected, ...removedFromEnums])];
             this.removeDevicesForChannelIds(toRemove);
-            // Re-detect IDs that still exist + newly added IDs
             const toDetect = [...new Set([...affected.filter(x => this.idsInEnums.includes(x)), ...addedToEnums])];
             if (toDetect.length) {
                 this.allDevices.push(...this.detectForIds(toDetect));
@@ -330,68 +537,19 @@ class DevicesDeviceManagement extends dm_utils_1.DeviceManagement {
             const icon = obj.common.icon || undefined;
             const color = obj.common.color || undefined;
             const role = 'role' in obj.common ? obj.common.role : undefined;
-            const actions = [
-                {
-                    id: 'disable',
-                    icon: 'stop',
-                    description: {
-                        en: 'Disable device',
-                        de: 'Gerät deaktivieren',
-                        ru: 'Отключить устройство',
-                        pt: 'Desativar dispositivo',
-                        nl: 'Apparaat uitschakelen',
-                        fr: "Désactiver l'appareil",
-                        it: 'Disattiva dispositivo',
-                        es: 'Desactivar dispositivo',
-                        pl: 'Wyłącz urządzenie',
-                        uk: 'Вимкнути пристрій',
-                        'zh-cn': '禁用设备',
-                    },
-                    confirmation: {
-                        en: 'Do you really want to disable this device?',
-                        de: 'Möchten Sie dieses Gerät wirklich deaktivieren?',
-                        ru: 'Вы действительно хотите отключить это устройство?',
-                        pt: 'Deseja realmente desativar este dispositivo?',
-                        nl: 'Wilt u dit apparaat echt uitschakelen?',
-                        fr: 'Voulez-vous vraiment désactiver cet appareil ?',
-                        it: 'Vuoi davvero disattivare questo dispositivo?',
-                        es: '¿Realmente desea desactivar este dispositivo?',
-                        pl: 'Czy naprawdę chcesz wyłączyć to urządzenie?',
-                        uk: 'Ви дійсно хочете вимкнути цей пристрій?',
-                        'zh-cn': '您确定要禁用此设备吗？',
-                    },
-                    handler: async (_id, _context) => {
-                        await this.setDeviceEnabled(device.channelId, false);
-                        return { refresh: 'devices' };
-                    },
-                },
-            ];
+            const controls = buildControls(device);
             const deviceInfo = {
                 id: device.channelId,
                 name,
                 icon,
                 color,
-                enabled: true,
                 model: role || device.type || '',
                 hasDetails: false,
-                actions,
+                actions: [],
+                controls,
             };
             context.addDevice(deviceInfo);
         }
-    }
-    /**
-     * Set the enabled flag in common.custom[namespace] of the given object
-     */
-    async setDeviceEnabled(id, enabled) {
-        const obj = await this.adapter.getForeignObjectAsync(id);
-        if (!obj) {
-            this.adapter.log.warn(`Cannot find object ${id}`);
-            return;
-        }
-        obj.common.custom = obj.common.custom || {};
-        obj.common.custom[this.adapter.namespace] = obj.common.custom[this.adapter.namespace] || {};
-        obj.common.custom[this.adapter.namespace].enabled = enabled;
-        await this.adapter.setForeignObjectAsync(id, obj);
     }
 }
 exports.default = DevicesDeviceManagement;
