@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
 import { type Connection, type IobTheme, type ThemeName, type ThemeType } from '@iobroker/adapter-react-v5';
-import DeviceManager from '@iobroker/dm-gui-components';
+import DeviceManager from '../DeviceManager';
 import { LinearProgress } from '@mui/material';
 
 interface DeviceManagerComponentProps {
