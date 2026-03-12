@@ -380,7 +380,7 @@ export default class DeviceCard extends Component<DeviceCardProps, DeviceCardSta
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent style={{ display: 'flex', flexDirection: 'column' }}>
+                <DialogContent style={{ display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
                     {this.props.device.controls?.map(control => (
                         <DeviceControlComponent
                             disabled={false}
