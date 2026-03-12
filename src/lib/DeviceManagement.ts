@@ -3,7 +3,9 @@ import {
     type DeviceLoadContext,
     type DeviceInfo,
     type InstanceDetails,
-    type ControlBase,
+    type DeviceControl,
+    type MessageContext,
+    type ErrorResponse,
 } from '@iobroker/dm-utils';
 import ChannelDetector from '@iobroker/type-detector';
 import type { PatternControl, DetectorState } from '@iobroker/type-detector';
@@ -25,11 +27,53 @@ function getParentId(id: string): string {
 }
 
 /**
- * Build dm-utils controls from the detected device states.
- * Controls use `stateId` so the GUI reads/writes the ioBroker state directly — no handler needed.
+ * Create a handler that writes a value to a writable state.
  */
-function buildControls(device: InternalDevice): ControlBase[] {
-    const controls: ControlBase[] = [];
+function makeHandler(
+    adapter: ioBroker.Adapter,
+    writeId: string,
+): (
+    deviceId: string,
+    actionId: string,
+    value: number | string | boolean | null,
+    context: MessageContext<string>,
+) => Promise<ErrorResponse | ioBroker.State> {
+    return async (
+        _deviceId: string,
+        _actionId: string,
+        value: number | string | boolean | null,
+        _context: MessageContext<string>,
+    ): Promise<ErrorResponse | ioBroker.State> => {
+        await adapter.setForeignStateAsync(writeId, value, false);
+        return { val: value, ack: true } as ioBroker.State;
+    };
+}
+
+/**
+ * Create a getStateHandler that reads the current value from a state.
+ */
+function makeGetStateHandler(
+    adapter: ioBroker.Adapter,
+    readId: string,
+    defaultVal: number | string | boolean | null = null,
+): (deviceId: string, actionId: string, context: MessageContext<string>) => Promise<ErrorResponse | ioBroker.State> {
+    return async (
+        _deviceId: string,
+        _actionId: string,
+        _context: MessageContext<string>,
+    ): Promise<ErrorResponse | ioBroker.State> => {
+        const state = await adapter.getForeignStateAsync(readId);
+        return state || ({ val: defaultVal, ack: true } as ioBroker.State);
+    };
+}
+
+/**
+ * Build dm-utils controls from the detected device states.
+ * Every writable control gets a handler (writes SET) and getStateHandler (reads ACTUAL or SET).
+ * Read-only controls get only getStateHandler.
+ */
+function buildControls(adapter: ioBroker.Adapter, device: InternalDevice): DeviceControl<string>[] {
+    const controls: DeviceControl<string>[] = [];
     const stateMap = new Map<string, DetectorState>();
 
     for (const s of device.states) {
@@ -41,15 +85,19 @@ function buildControls(device: InternalDevice): ControlBase[] {
     const type = device.type;
 
     // ── ON/OFF switches ────────────────────────────────────────────
-    // light, socket, lock, gate — boolean SET
+    // light, socket, lock, gate — boolean SET with ACTUAL/ON_ACTUAL feedback
     const setState = stateMap.get('SET');
     if (setState?.id && setState.write) {
         if (type === 'light' || type === 'socket' || type === 'lock' || type === 'gate') {
+            const getState = type === 'light' ? stateMap.get('ON_ACTUAL') : stateMap.get('ACTUAL');
+            const readId = getState?.id || setState.id;
             controls.push({
                 id: 'power',
                 type: 'switch',
-                stateId: setState.id,
+                stateId: readId,
                 label: { en: 'Power', de: 'Strom' },
+                handler: makeHandler(adapter, setState.id),
+                getStateHandler: makeGetStateHandler(adapter, readId, false),
             });
         }
     }
@@ -57,11 +105,15 @@ function buildControls(device: InternalDevice): ControlBase[] {
     // dimmer, ct, hue, cie, rgb*, percentage, volume, volumeGroup — ON_SET or ON switch
     const onSetState = stateMap.get('ON_SET') || stateMap.get('ON');
     if (onSetState?.id && onSetState.write) {
+        const onActual = stateMap.get('ON_ACTUAL');
+        const readId = onActual?.id || onSetState.id;
         controls.push({
             id: 'power',
             type: 'switch',
-            stateId: onSetState.id,
+            stateId: readId,
             label: { en: 'Power', de: 'Strom' },
+            handler: makeHandler(adapter, onSetState.id),
+            getStateHandler: makeGetStateHandler(adapter, readId, false),
         });
     }
 
@@ -74,12 +126,14 @@ function buildControls(device: InternalDevice): ControlBase[] {
                 type: 'switch',
                 stateId: powerState.id,
                 label: { en: 'Power', de: 'Strom' },
+                handler: makeHandler(adapter, powerState.id),
+                getStateHandler: makeGetStateHandler(adapter, powerState.id, false),
             });
         }
     }
 
     // ── Sliders ────────────────────────────────────────────────────
-    // dimmer — SET (level)
+    // dimmer, blind, percentage, etc. — SET (level) with ACTUAL feedback
     if (setState?.id && setState.write) {
         if (
             type === 'dimmer' ||
@@ -90,46 +144,58 @@ function buildControls(device: InternalDevice): ControlBase[] {
             type === 'percentage' ||
             type === 'slider'
         ) {
+            const actualLevel = stateMap.get('ACTUAL');
+            const readId = actualLevel?.id || setState.id;
             controls.push({
                 id: 'level',
                 type: 'slider',
-                stateId: setState.id,
+                stateId: readId,
                 min: 0,
                 max: 100,
                 unit: '%',
                 label: type === 'blind' ? { en: 'Position', de: 'Position' } : { en: 'Level', de: 'Stufe' },
+                handler: makeHandler(adapter, setState.id),
+                getStateHandler: makeGetStateHandler(adapter, readId, 0),
             });
         }
     }
 
-    // volume / volumeGroup — SET (volume level)
+    // volume / volumeGroup — SET with ACTUAL feedback
     if (setState?.id && setState.write && (type === 'volume' || type === 'volumeGroup')) {
+        const actualVol = stateMap.get('ACTUAL');
+        const readId = actualVol?.id || setState.id;
         controls.push({
             id: 'volume',
             type: 'slider',
-            stateId: setState.id,
+            stateId: readId,
             min: 0,
             max: 100,
             unit: '%',
             label: { en: 'Volume', de: 'Lautstärke' },
+            handler: makeHandler(adapter, setState.id),
+            getStateHandler: makeGetStateHandler(adapter, readId, 0),
         });
     }
 
-    // thermostat / airCondition — SET (temperature setpoint)
+    // thermostat / airCondition — SET (temperature setpoint) with ACTUAL feedback
     if (setState?.id && setState.write && (type === 'thermostat' || type === 'airCondition')) {
+        const actualTemp = stateMap.get('ACTUAL');
+        const readId = actualTemp?.id || setState.id;
         controls.push({
             id: 'setpoint',
             type: 'slider',
-            stateId: setState.id,
+            stateId: readId,
             min: 5,
             max: 35,
             step: 0.5,
             unit: '°C',
             label: { en: 'Setpoint', de: 'Sollwert' },
+            handler: makeHandler(adapter, setState.id),
+            getStateHandler: makeGetStateHandler(adapter, readId, 20),
         });
     }
 
-    // DIMMER state for color devices
+    // DIMMER / BRIGHTNESS state for color devices
     const dimmerState = stateMap.get('DIMMER') || stateMap.get('BRIGHTNESS');
     if (dimmerState?.id && dimmerState.write && !controls.find(c => c.id === 'level')) {
         controls.push({
@@ -140,6 +206,8 @@ function buildControls(device: InternalDevice): ControlBase[] {
             max: 100,
             unit: '%',
             label: { en: 'Brightness', de: 'Helligkeit' },
+            handler: makeHandler(adapter, dimmerState.id),
+            getStateHandler: makeGetStateHandler(adapter, dimmerState.id, 0),
         });
     }
 
@@ -163,6 +231,8 @@ function buildControls(device: InternalDevice): ControlBase[] {
             max: 6500,
             unit: 'K',
             label: { en: 'Color temperature', de: 'Farbtemperatur' },
+            handler: makeHandler(adapter, ctState.id),
+            getStateHandler: makeGetStateHandler(adapter, ctState.id, 4000),
         });
     }
 
@@ -174,6 +244,8 @@ function buildControls(device: InternalDevice): ControlBase[] {
             type: 'color',
             stateId: rgbState.id,
             label: { en: 'Color', de: 'Farbe' },
+            handler: makeHandler(adapter, rgbState.id),
+            getStateHandler: makeGetStateHandler(adapter, rgbState.id, '#000000'),
         });
     }
 
@@ -185,6 +257,8 @@ function buildControls(device: InternalDevice): ControlBase[] {
             type: 'switch',
             stateId: muteState.id,
             label: { en: 'Mute', de: 'Stumm' },
+            handler: makeHandler(adapter, muteState.id),
+            getStateHandler: makeGetStateHandler(adapter, muteState.id, false),
         });
     }
 
@@ -203,10 +277,15 @@ function buildControls(device: InternalDevice): ControlBase[] {
             type === 'floodAlarm'
         ) {
             let unit: string | undefined;
+            let defaultVal: number | string | boolean | null = null;
             if (type === 'temperature') {
                 unit = '°C';
+                defaultVal = 0;
             } else if (type === 'humidity') {
                 unit = '%';
+                defaultVal = 0;
+            } else {
+                defaultVal = false;
             }
             controls.push({
                 id: 'value',
@@ -227,17 +306,19 @@ function buildControls(device: InternalDevice): ControlBase[] {
                                 : type === 'fireAlarm'
                                   ? { en: 'Fire', de: 'Feuer' }
                                   : { en: 'Flood', de: 'Überflutung' },
+                getStateHandler: makeGetStateHandler(adapter, actualState.id, defaultVal),
             });
         }
 
         // Thermostat actual temperature
-        if ((type === 'thermostat' || type === 'airCondition') && actualState.id) {
+        if (type === 'thermostat' || type === 'airCondition') {
             controls.push({
                 id: 'actualTemp',
                 type: 'info',
                 stateId: actualState.id,
                 unit: '°C',
                 label: { en: 'Temperature', de: 'Temperatur' },
+                getStateHandler: makeGetStateHandler(adapter, actualState.id, 0),
             });
         }
     }
@@ -251,6 +332,7 @@ function buildControls(device: InternalDevice): ControlBase[] {
             stateId: powerInfo.id,
             unit: 'W',
             label: { en: 'Power', de: 'Leistung' },
+            getStateHandler: makeGetStateHandler(adapter, powerInfo.id, 0),
         });
     }
 
@@ -631,7 +713,7 @@ export default class DevicesDeviceManagement extends DeviceManagement<DevicesAda
             const color = obj.common.color || undefined;
             const role = 'role' in obj.common ? (obj.common as ioBroker.ChannelCommon).role : undefined;
 
-            const controls = buildControls(device);
+            const controls = buildControls(this.adapter, device);
 
             const deviceInfo: DeviceInfo<string> = {
                 id: device.channelId,

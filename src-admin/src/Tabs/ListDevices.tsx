@@ -3525,7 +3525,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                opacity: 0.5,
                             }}
                         >
                             {this.renderDeviceManager()}
@@ -3572,7 +3571,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    opacity: 0.5,
                                     userSelect: this.state.splitDragging ? 'none' : undefined,
                                 }}
                             >

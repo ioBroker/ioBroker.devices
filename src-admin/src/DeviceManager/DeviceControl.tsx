@@ -42,6 +42,7 @@ interface DeviceControlState {
     max?: number;
     step?: number;
     unit?: string;
+    type?: ioBroker.CommonType;
     options?: { label: string; value: ControlState; icon?: string; color?: string }[];
 }
 
@@ -65,9 +66,9 @@ export default class DeviceControlComponent extends Component<DeviceControlProps
                 await mayBePromise;
             }
             if (this.props.control.type === 'slider' || this.props.control.type === 'number') {
-                if (this.props.control.min === undefined && this.props.control.max === undefined) {
-                    // read an object to get min and max
-                    void this.props.socket.getObject(this.props.control.stateId).then(obj => {
+                void this.props.socket.getObject(this.props.control.stateId).then(obj => {
+                    if (this.props.control.min === undefined && this.props.control.max === undefined) {
+                        // read an object to get min and max
                         if (obj?.common) {
                             let min: number | undefined = this.props.control.min;
                             if (min === undefined) {
@@ -100,20 +101,22 @@ export default class DeviceControlComponent extends Component<DeviceControlProps
                                 max,
                                 step,
                                 unit,
+                                type: obj.common.type,
                             });
                         }
-                    });
-                } else {
-                    const min = this.props.control.min === undefined ? 0 : this.props.control.min;
-                    const max = this.props.control.max === undefined ? 100 : this.props.control.max;
+                    } else {
+                        const min = this.props.control.min ?? 0;
+                        const max = this.props.control.max ?? 100;
 
-                    this.setState({
-                        min,
-                        max,
-                        step: this.props.control.step === undefined ? (max - min) / 100 : this.props.control.step,
-                        unit: this.props.control.unit || '',
-                    });
-                }
+                        this.setState({
+                            min,
+                            max,
+                            step: this.props.control.step === undefined ? (max - min) / 100 : this.props.control.step,
+                            unit: this.props.control.unit || '',
+                            type: obj?.common?.type,
+                        });
+                    }
+                });
             } else if (this.props.control.type === 'select') {
                 if (!this.props.control.options?.length) {
                     // read an object to get options
@@ -140,6 +143,7 @@ export default class DeviceControlComponent extends Component<DeviceControlProps
 
                             this.setState({
                                 options,
+                                type: obj.common.type,
                             });
                         }
                     });
@@ -313,42 +317,46 @@ export default class DeviceControlComponent extends Component<DeviceControlProps
             return <div style={{ width: '100%' }}>...</div>;
         }
         return (
-            <Stack
-                spacing={2}
-                direction="row"
-                sx={{ alignItems: 'center', mb: 1, width: '100%', minWidth: 300 }}
-            >
+            <div style={{ width: '100%', minWidth: 300, paddingTop: 24, marginBottom: 8, overflow: 'visible' }}>
                 {this.props.control.label ? (
-                    <InputLabel style={{ color: this.props.control.color }}>
+                    <InputLabel style={{ color: this.props.control.color, marginBottom: 4 }}>
                         {getTranslation(this.props.control.label)}
                     </InputLabel>
                 ) : null}
-                {this.props.control.icon ? (
-                    <Icon
-                        style={{ color: this.props.control.color }}
-                        src={this.props.control.icon}
+                <Stack
+                    spacing={2}
+                    direction="row"
+                    sx={{ alignItems: 'center', width: '100%' }}
+                >
+                    {this.props.control.icon ? (
+                        <Icon
+                            style={{ color: this.props.control.color }}
+                            src={this.props.control.icon}
+                        />
+                    ) : null}
+                    <Slider
+                        value={parseFloat((this.state.value as string) || '0')}
+                        min={this.state.min}
+                        max={this.state.max}
+                        step={this.state.step}
+                        valueLabelDisplay="auto"
+                        onChange={(_e, value) =>
+                            this.sendControl(this.props.deviceId, this.props.control, value as number)
+                        }
                     />
-                ) : null}
-                <Slider
-                    value={parseFloat((this.state.value as string) || '0')}
-                    min={this.state.min}
-                    max={this.state.max}
-                    step={this.state.step}
-                    valueLabelDisplay="auto"
-                    onChange={(_e, value) => this.sendControl(this.props.deviceId, this.props.control, value as number)}
-                />
-                {this.props.control.iconOn ? (
-                    <Icon
-                        style={{ color: this.props.control.colorOn }}
-                        src={this.props.control.iconOn}
-                    />
-                ) : null}
-                {this.props.control.labelOn ? (
-                    <InputLabel style={{ color: this.props.control.colorOn }}>
-                        {getTranslation(this.props.control.labelOn)}
-                    </InputLabel>
-                ) : null}
-            </Stack>
+                    {this.props.control.iconOn ? (
+                        <Icon
+                            style={{ color: this.props.control.colorOn }}
+                            src={this.props.control.iconOn}
+                        />
+                    ) : null}
+                    {this.props.control.labelOn ? (
+                        <InputLabel style={{ color: this.props.control.colorOn }}>
+                            {getTranslation(this.props.control.labelOn)}
+                        </InputLabel>
+                    ) : null}
+                </Stack>
+            </div>
         );
     }
 
