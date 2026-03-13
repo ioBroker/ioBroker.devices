@@ -148,6 +148,8 @@ interface DeviceCardProps {
     ) => () => Promise<ioBroker.State | null>;
     controlStateHandler: (deviceId: DeviceId, control: ControlBase) => () => Promise<ioBroker.State | null>;
     smallCards?: boolean;
+    /** Show the card as a control widget and not as a configuration */
+    widget?: boolean;
     alive: boolean;
     themeName: ThemeName;
     themeType: ThemeType;
@@ -455,6 +457,12 @@ export default class DeviceCard extends Component<DeviceCardProps, DeviceCardSta
             : null;
     }
 
+    renderWidget(): JSX.Element {
+
+
+        return <></>;
+    }
+
     renderSmall(): JSX.Element {
         const hasDetails = this.state.hasDetails;
         const status = !this.props.device.status
@@ -757,6 +765,10 @@ export default class DeviceCard extends Component<DeviceCardProps, DeviceCardSta
         const name = this.state.name?.toLowerCase() ?? '';
         if (this.props.filter && !name.includes(this.props.filter.toLowerCase())) {
             return <></>;
+        }
+
+        if (this.props.widget) {
+            return this.renderWidget();
         }
 
         if (this.props.smallCards) {

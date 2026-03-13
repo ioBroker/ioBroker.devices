@@ -1,5 +1,5 @@
 import { Adapter, type AdapterOptions } from '@iobroker/adapter-core';
-import DevicesDeviceManagement from './lib/DeviceManagement';
+import DevicesDeviceManagement from './lib/WidgetsManagement';
 
 export default class DevicesAdapter extends Adapter {
     private deviceManagement: DevicesDeviceManagement | null = null;

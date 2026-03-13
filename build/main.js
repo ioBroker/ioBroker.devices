@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const adapter_core_1 = require("@iobroker/adapter-core");
-const DeviceManagement_1 = __importDefault(require("./lib/DeviceManagement"));
+const WidgetsManagement_1 = __importDefault(require("./lib/WidgetsManagement"));
 class DevicesAdapter extends adapter_core_1.Adapter {
     deviceManagement = null;
     language = 'en';
@@ -18,7 +18,7 @@ class DevicesAdapter extends adapter_core_1.Adapter {
             ready: () => this.main(),
             unload: cb => this.unload(cb),
         });
-        this.deviceManagement = new DeviceManagement_1.default(this);
+        this.deviceManagement = new WidgetsManagement_1.default(this);
     }
     unload(cb) {
         //this.deviceManagement?.destroy();

@@ -107,7 +107,7 @@ import DragWrapper from '../Components/DragWrapper';
 import DropWrapper from '../Components/DropWrapper';
 import DialogImporter from '../Dialogs/DialogImporter';
 import { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
-import DeviceManagerComponent from '../Components/DeviceManager';
+import WidgetsManager from '../Components/WidgetsManager';
 
 const colorOn = '#aba613';
 const colorOff = '#444';
@@ -3488,9 +3488,9 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 
-    renderDeviceManager(): React.JSX.Element {
+    renderWidgetsManager(): React.JSX.Element {
         return (
-            <DeviceManagerComponent
+            <WidgetsManager
                 socket={this.props.socket}
                 adapterName={this.props.adapterName}
                 instance={this.props.instance}
@@ -3527,7 +3527,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                 justifyContent: 'center',
                             }}
                         >
-                            {this.renderDeviceManager()}
+                            {this.renderWidgetsManager()}
                         </div>
                     ) : (
                         <div
@@ -3574,7 +3574,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                                     userSelect: this.state.splitDragging ? 'none' : undefined,
                                 }}
                             >
-                                {this.renderDeviceManager()}
+                                {this.renderWidgetsManager()}
                             </div>
                             {/* Overlay to capture mouse while dragging */}
                             {this.state.splitDragging ? (
