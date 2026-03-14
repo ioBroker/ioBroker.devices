@@ -11,6 +11,7 @@ interface WidgetsManagerComponentProps {
     themeName: ThemeName;
     themeType: ThemeType;
     theme: IobTheme;
+    showSettingsButton?: boolean;
 }
 
 interface WidgetsManagerComponentState {
@@ -56,6 +57,7 @@ export default class WidgetsManagerComponent extends Component<
                     isFloatComma={this.state.systemConfig.common.isFloatComma}
                     dateFormat={this.state.systemConfig.common.dateFormat}
                     triggerLoad={this.state.triggerControllerLoad}
+                    showSettingsButton={this.props.showSettingsButton}
                 />
             </div>
         );

@@ -10,8 +10,8 @@ export type ObjectChangeListener = (
 export default class StateContext {
     private readonly subscribedStates: { [id: string]: StateChangeListener[] } = {};
     private readonly subscribedObjects: { [id: string]: { property: string; cb: ObjectChangeListener }[] } = {};
-    private objects: { [id: string]: ioBroker.Object };
-    private states: { [id: string]: ioBroker.State };
+    private objects: { [id: string]: ioBroker.Object } = {};
+    private states: { [id: string]: ioBroker.State } = {};
 
     constructor(private readonly socket: Connection) {}
 

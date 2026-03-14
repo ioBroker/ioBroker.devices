@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "Вкл",
+    "wm_Off": "Выкл",
+    "wm_Unknown type": "Неизвестный тип",
+    "wm_one_device": "1 устройство",
+    "wm_n_devices": "%s устройств",
+    "wm_Enabled": "Включено",
+    "wm_Size": "Размер",
+    "wm_Cancel": "Отмена",
+    "wm_Save": "Сохранить"
+}

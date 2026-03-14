@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "Encendido",
+    "wm_Off": "Apagado",
+    "wm_Unknown type": "Tipo desconocido",
+    "wm_one_device": "1 dispositivo",
+    "wm_n_devices": "%s dispositivos",
+    "wm_Enabled": "Activado",
+    "wm_Size": "Tamaño",
+    "wm_Cancel": "Cancelar",
+    "wm_Save": "Guardar"
+}

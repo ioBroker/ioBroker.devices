@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "On",
+    "wm_Off": "Off",
+    "wm_Unknown type": "Unknown type",
+    "wm_one_device": "1 device",
+    "wm_n_devices": "%s devices",
+    "wm_Enabled": "Enabled",
+    "wm_Size": "Size",
+    "wm_Cancel": "Cancel",
+    "wm_Save": "Save"
+}

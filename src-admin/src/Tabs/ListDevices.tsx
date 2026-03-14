@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2025 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2026 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -1040,7 +1040,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         window.localStorage.setItem('Devices.selected', selected);
     }
 
-    onToggleDeviceEnabled = async (channelId: string): Promise<void> => {
+    onToggleGuiEnabled = async (channelId: string): Promise<void> => {
         const obj = await this.props.socket.getObject(channelId);
         if (!obj) {
             return;
@@ -2090,13 +2090,13 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                     >
                         <Tooltip
                             slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                            title={I18n.t('Enable or disable device')}
+                            title={I18n.t('Show device in GUI')}
                         >
                             <Switch
                                 size="small"
                                 checked={!!this.objects[device.channelId]?.common?.custom?.[this.customKey]?.enabled}
                                 onClick={e => e.stopPropagation()}
-                                onChange={() => this.onToggleDeviceEnabled(device.channelId)}
+                                onChange={() => this.onToggleGuiEnabled(device.channelId)}
                             />
                         </Tooltip>
                     </TableCell>
@@ -3497,6 +3497,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 themeName={this.props.themeName}
                 themeType={this.props.themeType}
                 theme={this.props.theme}
+                showSettingsButton
             />
         );
     }

@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "Увімк",
+    "wm_Off": "Вимк",
+    "wm_Unknown type": "Невідомий тип",
+    "wm_one_device": "1 пристрій",
+    "wm_n_devices": "%s пристроїв",
+    "wm_Enabled": "Увімкнено",
+    "wm_Size": "Розмір",
+    "wm_Cancel": "Скасувати",
+    "wm_Save": "Зберегти"
+}

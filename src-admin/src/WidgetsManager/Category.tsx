@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { Box, ButtonBase, IconButton, Typography } from '@mui/material';
+import { ArrowBack, ChevronRight, MeetingRoom } from '@mui/icons-material';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
-import { type WidgetGenericProps, WidgetSwitch } from './Widgets';
+import { getTileStyles, type WidgetGenericProps, type WidgetSettings, WidgetSwitch, WidgetDimmer } from './Widgets';
 import type StateContext from './StateContext';
 
 interface CategoryProps {
@@ -14,6 +16,8 @@ interface CategoryProps {
     language: ioBroker.Languages;
     stateContext: StateContext;
     onNavigate: (category: CategoryInfo) => void;
+    widgetSettings: Record<string, WidgetSettings>;
+    onOpenSettings?: (widgetId: string | number) => void;
 }
 
 interface CategoryState {
@@ -42,7 +46,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             icons: {},
             colors: {},
         };
-        // get all categories and widgets in this category
         // keep only widgets/subcategories that belong to this category
         this.widgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
         this.subCategories = this.props.categories.filter(c => c.parent === this.props.category.id);
@@ -141,7 +144,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     onColorChange = (id: string, state: ioBroker.State): void => {
         let changed = false;
 
-        // category color could be an object { stateId, mapping }
         if (this.props.category.color && typeof this.props.category.color === 'object') {
             const struct = this.props.category.color as { stateId?: string; mapping?: Record<string | number, string> };
             if (struct.stateId === id) {
@@ -158,7 +160,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
         }
 
-        // update subcategories that reference this state for color
         this.subCategories.forEach(c => {
             if (c.color && typeof c.color === 'object') {
                 const struct = c.color as { stateId?: string; mapping?: Record<string | number, string> };
@@ -185,7 +186,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     onIconChange = (id: string, state: ioBroker.State): void => {
         let changed = false;
 
-        // the category icon could be an object { stateId, mapping }
         if (this.props.category.icon && typeof this.props.category.icon === 'object') {
             const struct = this.props.category.icon as { stateId?: string; mapping?: Record<string | number, string> };
             if (struct.stateId === id) {
@@ -202,7 +202,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
         }
 
-        // update subcategories that reference this state for icon
         this.subCategories.forEach(c => {
             if (c.icon && typeof c.icon === 'object') {
                 const struct = c.icon as { stateId?: string; mapping?: Record<string | number, string> };
@@ -238,42 +237,152 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         let Widget: React.ComponentType<WidgetGenericProps> | undefined;
         if (widget.control && widget.control.type === Types.socket) {
             Widget = WidgetSwitch;
+        } else if (widget.control && widget.control.type === Types.dimmer) {
+            Widget = WidgetDimmer;
         }
 
         if (!Widget) {
             return <div key={widget.id}>{I18n.t('wm_Unknown type')}</div>;
         }
+        const settings = this.props.widgetSettings[String(widget.id)];
         return (
             <Widget
                 key={widget.id}
                 stateContext={this.props.stateContext}
                 widget={widget}
                 language={this.props.language}
+                settings={settings}
+                onOpenSettings={this.props.onOpenSettings}
             />
         );
     }
 
-    renderCategoryLine(category: CategoryInfo): React.JSX.Element {
+    renderCategoryTile(category: CategoryInfo): React.JSX.Element {
+        const icon = this.state.icons[category.id];
+        const name = this.state.names[category.id] ?? '...';
+        const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
+
         return (
-            <div
+            <ButtonBase
                 key={category.id}
-                style={{ fontWeight: 'bold', cursor: 'pointer' }}
+                component="div"
                 onClick={() => this.props.onNavigate(category)}
+                sx={theme => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    width: '100%',
+                    gridColumn: '1 / -1',
+                    textAlign: 'left',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                    p: 2,
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    borderLeft: `3px solid ${theme.palette.primary.main}`,
+                    '&:hover': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+                    },
+                    '&:active': {
+                        transform: 'scale(0.99)',
+                    },
+                })}
             >
-                {this.state.names[category.id] ?? '...'}
-            </div>
+                {icon ? (
+                    <Icon
+                        src={icon}
+                        style={{ width: 28, height: 28, flexShrink: 0 }}
+                    />
+                ) : (
+                    <MeetingRoom
+                        sx={theme => ({
+                            fontSize: 28,
+                            color: theme.palette.primary.main,
+                            flexShrink: 0,
+                        })}
+                    />
+                )}
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {name}
+                    </Typography>
+                    {deviceCount > 0 ? (
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            {deviceCount === 1
+                                ? I18n.t('wm_one_device')
+                                : I18n.t('wm_n_devices', deviceCount.toString())}
+                        </Typography>
+                    ) : null}
+                </Box>
+
+                <ChevronRight sx={{ color: 'text.secondary', flexShrink: 0 }} />
+            </ButtonBase>
         );
     }
 
     render(): React.JSX.Element {
+        const parentCategory = this.props.category.parent
+            ? this.props.categories.find(c => String(c.id) === String(this.props.category.parent))
+            : undefined;
+
+        const hasItems = this.subCategories.length > 0 || this.widgets.length > 0;
+
         return (
-            <div key={this.props.category.id}>
-                <div>{this.state.names[this.props.category.id] ?? '...'}</div>
-                {this.subCategories.length ? (
-                    <div>{this.subCategories.map(c => this.renderCategoryLine(c))}</div>
+            <Box
+                key={this.props.category.id}
+                sx={{ p: 1 }}
+            >
+                {/* Room header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, px: 0.5 }}>
+                    {parentCategory ? (
+                        <IconButton
+                            size="small"
+                            onClick={() => this.props.onNavigate(parentCategory)}
+                            sx={{ ml: -1 }}
+                        >
+                            <ArrowBack />
+                        </IconButton>
+                    ) : null}
+                    {this.state.icons[this.props.category.id] ? (
+                        <Icon
+                            src={this.state.icons[this.props.category.id]}
+                            style={{ width: 28, height: 28 }}
+                        />
+                    ) : null}
+                    <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700 }}
+                    >
+                        {this.state.names[this.props.category.id] ?? '...'}
+                    </Typography>
+                </Box>
+
+                {/* Unified grid: subcategories + widgets */}
+                {hasItems ? (
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                            gap: 1.5,
+                        }}
+                    >
+                        {this.subCategories.map(c => this.renderCategoryTile(c))}
+                        {this.widgets.map(w => this.renderWidget(w))}
+                    </Box>
                 ) : null}
-                {this.widgets.length ? <div>{this.widgets.map(w => this.renderWidget(w))}</div> : null}
-            </div>
+            </Box>
         );
     }
 }

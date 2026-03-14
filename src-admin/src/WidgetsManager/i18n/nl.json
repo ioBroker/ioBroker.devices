@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "Aan",
+    "wm_Off": "Uit",
+    "wm_Unknown type": "Onbekend type",
+    "wm_one_device": "1 apparaat",
+    "wm_n_devices": "%s apparaten",
+    "wm_Enabled": "Ingeschakeld",
+    "wm_Size": "Grootte",
+    "wm_Cancel": "Annuleren",
+    "wm_Save": "Opslaan"
+}
