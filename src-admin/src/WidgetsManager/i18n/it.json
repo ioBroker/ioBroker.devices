@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "Acceso",
+    "wm_Off": "Spento",
+    "wm_Unknown type": "Tipo sconosciuto",
+    "wm_one_device": "1 dispositivo",
+    "wm_n_devices": "%s dispositivi",
+    "wm_Enabled": "Abilitato",
+    "wm_Size": "Dimensione",
+    "wm_Cancel": "Annulla",
+    "wm_Save": "Salva"
+}

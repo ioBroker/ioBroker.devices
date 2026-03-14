@@ -1,2 +1,4 @@
 export { WidgetSwitch } from './Switch';
-export type { WidgetGeneric, WidgetGenericProps } from './Generic';
+export { WidgetDimmer } from './Dimmer';
+export { getTileStyles, DEFAULT_WIDGET_SETTINGS } from './Generic';
+export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';

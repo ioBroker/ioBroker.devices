@@ -107,15 +107,13 @@ export default class App extends GenericApp {
                         elevation={0}
                         style={styles.tabContent}
                     >
-                        {this.state.selectedTab === 'list' || !this.state.selectedTab ? (
-                            <TabDevices
-                                theme={this.state.theme}
-                                themeType={this.state.themeType}
-                                socket={this.socket}
-                                adapterName="devices"
-                                instance={this.instance}
-                            />
-                        ) : null}
+                        <TabDevices
+                            theme={this.state.theme}
+                            themeType={this.state.themeType}
+                            socket={this.socket}
+                            adapterName="devices"
+                            instance={this.instance}
+                        />
                     </Paper>
                     {this.renderError()}
                     {this.renderSaveCloseButtons()}

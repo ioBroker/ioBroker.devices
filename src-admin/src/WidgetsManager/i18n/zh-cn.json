@@ -1,1 +1,11 @@
-{}
+{
+    "wm_On": "开",
+    "wm_Off": "关",
+    "wm_Unknown type": "未知类型",
+    "wm_one_device": "1 个设备",
+    "wm_n_devices": "%s 个设备",
+    "wm_Enabled": "已启用",
+    "wm_Size": "大小",
+    "wm_Cancel": "取消",
+    "wm_Save": "保存"
+}

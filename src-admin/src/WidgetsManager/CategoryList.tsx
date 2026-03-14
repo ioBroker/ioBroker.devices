@@ -1,4 +1,5 @@
 import React from 'react';
+import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import de from './i18n/de.json';
@@ -15,8 +16,10 @@ import zhCn from './i18n/zh-cn.json';
 
 import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
+import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
+import WidgetSettingsDialog from './WidgetSettingsDialog';
 
 interface CategoryListProps extends CommunicationProps {
     /** Instance to upload images to, like `adapterName.X` */
@@ -29,6 +32,8 @@ interface CategoryListProps extends CommunicationProps {
     style?: React.CSSProperties;
     /** To trigger the reload of devices, just change this variable */
     triggerLoad?: number;
+    /** If settings button is shown */
+    showSettingsButton?: boolean;
 }
 
 interface CategoryListState extends CommunicationState {
@@ -39,14 +44,22 @@ interface CategoryListState extends CommunicationState {
     alive: boolean | null;
     triggerLoad: number;
     currentCategory: CategoryInfo;
+    widgetSettings: Record<string, WidgetSettings>;
+    settingsWidgetId: string | number | null;
 }
+
+const WM_SETTINGS_KEY = 'wm_widget_settings';
 const ROOT_CATEGORY = '__root__';
 
 /**
  * Device List Component
  */
+const WM_FONT_FAMILY = '"Inter", "Roboto", "Helvetica Neue", Arial, sans-serif';
+
 export class CategoryList extends Communication<CategoryListProps, CategoryListState> {
     static i18nInitialized = false;
+
+    static fontLoaded = false;
 
     private stateContext: StateContext = new StateContext(this.props.socket);
 
@@ -57,6 +70,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private filterTimeout: ReturnType<typeof setTimeout> | null = null;
 
     private readonly language: ioBroker.Languages = I18n.getLanguage();
+
+    private widgetTheme: Theme | null = null;
+
+    private widgetThemeType = '';
 
     constructor(props: CategoryListProps) {
         super(props);
@@ -78,6 +95,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             });
         }
 
+        let widgetSettings: Record<string, WidgetSettings> = {};
+        try {
+            const raw = localStorage.getItem(WM_SETTINGS_KEY);
+            if (raw) {
+                widgetSettings = JSON.parse(raw) as Record<string, WidgetSettings>;
+            }
+        } catch {
+            // ignore parse errors
+        }
+
         this.state = {
             ...this.state,
             categories: [],
@@ -85,12 +112,90 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             filter: '',
             loading: null,
             alive: null,
+            widgetSettings,
+            settingsWidgetId: null,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
     }
 
+    // --- Hash routing ---
+
+    private getCategoryName(category: CategoryInfo): string {
+        if (typeof category.name === 'string') {
+            return category.name || String(category.id);
+        }
+        if (typeof category.name === 'object' && 'en' in category.name) {
+            const translated = category.name;
+            return translated[this.language] || translated.en || String(category.id);
+        }
+        return String(category.id);
+    }
+
+    /** Build hash path like #Room/SubRoom by walking up the parent chain */
+    private buildHashPath(category: CategoryInfo): string {
+        if (String(category.id) === ROOT_CATEGORY) {
+            return '';
+        }
+        const segments: string[] = [];
+        let current: CategoryInfo | undefined = category;
+        while (current && String(current.id) !== ROOT_CATEGORY) {
+            segments.unshift(encodeURIComponent(this.getCategoryName(current)));
+            current = this.state.categories.find(c => String(c.id) === String(current!.parent));
+        }
+        return segments.join('/');
+    }
+
+    /** Resolve a hash like #Room/SubRoom back to a CategoryInfo from the given list */
+    private resolveCategoryFromHash(hash: string, categories: CategoryInfo[]): CategoryInfo | undefined {
+        const raw = hash.startsWith('#') ? hash.substring(1) : hash;
+        if (!raw) {
+            return categories.find(c => String(c.id) === ROOT_CATEGORY);
+        }
+        const segments = raw.split('/').map(s => decodeURIComponent(s));
+
+        // Walk down from root matching names at each level
+        let parentId: string = ROOT_CATEGORY;
+        let found: CategoryInfo | undefined;
+        for (const segment of segments) {
+            found = categories.find(c => String(c.parent) === String(parentId) && this.getCategoryName(c) === segment);
+            if (!found) {
+                return undefined;
+            }
+            parentId = String(found.id);
+        }
+        return found;
+    }
+
+    private updateHash(category: CategoryInfo): void {
+        const path = this.buildHashPath(category);
+        const newHash = path ? `#${path}` : '';
+        if (window.location.hash !== newHash) {
+            window.location.hash = newHash;
+        }
+    }
+
+    private onHashChange = (): void => {
+        if (!this.state.categories.length) {
+            return;
+        }
+        const category = this.resolveCategoryFromHash(window.location.hash, this.state.categories);
+        if (category && String(category.id) !== String(this.state.currentCategory?.id)) {
+            this.setState({ currentCategory: category });
+        }
+    };
+
     async componentDidMount(): Promise<void> {
+        if (!CategoryList.fontLoaded) {
+            CategoryList.fontLoaded = true;
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+            document.head.appendChild(link);
+        }
+
+        window.addEventListener('hashchange', this.onHashChange);
+
         let alive = false;
 
         if (this.state.alive === null && this.state.selectedInstance) {
@@ -122,6 +227,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     componentWillUnmount(): void {
+        window.removeEventListener('hashchange', this.onHashChange);
         if (this.state.selectedInstance) {
             this.props.socket.unsubscribeState(
                 `system.adapter.${this.state.selectedInstance}.alive`,
@@ -187,12 +293,17 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.setState({ loading: !!alive, alive });
                 if (alive) {
                     await this.loadItems(result => {
+                        // Try to restore category from URL hash, fall back to root
+                        const currentCategory =
+                            this.resolveCategoryFromHash(window.location.hash, result.categories) ||
+                            result.categories.find(c => c.id === ROOT_CATEGORY) ||
+                            result.categories[0];
+
                         this.setState({
                             categories: result.categories,
                             widgets: result.widgets,
                             loading: false,
-                            currentCategory:
-                                result.categories.find(c => c.id === ROOT_CATEGORY) || result.categories[0],
+                            currentCategory,
                         });
                         console.log(
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
@@ -205,20 +316,84 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         });
     }
 
+    private onOpenSettings = (widgetId: string | number): void => {
+        this.setState({ settingsWidgetId: widgetId });
+    };
+
+    private onSaveSettings = (settings: WidgetSettings): void => {
+        const { settingsWidgetId } = this.state;
+        if (settingsWidgetId != null) {
+            const widgetSettings = { ...this.state.widgetSettings, [String(settingsWidgetId)]: settings };
+            localStorage.setItem(WM_SETTINGS_KEY, JSON.stringify(widgetSettings));
+            this.setState({ widgetSettings, settingsWidgetId: null });
+        }
+    };
+
+    private onCloseSettings = (): void => {
+        this.setState({ settingsWidgetId: null });
+    };
+
+    private getWidgetName(widget: WidgetInfo): string {
+        if (typeof widget.name === 'string') {
+            return widget.name || String(widget.id);
+        }
+        if (typeof widget.name === 'object' && 'en' in widget.name) {
+            const translated = widget.name;
+            return translated[this.language] || translated.en || String(widget.id);
+        }
+        return String(widget.id);
+    }
+
+    private getWidgetTheme(): Theme {
+        if (!this.widgetTheme || this.widgetThemeType !== this.props.themeType) {
+            this.widgetThemeType = this.props.themeType;
+            this.widgetTheme = createTheme(this.props.theme, {
+                typography: {
+                    fontFamily: WM_FONT_FAMILY,
+                },
+            });
+        }
+        return this.widgetTheme;
+    }
+
     render(): React.JSX.Element {
         // find the root category
         const currentCategory = this.state.currentCategory || this.state.categories.find(c => c.id === ROOT_CATEGORY);
+
+        const settingsWidget =
+            this.state.settingsWidgetId != null
+                ? this.state.widgets.find(w => w.id === this.state.settingsWidgetId)
+                : null;
+
         if (currentCategory) {
             return (
-                <Category
-                    key={currentCategory.id}
-                    category={currentCategory}
-                    categories={this.state.categories}
-                    widgets={this.state.widgets}
-                    stateContext={this.stateContext}
-                    language={this.language}
-                    onNavigate={(category: CategoryInfo) => this.setState({ currentCategory: category })}
-                />
+                <ThemeProvider theme={this.getWidgetTheme()}>
+                    <Category
+                        key={currentCategory.id}
+                        category={currentCategory}
+                        categories={this.state.categories}
+                        widgets={this.state.widgets}
+                        stateContext={this.stateContext}
+                        language={this.language}
+                        onNavigate={(category: CategoryInfo) => {
+                            this.setState({ currentCategory: category });
+                            this.updateHash(category);
+                        }}
+                        widgetSettings={this.state.widgetSettings}
+                        onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
+                    />
+                    <WidgetSettingsDialog
+                        open={settingsWidget != null}
+                        widgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
+                        settings={
+                            settingsWidget
+                                ? this.state.widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
+                                : DEFAULT_WIDGET_SETTINGS
+                        }
+                        onClose={this.onCloseSettings}
+                        onSave={this.onSaveSettings}
+                    />
+                </ThemeProvider>
             );
         }
 
