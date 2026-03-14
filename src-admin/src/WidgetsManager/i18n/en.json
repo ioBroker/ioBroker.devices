@@ -8,5 +8,9 @@
     "wm_Size": "Size",
     "wm_Cancel": "Cancel",
     "wm_Save": "Save",
-    "wm_Chart": "Chart"
+    "wm_Chart": "Chart",
+    "wm_Motion": "Motion",
+    "wm_Clear": "Clear",
+    "wm_Name": "Name",
+    "wm_Color": "Color"
 }

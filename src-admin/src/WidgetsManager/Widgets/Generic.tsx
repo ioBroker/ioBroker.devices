@@ -25,12 +25,16 @@ export interface WidgetSettings {
     enabled: boolean;
     size: '1x1' | '2x1';
     chartHours: number;
+    name: string;
+    color: string;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     enabled: true,
     size: '1x1',
     chartHours: 0,
+    name: '',
+    color: '',
 };
 
 export interface WidgetGenericProps {
@@ -367,7 +371,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     protected getAccentColor(): string | undefined {
-        return this.state.color || undefined;
+        return this.props.settings?.color || this.state.color || undefined;
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -854,7 +858,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                 whiteSpace: 'nowrap',
                             }}
                         >
-                            {name ?? '...'}
+                            {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
                     </Box>
@@ -901,7 +905,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                     whiteSpace: 'nowrap',
                                 }}
                             >
-                                {name ?? '...'}
+                                {this.props.settings?.name || name || '...'}
                             </Typography>
                             {indicators}
                         </Box>
