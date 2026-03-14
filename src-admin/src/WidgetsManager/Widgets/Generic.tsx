@@ -1,6 +1,20 @@
 import React, { Component } from 'react';
-import { Box, ButtonBase, Typography } from '@mui/material';
-import { Settings } from '@mui/icons-material';
+import { Box, ButtonBase, Tooltip, Typography } from '@mui/material';
+import {
+    ArrowDownward,
+    ArrowUpward,
+    BatteryAlert,
+    Battery20,
+    Battery50,
+    Battery80,
+    BatteryFull,
+    Build,
+    Error as ErrorIcon,
+    LinkOff,
+    Settings,
+    Sync,
+    WifiOff,
+} from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
 import { Icon } from '@iobroker/adapter-react-v5';
 
@@ -26,11 +40,36 @@ export interface WidgetGenericProps {
     onOpenSettings?: (widgetId: string | number) => void;
 }
 
+export interface IndicatorValues {
+    working: boolean | null;
+    unreach: boolean | null;
+    lowbat: boolean | null;
+    maintain: boolean | null;
+    error: string | null;
+    direction: boolean | number | null;
+    connected: boolean | null;
+    battery: number | null;
+}
+
 export interface WidgetGenericState {
     name: string | null;
     icon: string | null;
     color: string | null;
+    indicators: IndicatorValues;
 }
+
+const INDICATOR_NAMES = [
+    'WORKING',
+    'UNREACH',
+    'LOWBAT',
+    'MAINTAIN',
+    'ERROR',
+    'DIRECTION',
+    'CONNECTED',
+    'BATTERY',
+] as const;
+
+const INDICATOR_ICON_SIZE = 14;
 
 export function getTileStyles(theme: Theme, isActive: boolean, accentColor?: string): Record<string, unknown> {
     const accent = accentColor || theme.palette.primary.main;
@@ -59,17 +98,41 @@ export function getTileStyles(theme: Theme, isActive: boolean, accentColor?: str
     };
 }
 
+const DEFAULT_INDICATORS: IndicatorValues = {
+    working: null,
+    unreach: null,
+    lowbat: null,
+    maintain: null,
+    error: null,
+    direction: null,
+    connected: null,
+    battery: null,
+};
+
 export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericState> extends Component<
     WidgetGenericProps,
     TState
 > {
+    /** Indicator state IDs mapped by name */
+    private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
+
     constructor(props: WidgetGenericProps) {
         super(props);
         this.state = {
             name: null,
             icon: null,
             color: null,
+            indicators: { ...DEFAULT_INDICATORS },
         } as TState;
+
+        // Collect indicator state IDs from control.states
+        if (props.widget.control?.states) {
+            for (const s of props.widget.control.states) {
+                if ((INDICATOR_NAMES as readonly string[]).includes(s.name) && s.id) {
+                    this.indicatorIds[s.name as (typeof INDICATOR_NAMES)[number]] = s.id;
+                }
+            }
+        }
     }
 
     componentDidMount(): void {
@@ -117,7 +180,106 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         if (state) {
             this.setState(state as WidgetGenericState & TState);
         }
+
+        // Subscribe to all indicator states
+        for (const name of INDICATOR_NAMES) {
+            const id = this.indicatorIds[name];
+            if (id) {
+                this.props.stateContext.getState(id, this.onIndicatorChange);
+            }
+        }
     }
+
+    componentWillUnmount(): void {
+        for (const name of INDICATOR_NAMES) {
+            const id = this.indicatorIds[name];
+            if (id) {
+                this.props.stateContext.removeState(id, this.onIndicatorChange);
+            }
+        }
+    }
+
+    private onIndicatorChange = (id: string, state: ioBroker.State): void => {
+        const indicators = { ...this.state.indicators };
+        let changed = false;
+
+        for (const name of INDICATOR_NAMES) {
+            if (this.indicatorIds[name] !== id) {
+                continue;
+            }
+            switch (name) {
+                case 'WORKING': {
+                    const val = !!state.val;
+                    if (indicators.working !== val) {
+                        indicators.working = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'UNREACH': {
+                    const val = !!state.val;
+                    if (indicators.unreach !== val) {
+                        indicators.unreach = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'LOWBAT': {
+                    const val = !!state.val;
+                    if (indicators.lowbat !== val) {
+                        indicators.lowbat = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'MAINTAIN': {
+                    const val = !!state.val;
+                    if (indicators.maintain !== val) {
+                        indicators.maintain = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'ERROR': {
+                    const val = state.val != null && state.val !== '' && state.val !== false ? String(state.val) : null;
+                    if (indicators.error !== val) {
+                        indicators.error = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'DIRECTION': {
+                    const val = typeof state.val === 'number' ? state.val : state.val ? true : false;
+                    if (indicators.direction !== val) {
+                        indicators.direction = val as boolean | number;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'CONNECTED': {
+                    // inverted: true value = reachable (good)
+                    const val = !!state.val;
+                    if (indicators.connected !== val) {
+                        indicators.connected = val;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'BATTERY': {
+                    const val = Number(state.val);
+                    if (indicators.battery !== val) {
+                        indicators.battery = isNaN(val) ? null : val;
+                        changed = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (changed) {
+            this.setState({ indicators } as Partial<TState> as TState);
+        }
+    };
 
     onNameChange = (id: string, property: string, value: ioBroker.StringOrTranslated): void => {
         const text = this.getText(value);
@@ -215,6 +377,153 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return null;
     }
 
+    // --- Indicators ---
+
+    protected renderIndicators(): React.JSX.Element | null {
+        const { indicators } = this.state;
+        const items: React.JSX.Element[] = [];
+        const sz = INDICATOR_ICON_SIZE;
+
+        // Unreachable — red wifi-off
+        if (indicators.unreach) {
+            items.push(
+                <Tooltip
+                    key="unreach"
+                    title="Unreachable"
+                >
+                    <WifiOff sx={{ fontSize: sz, color: 'error.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Disconnected — show only when false (connected=false means disconnected)
+        if (indicators.connected === false) {
+            items.push(
+                <Tooltip
+                    key="connected"
+                    title="Disconnected"
+                >
+                    <LinkOff sx={{ fontSize: sz, color: 'error.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Error
+        if (indicators.error) {
+            items.push(
+                <Tooltip
+                    key="error"
+                    title={indicators.error}
+                >
+                    <ErrorIcon sx={{ fontSize: sz, color: 'error.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Low battery indicator (boolean)
+        if (indicators.lowbat) {
+            items.push(
+                <Tooltip
+                    key="lowbat"
+                    title="Low battery"
+                >
+                    <BatteryAlert sx={{ fontSize: sz, color: 'warning.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Battery level (numeric) — always show if available (skip if lowbat already shown)
+        if (indicators.battery != null && !indicators.lowbat) {
+            const pct = Math.round(indicators.battery);
+            const batteryIcon =
+                pct <= 10 ? (
+                    <BatteryAlert sx={{ fontSize: sz, color: 'error.main' }} />
+                ) : pct <= 30 ? (
+                    <Battery20 sx={{ fontSize: sz, color: 'warning.main' }} />
+                ) : pct <= 60 ? (
+                    <Battery50 sx={{ fontSize: sz, color: 'success.main' }} />
+                ) : pct <= 90 ? (
+                    <Battery80 sx={{ fontSize: sz, color: 'success.main' }} />
+                ) : (
+                    <BatteryFull sx={{ fontSize: sz, color: 'success.main' }} />
+                );
+            items.push(
+                <Tooltip
+                    key="battery"
+                    title={`${pct}%`}
+                >
+                    {batteryIcon}
+                </Tooltip>,
+            );
+        }
+
+        // Maintenance
+        if (indicators.maintain) {
+            items.push(
+                <Tooltip
+                    key="maintain"
+                    title="Maintenance required"
+                >
+                    <Build sx={{ fontSize: sz, color: 'warning.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Direction — 0: none, 1: up/open, 2: down/close, 3: unknown; boolean true=up
+        if (indicators.direction === true || indicators.direction === 1) {
+            items.push(
+                <Tooltip key="direction" title="Up / Open">
+                    <ArrowUpward sx={{ fontSize: sz, color: 'info.main' }} />
+                </Tooltip>,
+            );
+        } else if (indicators.direction === 2) {
+            items.push(
+                <Tooltip key="direction" title="Down / Close">
+                    <ArrowDownward sx={{ fontSize: sz, color: 'info.main' }} />
+                </Tooltip>,
+            );
+        }
+
+        // Working (busy) — spinning sync icon
+        if (indicators.working) {
+            items.push(
+                <Tooltip
+                    key="working"
+                    title="Working"
+                >
+                    <Sync
+                        sx={{
+                            fontSize: sz,
+                            color: 'info.main',
+                            animation: 'spin 1.5s linear infinite',
+                            '@keyframes spin': {
+                                '0%': { transform: 'rotate(0deg)' },
+                                '100%': { transform: 'rotate(360deg)' },
+                            },
+                        }}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (items.length === 0) {
+            return null;
+        }
+
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    flexWrap: 'wrap',
+                }}
+            >
+                {items}
+            </Box>
+        );
+    }
+
     // --- Settings button ---
 
     protected renderSettingsButton(): React.JSX.Element | null {
@@ -270,6 +579,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
+        const indicators = this.renderIndicators();
 
         return (
             <Box sx={{ position: 'relative' }}>
@@ -290,7 +600,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         ...getTileStyles(theme, isActive, accent),
                     })}
                 >
-                    <Box>{this.renderTileIcon()}</Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        {this.renderTileIcon()}
+                        {indicators}
+                    </Box>
 
                     <Box>
                         <Typography
@@ -318,6 +631,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
+        const indicators = this.renderIndicators();
 
         return (
             <Box sx={{ position: 'relative', gridColumn: 'span 2' }}>
@@ -337,17 +651,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     <Box sx={{ flexShrink: 0 }}>{this.renderTileIcon()}</Box>
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{
-                                fontWeight: 600,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {name ?? '...'}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {name ?? '...'}
+                            </Typography>
+                            {indicators}
+                        </Box>
                         {this.renderTileStatus()}
                     </Box>
 

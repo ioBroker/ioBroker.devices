@@ -53,6 +53,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onBrightnessChange);
         }
@@ -299,6 +300,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
+        const indicators = this.renderIndicators();
 
         // Circular progress parameters — fixed viewBox, sized by CSS percentage
         const vb = 100;
@@ -332,6 +334,11 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         ...getTileStyles(theme, isActive, accent),
                     })}
                 >
+                    {indicators ? (
+                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>
+                            {indicators}
+                        </Box>
+                    ) : null}
                     <Box
                         sx={{
                             display: 'flex',
