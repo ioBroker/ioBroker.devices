@@ -49,6 +49,8 @@ interface CategoryListState extends CommunicationState {
     widgetSettings: Record<string, WidgetSettings>;
     settingsWidgetId: string | number | null;
     chartAvailable: boolean;
+    settingsObjectName: string;
+    settingsObjectColor: string;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
@@ -122,6 +124,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             widgetSettings,
             settingsWidgetId: null,
             chartAvailable: false,
+            settingsObjectName: '',
+            settingsObjectColor: '',
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -404,9 +408,25 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private onOpenSettings = (widgetId: string | number): void => {
-        this.setState({ settingsWidgetId: widgetId, chartAvailable: false });
+        this.setState({ settingsWidgetId: widgetId, chartAvailable: false, settingsObjectName: '', settingsObjectColor: '' });
         void this.checkChartAvailable(widgetId);
+        void this.loadObjectSettings(widgetId);
     };
+
+    private async loadObjectSettings(widgetId: string | number): Promise<void> {
+        try {
+            const obj = await this.props.socket.getObject(String(widgetId));
+            if (obj?.common) {
+                const name = typeof obj.common.name === 'object'
+                    ? (obj.common.name as ioBroker.Translated)[this.language] || (obj.common.name as ioBroker.Translated).en || ''
+                    : (obj.common.name as string) || '';
+                const color = (obj.common.color as string) || '';
+                this.setState({ settingsObjectName: name, settingsObjectColor: color });
+            }
+        } catch {
+            // ignore
+        }
+    }
 
     private async checkChartAvailable(widgetId: string | number): Promise<void> {
         const widget = this.state.widgets.find(w => w.id === widgetId);
@@ -545,6 +565,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         onClose={this.onCloseSettings}
                         onSave={this.onSaveSettings}
                         showChart={this.state.chartAvailable}
+                        objectName={this.state.settingsObjectName}
+                        objectColor={this.state.settingsObjectColor}
                     />
                 </ThemeProvider>
             );

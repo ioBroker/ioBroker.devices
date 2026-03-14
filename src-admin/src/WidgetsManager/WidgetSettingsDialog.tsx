@@ -7,12 +7,14 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
+    IconButton,
     Switch,
+    TextField,
     ToggleButton,
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
-import { Close, Save } from '@mui/icons-material';
+import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { WidgetSettings } from './Widgets/Generic';
@@ -24,17 +26,23 @@ interface WidgetSettingsDialogProps {
     onClose: () => void;
     onSave: (settings: WidgetSettings) => void;
     showChart?: boolean;
+    objectName?: string;
+    objectColor?: string;
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
-    const { open, widgetName, settings, onClose, onSave, showChart } = props;
+    const { open, widgetName, settings, onClose, onSave, showChart, objectName, objectColor } = props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
 
     useEffect(() => {
         if (open) {
-            setLocal(settings);
+            setLocal({
+                ...settings,
+                name: settings.name || objectName || widgetName,
+                color: settings.color || objectColor || '',
+            });
         }
-    }, [settings, open]);
+    }, [settings, open, widgetName, objectName, objectColor]);
 
     return (
         <Dialog
@@ -45,6 +53,53 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         >
             <DialogTitle>{widgetName}</DialogTitle>
             <DialogContent>
+                <TextField
+                    fullWidth
+                    label={I18n.t('wm_Name')}
+                    value={local.name}
+                    onChange={e => setLocal({ ...local, name: e.target.value })}
+                    placeholder={widgetName}
+                    size="small"
+                    sx={{ mt: 1, mb: 2 }}
+                />
+
+                <Box sx={{ mb: 2 }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ mb: 1, fontWeight: 500 }}
+                    >
+                        {I18n.t('wm_Color')}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                            component="input"
+                            type="color"
+                            value={local.color || '#1976d2'}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setLocal({ ...local, color: e.target.value })
+                            }
+                            sx={{
+                                width: 40,
+                                height: 40,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                cursor: 'pointer',
+                                p: '2px',
+                                backgroundColor: 'transparent',
+                            }}
+                        />
+                        {local.color ? (
+                            <IconButton
+                                size="small"
+                                onClick={() => setLocal({ ...local, color: '' })}
+                            >
+                                <Delete fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                    </Box>
+                </Box>
+
                 <FormControlLabel
                     control={
                         <Switch
@@ -54,7 +109,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         />
                     }
                     label={I18n.t('wm_Enabled')}
-                    sx={{ mb: 2, mt: 1 }}
+                    sx={{ mb: 2 }}
                 />
 
                 <Box>
@@ -136,7 +191,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     disabled={
                         local.enabled === settings.enabled &&
                         local.size === settings.size &&
-                        local.chartHours === settings.chartHours
+                        local.chartHours === settings.chartHours &&
+                        local.name === settings.name &&
+                        local.color === settings.color
                     }
                     startIcon={<Save />}
                     onClick={() => onSave(local)}

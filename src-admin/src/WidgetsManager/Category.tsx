@@ -6,7 +6,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
-import { type WidgetGenericProps, type WidgetSettings, WidgetSwitch, WidgetDimmer, WidgetTemperature } from './Widgets';
+import { type WidgetGenericProps, type WidgetSettings, WidgetSwitch, WidgetDimmer, WidgetTemperature, WidgetMotion } from './Widgets';
 import type StateContext from './StateContext';
 
 interface CategoryProps {
@@ -243,6 +243,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetDimmer;
         } else if (widget.control && widget.control.type === Types.temperature) {
             Widget = WidgetTemperature;
+        } else if (widget.control && widget.control.type === Types.motion) {
+            Widget = WidgetMotion;
         }
 
         if (!Widget) {
