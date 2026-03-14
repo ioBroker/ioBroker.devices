@@ -34,6 +34,7 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         if (this.listenId) {
             this.props.stateContext.removeState(this.listenId, this.onSwitchStateChange);
         }
