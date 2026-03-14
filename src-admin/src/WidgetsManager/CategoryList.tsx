@@ -14,7 +14,7 @@ import pl from './i18n/pl.json';
 import uk from './i18n/uk.json';
 import zhCn from './i18n/zh-cn.json';
 
-import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
+import type { CategoryInfo, ItemInfo, WidgetInfo } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
@@ -34,6 +34,8 @@ interface CategoryListProps extends CommunicationProps {
     triggerLoad?: number;
     /** If settings button is shown */
     showSettingsButton?: boolean;
+    /** Define state that will accept commands from backend */
+    communicationStateId?: string | boolean;
 }
 
 interface CategoryListState extends CommunicationState {
@@ -46,6 +48,7 @@ interface CategoryListState extends CommunicationState {
     currentCategory: CategoryInfo;
     widgetSettings: Record<string, WidgetSettings>;
     settingsWidgetId: string | number | null;
+    chartAvailable: boolean;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
@@ -63,6 +66,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private stateContext: StateContext = new StateContext(this.props.socket);
 
+    private defaultHistory: string | undefined;
+
     private lastAliveSubscribe = '';
 
     private lastTriggerLoad = 0;
@@ -74,6 +79,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private widgetTheme: Theme | null = null;
 
     private widgetThemeType = '';
+
+    private communicationStateId = '';
 
     constructor(props: CategoryListProps) {
         super(props);
@@ -114,6 +121,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             alive: null,
             widgetSettings,
             settingsWidgetId: null,
+            chartAvailable: false,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -186,6 +194,22 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     };
 
     async componentDidMount(): Promise<void> {
+        if (this.props.communicationStateId) {
+            if (this.props.communicationStateId === true) {
+                this.communicationStateId = `${this.state.selectedInstance}.info.widgetManager`;
+            } else {
+                this.communicationStateId = `${this.state.selectedInstance}.${this.communicationStateId}`;
+            }
+            // ensure that state does exist
+            const obj = await this.props.socket.getObject(this.communicationStateId);
+            if (!obj) {
+                window.alert(
+                    `Updates from backend is not available, because state ${this.props.communicationStateId} does not exist`,
+                );
+            } else {
+                await this.props.socket.subscribeState(this.communicationStateId, this.onBackendCommand);
+            }
+        }
         if (!CategoryList.fontLoaded) {
             CategoryList.fontLoaded = true;
             const link = document.createElement('link');
@@ -234,7 +258,24 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.aliveHandler,
             );
         }
+
+        if (this.communicationStateId) {
+            this.props.socket.unsubscribeState(this.communicationStateId, this.onBackendCommand);
+        }
     }
+
+    onBackendCommand = (id: string, state: ioBroker.State | null | undefined): void => {
+        if (id === this.communicationStateId && state?.val) {
+            try {
+                const command = JSON.parse(state.val as string);
+                if (command.command === 'all') {
+                    this.loadItemsList();
+                }
+            } catch (error) {
+                console.error(`Cannot parse command "${state.val}": ${error}`);
+            }
+        }
+    };
 
     aliveHandler: ioBroker.StateChangeHandler = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.state.selectedInstance && id === `system.adapter.${this.state.selectedInstance}.alive`) {
@@ -316,9 +357,120 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         });
     }
 
+    // --- Backend update handlers ---
+
+    override updateItem(update: ItemInfo): void {
+        if (update.type === 'category') {
+            const category = update as CategoryInfo;
+            const exists = this.state.categories.some(c => String(c.id) === String(category.id));
+            const categories = exists
+                ? this.state.categories.map(c => (String(c.id) === String(category.id) ? category : c))
+                : [...this.state.categories, category];
+
+            const stateUpdate: Partial<CategoryListState> = { categories };
+            // If the current category was updated, refresh it
+            if (this.state.currentCategory && String(this.state.currentCategory.id) === String(category.id)) {
+                stateUpdate.currentCategory = category;
+            }
+            this.setState(stateUpdate as CategoryListState);
+        } else {
+            const widget = update as WidgetInfo;
+            const exists = this.state.widgets.some(w => String(w.id) === String(widget.id));
+            const widgets = exists
+                ? this.state.widgets.map(w => (String(w.id) === String(widget.id) ? widget : w))
+                : [...this.state.widgets, widget];
+            this.setState({ widgets });
+        }
+    }
+
+    override deleteItem(itemId: string): void {
+        const categoryIdx = this.state.categories.findIndex(c => String(c.id) === itemId);
+        if (categoryIdx !== -1) {
+            const categories = this.state.categories.filter(c => String(c.id) !== itemId);
+            const stateUpdate: Partial<CategoryListState> = { categories };
+            // If the deleted category was the current one, navigate to parent or root
+            if (this.state.currentCategory && String(this.state.currentCategory.id) === itemId) {
+                const parent = this.state.currentCategory.parent;
+                stateUpdate.currentCategory =
+                    categories.find(c => String(c.id) === String(parent)) ||
+                    categories.find(c => String(c.id) === ROOT_CATEGORY) ||
+                    categories[0];
+            }
+            this.setState(stateUpdate as CategoryListState);
+        } else {
+            const widgets = this.state.widgets.filter(w => String(w.id) !== itemId);
+            this.setState({ widgets });
+        }
+    }
+
     private onOpenSettings = (widgetId: string | number): void => {
-        this.setState({ settingsWidgetId: widgetId });
+        this.setState({ settingsWidgetId: widgetId, chartAvailable: false });
+        void this.checkChartAvailable(widgetId);
     };
+
+    private async checkChartAvailable(widgetId: string | number): Promise<void> {
+        const widget = this.state.widgets.find(w => w.id === widgetId);
+        if (!widget?.control?.states?.length) {
+            return;
+        }
+
+        if (this.defaultHistory === undefined) {
+            try {
+                const sysConfig: ioBroker.SystemConfigObject | null | undefined =
+                    await this.props.socket.getObject('system.config');
+                this.defaultHistory = sysConfig?.common?.defaultHistory || '';
+            } catch {
+                this.defaultHistory = '';
+            }
+        }
+
+        if (!this.defaultHistory) {
+            return;
+        }
+
+        for (const s of widget.control.states) {
+            if (!s.id) {
+                continue;
+            }
+            try {
+                if (await this.hasHistoryEnabled(s.id)) {
+                    this.setState({ chartAvailable: true });
+                    return;
+                }
+            } catch {
+                // ignore
+            }
+        }
+    }
+
+    private async hasHistoryEnabled(stateId: string): Promise<boolean> {
+        const obj = (await this.props.socket.getObject(stateId)) as ioBroker.StateObject | null | undefined;
+        if (!obj) {
+            return false;
+        }
+        if (obj.common?.custom?.[this.defaultHistory!]?.enabled) {
+            return true;
+        }
+        // Follow alias to target and check there
+        const aliasId = (obj.common as any)?.alias?.id;
+        if (aliasId) {
+            const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
+            if (targetId && targetId !== stateId) {
+                try {
+                    const targetObj = (await this.props.socket.getObject(targetId)) as
+                        | ioBroker.StateObject
+                        | null
+                        | undefined;
+                    if (targetObj?.common?.custom?.[this.defaultHistory!]?.enabled) {
+                        return true;
+                    }
+                } catch {
+                    // ignore
+                }
+            }
+        }
+        return false;
+    }
 
     private onSaveSettings = (settings: WidgetSettings): void => {
         const { settingsWidgetId } = this.state;
@@ -392,6 +544,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         }
                         onClose={this.onCloseSettings}
                         onSave={this.onSaveSettings}
+                        showChart={this.state.chartAvailable}
                     />
                 </ThemeProvider>
             );

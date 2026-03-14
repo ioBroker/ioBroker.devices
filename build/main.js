@@ -18,15 +18,16 @@ class DevicesAdapter extends adapter_core_1.Adapter {
             ready: () => this.main(),
             unload: cb => this.unload(cb),
         });
-        this.deviceManagement = new WidgetsManagement_1.default(this);
     }
     unload(cb) {
         //this.deviceManagement?.destroy();
         cb?.();
     }
     async main() {
+        this.deviceManagement = new WidgetsManagement_1.default(this, true);
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
+        this.subscribeForeignObjects('*');
     }
 }
 exports.default = DevicesAdapter;

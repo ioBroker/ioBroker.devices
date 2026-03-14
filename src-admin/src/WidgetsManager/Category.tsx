@@ -6,7 +6,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
-import { getTileStyles, type WidgetGenericProps, type WidgetSettings, WidgetSwitch, WidgetDimmer } from './Widgets';
+import { type WidgetGenericProps, type WidgetSettings, WidgetSwitch, WidgetDimmer, WidgetTemperature } from './Widgets';
 import type StateContext from './StateContext';
 
 interface CategoryProps {
@@ -36,9 +36,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         icons: {},
         colors: {},
     };
-    private widgets: WidgetInfo[];
-    private subCategories: CategoryInfo[];
-
     constructor(props: CategoryProps) {
         super(props);
         this.state = {
@@ -46,9 +43,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             icons: {},
             colors: {},
         };
-        // keep only widgets/subcategories that belong to this category
-        this.widgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
-        this.subCategories = this.props.categories.filter(c => c.parent === this.props.category.id);
+    }
+
+    private get widgets(): WidgetInfo[] {
+        return this.props.widgets.filter(w => w.parent === this.props.category.id);
+    }
+
+    private get subCategories(): CategoryInfo[] {
+        return this.props.categories.filter(c => c.parent === this.props.category.id);
     }
 
     readCategorySettings(
@@ -239,6 +241,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetSwitch;
         } else if (widget.control && widget.control.type === Types.dimmer) {
             Widget = WidgetDimmer;
+        } else if (widget.control && widget.control.type === Types.temperature) {
+            Widget = WidgetTemperature;
         }
 
         if (!Widget) {
