@@ -6,13 +6,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WidgetsManagement = void 0;
 class WidgetsManagement {
-    adapter;
     widgets;
     categories;
     communicationStateId = '';
+    adapter;
     constructor(adapter, communicationStateId) {
-        this.adapter = adapter;
         adapter.on('message', this.onMessage.bind(this));
+        this.adapter = adapter;
         if (communicationStateId === true) {
             // use standard ID `info.deviceManager`
             this.communicationStateId = 'info.widgetManager';
@@ -21,7 +21,7 @@ class WidgetsManagement {
             this.communicationStateId = communicationStateId;
         }
         if (this.communicationStateId) {
-            this.ensureCommunicationState().catch(e => this.log().error(`Cannot initialize communication state: ${e}`));
+            this.ensureCommunicationState().catch(e => this.log.error(`Cannot initialize communication state: ${e}`));
         }
     }
     async ensureCommunicationState() {

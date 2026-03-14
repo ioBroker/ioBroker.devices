@@ -457,9 +457,8 @@ export default class DeviceCard extends Component<DeviceCardProps, DeviceCardSta
             : null;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     renderWidget(): JSX.Element {
-
-
         return <></>;
     }
 

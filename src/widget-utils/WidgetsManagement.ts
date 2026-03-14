@@ -11,12 +11,11 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
     protected widgets?: Map<string, WidgetInfo>;
     protected categories?: Map<string, CategoryInfo>;
     private readonly communicationStateId: string = '';
+    protected adapter: AdapterInstance;
 
-    constructor(
-        protected readonly adapter: TAdapter,
-        communicationStateId?: string | boolean,
-    ) {
+    constructor(adapter: TAdapter, communicationStateId?: string | boolean) {
         adapter.on('message', this.onMessage.bind(this));
+        this.adapter = adapter;
         if (communicationStateId === true) {
             // use standard ID `info.deviceManager`
             this.communicationStateId = 'info.widgetManager';
@@ -24,7 +23,7 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
             this.communicationStateId = communicationStateId;
         }
         if (this.communicationStateId) {
-            this.ensureCommunicationState().catch(e => this.log().error(`Cannot initialize communication state: ${e}`));
+            this.ensureCommunicationState().catch(e => this.log.error(`Cannot initialize communication state: ${e}`));
         }
     }
 

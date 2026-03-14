@@ -388,7 +388,6 @@ export default class Communication<P extends CommunicationProps, S extends Commu
         return this.protocol.loadDevices(callback);
     }
 
-    // eslint-disable-next-line react/no-unused-class-component-methods
     async loadInstanceInfos(): Promise<InstanceDetails> {
         if (!this.state.selectedInstance) {
             throw new Error('No instance selected');

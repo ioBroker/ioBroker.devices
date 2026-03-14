@@ -11,7 +11,10 @@ interface WidgetsManagerComponentProps {
     themeName: ThemeName;
     themeType: ThemeType;
     theme: IobTheme;
+    /** If settings button is shown */
     showSettingsButton?: boolean;
+    /** Define state that will accept commands from backend */
+    communicationStateId?: string | boolean;
 }
 
 interface WidgetsManagerComponentState {
@@ -58,6 +61,7 @@ export default class WidgetsManagerComponent extends Component<
                     dateFormat={this.state.systemConfig.common.dateFormat}
                     triggerLoad={this.state.triggerControllerLoad}
                     showSettingsButton={this.props.showSettingsButton}
+                    communicationStateId
                 />
             </div>
         );

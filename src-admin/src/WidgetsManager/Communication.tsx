@@ -82,12 +82,12 @@ export default class Communication<P extends CommunicationProps, S extends Commu
         console.error('loadDeviceList not implemented');
     }
 
-    // eslint-disable-next-line class-methods-use-this
+    // eslint-disable-next-line class-methods-use-this,react/no-unused-class-component-methods
     updateItem(_update: ItemInfo): void {
         console.error('updateDevice not implemented');
     }
 
-    // eslint-disable-next-line class-methods-use-this
+    // eslint-disable-next-line class-methods-use-this,react/no-unused-class-component-methods
     deleteItem(_itemId: string): void {
         console.error('deleteDevice not implemented');
     }

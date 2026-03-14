@@ -24,11 +24,13 @@ import type StateContext from '../StateContext';
 export interface WidgetSettings {
     enabled: boolean;
     size: '1x1' | '2x1';
+    chartHours: number;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     enabled: true,
     size: '1x1',
+    chartHours: 0,
 };
 
 export interface WidgetGenericProps {
@@ -51,11 +53,17 @@ export interface IndicatorValues {
     battery: number | null;
 }
 
+export interface ChartSeries {
+    data: { ts: number; val: number }[];
+    color: string;
+}
+
 export interface WidgetGenericState {
     name: string | null;
     icon: string | null;
     color: string | null;
     indicators: IndicatorValues;
+    chartSeries: ChartSeries[];
 }
 
 const INDICATOR_NAMES = [
@@ -115,6 +123,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 > {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
+    private historyInstance: string | null = null;
+    private chartTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetGenericProps) {
         super(props);
@@ -123,6 +133,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             icon: null,
             color: null,
             indicators: { ...DEFAULT_INDICATORS },
+            chartSeries: [] as ChartSeries[],
         } as TState;
 
         // Collect indicator state IDs from control.states
@@ -188,14 +199,29 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 this.props.stateContext.getState(id, this.onIndicatorChange);
             }
         }
+
+        // Start chart data loading if configured
+        this.startChartRefresh();
     }
 
     componentWillUnmount(): void {
+        if (this.chartTimer) {
+            clearInterval(this.chartTimer);
+            this.chartTimer = null;
+        }
         for (const name of INDICATOR_NAMES) {
             const id = this.indicatorIds[name];
             if (id) {
                 this.props.stateContext.removeState(id, this.onIndicatorChange);
             }
+        }
+    }
+
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps>): void {
+        const prevHours = prevProps.settings?.chartHours || 0;
+        const newHours = this.props.settings?.chartHours || 0;
+        if (prevHours !== newHours) {
+            this.startChartRefresh();
         }
     }
 
@@ -249,9 +275,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     break;
                 }
                 case 'DIRECTION': {
-                    const val = typeof state.val === 'number' ? state.val : state.val ? true : false;
+                    const val = typeof state.val === 'number' ? state.val : !!state.val;
                     if (indicators.direction !== val) {
-                        indicators.direction = val as boolean | number;
+                        indicators.direction = val;
                         changed = true;
                     }
                     break;
@@ -325,7 +351,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
     };
 
-    // eslint-disable-next-line react/no-unused-class-component-methods
     getText(text: ioBroker.StringOrTranslated): string {
         if (typeof text === 'object') {
             return text[this.props.language] || text.en;
@@ -336,6 +361,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     // --- Overridable tile methods ---
 
+    // eslint-disable-next-line class-methods-use-this
     protected isTileActive(): boolean {
         return false;
     }
@@ -344,6 +370,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return this.state.color || undefined;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected onTileClick(): void {
         // noop by default
     }
@@ -369,10 +396,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return null;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected renderTileStatus(): React.JSX.Element | null {
         return null;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected renderTileAction(): React.JSX.Element | null {
         return null;
     }
@@ -472,13 +501,19 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         // Direction — 0: none, 1: up/open, 2: down/close, 3: unknown; boolean true=up
         if (indicators.direction === true || indicators.direction === 1) {
             items.push(
-                <Tooltip key="direction" title="Up / Open">
+                <Tooltip
+                    key="direction"
+                    title="Up / Open"
+                >
                     <ArrowUpward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
             );
         } else if (indicators.direction === 2) {
             items.push(
-                <Tooltip key="direction" title="Down / Close">
+                <Tooltip
+                    key="direction"
+                    title="Down / Close"
+                >
                     <ArrowDownward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
             );
@@ -520,6 +555,209 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 }}
             >
                 {items}
+            </Box>
+        );
+    }
+
+    // --- Chart ---
+
+    /** Override in subclasses to provide state IDs for chart display */
+    // eslint-disable-next-line class-methods-use-this
+    protected getHistoryIds(): { id: string; color: string }[] {
+        return [];
+    }
+
+    private startChartRefresh(): void {
+        if (this.chartTimer) {
+            clearInterval(this.chartTimer);
+            this.chartTimer = null;
+        }
+        const chartHours = this.props.settings?.chartHours || 0;
+        const historyIds = this.getHistoryIds();
+        if (chartHours > 0 && historyIds.length) {
+            void this.loadChartData(historyIds);
+            this.chartTimer = setInterval(() => void this.loadChartData(), 60_000);
+        } else if (this.state.chartSeries.length) {
+            this.setState({ chartSeries: [] as ChartSeries[] } as unknown as TState);
+        }
+    }
+
+    /** Returns the ID to use for history queries, resolving aliases if needed */
+    private async resolveHistoryId(stateId: string): Promise<string | null> {
+        const socket = this.props.stateContext.getSocket();
+        try {
+            const obj = (await socket.getObject(stateId)) as ioBroker.StateObject | null | undefined;
+            if (!obj) {
+                return null;
+            }
+            if (obj.common?.custom?.[this.historyInstance!]?.enabled) {
+                return stateId;
+            }
+            // Follow alias to target
+            const aliasId = (obj.common as any)?.alias?.id;
+            if (aliasId) {
+                const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
+                if (targetId && targetId !== stateId) {
+                    const targetObj = (await socket.getObject(targetId)) as ioBroker.StateObject | null | undefined;
+                    if (targetObj?.common?.custom?.[this.historyInstance!]?.enabled) {
+                        return targetId;
+                    }
+                }
+            }
+        } catch {
+            // ignore
+        }
+        return null;
+    }
+
+    private async loadChartData(historyIds?: { id: string; color: string }[]): Promise<void> {
+        historyIds ||= this.getHistoryIds();
+        const chartHours = this.props.settings?.chartHours || 0;
+        if (!historyIds.length || chartHours <= 0) {
+            return;
+        }
+
+        const socket = this.props.stateContext.getSocket();
+
+        if (this.historyInstance === null) {
+            try {
+                const sysConfig: ioBroker.SystemConfigObject | null | undefined =
+                    await socket.getObject('system.config');
+                this.historyInstance = sysConfig?.common?.defaultHistory || '';
+            } catch {
+                this.historyInstance = '';
+            }
+        }
+        if (!this.historyInstance) {
+            return;
+        }
+
+        const end = Date.now();
+        const start = end - chartHours * 3_600_000;
+        const aggregate = chartHours > 6 ? 'minmax' : 'none';
+
+        const series: ChartSeries[] = [];
+        for (const { id, color } of historyIds) {
+            try {
+                // Resolve alias: if state has no history, check alias target
+                const historyId = await this.resolveHistoryId(id);
+                if (!historyId) {
+                    continue;
+                }
+                const result: any = await socket.getHistory(historyId, {
+                    instance: this.historyInstance,
+                    start,
+                    end,
+                    from: false,
+                    ack: false,
+                    q: false,
+                    addId: false,
+                    aggregate,
+                    returnNewestEntries: true,
+                });
+                const data: { ts: number; val: number }[] = [];
+                if (Array.isArray(result)) {
+                    for (const p of result) {
+                        if (p.val != null && !isNaN(Number(p.val))) {
+                            data.push({ ts: p.ts, val: Number(p.val) });
+                        }
+                    }
+                }
+                series.push({ data, color });
+            } catch (e) {
+                console.warn(`Failed to load history for ${id}:`, e);
+            }
+        }
+
+        this.setState({ chartSeries: series } as Partial<TState> as TState);
+    }
+
+    protected renderChart(): React.JSX.Element | null {
+        const { chartSeries } = this.state;
+        if (!chartSeries?.length) {
+            return null;
+        }
+        const chartHours = this.props.settings?.chartHours || 0;
+        if (chartHours <= 0) {
+            return null;
+        }
+
+        const end = Date.now();
+        const start = end - chartHours * 3_600_000;
+        const W = 200;
+        const H = 60;
+
+        const paths: React.JSX.Element[] = [];
+        for (let i = 0; i < chartSeries.length; i++) {
+            const s = chartSeries[i];
+            if (s.data.length < 2) {
+                continue;
+            }
+            let min = Infinity;
+            let max = -Infinity;
+            for (const p of s.data) {
+                if (p.val < min) {
+                    min = p.val;
+                }
+                if (p.val > max) {
+                    max = p.val;
+                }
+            }
+            const range = max - min || 1;
+            const padMin = min - range * 0.1;
+            const padRange = max + range * 0.1 - padMin;
+
+            const pts = s.data.map(p => ({
+                x: ((p.ts - start) / (end - start)) * W,
+                y: H - ((p.val - padMin) / padRange) * H,
+            }));
+
+            const line = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+            const lastX = pts[pts.length - 1].x.toFixed(1);
+            const firstX = pts[0].x.toFixed(1);
+
+            paths.push(
+                <React.Fragment key={i}>
+                    <path
+                        d={`${line} L${lastX},${H} L${firstX},${H} Z`}
+                        fill={s.color}
+                        opacity={0.15}
+                    />
+                    <path
+                        d={line}
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="1.5"
+                        opacity={0.4}
+                    />
+                </React.Fragment>,
+            );
+        }
+
+        if (!paths.length) {
+            return null;
+        }
+
+        return (
+            <Box
+                sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: '40%',
+                    overflow: 'hidden',
+                    borderRadius: '0 0 14px 14px',
+                    pointerEvents: 'none',
+                }}
+            >
+                <svg
+                    viewBox={`0 0 ${W} ${H}`}
+                    preserveAspectRatio="none"
+                    style={{ width: '100%', height: '100%', display: 'block' }}
+                >
+                    {paths}
+                </svg>
             </Box>
         );
     }
@@ -620,6 +858,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         </Typography>
                         {this.renderTileStatus()}
                     </Box>
+                    {this.renderChart()}
                 </ButtonBase>
                 {this.renderSettingsButton()}
             </Box>
@@ -642,6 +881,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         alignItems: 'center',
                         gap: 2,
                         width: '100%',
+                        position: 'relative',
                         cursor: isDisabled ? 'default' : 'pointer',
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
@@ -669,6 +909,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     </Box>
 
                     {this.renderTileAction()}
+                    {this.renderChart()}
                 </Box>
                 {this.renderSettingsButton()}
             </Box>

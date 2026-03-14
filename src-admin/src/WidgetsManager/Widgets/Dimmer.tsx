@@ -335,9 +335,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>
-                            {indicators}
-                        </Box>
+                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
                     ) : null}
                     <Box
                         sx={{

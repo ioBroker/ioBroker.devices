@@ -15,8 +15,6 @@ export default class DevicesAdapter extends Adapter {
             ready: () => this.main(),
             unload: cb => this.unload(cb),
         });
-
-        this.deviceManagement = new DevicesDeviceManagement(this);
     }
 
     unload(cb: () => void): void {
@@ -25,8 +23,10 @@ export default class DevicesAdapter extends Adapter {
     }
 
     async main(): Promise<void> {
+        this.deviceManagement = new DevicesDeviceManagement(this, true);
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
+        this.subscribeForeignObjects('*');
     }
 }
 
