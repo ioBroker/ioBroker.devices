@@ -110,7 +110,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return null;
         }
 
@@ -129,7 +129,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                 >
                     {alarm ? I18n.t('wm_Flood') : I18n.t('wm_Dry')}
                 </Typography>
-                {lastChangedAgo ? (
+                {size !== '2x1' && lastChangedAgo ? (
                     <Typography
                         variant="caption"
                         sx={{ fontSize: '0.65rem', color: 'text.disabled', lineHeight: 1.2 }}

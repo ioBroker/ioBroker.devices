@@ -215,6 +215,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                     this.resolveChannelId(d);
                     if (d.channelId) {
                         result.push(d);
+                        break; // ignore "smaller" devices
                     }
                 }
             }

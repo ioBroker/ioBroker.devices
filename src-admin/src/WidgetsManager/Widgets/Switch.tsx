@@ -57,6 +57,7 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
         return this.state.isOn;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return true;
     }

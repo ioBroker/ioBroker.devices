@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from '@mui/material';
 import {
+    Add,
     ArrowBack,
     ChevronRight,
     DirectionsRun,
@@ -16,7 +17,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { alpha } from '@mui/material/styles';
 import { Types } from '@iobroker/type-detector';
 
-import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
+import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/widget-utils';
 import {
     type WidgetGenericProps,
     type WidgetSettings,
@@ -32,7 +33,12 @@ import {
     WidgetFloodAlarm,
     WidgetFireAlarm,
     WidgetHumidity,
+    WidgetIlluminance,
+    WidgetThermostat,
+    WidgetClock,
+    WidgetVolume,
 } from './Widgets';
+
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
 
@@ -47,6 +53,9 @@ interface CategoryProps {
     onOpenSettings?: (widgetId: string | number) => void;
     categorySettings: Record<string, CategorySettings>;
     onOpenCategorySettings?: (categoryId: string) => void;
+    onAddCustomWidget?: (categoryId: string) => void;
+    onRemoveCustomWidget?: (categoryId: string, widgetId: string) => void;
+    onOpenCustomWidgetSettings?: (categoryId: string, widgetId: string) => void;
     /** true if running in admin, false if in web */
     admin: boolean;
 }
@@ -232,7 +241,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     this.statusSubs.push({
                         stateId: actual.id,
                         role,
-                        widgetName: (role === 'window' || role === 'door') ? this.getWidgetName(w) : undefined,
+                        widgetName: role === 'window' || role === 'door' ? this.getWidgetName(w) : undefined,
                     });
                     this.props.stateContext.getState(actual.id, this.onStatusChange);
                 }
@@ -463,6 +472,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetFireAlarm;
         } else if (widget.control && widget.control.type === Types.humidity) {
             Widget = WidgetHumidity;
+        } else if (widget.control && widget.control.type === Types.illuminance) {
+            Widget = WidgetIlluminance;
+        } else if (widget.control && widget.control.type === Types.thermostat) {
+            Widget = WidgetThermostat;
+        } else if (widget.control && widget.control.type === Types.volume) {
+            Widget = WidgetVolume;
         }
 
         if (!Widget) {
@@ -485,14 +500,51 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
+    renderCustomWidget(def: CustomWidgetDef): React.JSX.Element | null {
+        const categoryId = String(this.props.category.id);
+        const settingsCb = this.props.onOpenCustomWidgetSettings
+            ? () => this.props.onOpenCustomWidgetSettings!(categoryId, def.id)
+            : undefined;
+        const removeCb = this.props.onRemoveCustomWidget
+            ? () => this.props.onRemoveCustomWidget!(categoryId, def.id)
+            : undefined;
+
+        switch (def.type) {
+            case 'clock':
+                return (
+                    <WidgetClock
+                        key={def.id}
+                        id={def.id}
+                        language={this.props.language}
+                        size={def.size}
+                        color={def.color}
+                        style={def.style}
+                        showDate={def.showDate}
+                        showDow={def.showDow}
+                        showSeconds={def.showSeconds}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
+            default:
+                return null;
+        }
+    }
+
     renderCategoryTile(category: CategoryInfo): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
-        const tileColor = this.state.colors[category.id] || this.props.categorySettings[String(category.id)]?.color;
+        const tileCatSettings = this.props.categorySettings[String(category.id)];
+        const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
+        const tileStoredImage = tileCatSettings?.image;
+        const tileImage = tileStoredImage
+            ? `/${this.props.admin ? 'files/' : ''}${tileStoredImage.replace(/^\//, '')}`
+            : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
 
         return (
             <ButtonBase
+                id={String(category.id)}
                 key={category.id}
                 component="div"
                 onClick={() => this.props.onNavigate(category)}
@@ -506,21 +558,47 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     overflow: 'hidden',
                     borderRadius: '16px',
                     p: 2,
+                    position: 'relative',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                    borderLeft: `3px solid ${theme.palette.primary.main}`,
+                    borderLeft: `3px solid ${tileColor || theme.palette.primary.main}`,
+                    ...(tileImage
+                        ? {
+                              backgroundImage: `url(${tileImage})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                          }
+                        : {}),
                     '&:hover': {
                         backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
                     },
                     '&:active': {
                         transform: 'scale(0.99)',
                     },
+                    ...(tileImage
+                        ? {
+                              '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  inset: 0,
+                                  backgroundColor: alpha(theme.palette.background.default, 0.75),
+                                  borderRadius: 'inherit',
+                              },
+                          }
+                        : {}),
                 })}
             >
                 {icon ? (
                     <Icon
                         src={icon}
-                        style={{ width: 28, height: 28, flexShrink: 0, color: tileColor || undefined }}
+                        style={{
+                            width: 28,
+                            height: 28,
+                            flexShrink: 0,
+                            color: tileColor || undefined,
+                            position: 'relative',
+                            zIndex: 1,
+                        }}
                     />
                 ) : (
                     <MeetingRoom
@@ -528,11 +606,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             fontSize: 28,
                             color: tileColor || theme.palette.primary.main,
                             flexShrink: 0,
+                            position: 'relative',
+                            zIndex: 1,
                         })}
                     />
                 )}
 
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
                     <Typography
                         variant="body1"
                         sx={{
@@ -557,7 +637,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     ) : null}
                 </Box>
 
-                <ChevronRight sx={{ color: 'text.secondary', flexShrink: 0 }} />
+                <ChevronRight sx={{ color: 'text.secondary', flexShrink: 0, position: 'relative', zIndex: 1 }} />
             </ButtonBase>
         );
     }
@@ -604,7 +684,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {temperature !== null ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Thermostat sx={{ fontSize: 18, color: 'text.secondary' }} />
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 500, color: 'text.secondary' }}
+                        >
                             {temperature.toFixed(1)}°
                         </Typography>
                     </Box>
@@ -612,23 +695,26 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {humidity !== null ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <WaterDrop sx={{ fontSize: 18, color: 'text.secondary' }} />
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 500, color: 'text.secondary' }}
+                        >
                             {Math.round(humidity)}%
                         </Typography>
                     </Box>
                 ) : null}
                 {motionActive ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <DirectionsRun sx={{ fontSize: 18, color: 'warning.main' }} />
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'warning.main' }}>
-                            {I18n.t('wm_Motion')}
-                        </Typography>
-                    </Box>
+                    <Tooltip title={I18n.t('wm_Motion')}>
+                        <DirectionsRun sx={{ fontSize: 20, color: 'warning.main' }} />
+                    </Tooltip>
                 ) : null}
                 {openings.length > 0 ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {openings.map(sensor => (
-                            <Tooltip key={sensor.stateId} title={Category.getOpeningTooltip(sensor)}>
+                            <Tooltip
+                                key={sensor.stateId}
+                                title={Category.getOpeningTooltip(sensor)}
+                            >
                                 {sensor.kind === 'door' ? (
                                     <SensorDoor
                                         sx={{
@@ -660,18 +746,24 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             ? this.props.categories.find(c => String(c.id) === String(this.props.category.parent))
             : undefined;
 
-        const hasHeader = !!(parentCategory || this.state.names[this.props.category.id]);
-        const hasItems = this.subCategories.length > 0 || this.widgets.length > 0;
+        const isRoot = !this.props.category.parent;
+        const customWidgets = this.props.categorySettings[String(this.props.category.id)]?.customWidgets || [];
+        const hasItems = this.subCategories.length > 0 || this.widgets.length > 0 || customWidgets.length > 0;
         const categoryId = String(this.props.category.id);
         const categorySettings = this.props.categorySettings[categoryId];
+        const hasHeader = !!(
+            parentCategory ||
+            this.state.names[this.props.category.id] ||
+            categorySettings?.name ||
+            this.props.onOpenCategorySettings
+        );
         const storedImage = categorySettings?.image;
         // Stored path has no prefix; add files/ prefix for admin
-        const catImage = storedImage
-            ? `/${this.props.admin ? 'files/' : ''}${storedImage.replace(/^\//, '')}`
-            : '';
+        const catImage = storedImage ? `/${this.props.admin ? 'files/' : ''}${storedImage.replace(/^\//, '')}` : '';
         const imageScope = categorySettings?.imageScope || 'header';
         const catColor = categorySettings?.color;
-        const displayName = categorySettings?.name || this.state.names[this.props.category.id] || '...';
+        const catBgColor = categorySettings?.backgroundColor;
+        const displayName = categorySettings?.name || this.state.names[this.props.category.id] || (isRoot ? '' : '...');
 
         const bgImageSx = catImage
             ? {
@@ -683,22 +775,26 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
         return (
             <Box
+                id={String(this.props.category.id)}
                 key={this.props.category.id}
                 sx={theme => ({
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
-                    ...(catImage && imageScope === 'page' ? {
-                        ...bgImageSx,
-                        '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: alpha(theme.palette.background.default, 0.75),
-                            zIndex: 0,
-                        },
-                    } : {}),
+                    ...(catBgColor ? { backgroundColor: catBgColor } : {}),
+                    ...(catImage && imageScope === 'page'
+                        ? {
+                              ...bgImageSx,
+                              '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  inset: 0,
+                                  backgroundColor: alpha(catBgColor || theme.palette.background.default, 0.75),
+                                  zIndex: 0,
+                              },
+                          }
+                        : {}),
                     position: 'relative',
                 })}
             >
@@ -711,21 +807,25 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             pb: 0,
                             position: 'relative',
                             zIndex: 1,
-                            ...(catImage && imageScope === 'header' ? {
-                                ...bgImageSx,
-                                borderRadius: '0 0 16px 16px',
-                                '&::before': {
-                                    content: '""',
-                                    position: 'absolute',
-                                    inset: 0,
-                                    backgroundColor: alpha(theme.palette.background.default, 0.7),
-                                    borderRadius: 'inherit',
-                                },
-                            } : {}),
+                            ...(catImage && imageScope === 'header'
+                                ? {
+                                      ...bgImageSx,
+                                      borderRadius: '0 0 16px 16px',
+                                      '&::before': {
+                                          content: '""',
+                                          position: 'absolute',
+                                          inset: 0,
+                                          backgroundColor: alpha(catBgColor || theme.palette.background.default, 0.7),
+                                          borderRadius: 'inherit',
+                                      },
+                                  }
+                                : {}),
                         })}
                     >
                         {/* Room name */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5, position: 'relative' }}>
+                        <Box
+                            sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5, position: 'relative' }}
+                        >
                             {parentCategory ? (
                                 <IconButton
                                     size="small"
@@ -751,6 +851,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             >
                                 {displayName}
                             </Typography>
+                            {this.props.onAddCustomWidget ? (
+                                <Tooltip title={I18n.t('wm_Add widget')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.props.onAddCustomWidget!(categoryId)}
+                                        sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
+                                    >
+                                        <Add fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
                             {this.props.onOpenCategorySettings ? (
                                 <Tooltip title={I18n.t('wm_Category settings')}>
                                     <IconButton
@@ -765,9 +876,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         </Box>
 
                         {/* Room status summary */}
-                        <Box sx={{ position: 'relative' }}>
-                            {this.renderCategoryStatus()}
-                        </Box>
+                        <Box sx={{ position: 'relative' }}>{this.renderCategoryStatus()}</Box>
                     </Box>
                 ) : null}
 
@@ -786,12 +895,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         <Box
                             sx={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
                                 gap: 1.5,
                             }}
                         >
                             {this.subCategories.map(c => this.renderCategoryTile(c))}
                             {this.widgets.map(w => this.renderWidget(w))}
+                            {customWidgets.map(cw => this.renderCustomWidget(cw))}
                         </Box>
                     </Box>
                 ) : null}

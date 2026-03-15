@@ -179,7 +179,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return null;
         }
 
@@ -215,7 +215,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                         </Typography>
                     ) : null}
                 </Box>
-                {!motion && lastMotionAgo ? (
+                {size !== '2x1' && !motion && lastMotionAgo ? (
                     <Typography
                         variant="caption"
                         sx={{ fontSize: '0.65rem', color: 'text.disabled', lineHeight: 1.2 }}

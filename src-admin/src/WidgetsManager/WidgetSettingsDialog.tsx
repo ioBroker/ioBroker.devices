@@ -34,8 +34,19 @@ interface WidgetSettingsDialogProps {
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
-    const { open, widgetName, settings, onClose, onSave, showChart, showBlindType, showPin, showHideWhenOk, objectName, objectColor } =
-        props;
+    const {
+        open,
+        widgetName,
+        settings,
+        onClose,
+        onSave,
+        showChart,
+        showBlindType,
+        showPin,
+        showHideWhenOk,
+        objectName,
+        objectColor,
+    } = props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
 
     useEffect(() => {
@@ -158,6 +169,19 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                     }}
                                 />
                                 <span>2&times;1</span>
+                            </Box>
+                        </ToggleButton>
+                        <ToggleButton value="2x0.5">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                                <Box
+                                    sx={{
+                                        width: 32,
+                                        height: 10,
+                                        border: '2px solid currentColor',
+                                        borderRadius: '3px',
+                                    }}
+                                />
+                                <span>2&times;&frac12;</span>
                             </Box>
                         </ToggleButton>
                     </ToggleButtonGroup>

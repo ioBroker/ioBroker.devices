@@ -29,6 +29,23 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
+export type CustomWidgetType = 'clock';
+
+export interface CustomWidgetDef {
+    id: string;
+    type: CustomWidgetType;
+    size?: '1x1' | '2x0.5' | '2x1';
+    color?: string;
+    /** Widget-specific style variant (e.g., 'digital' | 'analog' for clock) */
+    style?: 'digital' | 'analog';
+    /** Show date (day + month). Default: true */
+    showDate?: boolean;
+    /** Show day of week. Default: true */
+    showDow?: boolean;
+    /** Show seconds. Default: true */
+    showSeconds?: boolean;
+}
+
 export interface CategoryInfo extends ItemInfo {
     type: 'category';
     custom?: {
@@ -40,6 +57,7 @@ export interface CategoryInfo extends ItemInfo {
         noHumidity?: boolean;
         noTemperature?: boolean;
         noWindows?: boolean;
+        customWidgets?: CustomWidgetDef[];
     };
 }
 

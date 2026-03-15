@@ -135,6 +135,7 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState> {
         return !this.state.isLocked;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return true;
     }

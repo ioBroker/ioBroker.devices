@@ -552,7 +552,10 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         const indicators = this.renderIndicators();
 
         return (
-            <Box sx={{ position: 'relative' }}>
+            <Box
+                id={String(this.props.widget.id)}
+                sx={{ position: 'relative' }}
+            >
                 <Box
                     ref={this.tileRef}
                     onPointerDown={this.onPointerDown}
@@ -602,12 +605,12 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
 
                     <Box>
                         <Typography
+                            ref={this.nameRef}
                             variant="body2"
                             sx={{
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
-                                textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                             }}
                         >

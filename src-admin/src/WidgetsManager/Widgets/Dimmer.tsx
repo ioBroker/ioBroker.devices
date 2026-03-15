@@ -251,6 +251,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         return this.state.brightness > 0;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return true;
     }
@@ -361,7 +362,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         const progress = (brightness / 100) * arcLength;
 
         return (
-            <Box sx={{ position: 'relative' }}>
+            <Box
+                id={String(this.props.widget.id)}
+                sx={{ position: 'relative' }}
+            >
                 <Box
                     ref={this.arcRef}
                     onPointerDown={this.onArcPointerDown}
@@ -437,12 +441,12 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
 
                     <Box>
                         <Typography
+                            ref={this.nameRef}
                             variant="body2"
                             sx={{
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
-                                textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                             }}
                         >

@@ -145,7 +145,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
     protected renderTileStatus(): React.JSX.Element | null {
         // In wide mode, values are shown via renderTileAction on the right
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return null;
         }
 
