@@ -15,6 +15,8 @@ interface WidgetsManagerComponentProps {
     showSettingsButton?: boolean;
     /** Define state that will accept commands from backend */
     communicationStateId?: string | boolean;
+    /** If it runs in admin or in web */
+    admin: boolean;
 }
 
 interface WidgetsManagerComponentState {
@@ -62,6 +64,7 @@ export default class WidgetsManagerComponent extends Component<
                     triggerLoad={this.state.triggerControllerLoad}
                     showSettingsButton={this.props.showSettingsButton}
                     communicationStateId
+                    admin={this.props.admin}
                 />
             </div>
         );

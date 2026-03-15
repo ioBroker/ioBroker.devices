@@ -37,9 +37,12 @@
     "wm_Tilted": "Gekanteld",
     "wm_Background image": "Achtergrondafbeelding",
     "wm_Upload": "Uploaden",
+    "wm_Browse": "Bladeren",
     "wm_Image scope": "Afbeeldingsbereik",
     "wm_Header only": "Alleen koptekst",
     "wm_Whole page": "Hele pagina",
     "wm_Category settings": "Categorie-instellingen",
-    "wm_Take photo": "Foto maken"
+    "wm_Take photo": "Camera",
+    "wm_Capture": "Vastleggen",
+    "wm_Nothing defined": "Niets gedefinieerd"
 }

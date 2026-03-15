@@ -37,9 +37,12 @@
     "wm_Tilted": "Tilted",
     "wm_Background image": "Background image",
     "wm_Upload": "Upload",
+    "wm_Browse": "Browse",
     "wm_Image scope": "Image scope",
     "wm_Header only": "Header only",
     "wm_Whole page": "Whole page",
     "wm_Category settings": "Category settings",
-    "wm_Take photo": "Take photo"
+    "wm_Take photo": "Camera",
+    "wm_Capture": "Capture",
+    "wm_Nothing defined": "Nothing defined"
 }

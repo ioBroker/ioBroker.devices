@@ -142,6 +142,9 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 icon: this.objects[category] ? this.objects[category].common.icon : undefined,
                 color: this.objects[category] ? this.objects[category].common.color : undefined,
                 parent: category === ROOT_CATEGORY ? undefined : parentId !== 'alias.0' ? parentId : ROOT_CATEGORY,
+                custom: category !== ROOT_CATEGORY && this.objects[category]
+                    ? this.objects[category].common.custom?.[this.adapter.namespace]
+                    : undefined,
             });
         }
         // Remove all orphan categories
@@ -299,9 +302,12 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         }
         this.invalidateKeys();
         // Case 1: Enum changed — rebuild enum member IDs + alias IDs, detect only the diff
-        if (oldObj?.type === 'enum' || obj?.type === 'enum') {
+        if (oldObj?.type === 'enum' || obj?.type === 'enum' || obj?.type === 'folder' || oldObj?.type === 'folder') {
             const oldIds = [...this.idsInEnums];
             this.rebuildEnumMemberIds();
+            if (obj?.type === 'folder' || oldObj?.type === 'folder') {
+                this.rebuildCategories();
+            }
             this.rebuildAliasIds();
             const removed = oldIds.filter(x => !this.idsInEnums.includes(x));
             const added = this.idsInEnums.filter(x => !oldIds.includes(x));
@@ -445,6 +451,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                     type: device.type,
                     states: device.states,
                 },
+                custom: obj.common.custom?.[this.adapter.namespace],
             });
         }
         let someDeleted = false;

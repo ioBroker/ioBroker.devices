@@ -37,9 +37,12 @@
     "wm_Tilted": "Inclinato",
     "wm_Background image": "Immagine di sfondo",
     "wm_Upload": "Carica",
+    "wm_Browse": "Sfoglia",
     "wm_Image scope": "Ambito immagine",
     "wm_Header only": "Solo intestazione",
     "wm_Whole page": "Pagina intera",
     "wm_Category settings": "Impostazioni categoria",
-    "wm_Take photo": "Scatta foto"
+    "wm_Take photo": "Fotocamera",
+    "wm_Capture": "Cattura",
+    "wm_Nothing defined": "Niente definito"
 }

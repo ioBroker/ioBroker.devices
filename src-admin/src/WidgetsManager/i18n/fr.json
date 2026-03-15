@@ -37,9 +37,12 @@
     "wm_Tilted": "Entrebâillé",
     "wm_Background image": "Image de fond",
     "wm_Upload": "Télécharger",
+    "wm_Browse": "Parcourir",
     "wm_Image scope": "Portée de l'image",
     "wm_Header only": "En-tête uniquement",
     "wm_Whole page": "Page entière",
     "wm_Category settings": "Paramètres de catégorie",
-    "wm_Take photo": "Prendre une photo"
+    "wm_Take photo": "Caméra",
+    "wm_Capture": "Capturer",
+    "wm_Nothing defined": "Rien de défini"
 }
