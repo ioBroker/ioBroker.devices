@@ -57,6 +57,10 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
         return this.state.isOn;
     }
 
+    protected hasTileAction(): boolean {
+        return true;
+    }
+
     protected onTileClick(): void {
         this.toggle();
     }
@@ -73,7 +77,7 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
         return (
             <PowerSettingsNew
                 sx={theme => ({
-                    fontSize: 32,
+                    fontSize: 48,
                     color: isOn ? accent || theme.palette.primary.main : theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}
