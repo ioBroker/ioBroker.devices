@@ -35,8 +35,8 @@ export default class WidgetsManagerComponent extends Component<
         };
     }
 
-    async componentDidMount(): Promise<void> {
-        const systemConfig = await this.props.socket.getCompactSystemConfig();
+    componentDidMount(): void {
+        const systemConfig: ioBroker.SystemConfigObject = this.props.socket.systemConfig!;
         this.setState({ systemConfig });
     }
 

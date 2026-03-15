@@ -34,5 +34,12 @@
     "wm_Error": "Error",
     "wm_Window": "Window",
     "wm_Door": "Door",
-    "wm_Tilted": "Tilted"
+    "wm_Tilted": "Tilted",
+    "wm_Background image": "Background image",
+    "wm_Upload": "Upload",
+    "wm_Image scope": "Image scope",
+    "wm_Header only": "Header only",
+    "wm_Whole page": "Whole page",
+    "wm_Room settings": "Room settings",
+    "wm_Take photo": "Take photo"
 }

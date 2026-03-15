@@ -34,5 +34,12 @@
     "wm_Error": "错误",
     "wm_Window": "窗户",
     "wm_Door": "门",
-    "wm_Tilted": "倾斜"
+    "wm_Tilted": "倾斜",
+    "wm_Background image": "背景图片",
+    "wm_Upload": "上传",
+    "wm_Image scope": "图片范围",
+    "wm_Header only": "仅标题",
+    "wm_Whole page": "整个页面",
+    "wm_Room settings": "房间设置",
+    "wm_Take photo": "拍照"
 }

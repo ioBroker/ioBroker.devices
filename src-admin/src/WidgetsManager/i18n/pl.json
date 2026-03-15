@@ -34,5 +34,12 @@
     "wm_Error": "Błąd",
     "wm_Window": "Okno",
     "wm_Door": "Drzwi",
-    "wm_Tilted": "Uchylone"
+    "wm_Tilted": "Uchylone",
+    "wm_Background image": "Obraz tła",
+    "wm_Upload": "Prześlij",
+    "wm_Image scope": "Zakres obrazu",
+    "wm_Header only": "Tylko nagłówek",
+    "wm_Whole page": "Cała strona",
+    "wm_Room settings": "Ustawienia pokoju",
+    "wm_Take photo": "Zrób zdjęcie"
 }

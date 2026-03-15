@@ -34,5 +34,12 @@
     "wm_Error": "Ошибка",
     "wm_Window": "Окно",
     "wm_Door": "Дверь",
-    "wm_Tilted": "Приоткрыто"
+    "wm_Tilted": "Приоткрыто",
+    "wm_Background image": "Фоновое изображение",
+    "wm_Upload": "Загрузить",
+    "wm_Image scope": "Область изображения",
+    "wm_Header only": "Только заголовок",
+    "wm_Whole page": "Вся страница",
+    "wm_Room settings": "Настройки комнаты",
+    "wm_Take photo": "Сделать фото"
 }

@@ -34,5 +34,12 @@
     "wm_Error": "Fout",
     "wm_Window": "Raam",
     "wm_Door": "Deur",
-    "wm_Tilted": "Gekanteld"
+    "wm_Tilted": "Gekanteld",
+    "wm_Background image": "Achtergrondafbeelding",
+    "wm_Upload": "Uploaden",
+    "wm_Image scope": "Afbeeldingsbereik",
+    "wm_Header only": "Alleen koptekst",
+    "wm_Whole page": "Hele pagina",
+    "wm_Room settings": "Kamerinstellingen",
+    "wm_Take photo": "Foto maken"
 }
