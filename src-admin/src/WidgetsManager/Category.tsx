@@ -34,7 +34,7 @@ import {
     WidgetHumidity,
 } from './Widgets';
 import type StateContext from './StateContext';
-import type { RoomSettings } from './RoomSettingsDialog';
+import type { CategorySettings } from './CategorySettingsDialog';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -45,8 +45,8 @@ interface CategoryProps {
     onNavigate: (category: CategoryInfo) => void;
     widgetSettings: Record<string, WidgetSettings>;
     onOpenSettings?: (widgetId: string | number) => void;
-    roomSettings: Record<string, RoomSettings>;
-    onOpenRoomSettings?: (categoryId: string) => void;
+    categorySettings: Record<string, CategorySettings>;
+    onOpenCategorySettings?: (categoryId: string) => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -59,7 +59,7 @@ interface OpeningSensor {
     state: OpeningState;
 }
 
-interface RoomStatus {
+interface CategoryStatus {
     temperature: number | null;
     humidity: number | null;
     motionActive: boolean;
@@ -70,10 +70,10 @@ interface CategoryState {
     names: { [categoryId: string]: string };
     icons: { [categoryId: string]: string };
     colors: { [categoryId: string]: string };
-    roomStatus: RoomStatus;
+    categoryStatus: CategoryStatus;
 }
 
-const DEFAULT_ROOM_STATUS: RoomStatus = {
+const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
     temperature: null,
     humidity: null,
     motionActive: false,
@@ -111,7 +111,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             names: {},
             icons: {},
             colors: {},
-            roomStatus: { ...DEFAULT_ROOM_STATUS },
+            categoryStatus: { ...DEFAULT_CATEGORY_STATUS },
         };
     }
 
@@ -179,7 +179,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         this.setState({ ...this.internalValues });
 
         // Subscribe to room-status sensors
-        this.subscribeRoomStatus();
+        this.subscribeCategoryStatus();
     }
 
     componentWillUnmount(): void {
@@ -198,7 +198,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return '';
     }
 
-    private subscribeRoomStatus(): void {
+    private subscribeCategoryStatus(): void {
         const allWidgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
         this.statusSubs = [];
         this.statusValues = {};
@@ -249,7 +249,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     private onStatusChange = (id: string, state: ioBroker.State): void => {
         this.statusValues[id] = state.val;
-        this.recalcRoomStatus();
+        this.recalcCategoryStatus();
     };
 
     private static toOpeningState(val: ioBroker.StateValue): OpeningState {
@@ -264,7 +264,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return val ? 1 : 0;
     }
 
-    private recalcRoomStatus(): void {
+    private recalcCategoryStatus(): void {
         let temperature: number | null = null;
         let humidity: number | null = null;
         let motionActive = false;
@@ -306,7 +306,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
         }
 
-        this.setState({ roomStatus: { temperature, humidity, motionActive, openings } });
+        this.setState({ categoryStatus: { temperature, humidity, motionActive, openings } });
     }
 
     onNameChange = (id: string, property: string, value: ioBroker.StringOrTranslated): void => {
@@ -579,8 +579,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return 'warning.main';
     }
 
-    renderRoomStatus(): React.JSX.Element | null {
-        const { temperature, humidity, motionActive, openings } = this.state.roomStatus;
+    renderCategoryStatus(): React.JSX.Element | null {
+        const { temperature, humidity, motionActive, openings } = this.state.categoryStatus;
         const hasAny = temperature !== null || humidity !== null || motionActive || openings.length > 0;
         if (!hasAny) {
             return null;
@@ -659,15 +659,15 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const hasHeader = !!(parentCategory || this.state.names[this.props.category.id]);
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0;
         const categoryId = String(this.props.category.id);
-        const roomSettings = this.props.roomSettings[categoryId];
-        const roomImage = roomSettings?.image;
-        const imageScope = roomSettings?.imageScope || 'header';
-        const roomColor = roomSettings?.color;
-        const displayName = roomSettings?.name || this.state.names[this.props.category.id] || '...';
+        const categorySettings = this.props.categorySettings[categoryId];
+        const catImage = categorySettings?.image;
+        const imageScope = categorySettings?.imageScope || 'header';
+        const catColor = categorySettings?.color;
+        const displayName = categorySettings?.name || this.state.names[this.props.category.id] || '...';
 
-        const bgImageSx = roomImage
+        const bgImageSx = catImage
             ? {
-                  backgroundImage: `url(${roomImage})`,
+                  backgroundImage: `url(${catImage})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
               }
@@ -681,7 +681,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
-                    ...(roomImage && imageScope === 'page' ? {
+                    ...(catImage && imageScope === 'page' ? {
                         ...bgImageSx,
                         '&::before': {
                             content: '""',
@@ -703,7 +703,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             pb: 0,
                             position: 'relative',
                             zIndex: 1,
-                            ...(roomImage && imageScope === 'header' ? {
+                            ...(catImage && imageScope === 'header' ? {
                                 ...bgImageSx,
                                 borderRadius: '0 0 16px 16px',
                                 '&::before': {
@@ -738,16 +738,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 sx={{
                                     fontWeight: 700,
                                     flex: 1,
-                                    color: roomColor || undefined,
+                                    color: catColor || undefined,
                                 }}
                             >
                                 {displayName}
                             </Typography>
-                            {this.props.onOpenRoomSettings ? (
-                                <Tooltip title={I18n.t('wm_Room settings')}>
+                            {this.props.onOpenCategorySettings ? (
+                                <Tooltip title={I18n.t('wm_Category settings')}>
                                     <IconButton
                                         size="small"
-                                        onClick={() => this.props.onOpenRoomSettings!(categoryId)}
+                                        onClick={() => this.props.onOpenCategorySettings!(categoryId)}
                                         sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                     >
                                         <Settings fontSize="small" />
@@ -758,7 +758,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
                         {/* Room status summary */}
                         <Box sx={{ position: 'relative' }}>
-                            {this.renderRoomStatus()}
+                            {this.renderCategoryStatus()}
                         </Box>
                     </Box>
                 ) : null}

@@ -15,7 +15,7 @@ import {
 import { CameraAlt, Close, Delete, Save, CloudUpload } from '@mui/icons-material';
 import { I18n, type Connection } from '@iobroker/adapter-react-v5';
 
-export interface RoomSettings {
+export interface CategorySettings {
     name: string;
     color: string;
     image: string;
@@ -23,27 +23,27 @@ export interface RoomSettings {
     imageScope: 'header' | 'page';
 }
 
-export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
+export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
     name: '',
     color: '',
     image: '',
     imageScope: 'header',
 };
 
-interface RoomSettingsDialogProps {
+interface CategorySettingsDialogProps {
     open: boolean;
-    roomName: string;
-    roomId: string;
-    settings: RoomSettings;
+    categoryName: string;
+    categoryId: string;
+    settings: CategorySettings;
     onClose: () => void;
-    onSave: (settings: RoomSettings) => void;
+    onSave: (settings: CategorySettings) => void;
     socket: Connection;
     instance: string;
 }
 
-export default function RoomSettingsDialog(props: RoomSettingsDialogProps): React.JSX.Element {
-    const { open, roomName, roomId, settings, onClose, onSave, socket, instance } = props;
-    const [local, setLocal] = useState<RoomSettings>(settings);
+export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
+    const { open, categoryName, categoryId, settings, onClose, onSave, socket, instance } = props;
+    const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -52,11 +52,11 @@ export default function RoomSettingsDialog(props: RoomSettingsDialogProps): Reac
         if (open) {
             setLocal({
                 ...settings,
-                name: settings.name || roomName,
+                name: settings.name || categoryName,
             });
             setPreview(settings.image || '');
         }
-    }, [settings, open, roomName]);
+    }, [settings, open, categoryName]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
         const file = e.target.files?.[0];
@@ -83,7 +83,7 @@ export default function RoomSettingsDialog(props: RoomSettingsDialogProps): Reac
                 ctx.drawImage(img, 0, 0, w, h);
                 const dataUrl = canvas.toDataURL('image/webp', 0.8);
                 const base64 = dataUrl.replace(/^data:image\/webp;base64,/, '');
-                const fileName = `room_${String(roomId).replace(/[^a-zA-Z0-9_-]/g, '_')}.webp`;
+                const fileName = `room_${String(categoryId).replace(/[^a-zA-Z0-9_-]/g, '_')}.webp`;
 
                 try {
                     await socket.writeFile64(instance, fileName, base64);
@@ -106,7 +106,7 @@ export default function RoomSettingsDialog(props: RoomSettingsDialogProps): Reac
     };
 
     const hasChanges =
-        local.name !== (settings.name || roomName) ||
+        local.name !== (settings.name || categoryName) ||
         local.color !== (settings.color || '') ||
         local.image !== (settings.image || '') ||
         local.imageScope !== (settings.imageScope || 'header');
@@ -118,7 +118,7 @@ export default function RoomSettingsDialog(props: RoomSettingsDialogProps): Reac
             maxWidth="xs"
             fullWidth
         >
-            <DialogTitle>{roomName}</DialogTitle>
+            <DialogTitle>{categoryName}</DialogTitle>
             <DialogContent>
                 <TextField
                     fullWidth
@@ -126,7 +126,7 @@ export default function RoomSettingsDialog(props: RoomSettingsDialogProps): Reac
                     label={I18n.t('wm_Name')}
                     value={local.name}
                     onChange={e => setLocal({ ...local, name: e.target.value })}
-                    placeholder={roomName}
+                    placeholder={categoryName}
                     size="small"
                     sx={{ mt: 1, mb: 2 }}
                 />
