@@ -39,6 +39,8 @@ interface CategoryListProps extends CommunicationProps {
     showSettingsButton?: boolean;
     /** Define state that will accept commands from backend */
     communicationStateId?: string | boolean;
+    /** Is it runs in admin or in web */
+    admin: boolean;
 }
 
 interface CategoryListState extends CommunicationState {
@@ -59,7 +61,6 @@ interface CategoryListState extends CommunicationState {
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
-const WM_CATEGORY_SETTINGS_KEY = 'wm_room_settings';
 const ROOT_CATEGORY = '__root__';
 
 /**
@@ -120,16 +121,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             // ignore parse errors
         }
 
-        let categorySettings: Record<string, CategorySettings> = {};
-        try {
-            const raw = localStorage.getItem(WM_CATEGORY_SETTINGS_KEY);
-            if (raw) {
-                categorySettings = JSON.parse(raw) as Record<string, CategorySettings>;
-            }
-        } catch {
-            // ignore parse errors
-        }
-
         this.state = {
             ...this.state,
             categories: [],
@@ -142,7 +133,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             chartAvailable: false,
             settingsObjectName: '',
             settingsObjectColor: '',
-            categorySettings,
+            categorySettings: {},
             categorySettingsCategoryId: null,
         };
 
@@ -371,6 +362,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         console.log(
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
                         );
+                        // Extract category settings from category.custom delivered by backend
+                        this.extractCategorySettings(result.categories);
                     });
                 }
             } catch (error) {
@@ -529,6 +522,24 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ settingsWidgetId: null });
     };
 
+    private extractCategorySettings(categories: CategoryInfo[]): void {
+        const categorySettings: Record<string, CategorySettings> = {};
+        for (const cat of categories) {
+            const id = String(cat.id);
+            if (id === ROOT_CATEGORY) {
+                continue;
+            }
+            // name and color come from common (category fields), image/imageScope from custom
+            const name = this.getCategoryName(cat);
+            const color = typeof cat.color === 'string' ? cat.color : '';
+            const image = cat.custom?.image || '';
+            const imageScope = cat.custom?.imageScope || 'header';
+
+            categorySettings[id] = { name, color, image, imageScope };
+        }
+        this.setState({ categorySettings });
+    }
+
     private onOpenCategorySettings = (categoryId: string): void => {
         this.setState({ categorySettingsCategoryId: categoryId });
     };
@@ -537,10 +548,57 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const { categorySettingsCategoryId } = this.state;
         if (categorySettingsCategoryId != null) {
             const categorySettings = { ...this.state.categorySettings, [categorySettingsCategoryId]: settings };
-            localStorage.setItem(WM_CATEGORY_SETTINGS_KEY, JSON.stringify(categorySettings));
-            this.setState({ categorySettings, categorySettingsCategoryId: null });
+            // Update local category: name/color on category itself, image/imageScope in custom
+            const categories = this.state.categories.map(cat => {
+                if (String(cat.id) === categorySettingsCategoryId) {
+                    return {
+                        ...cat,
+                        name: settings.name || cat.name,
+                        color: settings.color || undefined,
+                        custom: {
+                            enabled: true,
+                            ...cat.custom,
+                            image: settings.image || '',
+                            imageScope: settings.imageScope || 'header',
+                        },
+                    };
+                }
+                return cat;
+            });
+            this.setState({ categorySettings, categories, categorySettingsCategoryId: null });
+            // Persist to ioBroker object
+            void this.saveCategorySettingsToObject(categorySettingsCategoryId, settings);
         }
     };
+
+    private async saveCategorySettingsToObject(categoryId: string, settings: CategorySettings): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(categoryId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj) {
+                const common = obj.common || {};
+                // name and color go to common
+                if (settings.name) {
+                    common.name = settings.name;
+                }
+                common.color = settings.color || '';
+                // image and imageScope go to common.custom[instance]
+                common.custom ||= {};
+                common.custom[instanceId] = {
+                    enabled: true,
+                    ...common.custom[instanceId],
+                    image: settings.image || '',
+                    imageScope: settings.imageScope || 'header',
+                };
+                await this.props.socket.setObject(categoryId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save category settings:', err);
+        }
+    }
 
     private onCloseCategorySettings = (): void => {
         this.setState({ categorySettingsCategoryId: null });
@@ -596,7 +654,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             widgetSettings={this.state.widgetSettings}
                             onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
                             categorySettings={this.state.categorySettings}
-                            onOpenCategorySettings={this.props.showSettingsButton ? this.onOpenCategorySettings : undefined}
+                            onOpenCategorySettings={
+                                this.props.showSettingsButton ? this.onOpenCategorySettings : undefined
+                            }
+                            admin={this.props.admin}
                         />
                         <WidgetSettingsDialog
                             open={settingsWidget != null}
@@ -640,6 +701,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onSave={this.onSaveCategorySettings}
                             socket={this.props.socket}
                             instance={this.state.selectedInstance}
+                            theme={this.props.theme}
+                            admin={this.props.admin}
                         />
                     </div>
                 </ThemeProvider>

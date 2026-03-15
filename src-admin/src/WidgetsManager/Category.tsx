@@ -47,6 +47,8 @@ interface CategoryProps {
     onOpenSettings?: (widgetId: string | number) => void;
     categorySettings: Record<string, CategorySettings>;
     onOpenCategorySettings?: (categoryId: string) => void;
+    /** true if running in admin, false if in web */
+    admin: boolean;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -486,6 +488,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     renderCategoryTile(category: CategoryInfo): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
+        const tileColor = this.state.colors[category.id] || this.props.categorySettings[String(category.id)]?.color;
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
 
         return (
@@ -517,13 +520,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {icon ? (
                     <Icon
                         src={icon}
-                        style={{ width: 28, height: 28, flexShrink: 0 }}
+                        style={{ width: 28, height: 28, flexShrink: 0, color: tileColor || undefined }}
                     />
                 ) : (
                     <MeetingRoom
                         sx={theme => ({
                             fontSize: 28,
-                            color: theme.palette.primary.main,
+                            color: tileColor || theme.palette.primary.main,
                             flexShrink: 0,
                         })}
                     />
@@ -537,6 +540,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            color: tileColor || undefined,
                         }}
                     >
                         {name}
@@ -660,7 +664,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0;
         const categoryId = String(this.props.category.id);
         const categorySettings = this.props.categorySettings[categoryId];
-        const catImage = categorySettings?.image;
+        const storedImage = categorySettings?.image;
+        // Stored path has no prefix; add files/ prefix for admin
+        const catImage = storedImage
+            ? `/${this.props.admin ? 'files/' : ''}${storedImage.replace(/^\//, '')}`
+            : '';
         const imageScope = categorySettings?.imageScope || 'header';
         const catColor = categorySettings?.color;
         const displayName = categorySettings?.name || this.state.names[this.props.category.id] || '...';
@@ -730,7 +738,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             {this.state.icons[this.props.category.id] ? (
                                 <Icon
                                     src={this.state.icons[this.props.category.id]}
-                                    style={{ width: 28, height: 28 }}
+                                    style={{ width: 28, height: 28, color: catColor || undefined }}
                                 />
                             ) : null}
                             <Typography

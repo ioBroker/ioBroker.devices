@@ -37,9 +37,12 @@
     "wm_Tilted": "Uchylone",
     "wm_Background image": "Obraz tła",
     "wm_Upload": "Prześlij",
+    "wm_Browse": "Przeglądaj",
     "wm_Image scope": "Zakres obrazu",
     "wm_Header only": "Tylko nagłówek",
     "wm_Whole page": "Cała strona",
     "wm_Category settings": "Ustawienia kategorii",
-    "wm_Take photo": "Zrób zdjęcie"
+    "wm_Take photo": "Kamera",
+    "wm_Capture": "Przechwyć",
+    "wm_Nothing defined": "Nic nie zdefiniowano"
 }

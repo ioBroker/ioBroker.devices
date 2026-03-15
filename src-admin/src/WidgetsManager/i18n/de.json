@@ -37,9 +37,12 @@
     "wm_Tilted": "Gekippt",
     "wm_Background image": "Hintergrundbild",
     "wm_Upload": "Hochladen",
+    "wm_Browse": "Durchsuchen",
     "wm_Image scope": "Bildbereich",
     "wm_Header only": "Nur Kopfzeile",
     "wm_Whole page": "Ganze Seite",
     "wm_Category settings": "Kategorieeinstellungen",
-    "wm_Take photo": "Foto aufnehmen"
+    "wm_Take photo": "Kamera",
+    "wm_Capture": "Aufnehmen",
+    "wm_Nothing defined": "Nichts definiert"
 }

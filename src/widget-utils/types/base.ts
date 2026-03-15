@@ -23,10 +23,24 @@ export interface ItemInfo {
 export interface WidgetInfo extends ItemInfo {
     type: 'widget';
     control: PatternControl;
+    custom?: {
+        enabled: true;
+        image?: string;
+    };
 }
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';
+    custom?: {
+        image?: string;
+        /** 'header' = background only behind header, 'page' = background behind whole page */
+        imageScope?: 'header' | 'page';
+        backgroundColor?: string;
+        noStatus?: boolean;
+        noHumidity?: boolean;
+        noTemperature?: boolean;
+        noWindows?: boolean;
+    };
 }
 
 export interface BackendToGuiCommandUpdate {

@@ -37,9 +37,12 @@
     "wm_Tilted": "倾斜",
     "wm_Background image": "背景图片",
     "wm_Upload": "上传",
+    "wm_Browse": "浏览",
     "wm_Image scope": "图片范围",
     "wm_Header only": "仅标题",
     "wm_Whole page": "整个页面",
     "wm_Category settings": "类别设置",
-    "wm_Take photo": "拍照"
+    "wm_Take photo": "相机",
+    "wm_Capture": "拍摄",
+    "wm_Nothing defined": "未定义任何内容"
 }

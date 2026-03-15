@@ -3498,6 +3498,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                 themeType={this.props.themeType}
                 theme={this.props.theme}
                 showSettingsButton
+                admin
             />
         );
     }
