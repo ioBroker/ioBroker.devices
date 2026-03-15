@@ -8,10 +8,12 @@ import {
     MeetingRoom,
     SensorDoor,
     SensorWindow,
+    Settings,
     Thermostat,
     WaterDrop,
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { alpha } from '@mui/material/styles';
 import { Types } from '@iobroker/type-detector';
 
 import type { CategoryInfo, WidgetInfo } from '../../../src/widget-utils';
@@ -32,6 +34,7 @@ import {
     WidgetHumidity,
 } from './Widgets';
 import type StateContext from './StateContext';
+import type { RoomSettings } from './RoomSettingsDialog';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -42,6 +45,8 @@ interface CategoryProps {
     onNavigate: (category: CategoryInfo) => void;
     widgetSettings: Record<string, WidgetSettings>;
     onOpenSettings?: (widgetId: string | number) => void;
+    roomSettings: Record<string, RoomSettings>;
+    onOpenRoomSettings?: (categoryId: string) => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -651,43 +656,112 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             ? this.props.categories.find(c => String(c.id) === String(this.props.category.parent))
             : undefined;
 
+        const hasHeader = !!(parentCategory || this.state.names[this.props.category.id]);
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0;
+        const categoryId = String(this.props.category.id);
+        const roomSettings = this.props.roomSettings[categoryId];
+        const roomImage = roomSettings?.image;
+        const imageScope = roomSettings?.imageScope || 'header';
+        const roomColor = roomSettings?.color;
+        const displayName = roomSettings?.name || this.state.names[this.props.category.id] || '...';
+
+        const bgImageSx = roomImage
+            ? {
+                  backgroundImage: `url(${roomImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+              }
+            : {};
 
         return (
             <Box
                 key={this.props.category.id}
-                sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}
+                sx={theme => ({
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    overflow: 'hidden',
+                    ...(roomImage && imageScope === 'page' ? {
+                        ...bgImageSx,
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: alpha(theme.palette.background.default, 0.75),
+                            zIndex: 0,
+                        },
+                    } : {}),
+                    position: 'relative',
+                })}
             >
-                {/* Fixed header */}
-                <Box sx={{ flexShrink: 0, p: 1, pb: 0 }}>
-                    {/* Room name */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5 }}>
-                        {parentCategory ? (
-                            <IconButton
-                                size="small"
-                                onClick={() => this.props.onNavigate(parentCategory)}
-                                sx={{ ml: -1 }}
+                {/* Fixed header — hidden for root category (no parent, no name) */}
+                {hasHeader ? (
+                    <Box
+                        sx={theme => ({
+                            flexShrink: 0,
+                            p: 1,
+                            pb: 0,
+                            position: 'relative',
+                            zIndex: 1,
+                            ...(roomImage && imageScope === 'header' ? {
+                                ...bgImageSx,
+                                borderRadius: '0 0 16px 16px',
+                                '&::before': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    inset: 0,
+                                    backgroundColor: alpha(theme.palette.background.default, 0.7),
+                                    borderRadius: 'inherit',
+                                },
+                            } : {}),
+                        })}
+                    >
+                        {/* Room name */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5, position: 'relative' }}>
+                            {parentCategory ? (
+                                <IconButton
+                                    size="small"
+                                    onClick={() => this.props.onNavigate(parentCategory)}
+                                    sx={{ ml: -1 }}
+                                >
+                                    <ArrowBack />
+                                </IconButton>
+                            ) : null}
+                            {this.state.icons[this.props.category.id] ? (
+                                <Icon
+                                    src={this.state.icons[this.props.category.id]}
+                                    style={{ width: 28, height: 28 }}
+                                />
+                            ) : null}
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    fontWeight: 700,
+                                    flex: 1,
+                                    color: roomColor || undefined,
+                                }}
                             >
-                                <ArrowBack />
-                            </IconButton>
-                        ) : null}
-                        {this.state.icons[this.props.category.id] ? (
-                            <Icon
-                                src={this.state.icons[this.props.category.id]}
-                                style={{ width: 28, height: 28 }}
-                            />
-                        ) : null}
-                        <Typography
-                            variant="h5"
-                            sx={{ fontWeight: 700 }}
-                        >
-                            {this.state.names[this.props.category.id] ?? '...'}
-                        </Typography>
-                    </Box>
+                                {displayName}
+                            </Typography>
+                            {this.props.onOpenRoomSettings ? (
+                                <Tooltip title={I18n.t('wm_Room settings')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.props.onOpenRoomSettings!(categoryId)}
+                                        sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
+                                    >
+                                        <Settings fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                        </Box>
 
-                    {/* Room status summary */}
-                    {this.renderRoomStatus()}
-                </Box>
+                        {/* Room status summary */}
+                        <Box sx={{ position: 'relative' }}>
+                            {this.renderRoomStatus()}
+                        </Box>
+                    </Box>
+                ) : null}
 
                 {/* Scrollable widgets */}
                 {hasItems ? (
@@ -696,7 +770,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             flex: 1,
                             overflow: 'auto',
                             p: 1,
-                            pt: 0.5,
+                            pt: hasHeader ? 0.5 : 2,
+                            position: 'relative',
+                            zIndex: 1,
                         }}
                     >
                         <Box

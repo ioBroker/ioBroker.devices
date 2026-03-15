@@ -22,6 +22,7 @@ import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
+import RoomSettingsDialog, { DEFAULT_ROOM_SETTINGS, type RoomSettings } from './RoomSettingsDialog';
 
 interface CategoryListProps extends CommunicationProps {
     /** Instance to upload images to, like `adapterName.X` */
@@ -53,9 +54,12 @@ interface CategoryListState extends CommunicationState {
     chartAvailable: boolean;
     settingsObjectName: string;
     settingsObjectColor: string;
+    roomSettings: Record<string, RoomSettings>;
+    roomSettingsCategoryId: string | null;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
+const WM_ROOM_SETTINGS_KEY = 'wm_room_settings';
 const ROOT_CATEGORY = '__root__';
 
 /**
@@ -116,6 +120,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             // ignore parse errors
         }
 
+        let roomSettings: Record<string, RoomSettings> = {};
+        try {
+            const raw = localStorage.getItem(WM_ROOM_SETTINGS_KEY);
+            if (raw) {
+                roomSettings = JSON.parse(raw) as Record<string, RoomSettings>;
+            }
+        } catch {
+            // ignore parse errors
+        }
+
         this.state = {
             ...this.state,
             categories: [],
@@ -128,6 +142,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             chartAvailable: false,
             settingsObjectName: '',
             settingsObjectColor: '',
+            roomSettings,
+            roomSettingsCategoryId: null,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -513,6 +529,23 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ settingsWidgetId: null });
     };
 
+    private onOpenRoomSettings = (categoryId: string): void => {
+        this.setState({ roomSettingsCategoryId: categoryId });
+    };
+
+    private onSaveRoomSettings = (settings: RoomSettings): void => {
+        const { roomSettingsCategoryId } = this.state;
+        if (roomSettingsCategoryId != null) {
+            const roomSettings = { ...this.state.roomSettings, [roomSettingsCategoryId]: settings };
+            localStorage.setItem(WM_ROOM_SETTINGS_KEY, JSON.stringify(roomSettings));
+            this.setState({ roomSettings, roomSettingsCategoryId: null });
+        }
+    };
+
+    private onCloseRoomSettings = (): void => {
+        this.setState({ roomSettingsCategoryId: null });
+    };
+
     private getWidgetName(widget: WidgetInfo): string {
         if (typeof widget.name === 'string') {
             return widget.name || String(widget.id);
@@ -562,6 +595,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         }}
                         widgetSettings={this.state.widgetSettings}
                         onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
+                        roomSettings={this.state.roomSettings}
+                        onOpenRoomSettings={this.props.showSettingsButton ? this.onOpenRoomSettings : undefined}
                     />
                     <WidgetSettingsDialog
                         open={settingsWidget != null}
@@ -582,6 +617,28 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         }
                         objectName={this.state.settingsObjectName}
                         objectColor={this.state.settingsObjectColor}
+                    />
+                    <RoomSettingsDialog
+                        open={this.state.roomSettingsCategoryId != null}
+                        roomName={
+                            this.state.roomSettingsCategoryId
+                                ? this.getCategoryName(
+                                      this.state.categories.find(
+                                          c => String(c.id) === this.state.roomSettingsCategoryId,
+                                      ) || currentCategory,
+                                  )
+                                : ''
+                        }
+                        roomId={this.state.roomSettingsCategoryId || ''}
+                        settings={
+                            this.state.roomSettingsCategoryId
+                                ? this.state.roomSettings[this.state.roomSettingsCategoryId] || DEFAULT_ROOM_SETTINGS
+                                : DEFAULT_ROOM_SETTINGS
+                        }
+                        onClose={this.onCloseRoomSettings}
+                        onSave={this.onSaveRoomSettings}
+                        socket={this.props.socket}
+                        instance={this.state.selectedInstance}
                     />
                     </div>
                 </ThemeProvider>

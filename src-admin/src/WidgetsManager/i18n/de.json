@@ -34,5 +34,12 @@
     "wm_Error": "Fehler",
     "wm_Window": "Fenster",
     "wm_Door": "Tür",
-    "wm_Tilted": "Gekippt"
+    "wm_Tilted": "Gekippt",
+    "wm_Background image": "Hintergrundbild",
+    "wm_Upload": "Hochladen",
+    "wm_Image scope": "Bildbereich",
+    "wm_Header only": "Nur Kopfzeile",
+    "wm_Whole page": "Ganze Seite",
+    "wm_Room settings": "Raumeinstellungen",
+    "wm_Take photo": "Foto aufnehmen"
 }

@@ -41,6 +41,7 @@
     "files": [
         "admin/",
         "img/",
+        "www/",
         "build/",
         "io-package.json",
         "LICENSE"
@@ -56,13 +57,17 @@
         "release-patch": "release-script patch --yes",
         "release-minor": "release-script minor --yes",
         "release-major": "release-script major --yes",
-        "update-packages": "npx -y npm-check-updates --upgrade && cd src-admin && npx -y npm-check-updates --upgrade",
-        "npm": "npm i && cd src-admin && npm i -f",
+        "update-packages": "npx -y npm-check-updates --upgrade && cd src-admin && npx -y npm-check-updates --upgrade && cd src-www && npx -y npm-check-updates --upgrade",
+        "npm": "npm i && cd src-admin && npm i -f && cd src-www && npm i -f",
         "test": "npm run test:integration && npm run test:package",
         "0-clean": "node tasks --0-clean",
-        "1-npm": "node tasks --1-npm",
-        "2-build": "node tasks --2-build",
-        "3-copy": "node tasks --3-copy"
+        "1-npm-admin": "node tasks --1-npm",
+        "2-build-admin": "node tasks --2-build",
+        "3-copy-admin": "node tasks --3-copy",
+        "0-clean-www": "node tasks --0-clean-www",
+        "1-npm-www": "node tasks --1-npm-www",
+        "2-build-www": "node tasks --2-build-www",
+        "3-copy-www": "node tasks --3-copy-www"
     },
     "bugs": {
         "url": "https://github.com/ioBroker/ioBroker.devices/issues"

@@ -34,5 +34,12 @@
     "wm_Error": "Erreur",
     "wm_Window": "Fenêtre",
     "wm_Door": "Porte",
-    "wm_Tilted": "Entrebâillé"
+    "wm_Tilted": "Entrebâillé",
+    "wm_Background image": "Image de fond",
+    "wm_Upload": "Télécharger",
+    "wm_Image scope": "Portée de l'image",
+    "wm_Header only": "En-tête uniquement",
+    "wm_Whole page": "Page entière",
+    "wm_Room settings": "Paramètres de la pièce",
+    "wm_Take photo": "Prendre une photo"
 }

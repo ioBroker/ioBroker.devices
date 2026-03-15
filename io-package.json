@@ -162,6 +162,13 @@
       "adminUI": {
           "config": "none"
       },
+      "welcomeScreen": {
+          "link": "devices/index.html",
+          "name": "Devices",
+          "img": "devices.svg",
+          "color": "#2196F3",
+          "order": 10
+      },
       "globalDependencies": [
           {
               "admin": ">=7.6.17"

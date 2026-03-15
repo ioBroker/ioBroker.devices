@@ -1,12 +1,11 @@
 import React from 'react';
 import { Lightbulb } from '@mui/icons-material';
 
-import WidgetGeneric from './Generic';
 import { WidgetSwitch } from './Switch';
 
 export class WidgetLight extends WidgetSwitch {
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = WidgetGeneric.prototype.renderTileIcon.call(this);
+        const baseIcon = this.renderBaseIcon();
         if (baseIcon) {
             return baseIcon;
         }

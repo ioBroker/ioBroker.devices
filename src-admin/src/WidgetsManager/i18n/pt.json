@@ -34,5 +34,12 @@
     "wm_Error": "Erro",
     "wm_Window": "Janela",
     "wm_Door": "Porta",
-    "wm_Tilted": "Inclinada"
+    "wm_Tilted": "Inclinada",
+    "wm_Background image": "Imagem de fundo",
+    "wm_Upload": "Carregar",
+    "wm_Image scope": "Âmbito da imagem",
+    "wm_Header only": "Apenas cabeçalho",
+    "wm_Whole page": "Página inteira",
+    "wm_Room settings": "Configurações do quarto",
+    "wm_Take photo": "Tirar foto"
 }

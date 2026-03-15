@@ -236,9 +236,11 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 }
                             }}
                             size="small"
+                            sx={{ '& .MuiToggleButton-root': { flex: 1 } }}
                         >
                             <ToggleButton value={0}>{I18n.t('wm_Off')}</ToggleButton>
                             <ToggleButton value={1}>1h</ToggleButton>
+                            <ToggleButton value={3}>3h</ToggleButton>
                             <ToggleButton value={6}>6h</ToggleButton>
                             <ToggleButton value={12}>12h</ToggleButton>
                             <ToggleButton value={24}>24h</ToggleButton>

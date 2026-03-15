@@ -1,12 +1,11 @@
 import React from 'react';
 import { SensorDoor } from '@mui/icons-material';
 
-import WidgetGeneric from './Generic';
 import { WidgetWindow } from './Window';
 
 export class WidgetDoor extends WidgetWindow {
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = WidgetGeneric.prototype.renderTileIcon.call(this);
+        const baseIcon = this.renderBaseIcon();
         if (baseIcon) {
             return baseIcon;
         }

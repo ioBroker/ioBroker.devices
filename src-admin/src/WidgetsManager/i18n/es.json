@@ -34,5 +34,12 @@
     "wm_Error": "Error",
     "wm_Window": "Ventana",
     "wm_Door": "Puerta",
-    "wm_Tilted": "Inclinada"
+    "wm_Tilted": "Inclinada",
+    "wm_Background image": "Imagen de fondo",
+    "wm_Upload": "Subir",
+    "wm_Image scope": "Alcance de imagen",
+    "wm_Header only": "Solo encabezado",
+    "wm_Whole page": "Página completa",
+    "wm_Room settings": "Configuración de la habitación",
+    "wm_Take photo": "Tomar foto"
 }

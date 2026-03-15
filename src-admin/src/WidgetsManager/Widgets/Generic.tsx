@@ -421,7 +421,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         // noop by default
     }
 
-    protected renderTileIcon(): React.JSX.Element | null {
+    /** Returns the custom device icon if one is set, otherwise null.
+     *  Subclasses that override renderTileIcon can call this to get the custom icon. */
+    protected renderBaseIcon(): React.JSX.Element | null {
         const { icon, color } = this.state;
         const isActive = this.isTileActive();
 
@@ -440,6 +442,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             );
         }
         return null;
+    }
+
+    protected renderTileIcon(): React.JSX.Element | null {
+        return this.renderBaseIcon();
     }
 
     // eslint-disable-next-line class-methods-use-this

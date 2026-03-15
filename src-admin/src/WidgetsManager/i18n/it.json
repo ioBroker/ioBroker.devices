@@ -34,5 +34,12 @@
     "wm_Error": "Errore",
     "wm_Window": "Finestra",
     "wm_Door": "Porta",
-    "wm_Tilted": "Inclinato"
+    "wm_Tilted": "Inclinato",
+    "wm_Background image": "Immagine di sfondo",
+    "wm_Upload": "Carica",
+    "wm_Image scope": "Ambito immagine",
+    "wm_Header only": "Solo intestazione",
+    "wm_Whole page": "Pagina intera",
+    "wm_Room settings": "Impostazioni stanza",
+    "wm_Take photo": "Scatta foto"
 }
