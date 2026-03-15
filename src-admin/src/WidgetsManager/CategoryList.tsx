@@ -22,7 +22,7 @@ import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
-import RoomSettingsDialog, { DEFAULT_ROOM_SETTINGS, type RoomSettings } from './RoomSettingsDialog';
+import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
 
 interface CategoryListProps extends CommunicationProps {
     /** Instance to upload images to, like `adapterName.X` */
@@ -54,12 +54,12 @@ interface CategoryListState extends CommunicationState {
     chartAvailable: boolean;
     settingsObjectName: string;
     settingsObjectColor: string;
-    roomSettings: Record<string, RoomSettings>;
-    roomSettingsCategoryId: string | null;
+    categorySettings: Record<string, CategorySettings>;
+    categorySettingsCategoryId: string | null;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
-const WM_ROOM_SETTINGS_KEY = 'wm_room_settings';
+const WM_CATEGORY_SETTINGS_KEY = 'wm_room_settings';
 const ROOT_CATEGORY = '__root__';
 
 /**
@@ -120,11 +120,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             // ignore parse errors
         }
 
-        let roomSettings: Record<string, RoomSettings> = {};
+        let categorySettings: Record<string, CategorySettings> = {};
         try {
-            const raw = localStorage.getItem(WM_ROOM_SETTINGS_KEY);
+            const raw = localStorage.getItem(WM_CATEGORY_SETTINGS_KEY);
             if (raw) {
-                roomSettings = JSON.parse(raw) as Record<string, RoomSettings>;
+                categorySettings = JSON.parse(raw) as Record<string, CategorySettings>;
             }
         } catch {
             // ignore parse errors
@@ -142,8 +142,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             chartAvailable: false,
             settingsObjectName: '',
             settingsObjectColor: '',
-            roomSettings,
-            roomSettingsCategoryId: null,
+            categorySettings,
+            categorySettingsCategoryId: null,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -529,21 +529,21 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ settingsWidgetId: null });
     };
 
-    private onOpenRoomSettings = (categoryId: string): void => {
-        this.setState({ roomSettingsCategoryId: categoryId });
+    private onOpenCategorySettings = (categoryId: string): void => {
+        this.setState({ categorySettingsCategoryId: categoryId });
     };
 
-    private onSaveRoomSettings = (settings: RoomSettings): void => {
-        const { roomSettingsCategoryId } = this.state;
-        if (roomSettingsCategoryId != null) {
-            const roomSettings = { ...this.state.roomSettings, [roomSettingsCategoryId]: settings };
-            localStorage.setItem(WM_ROOM_SETTINGS_KEY, JSON.stringify(roomSettings));
-            this.setState({ roomSettings, roomSettingsCategoryId: null });
+    private onSaveCategorySettings = (settings: CategorySettings): void => {
+        const { categorySettingsCategoryId } = this.state;
+        if (categorySettingsCategoryId != null) {
+            const categorySettings = { ...this.state.categorySettings, [categorySettingsCategoryId]: settings };
+            localStorage.setItem(WM_CATEGORY_SETTINGS_KEY, JSON.stringify(categorySettings));
+            this.setState({ categorySettings, categorySettingsCategoryId: null });
         }
     };
 
-    private onCloseRoomSettings = (): void => {
-        this.setState({ roomSettingsCategoryId: null });
+    private onCloseCategorySettings = (): void => {
+        this.setState({ categorySettingsCategoryId: null });
     };
 
     private getWidgetName(widget: WidgetInfo): string {
@@ -582,64 +582,65 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
                     <div style={{ width: '100%', height: '100%' }}>
-                    <Category
-                        key={currentCategory.id}
-                        category={currentCategory}
-                        categories={this.state.categories}
-                        widgets={this.state.widgets}
-                        stateContext={this.stateContext}
-                        language={this.language}
-                        onNavigate={(category: CategoryInfo) => {
-                            this.setState({ currentCategory: category });
-                            this.updateHash(category);
-                        }}
-                        widgetSettings={this.state.widgetSettings}
-                        onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
-                        roomSettings={this.state.roomSettings}
-                        onOpenRoomSettings={this.props.showSettingsButton ? this.onOpenRoomSettings : undefined}
-                    />
-                    <WidgetSettingsDialog
-                        open={settingsWidget != null}
-                        widgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
-                        settings={
-                            settingsWidget
-                                ? this.state.widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
-                                : DEFAULT_WIDGET_SETTINGS
-                        }
-                        onClose={this.onCloseSettings}
-                        onSave={this.onSaveSettings}
-                        showChart={this.state.chartAvailable}
-                        showBlindType={settingsWidget?.control?.type === Types.blind}
-                        showPin={settingsWidget?.control?.type === Types.lock}
-                        showHideWhenOk={
-                            settingsWidget?.control?.type === Types.floodAlarm ||
-                            settingsWidget?.control?.type === Types.fireAlarm
-                        }
-                        objectName={this.state.settingsObjectName}
-                        objectColor={this.state.settingsObjectColor}
-                    />
-                    <RoomSettingsDialog
-                        open={this.state.roomSettingsCategoryId != null}
-                        roomName={
-                            this.state.roomSettingsCategoryId
-                                ? this.getCategoryName(
-                                      this.state.categories.find(
-                                          c => String(c.id) === this.state.roomSettingsCategoryId,
-                                      ) || currentCategory,
-                                  )
-                                : ''
-                        }
-                        roomId={this.state.roomSettingsCategoryId || ''}
-                        settings={
-                            this.state.roomSettingsCategoryId
-                                ? this.state.roomSettings[this.state.roomSettingsCategoryId] || DEFAULT_ROOM_SETTINGS
-                                : DEFAULT_ROOM_SETTINGS
-                        }
-                        onClose={this.onCloseRoomSettings}
-                        onSave={this.onSaveRoomSettings}
-                        socket={this.props.socket}
-                        instance={this.state.selectedInstance}
-                    />
+                        <Category
+                            key={currentCategory.id}
+                            category={currentCategory}
+                            categories={this.state.categories}
+                            widgets={this.state.widgets}
+                            stateContext={this.stateContext}
+                            language={this.language}
+                            onNavigate={(category: CategoryInfo) => {
+                                this.setState({ currentCategory: category });
+                                this.updateHash(category);
+                            }}
+                            widgetSettings={this.state.widgetSettings}
+                            onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
+                            categorySettings={this.state.categorySettings}
+                            onOpenCategorySettings={this.props.showSettingsButton ? this.onOpenCategorySettings : undefined}
+                        />
+                        <WidgetSettingsDialog
+                            open={settingsWidget != null}
+                            widgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
+                            settings={
+                                settingsWidget
+                                    ? this.state.widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
+                                    : DEFAULT_WIDGET_SETTINGS
+                            }
+                            onClose={this.onCloseSettings}
+                            onSave={this.onSaveSettings}
+                            showChart={this.state.chartAvailable}
+                            showBlindType={settingsWidget?.control?.type === Types.blind}
+                            showPin={settingsWidget?.control?.type === Types.lock}
+                            showHideWhenOk={
+                                settingsWidget?.control?.type === Types.floodAlarm ||
+                                settingsWidget?.control?.type === Types.fireAlarm
+                            }
+                            objectName={this.state.settingsObjectName}
+                            objectColor={this.state.settingsObjectColor}
+                        />
+                        <CategorySettingsDialog
+                            open={this.state.categorySettingsCategoryId != null}
+                            categoryName={
+                                this.state.categorySettingsCategoryId
+                                    ? this.getCategoryName(
+                                          this.state.categories.find(
+                                              c => String(c.id) === this.state.categorySettingsCategoryId,
+                                          ) || currentCategory,
+                                      )
+                                    : ''
+                            }
+                            categoryId={this.state.categorySettingsCategoryId || ''}
+                            settings={
+                                this.state.categorySettingsCategoryId
+                                    ? this.state.categorySettings[this.state.categorySettingsCategoryId] ||
+                                      DEFAULT_CATEGORY_SETTINGS
+                                    : DEFAULT_CATEGORY_SETTINGS
+                            }
+                            onClose={this.onCloseCategorySettings}
+                            onSave={this.onSaveCategorySettings}
+                            socket={this.props.socket}
+                            instance={this.state.selectedInstance}
+                        />
                     </div>
                 </ThemeProvider>
             );
