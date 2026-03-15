@@ -1,5 +1,5 @@
 import React from 'react';
-import { SensorDoor } from '@mui/icons-material';
+import { SensorDoor, MeetingRoom } from '@mui/icons-material';
 
 import { WidgetWindow } from './Window';
 
@@ -13,11 +13,23 @@ export class WidgetDoor extends WidgetWindow {
         const { isOpen } = this.state;
         const accent = this.getAccentColor();
 
+        if (isOpen) {
+            return (
+                <MeetingRoom
+                    sx={theme => ({
+                        fontSize: 48,
+                        color: accent || theme.palette.warning.main,
+                        transition: 'color 0.25s ease',
+                    })}
+                />
+            );
+        }
+
         return (
             <SensorDoor
                 sx={theme => ({
                     fontSize: 48,
-                    color: isOpen ? accent || theme.palette.warning.main : theme.palette.text.disabled,
+                    color: theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}
             />

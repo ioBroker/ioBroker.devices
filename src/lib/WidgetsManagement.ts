@@ -237,6 +237,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     this.resolveChannelId(d);
                     if (d.channelId) {
                         result.push(d);
+                        break; // ignore "smaller" devices
                     }
                 }
             }

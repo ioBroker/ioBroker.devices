@@ -23,7 +23,7 @@ import type StateContext from '../StateContext';
 
 export interface WidgetSettings {
     enabled: boolean;
-    size: '1x1' | '2x1';
+    size: '1x1' | '2x0.5' | '2x1';
     chartHours: number;
     name: string;
     color: string;
@@ -47,7 +47,7 @@ export interface WidgetGenericProps {
     widget: WidgetInfo;
     language: ioBroker.Languages;
     stateContext: StateContext;
-    size?: '1x1' | '2x1';
+    size?: '1x1' | '2x0.5' | '2x1';
     settings?: WidgetSettings;
     onOpenSettings?: (widgetId: string | number) => void;
 }
@@ -137,6 +137,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private errorStatesMap: Record<string, string> | null = null;
     private historyInstance: string | null = null;
     private chartTimer: ReturnType<typeof setInterval> | null = null;
+    protected nameRef = React.createRef<HTMLSpanElement>();
 
     constructor(props: WidgetGenericProps) {
         super(props);
@@ -228,6 +229,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
         // Start chart data loading if configured
         this.startChartRefresh();
+        this.adjustNameFontSize();
     }
 
     componentWillUnmount(): void {
@@ -248,6 +250,22 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const newHours = this.props.settings?.chartHours || 0;
         if (prevHours !== newHours) {
             this.startChartRefresh();
+        }
+        this.adjustNameFontSize();
+    }
+
+    /** Shrink the name font so it fits on one line without truncation */
+    protected adjustNameFontSize(): void {
+        const el = this.nameRef.current;
+        if (!el) {
+            return;
+        }
+        // Reset to CSS-defined size before measuring
+        el.style.fontSize = '';
+        // With overflow:hidden, scrollWidth is the full content width, clientWidth is the visible area
+        if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
+            const current = parseFloat(getComputedStyle(el).fontSize);
+            el.style.fontSize = `${Math.floor(current * (el.clientWidth / el.scrollWidth))}px`;
         }
     }
 
@@ -421,8 +439,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         // noop by default
     }
 
-    /** Returns the custom device icon if one is set, otherwise null.
-     *  Subclasses that override renderTileIcon can call this to get the custom icon. */
+    /**
+     * Returns the custom device icon if one is set, otherwise null.
+     *  Subclasses that override renderTileIcon can call this to get the custom icon.
+     */
     protected renderBaseIcon(): React.JSX.Element | null {
         const { icon, color } = this.state;
         const isActive = this.isTileActive();
@@ -494,7 +514,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="error"
-                    title={'Error ' + indicators.error}
+                    title={indicators.error}
                 >
                     <ErrorIcon sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -875,7 +895,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const clickable = this.hasTileAction() && !isDisabled;
 
         return (
-            <Box sx={{ position: 'relative', containerType: 'inline-size' }}>
+            <Box
+                id={String(this.props.widget.id)}
+                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+            >
                 <ButtonBase
                     component="div"
                     disabled={!clickable}
@@ -920,12 +943,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
                     <Box>
                         <Typography
+                            ref={this.nameRef}
                             variant="body2"
                             sx={{
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
-                                textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 9cqi)',
                             }}
@@ -950,7 +973,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const clickable = this.hasTileAction() && !isDisabled;
 
         return (
-            <Box sx={{ position: 'relative', gridColumn: 'span 2' }}>
+            <Box
+                id={String(this.props.widget.id)}
+                sx={{ position: 'relative', gridColumn: 'span 2' }}
+            >
                 <Box
                     onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
@@ -972,11 +998,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Typography
+                                ref={this.nameRef}
                                 variant="body2"
                                 sx={{
                                     fontWeight: 600,
                                     overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
                                 }}
                             >
@@ -995,10 +1021,95 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         );
     }
 
+    renderWideTall(): React.JSX.Element {
+        const { name } = this.state;
+        const isActive = this.isTileActive();
+        const accent = this.getAccentColor();
+        const isDisabled = this.props.settings?.enabled === false;
+        const indicators = this.renderIndicators();
+        const clickable = this.hasTileAction() && !isDisabled;
+
+        return (
+            <Box
+                id={String(this.props.widget.id)}
+                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+            >
+                {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
+                <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
+                <ButtonBase
+                    component="div"
+                    disabled={!clickable}
+                    disableRipple={!clickable}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
+                    sx={theme => ({
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 2,
+                        width: '100%',
+                        height: '100%',
+                        textAlign: 'left',
+                        overflow: 'hidden',
+                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: clickable ? 'pointer' : 'default',
+                        ...getTileStyles(theme, isActive, accent),
+                        ...(!clickable && { '&:active': { transform: 'none' } }),
+                        padding: 'max(16px, 5cqi)',
+                    })}
+                >
+                    {indicators ? (
+                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
+                            {indicators}
+                        </Box>
+                    ) : null}
+
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            '& .MuiSvgIcon-root': { fontSize: 'max(48px, 16cqi) !important' },
+                            '& img': { width: 'max(32px, 11cqi) !important', height: 'max(32px, 11cqi) !important' },
+                        }}
+                    >
+                        {this.renderTileIcon()}
+                    </Box>
+
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                            ref={this.nameRef}
+                            variant="body2"
+                            sx={{
+                                fontWeight: 600,
+                                lineHeight: 1.3,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                fontSize: 'max(0.875rem, 4.5cqi)',
+                            }}
+                        >
+                            {this.props.settings?.name || name || '...'}
+                        </Typography>
+                        {this.renderTileStatus()}
+                    </Box>
+
+                    {this.renderTileAction()}
+                    {this.renderChart()}
+                </ButtonBase>
+                {this.renderSettingsButton()}
+            </Box>
+        );
+    }
+
     render(): React.JSX.Element {
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return this.renderWide();
+        }
+        if (size === '2x1') {
+            return this.renderWideTall();
         }
         return this.renderCompact();
     }

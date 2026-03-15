@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { SensorWindow } from '@mui/icons-material';
+import { SensorWindow, SensorWindowOutlined } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
@@ -105,17 +105,40 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
         const { isOpen, openState } = this.state;
         const accent = this.getAccentColor();
 
+        // Tilted: rotated filled icon
+        if (openState === 2) {
+            return (
+                <SensorWindow
+                    sx={theme => ({
+                        fontSize: 32,
+                        color: accent || theme.palette.info.main,
+                        transform: 'rotate(15deg)',
+                        transition: 'color 0.25s ease, transform 0.25s ease',
+                    })}
+                />
+            );
+        }
+
+        // Open: outlined icon
+        if (isOpen) {
+            return (
+                <SensorWindowOutlined
+                    sx={theme => ({
+                        fontSize: 32,
+                        color: accent || theme.palette.warning.main,
+                        transition: 'color 0.25s ease',
+                    })}
+                />
+            );
+        }
+
+        // Closed: filled icon
         return (
             <SensorWindow
                 sx={theme => ({
                     fontSize: 32,
-                    color: openState === 2
-                        ? accent || theme.palette.info.main
-                        : isOpen
-                          ? accent || theme.palette.warning.main
-                          : theme.palette.text.disabled,
-                    transform: openState === 2 ? 'rotate(15deg)' : undefined,
-                    transition: 'color 0.25s ease, transform 0.25s ease',
+                    color: theme.palette.text.disabled,
+                    transition: 'color 0.25s ease',
                 })}
             />
         );
@@ -123,7 +146,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return null;
         }
 
@@ -136,17 +159,18 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
                     variant="caption"
                     sx={theme => ({
                         fontWeight: 600,
-                        color: openState === 2
-                            ? accent || theme.palette.info.main
-                            : isOpen
-                              ? accent || theme.palette.warning.main
-                              : theme.palette.text.secondary,
+                        color:
+                            openState === 2
+                                ? accent || theme.palette.info.main
+                                : isOpen
+                                  ? accent || theme.palette.warning.main
+                                  : theme.palette.text.secondary,
                         transition: 'color 0.25s ease',
                     })}
                 >
                     {this.getWindowStatusText()}
                 </Typography>
-                {lastChangedAgo ? (
+                {size !== '2x1' && lastChangedAgo ? (
                     <Typography
                         variant="caption"
                         sx={{ fontSize: '0.65rem', color: 'text.disabled', lineHeight: 1.2 }}
@@ -169,11 +193,12 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
                     sx={theme => ({
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
-                        color: openState === 2
-                            ? accent || theme.palette.info.main
-                            : isOpen
-                              ? accent || theme.palette.warning.main
-                              : theme.palette.text.secondary,
+                        color:
+                            openState === 2
+                                ? accent || theme.palette.info.main
+                                : isOpen
+                                  ? accent || theme.palette.warning.main
+                                  : theme.palette.text.secondary,
                     })}
                 >
                     {this.getWindowStatusText()}

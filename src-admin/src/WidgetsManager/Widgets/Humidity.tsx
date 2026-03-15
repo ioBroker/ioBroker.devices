@@ -76,7 +76,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
         return ids;
     }
 
-    private getHumidityColor(h: number | null): string {
+    static getHumidityColor(h: number | null): string {
         if (h == null) {
             return 'text.disabled';
         }
@@ -115,7 +115,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
             <WaterDrop
                 sx={{
                     fontSize: 48,
-                    color: this.getHumidityColor(humidity),
+                    color: WidgetHumidity.getHumidityColor(humidity),
                     transition: 'color 0.25s ease',
                 }}
             />
@@ -124,7 +124,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x1') {
+        if (size === '2x0.5') {
             return null;
         }
 

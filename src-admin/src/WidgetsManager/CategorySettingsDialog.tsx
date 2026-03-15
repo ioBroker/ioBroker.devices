@@ -15,17 +15,22 @@ import {
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
 import { I18n, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
+import type { CustomWidgetDef } from '../../../src/widget-utils';
+
 export interface CategorySettings {
     name: string;
     color: string;
+    backgroundColor: string;
     image: string;
     /** 'header' = background only behind header, 'page' = background behind whole page */
     imageScope: 'header' | 'page';
+    customWidgets?: CustomWidgetDef[];
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
     name: '',
     color: '',
+    backgroundColor: '',
     image: '',
     imageScope: 'header',
 };
@@ -201,6 +206,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const hasChanges =
         local.name !== (settings.name || categoryName) ||
         local.color !== (settings.color || '') ||
+        local.backgroundColor !== (settings.backgroundColor || '') ||
         local.image !== (settings.image || '') ||
         local.imageScope !== (settings.imageScope || 'header');
 
@@ -255,6 +261,43 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 <IconButton
                                     size="small"
                                     onClick={() => setLocal({ ...local, color: '' })}
+                                >
+                                    <Delete fontSize="small" />
+                                </IconButton>
+                            ) : null}
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ mb: 2 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ mb: 1, fontWeight: 500 }}
+                        >
+                            {I18n.t('wm_Background color')}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                                component="input"
+                                type="color"
+                                value={local.backgroundColor || '#121212'}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    setLocal({ ...local, backgroundColor: e.target.value })
+                                }
+                                sx={{
+                                    width: 40,
+                                    height: 40,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1,
+                                    cursor: 'pointer',
+                                    p: '2px',
+                                    backgroundColor: 'transparent',
+                                }}
+                            />
+                            {local.backgroundColor ? (
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setLocal({ ...local, backgroundColor: '' })}
                                 >
                                     <Delete fontSize="small" />
                                 </IconButton>

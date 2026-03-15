@@ -16,13 +16,34 @@ import zhCn from './i18n/zh-cn.json';
 
 import { Types } from '@iobroker/type-detector';
 
-import type { CategoryInfo, ItemInfo, WidgetInfo } from '../../../src/widget-utils';
+import type { CategoryInfo, CustomWidgetType, ItemInfo, WidgetInfo, CustomWidgetDef } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
 import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
+import CustomWidgetDialog from './CustomWidgetDialog';
+import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
+
+interface SpecialTile {
+    type: 'clock';
+    size: '1x1' | '2x0.5' | '2x1';
+}
+
+interface GuiConfig {
+    root: {
+        status?: boolean;
+        statusFormat?: string;
+        tiles?: SpecialTile[];
+        title?: string;
+        color?: string;
+        backgroundColor?: string;
+        image?: string;
+        imageScope?: 'header' | 'page';
+        customWidgets?: CustomWidgetDef[];
+    };
+}
 
 interface CategoryListProps extends CommunicationProps {
     /** Instance to upload images to, like `adapterName.X` */
@@ -41,6 +62,8 @@ interface CategoryListProps extends CommunicationProps {
     communicationStateId?: string | boolean;
     /** Is it runs in admin or in web */
     admin: boolean;
+    /** Define object that will store root settings of the GUI */
+    rootSettingsStateId?: string | boolean;
 }
 
 interface CategoryListState extends CommunicationState {
@@ -58,6 +81,10 @@ interface CategoryListState extends CommunicationState {
     settingsObjectColor: string;
     categorySettings: Record<string, CategorySettings>;
     categorySettingsCategoryId: string | null;
+    customWidgetDialogCategoryId: string | null;
+    customWidgetSettingsCategoryId: string | null;
+    customWidgetSettingsWidgetId: string | null;
+    guiConfig?: GuiConfig;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
@@ -90,6 +117,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private widgetThemeType = '';
 
     private communicationStateId = '';
+
+    private rootSettingsStateId = '';
 
     constructor(props: CategoryListProps) {
         super(props);
@@ -135,6 +164,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             settingsObjectColor: '',
             categorySettings: {},
             categorySettingsCategoryId: null,
+            customWidgetDialogCategoryId: null,
+            customWidgetSettingsCategoryId: null,
+            customWidgetSettingsWidgetId: null,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -207,6 +239,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     };
 
     async componentDidMount(): Promise<void> {
+        this.rootSettingsStateId = `${this.state.selectedInstance}.${this.props.rootSettingsStateId || 'config'}`;
+        const guiConfigState = await this.props.socket.getObject(this.rootSettingsStateId);
+        if (guiConfigState) {
+            this.setState({ guiConfig: guiConfigState.native as GuiConfig });
+        }
+        await this.props.socket.subscribeObject(this.rootSettingsStateId, this.onConfigChanged);
+
         if (this.props.communicationStateId) {
             if (this.props.communicationStateId === true) {
                 this.communicationStateId = `${this.state.selectedInstance}.info.widgetManager`;
@@ -263,7 +302,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     }
 
-    componentWillUnmount(): void {
+    async componentWillUnmount(): Promise<void> {
         window.removeEventListener('hashchange', this.onHashChange);
         if (this.state.selectedInstance) {
             this.props.socket.unsubscribeState(
@@ -275,6 +314,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (this.communicationStateId) {
             this.props.socket.unsubscribeState(this.communicationStateId, this.onBackendCommand);
         }
+        await this.props.socket.unsubscribeObject(this.rootSettingsStateId, this.onConfigChanged);
     }
 
     onBackendCommand = (id: string, state: ioBroker.State | null | undefined): void => {
@@ -286,6 +326,27 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 }
             } catch (error) {
                 console.error(`Cannot parse command "${state.val}": ${error}`);
+            }
+        }
+    };
+
+    onConfigChanged = (id: string, obj: ioBroker.ChannelObject | null | undefined): void => {
+        if (id === this.rootSettingsStateId && obj?.native) {
+            const guiConfig = obj.native as GuiConfig;
+            if (JSON.stringify(this.state.guiConfig) !== JSON.stringify(guiConfig)) {
+                this.setState(prev => {
+                    const categorySettings = { ...prev.categorySettings };
+                    if (guiConfig.root) {
+                        categorySettings[ROOT_CATEGORY] = {
+                            name: guiConfig.root.title || '',
+                            color: guiConfig.root.color || '',
+                            backgroundColor: guiConfig.root.backgroundColor || '',
+                            image: guiConfig.root.image || '',
+                            imageScope: guiConfig.root.imageScope || 'header',
+                        };
+                    }
+                    return { guiConfig, categorySettings };
+                });
             }
         }
     };
@@ -524,18 +585,34 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private extractCategorySettings(categories: CategoryInfo[]): void {
         const categorySettings: Record<string, CategorySettings> = {};
+
+        // Root settings from guiConfig
+        const rootConfig = this.state.guiConfig?.root;
+        if (rootConfig) {
+            categorySettings[ROOT_CATEGORY] = {
+                name: rootConfig.title || '',
+                color: rootConfig.color || '',
+                backgroundColor: rootConfig.backgroundColor || '',
+                image: rootConfig.image || '',
+                imageScope: rootConfig.imageScope || 'header',
+                customWidgets: rootConfig.customWidgets,
+            };
+        }
+
         for (const cat of categories) {
             const id = String(cat.id);
             if (id === ROOT_CATEGORY) {
                 continue;
             }
-            // name and color come from common (category fields), image/imageScope from custom
+            // name and color come from common (category fields), image/imageScope/backgroundColor from custom
             const name = this.getCategoryName(cat);
             const color = typeof cat.color === 'string' ? cat.color : '';
+            const backgroundColor = cat.custom?.backgroundColor || '';
             const image = cat.custom?.image || '';
             const imageScope = cat.custom?.imageScope || 'header';
+            const customWidgets = cat.custom?.customWidgets;
 
-            categorySettings[id] = { name, color, image, imageScope };
+            categorySettings[id] = { name, color, backgroundColor, image, imageScope, customWidgets };
         }
         this.setState({ categorySettings });
     }
@@ -548,26 +625,45 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const { categorySettingsCategoryId } = this.state;
         if (categorySettingsCategoryId != null) {
             const categorySettings = { ...this.state.categorySettings, [categorySettingsCategoryId]: settings };
-            // Update local category: name/color on category itself, image/imageScope in custom
-            const categories = this.state.categories.map(cat => {
-                if (String(cat.id) === categorySettingsCategoryId) {
-                    return {
-                        ...cat,
-                        name: settings.name || cat.name,
-                        color: settings.color || undefined,
-                        custom: {
-                            enabled: true,
-                            ...cat.custom,
-                            image: settings.image || '',
-                            imageScope: settings.imageScope || 'header',
-                        },
-                    };
-                }
-                return cat;
-            });
-            this.setState({ categorySettings, categories, categorySettingsCategoryId: null });
-            // Persist to ioBroker object
-            void this.saveCategorySettingsToObject(categorySettingsCategoryId, settings);
+
+            if (categorySettingsCategoryId === ROOT_CATEGORY) {
+                // Save root settings to rootSettingsStateId native
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: {
+                        ...this.state.guiConfig?.root,
+                        title: settings.name || '',
+                        color: settings.color || '',
+                        backgroundColor: settings.backgroundColor || '',
+                        image: settings.image || '',
+                        imageScope: settings.imageScope || 'header',
+                    },
+                };
+                this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
+                void this.saveRootSettings(guiConfig);
+            } else {
+                // Update local category: name/color on category itself, image/imageScope in custom
+                const categories = this.state.categories.map(cat => {
+                    if (String(cat.id) === categorySettingsCategoryId) {
+                        return {
+                            ...cat,
+                            name: settings.name || cat.name,
+                            color: settings.color || undefined,
+                            custom: {
+                                enabled: true,
+                                ...cat.custom,
+                                backgroundColor: settings.backgroundColor || '',
+                                image: settings.image || '',
+                                imageScope: settings.imageScope || 'header',
+                            },
+                        };
+                    }
+                    return cat;
+                });
+                this.setState({ categorySettings, categories, categorySettingsCategoryId: null });
+                // Persist to ioBroker object
+                void this.saveCategorySettingsToObject(categorySettingsCategoryId, settings);
+            }
         }
     };
 
@@ -590,6 +686,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 common.custom[instanceId] = {
                     enabled: true,
                     ...common.custom[instanceId],
+                    backgroundColor: settings.backgroundColor || '',
                     image: settings.image || '',
                     imageScope: settings.imageScope || 'header',
                 };
@@ -600,9 +697,134 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     }
 
+    private async saveRootSettings(guiConfig: GuiConfig): Promise<void> {
+        try {
+            const obj = await this.props.socket.getObject(this.rootSettingsStateId);
+            if (obj) {
+                obj.native = guiConfig;
+                await this.props.socket.setObject(this.rootSettingsStateId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save root settings:', err);
+        }
+    }
+
     private onCloseCategorySettings = (): void => {
         this.setState({ categorySettingsCategoryId: null });
     };
+
+    // --- Custom widgets ---
+
+    private onOpenCustomWidgetDialog = (categoryId: string): void => {
+        this.setState({ customWidgetDialogCategoryId: categoryId });
+    };
+
+    private onCloseCustomWidgetDialog = (): void => {
+        this.setState({ customWidgetDialogCategoryId: null });
+    };
+
+    private onAddCustomWidget = (type: CustomWidgetType): void => {
+        const { customWidgetDialogCategoryId } = this.state;
+        if (!customWidgetDialogCategoryId) {
+            return;
+        }
+        const id = `custom_${type}_${Date.now().toString(36)}`;
+        const def = { id, type };
+        const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const customWidgets = [...(settings.customWidgets || []), def];
+        const categorySettings = {
+            ...this.state.categorySettings,
+            [customWidgetDialogCategoryId]: { ...settings, customWidgets },
+        };
+        this.setState({ categorySettings, customWidgetDialogCategoryId: null });
+        this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
+    };
+
+    private onRemoveCustomWidget = (categoryId: string, widgetId: string): void => {
+        const settings = this.state.categorySettings[categoryId];
+        if (!settings?.customWidgets) {
+            return;
+        }
+        const customWidgets = settings.customWidgets.filter(w => w.id !== widgetId);
+        const categorySettings = {
+            ...this.state.categorySettings,
+            [categoryId]: { ...settings, customWidgets },
+        };
+        this.setState({ categorySettings });
+        this.persistCustomWidgets(categoryId, customWidgets);
+    };
+
+    private onOpenCustomWidgetSettings = (categoryId: string, widgetId: string): void => {
+        this.setState({ customWidgetSettingsCategoryId: categoryId, customWidgetSettingsWidgetId: widgetId });
+    };
+
+    private onCloseCustomWidgetSettings = (): void => {
+        this.setState({ customWidgetSettingsCategoryId: null, customWidgetSettingsWidgetId: null });
+    };
+
+    private onSaveCustomWidgetSettings = (def: CustomWidgetDef): void => {
+        const { customWidgetSettingsCategoryId } = this.state;
+        if (!customWidgetSettingsCategoryId) {
+            return;
+        }
+        const settings = this.state.categorySettings[customWidgetSettingsCategoryId];
+        if (!settings?.customWidgets) {
+            return;
+        }
+        const customWidgets = settings.customWidgets.map(w => (w.id === def.id ? def : w));
+        const categorySettings = {
+            ...this.state.categorySettings,
+            [customWidgetSettingsCategoryId]: { ...settings, customWidgets },
+        };
+        this.setState({ categorySettings, customWidgetSettingsCategoryId: null, customWidgetSettingsWidgetId: null });
+        this.persistCustomWidgets(customWidgetSettingsCategoryId, customWidgets);
+    };
+
+    private onDeleteCustomWidgetFromSettings = (): void => {
+        const { customWidgetSettingsCategoryId, customWidgetSettingsWidgetId } = this.state;
+        if (customWidgetSettingsCategoryId && customWidgetSettingsWidgetId) {
+            this.onRemoveCustomWidget(customWidgetSettingsCategoryId, customWidgetSettingsWidgetId);
+        }
+        this.setState({ customWidgetSettingsCategoryId: null, customWidgetSettingsWidgetId: null });
+    };
+
+    private persistCustomWidgets(categoryId: string, customWidgets: CustomWidgetDef[]): void {
+        if (categoryId === ROOT_CATEGORY) {
+            const guiConfig: GuiConfig = {
+                ...this.state.guiConfig,
+                root: { ...this.state.guiConfig?.root, customWidgets },
+            };
+            this.setState({ guiConfig });
+            void this.saveRootSettings(guiConfig);
+        } else {
+            // Update the local category object and persist
+            const categories = this.state.categories.map(cat => {
+                if (String(cat.id) === categoryId) {
+                    return { ...cat, custom: { ...cat.custom, customWidgets } };
+                }
+                return cat;
+            });
+            this.setState({ categories });
+            void this.saveCustomWidgetsToObject(categoryId, customWidgets);
+        }
+    }
+
+    private async saveCustomWidgetsToObject(categoryId: string, customWidgets: CustomWidgetDef[]): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = (await this.props.socket.getObject(categoryId)) as ioBroker.StateObject | null | undefined;
+            if (obj) {
+                obj.common.custom ||= {};
+                obj.common.custom[instanceId] = {
+                    ...obj.common.custom[instanceId],
+                    customWidgets,
+                };
+                await this.props.socket.setObject(categoryId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save custom widgets:', err);
+        }
+    }
 
     private getWidgetName(widget: WidgetInfo): string {
         if (typeof widget.name === 'string') {
@@ -657,6 +879,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onOpenCategorySettings={
                                 this.props.showSettingsButton ? this.onOpenCategorySettings : undefined
                             }
+                            onAddCustomWidget={
+                                this.props.showSettingsButton ? this.onOpenCustomWidgetDialog : undefined
+                            }
+                            onRemoveCustomWidget={this.props.showSettingsButton ? this.onRemoveCustomWidget : undefined}
+                            onOpenCustomWidgetSettings={
+                                this.props.showSettingsButton ? this.onOpenCustomWidgetSettings : undefined
+                            }
                             admin={this.props.admin}
                         />
                         <WidgetSettingsDialog
@@ -682,13 +911,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         <CategorySettingsDialog
                             open={this.state.categorySettingsCategoryId != null}
                             categoryName={
-                                this.state.categorySettingsCategoryId
-                                    ? this.getCategoryName(
-                                          this.state.categories.find(
-                                              c => String(c.id) === this.state.categorySettingsCategoryId,
-                                          ) || currentCategory,
-                                      )
-                                    : ''
+                                this.state.categorySettingsCategoryId === ROOT_CATEGORY
+                                    ? this.state.categorySettings[ROOT_CATEGORY]?.name || I18n.t('wm_Settings')
+                                    : this.state.categorySettingsCategoryId
+                                      ? this.getCategoryName(
+                                            this.state.categories.find(
+                                                c => String(c.id) === this.state.categorySettingsCategoryId,
+                                            ) || currentCategory,
+                                        )
+                                      : ''
                             }
                             categoryId={this.state.categorySettingsCategoryId || ''}
                             settings={
@@ -703,6 +934,25 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             instance={this.state.selectedInstance}
                             theme={this.props.theme}
                             admin={this.props.admin}
+                        />
+                        <CustomWidgetDialog
+                            open={this.state.customWidgetDialogCategoryId != null}
+                            onClose={this.onCloseCustomWidgetDialog}
+                            onAdd={this.onAddCustomWidget}
+                        />
+                        <CustomWidgetSettingsDialog
+                            open={this.state.customWidgetSettingsCategoryId != null}
+                            widgetDef={
+                                this.state.customWidgetSettingsCategoryId && this.state.customWidgetSettingsWidgetId
+                                    ? this.state.categorySettings[
+                                          this.state.customWidgetSettingsCategoryId
+                                      ]?.customWidgets?.find(w => w.id === this.state.customWidgetSettingsWidgetId) ||
+                                      null
+                                    : null
+                            }
+                            onClose={this.onCloseCustomWidgetSettings}
+                            onSave={this.onSaveCustomWidgetSettings}
+                            onDelete={this.onDeleteCustomWidgetFromSettings}
                         />
                     </div>
                 </ThemeProvider>
