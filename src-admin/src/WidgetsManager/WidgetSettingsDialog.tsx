@@ -26,12 +26,16 @@ interface WidgetSettingsDialogProps {
     onClose: () => void;
     onSave: (settings: WidgetSettings) => void;
     showChart?: boolean;
+    showBlindType?: boolean;
+    showPin?: boolean;
+    showHideWhenOk?: boolean;
     objectName?: string;
     objectColor?: string;
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
-    const { open, widgetName, settings, onClose, onSave, showChart, objectName, objectColor } = props;
+    const { open, widgetName, settings, onClose, onSave, showChart, showBlindType, showPin, showHideWhenOk, objectName, objectColor } =
+        props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
 
     useEffect(() => {
@@ -55,6 +59,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
             <DialogContent>
                 <TextField
                     fullWidth
+                    variant="filled"
                     label={I18n.t('wm_Name')}
                     value={local.name}
                     onChange={e => setLocal({ ...local, name: e.target.value })}
@@ -158,6 +163,62 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     </ToggleButtonGroup>
                 </Box>
 
+                {showBlindType ? (
+                    <Box sx={{ mt: 2 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ mb: 1, fontWeight: 500 }}
+                        >
+                            {I18n.t('wm_BlindType')}
+                        </Typography>
+                        <ToggleButtonGroup
+                            value={local.blindType || 'shutter'}
+                            exclusive
+                            onChange={(_, value) => {
+                                if (value) {
+                                    setLocal({ ...local, blindType: value });
+                                }
+                            }}
+                            size="small"
+                        >
+                            <ToggleButton value="shutter">{I18n.t('wm_Shutter')}</ToggleButton>
+                            <ToggleButton value="curtain">{I18n.t('wm_Curtain')}</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
+                ) : null}
+
+                {showPin ? (
+                    <TextField
+                        fullWidth
+                        variant="filled"
+                        label={I18n.t('wm_PIN Code')}
+                        value={local.pin || ''}
+                        onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setLocal({ ...local, pin: val });
+                        }}
+                        placeholder="1234"
+                        size="small"
+                        slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 8 } }}
+                        helperText={I18n.t('wm_PIN help')}
+                        sx={{ mt: 2 }}
+                    />
+                ) : null}
+
+                {showHideWhenOk ? (
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={!!local.hideWhenOk}
+                                onChange={(_, checked) => setLocal({ ...local, hideWhenOk: checked })}
+                                color="primary"
+                            />
+                        }
+                        label={I18n.t('wm_Hide when OK')}
+                        sx={{ mt: 1, display: 'flex' }}
+                    />
+                ) : null}
+
                 {showChart ? (
                     <Box sx={{ mt: 2 }}>
                         <Typography
@@ -192,8 +253,11 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         local.enabled === settings.enabled &&
                         local.size === settings.size &&
                         local.chartHours === settings.chartHours &&
-                        local.name === settings.name &&
-                        local.color === settings.color
+                        local.name === (settings.name || objectName || widgetName) &&
+                        local.color === (settings.color || objectColor || '') &&
+                        local.blindType === settings.blindType &&
+                        (local.pin || '') === (settings.pin || '') &&
+                        !!local.hideWhenOk === !!settings.hideWhenOk
                     }
                     startIcon={<Save />}
                     onClick={() => onSave(local)}

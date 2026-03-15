@@ -1,6 +1,14 @@
 export { WidgetSwitch } from './Switch';
+export { WidgetLight } from './Light';
 export { WidgetDimmer } from './Dimmer';
 export { WidgetTemperature } from './Temperature';
 export { WidgetMotion } from './Motion';
+export { WidgetWindow } from './Window';
+export { WidgetBlind } from './Blind';
+export { WidgetLock } from './Lock';
+export { WidgetDoor } from './Door';
+export { WidgetFloodAlarm } from './FloodAlarm';
+export { WidgetFireAlarm } from './FireAlarm';
+export { WidgetHumidity } from './Humidity';
 export { getTileStyles, DEFAULT_WIDGET_SETTINGS } from './Generic';
 export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';

@@ -9,6 +9,8 @@ interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
     isOn: boolean;
     dragging: boolean;
+    dimMin: number;
+    dimMax: number;
 }
 
 export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
@@ -39,6 +41,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             brightness: 0,
             isOn: false,
             dragging: false,
+            dimMin: 0,
+            dimMax: 100,
         };
     }
 
@@ -50,6 +54,45 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         if (this.onActualId) {
             this.props.stateContext.getState(this.onActualId, this.onOnOffChange);
         }
+        void this.loadDimmerObject();
+    }
+
+    private async loadDimmerObject(): Promise<void> {
+        const id = this.setId || this.actualId;
+        if (!id) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(id)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj?.common) {
+                const min = obj.common.min != null ? Number(obj.common.min) : 0;
+                const max = obj.common.max != null ? Number(obj.common.max) : 100;
+                if (!isNaN(min) && !isNaN(max) && max > min) {
+                    this.setState({ dimMin: min, dimMax: max });
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    /** Convert a raw device value to 0-100 percent */
+    private rawToPercent(raw: number): number {
+        const { dimMin, dimMax } = this.state;
+        const range = dimMax - dimMin;
+        if (range <= 0) {
+            return 0;
+        }
+        return Math.round(((raw - dimMin) / range) * 100);
+    }
+
+    /** Convert a 0-100 percent to a raw device value */
+    private percentToRaw(percent: number): number {
+        const { dimMin, dimMax } = this.state;
+        return dimMin + (percent / 100) * (dimMax - dimMin);
     }
 
     componentWillUnmount(): void {
@@ -67,7 +110,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         if (this.isDragging) {
             return;
         }
-        const brightness = Number(state.val) || 0;
+        const raw = Number(state.val) || 0;
+        const brightness = this.rawToPercent(raw);
         if (brightness !== this.state.brightness) {
             if (!this.onActualId) {
                 this.setState({ brightness, isOn: brightness > 0 });
@@ -85,11 +129,11 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     };
 
     setBrightness = (_e: Event, value: number | number[]): void => {
-        const level = value as number;
+        const percent = value as number;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, level);
+            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
         }
-        if (this.onSetId && !this.state.isOn && level > 0) {
+        if (this.onSetId && !this.state.isOn && percent > 0) {
             void this.props.stateContext.getSocket().setState(this.onSetId, true);
         }
     };
@@ -98,7 +142,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         if (this.onSetId) {
             void this.props.stateContext.getSocket().setState(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.state.isOn ? 0 : 100);
+            void this.props.stateContext
+                .getSocket()
+                .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
         }
     };
 
@@ -181,7 +227,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             // Drag end — send final brightness and activate if off
             const percent = this.pointerToPercent(e.clientX, e.clientY);
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, percent);
+                void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
             }
             if (this.onSetId && !this.state.isOn && percent > 0) {
                 void this.props.stateContext.getSocket().setState(this.onSetId, true);
@@ -203,6 +249,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             return this.state.isOn;
         }
         return this.state.brightness > 0;
+    }
+
+    protected hasTileAction(): boolean {
+        return true;
     }
 
     protected onTileClick(): void {

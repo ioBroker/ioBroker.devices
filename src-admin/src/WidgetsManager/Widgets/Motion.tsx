@@ -2,23 +2,16 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { DirectionsRun, LightMode } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
-import moment from 'moment';
-import 'moment/locale/de';
-import 'moment/locale/ru';
-import 'moment/locale/pt';
-import 'moment/locale/nl';
-import 'moment/locale/fr';
-import 'moment/locale/it';
-import 'moment/locale/es';
-import 'moment/locale/pl';
-import 'moment/locale/uk';
-import 'moment/locale/zh-cn';
+import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetMotionState extends WidgetGenericState {
     motion: boolean;
     brightness: number | null;
+    brightnessUnit: string;
+    brightnessMin: number | null;
+    brightnessMax: number | null;
     lastMotion: number | null;
     lastMotionAgo: string;
 }
@@ -37,12 +30,13 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         this.actualId = actual?.id ?? null;
         this.brightnessId = second?.id ?? null;
 
-        moment.locale(props.language);
-
         this.state = {
             ...this.state,
             motion: false,
             brightness: null,
+            brightnessUnit: '',
+            brightnessMin: null,
+            brightnessMax: null,
             lastMotion: null,
             lastMotionAgo: '',
         };
@@ -55,9 +49,47 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         }
         if (this.brightnessId) {
             this.props.stateContext.getState(this.brightnessId, this.onBrightnessChange);
+            void this.loadBrightnessObject();
         }
         // Update relative time every 30 seconds
         this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+    }
+
+    private async loadBrightnessObject(): Promise<void> {
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(this.brightnessId!)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj?.common) {
+                const unit = (obj.common.unit || '').trim().toLowerCase();
+                const max = obj.common.max != null ? Number(obj.common.max) : null;
+                const min = obj.common.min != null ? Number(obj.common.min) : null;
+                this.setState({
+                    brightnessUnit: unit,
+                    brightnessMax: max != null && !isNaN(max) ? max : null,
+                    brightnessMin: min != null && !isNaN(min) ? min : null,
+                });
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private formatBrightness(value: number): string {
+        const { brightnessUnit, brightnessMin, brightnessMax } = this.state;
+        if (brightnessUnit === 'lux') {
+            return `${Math.round(value)} lux`;
+        }
+        if (brightnessUnit === '%') {
+            return `${Math.round(value)}%`;
+        }
+        if (brightnessMax != null) {
+            const min = brightnessMin || 0;
+            const range = brightnessMax - min;
+            return range > 0 ? `${Math.round(((value - min) / range) * 100)}%` : '0%';
+        }
+        return `${Math.round(value)}`;
     }
 
     componentWillUnmount(): void {
@@ -74,10 +106,15 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         }
     }
 
+    private fromNow(ts: number): string {
+        console.log(this.props.language);
+        return moment(ts).locale(this.props.language).fromNow();
+    }
+
     private updateAgo(): void {
         const { lastMotion } = this.state;
         if (lastMotion) {
-            const ago = moment(lastMotion).fromNow();
+            const ago = this.fromNow(lastMotion);
             if (ago !== this.state.lastMotionAgo) {
                 this.setState({ lastMotionAgo: ago });
             }
@@ -89,14 +126,14 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         const lc = state.lc || state.ts || Date.now();
         if (motion && motion !== this.state.motion) {
             // Motion just started — record when it was detected
-            this.setState({ motion, lastMotion: lc, lastMotionAgo: moment(lc).fromNow() });
+            this.setState({ motion, lastMotion: lc, lastMotionAgo: this.fromNow(lc) });
         } else if (!motion && motion !== this.state.motion) {
             // Motion cleared — keep lastMotion, but if we never had one use lc
             const lastMotion = this.state.lastMotion || lc;
-            this.setState({ motion, lastMotion, lastMotionAgo: moment(lastMotion).fromNow() });
+            this.setState({ motion, lastMotion, lastMotionAgo: this.fromNow(lastMotion) });
         } else if (!motion && !this.state.lastMotion && lc) {
             // Initial load with motion=false — use lc as approximation
-            this.setState({ lastMotion: lc, lastMotionAgo: moment(lc).fromNow() });
+            this.setState({ lastMotion: lc, lastMotionAgo: this.fromNow(lc) });
         }
     };
 
@@ -174,7 +211,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                             }}
                         >
                             <LightMode sx={{ fontSize: 12 }} />
-                            {Math.round(brightness)} lux
+                            {this.formatBrightness(brightness)}
                         </Typography>
                     ) : null}
                 </Box>
@@ -219,7 +256,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                             }}
                         >
                             <LightMode sx={{ fontSize: 14 }} />
-                            {Math.round(brightness)} lux
+                            {this.formatBrightness(brightness)}
                         </Typography>
                     ) : null}
                 </Box>

@@ -61,22 +61,21 @@ export default class StateContext {
 
     getState(id: string, handler: StateChangeListener): void {
         if (!this.subscribedStates[id]) {
-            this.subscribedStates[id] = [];
+            this.subscribedStates[id] = [handler];
             // read value
             void this.socket.getState(id).then(async state => {
-                if (!state) {
-                    this.states[id] = { val: null, ts: Date.now(), ack: true } as ioBroker.State;
-                } else {
-                    this.states[id] = state;
-                    this.subscribedStates[id].push(handler);
-                    // subscribe for changes
-                    await this.socket.subscribeState(id, this.onStateChange);
-                }
+                this.states[id] = state || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State);
+                // notify all handlers that registered while the fetch was in progress
+                this.subscribedStates[id]?.forEach(cb => cb(id, this.states[id]));
+                // subscribe for changes
+                await this.socket.subscribeState(id, this.onStateChange);
             });
-        } else if (this.states[id]) {
-            setTimeout(() => handler(id, this.states[id]), 0);
         } else {
-            throw new Error(`State ${id} is not available`);
+            this.subscribedStates[id].push(handler);
+            if (this.states[id]) {
+                setTimeout(() => handler(id, this.states[id]), 0);
+            }
+            // else: fetch still in progress — handler will be called when it resolves
         }
     }
 

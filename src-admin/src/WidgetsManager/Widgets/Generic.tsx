@@ -16,7 +16,7 @@ import {
     WifiOff,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
-import { Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { WidgetInfo } from '../../../../src/widget-utils';
 import type StateContext from '../StateContext';
@@ -27,6 +27,9 @@ export interface WidgetSettings {
     chartHours: number;
     name: string;
     color: string;
+    blindType: 'shutter' | 'curtain';
+    pin: string;
+    hideWhenOk: boolean;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -35,6 +38,9 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     chartHours: 0,
     name: '',
     color: '',
+    blindType: 'shutter',
+    pin: '',
+    hideWhenOk: false,
 };
 
 export interface WidgetGenericProps {
@@ -127,6 +133,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 > {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
+    /** common.states mapping for the ERROR indicator (numeric error codes → text) */
+    private errorStatesMap: Record<string, string> | null = null;
     private historyInstance: string | null = null;
     private chartTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -204,6 +212,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             }
         }
 
+        // Load common.states mapping for ERROR indicator (numeric error codes)
+        const errorId = this.indicatorIds.ERROR;
+        if (errorId) {
+            void this.props.stateContext
+                .getSocket()
+                .getObject(errorId)
+                .then(obj => {
+                    const statesMap = (obj as ioBroker.StateObject | null)?.common?.states;
+                    if (statesMap && typeof statesMap === 'object') {
+                        this.errorStatesMap = statesMap as Record<string, string>;
+                    }
+                });
+        }
+
         // Start chart data loading if configured
         this.startChartRefresh();
     }
@@ -271,7 +293,22 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     break;
                 }
                 case 'ERROR': {
-                    const val = state.val != null && state.val !== '' && state.val !== false ? String(state.val) : null;
+                    const raw = state.val;
+                    let val: string | null = null;
+                    if (typeof raw === 'boolean') {
+                        // boolean: true = error, false = ok
+                        val = raw ? I18n.t('wm_Error') : null;
+                    } else if (typeof raw === 'number') {
+                        // number: 0 = no error, any other = error code
+                        if (raw !== 0) {
+                            val =
+                                (this.errorStatesMap && this.errorStatesMap[String(raw)]) ||
+                                `${I18n.t('wm_Error')} ${raw}`;
+                        }
+                    } else if (typeof raw === 'string') {
+                        // string: non-empty = error text
+                        val = raw || null;
+                    }
                     if (indicators.error !== val) {
                         indicators.error = val;
                         changed = true;
@@ -375,6 +412,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     // eslint-disable-next-line class-methods-use-this
+    protected hasTileAction(): boolean {
+        return false;
+    }
+
+    // eslint-disable-next-line class-methods-use-this
     protected onTileClick(): void {
         // noop by default
     }
@@ -446,7 +488,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="error"
-                    title={indicators.error}
+                    title={'Error ' + indicators.error}
                 >
                     <ErrorIcon sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -502,8 +544,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             );
         }
 
-        // Direction — 0: none, 1: up/open, 2: down/close, 3: unknown; boolean true=up
-        if (indicators.direction === true || indicators.direction === 1) {
+        // Direction — boolean: true = up/open, false = down/close (only when working)
+        //             enum: 0 = none, 1 = up/open, 2 = down/close, 3 = unknown
+        const showBoolDir = typeof indicators.direction === 'boolean' && indicators.working;
+        if ((indicators.direction === true && showBoolDir) || indicators.direction === 1) {
             items.push(
                 <Tooltip
                     key="direction"
@@ -512,7 +556,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     <ArrowUpward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
             );
-        } else if (indicators.direction === 2) {
+        } else if ((indicators.direction === false && showBoolDir) || indicators.direction === 2) {
             items.push(
                 <Tooltip
                     key="direction"
@@ -822,13 +866,15 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
+        const clickable = this.hasTileAction() && !isDisabled;
 
         return (
-            <Box sx={{ position: 'relative' }}>
+            <Box sx={{ position: 'relative', containerType: 'inline-size' }}>
                 <ButtonBase
                     component="div"
-                    disabled={isDisabled}
-                    onClick={() => this.onTileClick()}
+                    disabled={!clickable}
+                    disableRipple={!clickable}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -839,12 +885,31 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         textAlign: 'left',
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
+                        cursor: clickable ? 'pointer' : 'default',
                         ...getTileStyles(theme, isActive, accent),
+                        ...(!clickable && { '&:active': { transform: 'none' } }),
+                        padding: 'max(16px, 10cqi)',
                     })}
                 >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    {indicators ? (
+                        <Box
+                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                        >
+                            {indicators}
+                        </Box>
+                    ) : null}
+
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flex: 1,
+                            '& .MuiSvgIcon-root': { fontSize: 'max(48px, 32cqi) !important' },
+                            '& img': { width: 'max(32px, 21cqi) !important', height: 'max(32px, 21cqi) !important' },
+                        }}
+                    >
                         {this.renderTileIcon()}
-                        {indicators}
                     </Box>
 
                     <Box>
@@ -856,6 +921,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
+                                fontSize: 'max(0.875rem, 9cqi)',
                             }}
                         >
                             {this.props.settings?.name || name || '...'}
@@ -875,21 +941,24 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
+        const clickable = this.hasTileAction() && !isDisabled;
 
         return (
             <Box sx={{ position: 'relative', gridColumn: 'span 2' }}>
                 <Box
-                    onClick={isDisabled ? undefined : () => this.onTileClick()}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: 2,
                         width: '100%',
+                        height: 80,
                         position: 'relative',
-                        cursor: isDisabled ? 'default' : 'pointer',
+                        cursor: clickable ? 'pointer' : 'default',
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
+                        ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
                 >
                     <Box sx={{ flexShrink: 0 }}>{this.renderTileIcon()}</Box>

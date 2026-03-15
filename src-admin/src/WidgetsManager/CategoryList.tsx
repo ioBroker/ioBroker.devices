@@ -14,6 +14,8 @@ import pl from './i18n/pl.json';
 import uk from './i18n/uk.json';
 import zhCn from './i18n/zh-cn.json';
 
+import { Types } from '@iobroker/type-detector';
+
 import type { CategoryInfo, ItemInfo, WidgetInfo } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
@@ -408,7 +410,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private onOpenSettings = (widgetId: string | number): void => {
-        this.setState({ settingsWidgetId: widgetId, chartAvailable: false, settingsObjectName: '', settingsObjectColor: '' });
+        this.setState({
+            settingsWidgetId: widgetId,
+            chartAvailable: false,
+            settingsObjectName: '',
+            settingsObjectColor: '',
+        });
         void this.checkChartAvailable(widgetId);
         void this.loadObjectSettings(widgetId);
     };
@@ -417,9 +424,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         try {
             const obj = await this.props.socket.getObject(String(widgetId));
             if (obj?.common) {
-                const name = typeof obj.common.name === 'object'
-                    ? (obj.common.name as ioBroker.Translated)[this.language] || (obj.common.name as ioBroker.Translated).en || ''
-                    : (obj.common.name as string) || '';
+                const name =
+                    typeof obj.common.name === 'object'
+                        ? obj.common.name[this.language] || obj.common.name.en || ''
+                        : obj.common.name || '';
                 const color = (obj.common.color as string) || '';
                 this.setState({ settingsObjectName: name, settingsObjectColor: color });
             }
@@ -540,6 +548,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (currentCategory) {
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
+                    <div style={{ width: '100%', height: '100%' }}>
                     <Category
                         key={currentCategory.id}
                         category={currentCategory}
@@ -565,9 +574,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         onClose={this.onCloseSettings}
                         onSave={this.onSaveSettings}
                         showChart={this.state.chartAvailable}
+                        showBlindType={settingsWidget?.control?.type === Types.blind}
+                        showPin={settingsWidget?.control?.type === Types.lock}
+                        showHideWhenOk={
+                            settingsWidget?.control?.type === Types.floodAlarm ||
+                            settingsWidget?.control?.type === Types.fireAlarm
+                        }
                         objectName={this.state.settingsObjectName}
                         objectColor={this.state.settingsObjectColor}
                     />
+                    </div>
                 </ThemeProvider>
             );
         }
