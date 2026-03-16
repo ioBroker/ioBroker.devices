@@ -169,7 +169,6 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         return (
             <DirectionsRun
                 sx={theme => ({
-                    fontSize: 32,
                     color: motion ? accent || theme.palette.primary.main : theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}

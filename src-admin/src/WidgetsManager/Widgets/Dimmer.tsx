@@ -273,7 +273,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         return (
             <LightbulbOutlined
                 sx={theme => ({
-                    fontSize: 32,
                     color: isActive ? accent || theme.palette.primary.main : theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                     filter: isActive

@@ -154,7 +154,6 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState> {
             <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                 <IconComponent
                     sx={theme => ({
-                        fontSize: 48,
                         color: isLocked ? theme.palette.success.main : accent || theme.palette.error.main,
                         transition: 'color 0.25s ease',
                     })}

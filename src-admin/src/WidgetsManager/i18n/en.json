@@ -76,5 +76,11 @@
     "wm_Analog": "Analog",
     "wm_Show date": "Show date",
     "wm_Show DOW": "Show day of week",
-    "wm_Show seconds": "Show seconds"
+    "wm_Show seconds": "Show seconds",
+    "wm_Hue": "Hue",
+    "wm_Saturation": "Saturation",
+    "wm_Brightness": "Brightness",
+    "wm_Color temperature": "Color temperature",
+    "wm_On brightness": "On brightness",
+    "wm_Long press for settings": "Long press for color settings"
 }

@@ -37,6 +37,7 @@ import {
     WidgetThermostat,
     WidgetClock,
     WidgetVolume,
+    WidgetColorLight,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -478,6 +479,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetThermostat;
         } else if (widget.control && widget.control.type === Types.volume) {
             Widget = WidgetVolume;
+        } else if (
+            widget.control &&
+            (widget.control.type === Types.rgbSingle ||
+                widget.control.type === Types.rgbwSingle ||
+                widget.control.type === Types.rgb ||
+                widget.control.type === Types.hue ||
+                widget.control.type === Types.cie ||
+                widget.control.type === Types.ct)
+        ) {
+            Widget = WidgetColorLight;
         }
 
         if (!Widget) {

@@ -134,7 +134,6 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
         return (
             <Thermostat
                 sx={{
-                    fontSize: 32,
                     color: getColor(temperature),
                     transition: 'color 0.25s ease',
                 }}
@@ -143,9 +142,9 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        // In wide mode, values are shown via renderTileAction on the right
+        // In wide/tall modes, values are shown via renderTileAction
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x0.5') {
+        if (size !== '1x1') {
             return null;
         }
 

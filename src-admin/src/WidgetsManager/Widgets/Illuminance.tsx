@@ -88,7 +88,7 @@ export class WidgetIlluminance extends WidgetGeneric<WidgetIlluminanceState> {
 
         const lux = this.state.illuminance;
         const color = WidgetIlluminance.getIlluminanceColor(lux);
-        const sx = { fontSize: 48, color, transition: 'color 0.25s ease' };
+        const sx = { color, transition: 'color 0.25s ease' };
 
         if (lux != null && lux < 10) {
             return <DarkMode sx={sx} />;

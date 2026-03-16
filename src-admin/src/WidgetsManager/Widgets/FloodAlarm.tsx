@@ -100,7 +100,6 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
         return (
             <Water
                 sx={{
-                    fontSize: 48,
                     color: alarm ? accent || FLOOD_COLOR : 'text.disabled',
                     transition: 'color 0.25s ease',
                 }}

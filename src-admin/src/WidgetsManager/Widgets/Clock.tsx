@@ -259,7 +259,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                     })}
                 >
                     <Typography
@@ -321,7 +321,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                     })}
                 >
                     <Typography
@@ -385,7 +385,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         justifyContent: 'center',
                         alignItems: 'center',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                     })}
                 >
                     <Typography
@@ -449,7 +449,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                         padding: 'max(8px, 5cqi)',
                     })}
                 >
@@ -498,7 +498,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                     })}
                 >
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
@@ -571,7 +571,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         justifyContent: 'center',
                         alignItems: 'center',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent),
+                        ...getTileStyles(theme, false, accent, false),
                         padding: 'max(8px, 3cqi)',
                     })}
                 >

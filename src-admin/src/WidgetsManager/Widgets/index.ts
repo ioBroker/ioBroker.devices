@@ -14,5 +14,6 @@ export { WidgetIlluminance } from './Illuminance';
 export { WidgetThermostat } from './Thermostat';
 export { WidgetClock } from './Clock';
 export { WidgetVolume } from './Volume';
+export { WidgetColorLight } from './ColorLight';
 export { getTileStyles, DEFAULT_WIDGET_SETTINGS } from './Generic';
 export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';

@@ -114,7 +114,6 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
         return (
             <WaterDrop
                 sx={{
-                    fontSize: 48,
                     color: WidgetHumidity.getHumidityColor(humidity),
                     transition: 'color 0.25s ease',
                 }}
@@ -123,8 +122,9 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
+        // In wide/tall modes, values are shown via renderTileAction
         const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x0.5') {
+        if (size !== '1x1') {
             return null;
         }
 

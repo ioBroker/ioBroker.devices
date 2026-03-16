@@ -76,5 +76,11 @@
     "wm_Analog": "Analogico",
     "wm_Show date": "Mostra data",
     "wm_Show DOW": "Mostra giorno della settimana",
-    "wm_Show seconds": "Mostra secondi"
+    "wm_Show seconds": "Mostra secondi",
+    "wm_Hue": "Tonalità",
+    "wm_Saturation": "Saturazione",
+    "wm_Brightness": "Luminosità",
+    "wm_Color temperature": "Temperatura colore",
+    "wm_On brightness": "Luminosità di accensione",
+    "wm_Long press for settings": "Pressione prolungata per impostazioni colore"
 }
