@@ -200,7 +200,6 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
         const accent = this.getAccentColor();
 
         const iconSx = (theme: Theme): React.CSSProperties => ({
-            fontSize: 32,
             color: isActive ? accent || theme.palette.primary.main : theme.palette.text.disabled,
             transition: 'color 0.25s ease',
         });

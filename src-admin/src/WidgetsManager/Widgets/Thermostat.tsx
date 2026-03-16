@@ -448,7 +448,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         return (
             <Thermostat
                 sx={{
-                    fontSize: 32,
                     color: WidgetThermostat.getTempColor(displayTemp),
                     transition: 'color 0.25s ease',
                 }}

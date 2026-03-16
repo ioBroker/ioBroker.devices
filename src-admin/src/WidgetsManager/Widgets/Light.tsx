@@ -16,7 +16,6 @@ export class WidgetLight extends WidgetSwitch {
         return (
             <Lightbulb
                 sx={theme => ({
-                    fontSize: 48,
                     color: isOn ? accent || theme.palette.warning.main : theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}

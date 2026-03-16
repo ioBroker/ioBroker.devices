@@ -15,7 +15,6 @@ interface WidgetBlindState extends WidgetGenericState {
 interface BlindSvgProps {
     position: number;
     accent?: string;
-    size: number;
     dragging?: boolean;
 }
 
@@ -82,7 +81,7 @@ function WindowBase(props: { accent?: string; children: React.ReactNode }): Reac
 
 /** SVG window with roller shutter. position: 0 = closed, 100 = fully open */
 function ShutterSvg(props: BlindSvgProps): React.JSX.Element {
-    const { position, accent, size, dragging } = props;
+    const { position, accent, dragging } = props;
 
     // Shutter covers (100 - position)% from the top
     const shutterH = ((100 - position) / 100) * INNER_H;
@@ -109,8 +108,7 @@ function ShutterSvg(props: BlindSvgProps): React.JSX.Element {
     return (
         <svg
             viewBox={`0 0 ${VW} ${VH}`}
-            width={size}
-            height={size * (VH / VW)}
+            className="blind-svg"
             style={{ display: 'block' }}
         >
             <WindowBase accent={accent}>
@@ -162,7 +160,7 @@ function ShutterSvg(props: BlindSvgProps): React.JSX.Element {
 
 /** SVG window with curtains. position: 0 = closed, 100 = fully open */
 function CurtainSvg(props: BlindSvgProps): React.JSX.Element {
-    const { position, accent, size, dragging } = props;
+    const { position, accent, dragging } = props;
 
     const transition = dragging ? 'none' : 'all 0.2s ease';
 
@@ -211,8 +209,7 @@ function CurtainSvg(props: BlindSvgProps): React.JSX.Element {
     return (
         <svg
             viewBox={`0 0 ${VW} ${VH}`}
-            width={size}
-            height={size * (VH / VW)}
+            className="blind-svg"
             style={{ display: 'block' }}
         >
             <WindowBase accent={accent}>
@@ -480,13 +477,14 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
 
         const blindType = this.props.settings?.blindType || 'shutter';
         return (
-            <BlindSvg
-                position={position}
-                accent={accent}
-                size={36}
-                dragging={dragging}
-                blindType={blindType}
-            />
+            <Box sx={{ '& .blind-svg': { height: 40 } }}>
+                <BlindSvg
+                    position={position}
+                    accent={accent}
+                    dragging={dragging}
+                    blindType={blindType}
+                />
+            </Box>
         );
     }
 
@@ -592,12 +590,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                             alignItems: 'center',
                             justifyContent: 'center',
                             flex: 1,
+                            minHeight: 0,
+                            '& .blind-svg': { height: '85%' },
                         }}
                     >
                         <BlindSvg
                             position={position}
                             accent={accent}
-                            size={64}
                             dragging={dragging}
                             blindType={this.props.settings?.blindType || 'shutter'}
                         />

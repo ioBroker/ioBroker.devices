@@ -100,7 +100,6 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState> {
         return (
             <LocalFireDepartment
                 sx={{
-                    fontSize: 48,
                     color: alarm ? accent || FIRE_COLOR : 'text.disabled',
                     transition: 'color 0.25s ease',
                 }}

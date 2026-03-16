@@ -18,6 +18,7 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { WidgetSettings } from './Widgets/Generic';
+import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 
 interface WidgetSettingsDialogProps {
     open: boolean;
@@ -29,6 +30,7 @@ interface WidgetSettingsDialogProps {
     showBlindType?: boolean;
     showPin?: boolean;
     showHideWhenOk?: boolean;
+    showOnBrightness?: boolean;
     objectName?: string;
     objectColor?: string;
 }
@@ -44,6 +46,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         showBlindType,
         showPin,
         showHideWhenOk,
+        showOnBrightness,
         objectName,
         objectColor,
     } = props;
@@ -145,45 +148,17 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         }}
                         size="small"
                     >
-                        <ToggleButton value="1x1">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                                <Box
-                                    sx={{
-                                        width: 18,
-                                        height: 18,
-                                        border: '2px solid currentColor',
-                                        borderRadius: '3px',
-                                    }}
-                                />
-                                <span>1&times;1</span>
-                            </Box>
-                        </ToggleButton>
-                        <ToggleButton value="2x1">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                                <Box
-                                    sx={{
-                                        width: 32,
-                                        height: 18,
-                                        border: '2px solid currentColor',
-                                        borderRadius: '3px',
-                                    }}
-                                />
-                                <span>2&times;1</span>
-                            </Box>
-                        </ToggleButton>
-                        <ToggleButton value="2x0.5">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                                <Box
-                                    sx={{
-                                        width: 32,
-                                        height: 10,
-                                        border: '2px solid currentColor',
-                                        borderRadius: '3px',
-                                    }}
-                                />
-                                <span>2&times;&frac12;</span>
-                            </Box>
-                        </ToggleButton>
+                        {SIZE_OPTIONS.map(opt => (
+                            <ToggleButton
+                                key={opt.value}
+                                value={opt.value}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                                    {opt.icon}
+                                    <span>{opt.label}</span>
+                                </Box>
+                            </ToggleButton>
+                        ))}
                     </ToggleButtonGroup>
                 </Box>
 
@@ -243,6 +218,24 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     />
                 ) : null}
 
+                {showOnBrightness ? (
+                    <TextField
+                        fullWidth
+                        variant="filled"
+                        label={I18n.t('wm_On brightness')}
+                        type="number"
+                        value={local.onBrightness ?? 100}
+                        onChange={e => {
+                            const val = Math.max(1, Math.min(100, Number(e.target.value) || 100));
+                            setLocal({ ...local, onBrightness: val });
+                        }}
+                        size="small"
+                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                        helperText="%"
+                        sx={{ mt: 2 }}
+                    />
+                ) : null}
+
                 {showChart ? (
                     <Box sx={{ mt: 2 }}>
                         <Typography
@@ -283,7 +276,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         local.color === (settings.color || objectColor || '') &&
                         local.blindType === settings.blindType &&
                         (local.pin || '') === (settings.pin || '') &&
-                        !!local.hideWhenOk === !!settings.hideWhenOk
+                        !!local.hideWhenOk === !!settings.hideWhenOk &&
+                        (local.onBrightness ?? 100) === (settings.onBrightness ?? 100)
                     }
                     startIcon={<Save />}
                     onClick={() => onSave(local)}

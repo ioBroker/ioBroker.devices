@@ -76,5 +76,11 @@
     "wm_Analog": "Аналоговий",
     "wm_Show date": "Показати дату",
     "wm_Show DOW": "Показати день тижня",
-    "wm_Show seconds": "Показати секунди"
+    "wm_Show seconds": "Показати секунди",
+    "wm_Hue": "Відтінок",
+    "wm_Saturation": "Насиченість",
+    "wm_Brightness": "Яскравість",
+    "wm_Color temperature": "Колірна температура",
+    "wm_On brightness": "Яскравість увімкнення",
+    "wm_Long press for settings": "Довге натискання для налаштувань кольору"
 }

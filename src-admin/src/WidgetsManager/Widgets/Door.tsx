@@ -17,7 +17,6 @@ export class WidgetDoor extends WidgetWindow {
             return (
                 <MeetingRoom
                     sx={theme => ({
-                        fontSize: 48,
                         color: accent || theme.palette.warning.main,
                         transition: 'color 0.25s ease',
                     })}
@@ -28,7 +27,6 @@ export class WidgetDoor extends WidgetWindow {
         return (
             <SensorDoor
                 sx={theme => ({
-                    fontSize: 48,
                     color: theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}

@@ -9,6 +9,8 @@ import {
     DialogTitle,
     FormControlLabel,
     IconButton,
+    MenuItem,
+    Select,
     ToggleButton,
     ToggleButtonGroup,
     Typography,
@@ -17,10 +19,13 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
-
-const TYPE_NAME_MAP: Record<string, string> = {
-    clock: 'wm_Clock',
-};
+import {
+    CUSTOM_WIDGET_CONFIGS,
+    getConfigDefault,
+    type CwConfigColor,
+    type CwConfigItem,
+    type CwConfigSelect,
+} from './CustomWidgetConfigs';
 
 interface CustomWidgetSettingsDialogProps {
     open: boolean;
@@ -30,38 +35,208 @@ interface CustomWidgetSettingsDialogProps {
     onDelete: () => void;
 }
 
+// --- Item renderers ---
+
+function renderSelect(
+    key: string,
+    item: CwConfigSelect,
+    value: string,
+    onChange: (v: unknown) => void,
+): React.JSX.Element {
+    if (item.format === 'radio') {
+        return (
+            <Box
+                key={key}
+                sx={{ mb: 2 }}
+            >
+                <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500 }}
+                >
+                    {I18n.t(item.label)}
+                </Typography>
+                <ToggleButtonGroup
+                    value={value}
+                    exclusive
+                    onChange={(_, v) => {
+                        if (v) {
+                            onChange(v);
+                        }
+                    }}
+                    size="small"
+                >
+                    {item.options.map(opt => (
+                        <ToggleButton
+                            key={opt.value}
+                            value={opt.value}
+                        >
+                            {opt.icon ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                                    {opt.icon}
+                                    <span>{I18n.t(opt.label)}</span>
+                                </Box>
+                            ) : (
+                                I18n.t(opt.label)
+                            )}
+                        </ToggleButton>
+                    ))}
+                </ToggleButtonGroup>
+            </Box>
+        );
+    }
+
+    return (
+        <Box
+            key={key}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            <Select
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                size="small"
+                fullWidth
+            >
+                {item.options.map(opt => (
+                    <MenuItem
+                        key={opt.value}
+                        value={opt.value}
+                    >
+                        {I18n.t(opt.label)}
+                    </MenuItem>
+                ))}
+            </Select>
+        </Box>
+    );
+}
+
+function renderColor(
+    key: string,
+    item: CwConfigColor,
+    value: string,
+    onChange: (v: unknown) => void,
+): React.JSX.Element {
+    return (
+        <Box
+            key={key}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                    component="input"
+                    type="color"
+                    value={value || '#1976d2'}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+                    sx={{
+                        width: 40,
+                        height: 40,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        p: '2px',
+                        backgroundColor: 'transparent',
+                    }}
+                />
+                {value ? (
+                    <IconButton
+                        size="small"
+                        onClick={() => onChange('')}
+                    >
+                        <Delete fontSize="small" />
+                    </IconButton>
+                ) : null}
+            </Box>
+        </Box>
+    );
+}
+
+function renderConfigItem(
+    key: string,
+    item: CwConfigItem,
+    value: unknown,
+    onChange: (v: unknown) => void,
+): React.JSX.Element {
+    switch (item.type) {
+        case 'select':
+            return renderSelect(key, item, value as string, onChange);
+        case 'color':
+            return renderColor(key, item, value as string, onChange);
+        case 'checkbox':
+            return (
+                <FormControlLabel
+                    key={key}
+                    control={
+                        <Checkbox
+                            checked={value as boolean}
+                            onChange={(_e, v) => onChange(v)}
+                            size="small"
+                        />
+                    }
+                    label={I18n.t(item.label)}
+                />
+            );
+    }
+}
+
+// --- Dialog ---
+
 export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDialogProps): React.JSX.Element | null {
     const { open, widgetDef, onClose, onSave, onDelete } = props;
-    const [size, setSize] = useState<'1x1' | '2x0.5' | '2x1'>('1x1');
-    const [color, setColor] = useState('');
-    const [style, setStyle] = useState('');
-    const [showDate, setShowDate] = useState(true);
-    const [showDow, setShowDow] = useState(true);
-    const [showSeconds, setShowSeconds] = useState(true);
+    const [values, setValues] = useState<Record<string, unknown>>({});
+
+    const config = widgetDef ? CUSTOM_WIDGET_CONFIGS[widgetDef.type] : null;
 
     useEffect(() => {
         if (open && widgetDef) {
-            setSize(widgetDef.size || '1x1');
-            setColor(widgetDef.color || '');
-            setStyle(widgetDef.style || '');
-            setShowDate(widgetDef.showDate !== false);
-            setShowDow(widgetDef.showDow !== false);
-            setShowSeconds(widgetDef.showSeconds !== false);
+            const cfg = CUSTOM_WIDGET_CONFIGS[widgetDef.type];
+            if (cfg) {
+                const initial: Record<string, unknown> = {};
+                for (const [key, item] of Object.entries(cfg.items)) {
+                    const stored = (widgetDef as unknown as Record<string, unknown>)[key];
+                    initial[key] = stored !== undefined ? stored : getConfigDefault(item);
+                }
+                setValues(initial);
+            }
         }
     }, [open, widgetDef]);
 
-    if (!widgetDef) {
+    if (!widgetDef || !config) {
         return null;
     }
 
-    const hasChanges =
-        size !== (widgetDef.size || '1x1') ||
-        color !== (widgetDef.color || '') ||
-        style !== (widgetDef.style || '') ||
-        showDate !== (widgetDef.showDate !== false) ||
-        showDow !== (widgetDef.showDow !== false) ||
-        showSeconds !== (widgetDef.showSeconds !== false);
-    const typeName = I18n.t(TYPE_NAME_MAP[widgetDef.type] || widgetDef.type);
+    const updateValue = (key: string, value: unknown): void => {
+        setValues(prev => ({ ...prev, [key]: value }));
+    };
+
+    const hasChanges = Object.entries(config.items).some(([key, item]) => {
+        const stored = (widgetDef as unknown as Record<string, unknown>)[key];
+        const original = stored !== undefined ? stored : getConfigDefault(item);
+        return values[key] !== original;
+    });
+
+    const handleSave = (): void => {
+        const newDef: Record<string, unknown> = { id: widgetDef.id, type: widgetDef.type };
+        for (const [key, item] of Object.entries(config.items)) {
+            const value = values[key];
+            const defaultVal = getConfigDefault(item);
+            if (value !== defaultVal) {
+                newDef[key] = value;
+            }
+        }
+        onSave(newDef as unknown as CustomWidgetDef);
+    };
 
     return (
         <Dialog
@@ -70,124 +245,13 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             maxWidth="xs"
             fullWidth
         >
-            <DialogTitle>{typeName}</DialogTitle>
+            <DialogTitle>{I18n.t(config.name)}</DialogTitle>
             <DialogContent>
-                <Box sx={{ mb: 2, mt: 1 }}>
-                    <Typography
-                        variant="body2"
-                        sx={{ mb: 1, fontWeight: 500 }}
-                    >
-                        {I18n.t('wm_Size')}
-                    </Typography>
-                    <ToggleButtonGroup
-                        value={size}
-                        exclusive
-                        onChange={(_, v) => {
-                            if (v) {
-                                setSize(v);
-                            }
-                        }}
-                        size="small"
-                    >
-                        <ToggleButton value="1x1">1&#xD7;1</ToggleButton>
-                        <ToggleButton value="2x0.5">2&#xD7;&#xBD;</ToggleButton>
-                        <ToggleButton value="2x1">2&#xD7;1</ToggleButton>
-                    </ToggleButtonGroup>
+                <Box sx={{ mt: 1 }}>
+                    {Object.entries(config.items).map(([key, item]) =>
+                        renderConfigItem(key, item, values[key], v => updateValue(key, v)),
+                    )}
                 </Box>
-
-                <Box sx={{ mb: 3 }}>
-                    <Typography
-                        variant="body2"
-                        sx={{ mb: 1, fontWeight: 500 }}
-                    >
-                        {I18n.t('wm_Color')}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                            component="input"
-                            type="color"
-                            value={color || '#1976d2'}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                cursor: 'pointer',
-                                p: '2px',
-                                backgroundColor: 'transparent',
-                            }}
-                        />
-                        {color ? (
-                            <IconButton
-                                size="small"
-                                onClick={() => setColor('')}
-                            >
-                                <Delete fontSize="small" />
-                            </IconButton>
-                        ) : null}
-                    </Box>
-                </Box>
-
-                {widgetDef.type === 'clock' ? (
-                    <>
-                        <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Style')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={style || 'digital'}
-                                exclusive
-                                onChange={(_, v) => {
-                                    if (v) {
-                                        setStyle(v === 'digital' ? '' : v);
-                                    }
-                                }}
-                                size="small"
-                            >
-                                <ToggleButton value="digital">{I18n.t('wm_Digital')}</ToggleButton>
-                                <ToggleButton value="analog">{I18n.t('wm_Analog')}</ToggleButton>
-                            </ToggleButtonGroup>
-                        </Box>
-                        <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column' }}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={showDate}
-                                        onChange={(_e, v) => setShowDate(v)}
-                                        size="small"
-                                    />
-                                }
-                                label={I18n.t('wm_Show date')}
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={showDow}
-                                        onChange={(_e, v) => setShowDow(v)}
-                                        size="small"
-                                    />
-                                }
-                                label={I18n.t('wm_Show DOW')}
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={showSeconds}
-                                        onChange={(_e, v) => setShowSeconds(v)}
-                                        size="small"
-                                    />
-                                }
-                                label={I18n.t('wm_Show seconds')}
-                            />
-                        </Box>
-                    </>
-                ) : null}
-
                 <Button
                     variant="outlined"
                     color="error"
@@ -206,17 +270,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                     variant="contained"
                     disabled={!hasChanges}
                     startIcon={<Save />}
-                    onClick={() =>
-                        onSave({
-                            ...widgetDef,
-                            size,
-                            color: color || undefined,
-                            style: style || undefined,
-                            showDate: showDate ? undefined : false,
-                            showDow: showDow ? undefined : false,
-                            showSeconds: showSeconds ? undefined : false,
-                        })
-                    }
+                    onClick={handleSave}
                 >
                     {I18n.t('wm_Save')}
                 </Button>

@@ -30,6 +30,7 @@ export interface WidgetSettings {
     blindType: 'shutter' | 'curtain';
     pin: string;
     hideWhenOk: boolean;
+    onBrightness: number;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -41,6 +42,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     blindType: 'shutter',
     pin: '',
     hideWhenOk: false,
+    onBrightness: 100,
 };
 
 export interface WidgetGenericProps {
@@ -89,7 +91,12 @@ const INDICATOR_NAMES = [
 
 const INDICATOR_ICON_SIZE = 14;
 
-export function getTileStyles(theme: Theme, isActive: boolean, accentColor?: string): Record<string, unknown> {
+export function getTileStyles(
+    theme: Theme,
+    isActive: boolean,
+    accentColor?: string,
+    interactive = true,
+): Record<string, unknown> {
     const accent = accentColor || theme.palette.primary.main;
     const isDark = theme.palette.mode === 'dark';
 
@@ -110,9 +117,7 @@ export function getTileStyles(theme: Theme, isActive: boolean, accentColor?: str
                   ? alpha(theme.palette.common.white, 0.08)
                   : alpha(theme.palette.common.black, 0.08)
         }`,
-        '&:active': {
-            transform: 'scale(0.97)',
-        },
+        ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
     };
 }
 
@@ -452,8 +457,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 <Icon
                     src={icon}
                     style={{
-                        width: 32,
-                        height: 32,
                         color: isActive ? color || undefined : undefined,
                         opacity: isActive ? 1 : 0.5,
                         transition: 'opacity 0.25s ease, color 0.25s ease',
@@ -934,8 +937,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             alignItems: 'center',
                             justifyContent: 'center',
                             flex: 1,
-                            '& .MuiSvgIcon-root': { fontSize: 'max(48px, 32cqi) !important' },
-                            '& img': { width: 'max(32px, 21cqi) !important', height: 'max(32px, 21cqi) !important' },
+                            fontSize: 'max(48px, 32cqi)',
+                            '& .MuiSvgIcon-root': { fontSize: 'inherit !important' },
+                            '& img': { width: '1em !important', height: '1em !important' },
                         }}
                     >
                         {this.renderTileIcon()}
@@ -975,7 +979,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
                     onClick={clickable ? () => this.onTileClick() : undefined}
@@ -993,7 +997,16 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
                 >
-                    <Box sx={{ flexShrink: 0 }}>{this.renderTileIcon()}</Box>
+                    <Box
+                        sx={{
+                            flexShrink: 0,
+                            fontSize: 'max(32px, 10cqi)',
+                            '& .MuiSvgIcon-root': { fontSize: 'inherit !important' },
+                            '& img': { width: '1em !important', height: '1em !important' },
+                        }}
+                    >
+                        {this.renderTileIcon()}
+                    </Box>
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -1071,8 +1084,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            '& .MuiSvgIcon-root': { fontSize: 'max(48px, 16cqi) !important' },
-                            '& img': { width: 'max(32px, 11cqi) !important', height: 'max(32px, 11cqi) !important' },
+                            fontSize: 'max(48px, 16cqi)',
+                            '& .MuiSvgIcon-root': { fontSize: 'inherit !important' },
+                            '& img': { width: '1em !important', height: '1em !important' },
                         }}
                     >
                         {this.renderTileIcon()}

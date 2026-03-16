@@ -110,7 +110,6 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
             return (
                 <SensorWindow
                     sx={theme => ({
-                        fontSize: 32,
                         color: accent || theme.palette.info.main,
                         transform: 'rotate(15deg)',
                         transition: 'color 0.25s ease, transform 0.25s ease',
@@ -124,7 +123,6 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
             return (
                 <SensorWindowOutlined
                     sx={theme => ({
-                        fontSize: 32,
                         color: accent || theme.palette.warning.main,
                         transition: 'color 0.25s ease',
                     })}
@@ -136,7 +134,6 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
         return (
             <SensorWindow
                 sx={theme => ({
-                    fontSize: 32,
                     color: theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}

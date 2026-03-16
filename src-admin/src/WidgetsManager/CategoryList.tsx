@@ -905,6 +905,20 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 settingsWidget?.control?.type === Types.floodAlarm ||
                                 settingsWidget?.control?.type === Types.fireAlarm
                             }
+                            showOnBrightness={
+                                settingsWidget != null &&
+                                [Types.rgbSingle, Types.rgbwSingle, Types.rgb, Types.hue, Types.cie, Types.ct].includes(
+                                    settingsWidget.control?.type,
+                                ) &&
+                                settingsWidget.control.states.some(
+                                    s =>
+                                        s.name === 'SET' ||
+                                        s.name === 'ACTUAL' ||
+                                        s.name === 'DIMMER' ||
+                                        s.name === 'BRIGHTNESS',
+                                ) &&
+                                !settingsWidget.control.states.some(s => s.name === 'ON_SET' || s.name === 'ON')
+                            }
                             objectName={this.state.settingsObjectName}
                             objectColor={this.state.settingsObjectColor}
                         />

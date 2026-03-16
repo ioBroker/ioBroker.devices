@@ -76,5 +76,11 @@
     "wm_Analog": "Analoog",
     "wm_Show date": "Datum tonen",
     "wm_Show DOW": "Weekdag tonen",
-    "wm_Show seconds": "Seconden tonen"
+    "wm_Show seconds": "Seconden tonen",
+    "wm_Hue": "Tint",
+    "wm_Saturation": "Verzadiging",
+    "wm_Brightness": "Helderheid",
+    "wm_Color temperature": "Kleurtemperatuur",
+    "wm_On brightness": "Aan-helderheid",
+    "wm_Long press for settings": "Lang indrukken voor kleurinstellingen"
 }

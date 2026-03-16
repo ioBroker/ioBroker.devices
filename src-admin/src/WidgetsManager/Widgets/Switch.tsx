@@ -78,7 +78,6 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
         return (
             <PowerSettingsNew
                 sx={theme => ({
-                    fontSize: 48,
                     color: isOn ? accent || theme.palette.primary.main : theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
                 })}

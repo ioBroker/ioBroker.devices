@@ -76,5 +76,11 @@
     "wm_Analog": "模拟",
     "wm_Show date": "显示日期",
     "wm_Show DOW": "显示星期",
-    "wm_Show seconds": "显示秒"
+    "wm_Show seconds": "显示秒",
+    "wm_Hue": "色相",
+    "wm_Saturation": "饱和度",
+    "wm_Brightness": "亮度",
+    "wm_Color temperature": "色温",
+    "wm_On brightness": "开启亮度",
+    "wm_Long press for settings": "长按打开颜色设置"
 }
