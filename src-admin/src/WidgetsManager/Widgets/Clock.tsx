@@ -73,7 +73,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             return `${this.state.dow}, ${this.state.dateStr}`;
         }
         if (showDow) {
-            return this.state.dow;
+            return new Date().toLocaleDateString(this.props.language, { weekday: 'long' });
         }
         if (showDate) {
             return this.state.dateStr;
@@ -136,7 +136,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
     // --- Analog clock face SVG ---
 
     private renderAnalogFace(
-        size: number,
+        size: number | null,
         accentColor: string,
         textColor: string,
         dimColor: string,
@@ -183,7 +183,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <svg
                 viewBox="0 0 100 100"
-                style={{ width: size, height: size, display: 'block' }}
+                style={{ ...(size ? { width: size, height: size } : {}), display: 'block' }}
             >
                 {/* Face circle */}
                 <circle
@@ -218,15 +218,17 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                     strokeLinecap="round"
                 />
                 {/* Second hand */}
-                <line
-                    x1={cx}
-                    y1={cy}
-                    x2={secEnd.x}
-                    y2={secEnd.y}
-                    stroke={accentColor}
-                    strokeWidth={1}
-                    strokeLinecap="round"
-                />
+                {this.showSeconds ? (
+                    <line
+                        x1={cx}
+                        y1={cy}
+                        x2={secEnd.x}
+                        y2={secEnd.y}
+                        stroke={accentColor}
+                        strokeWidth={1}
+                        strokeLinecap="round"
+                    />
+                ) : null}
                 {/* Center dot */}
                 <circle
                     cx={cx}
@@ -575,9 +577,18 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         padding: 'max(8px, 3cqi)',
                     })}
                 >
-                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minHeight: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            '& > svg': { width: 'auto', height: '100%', maxWidth: '60cqi' },
+                        }}
+                    >
                         {this.renderAnalogFace(
-                            '60cqi' as unknown as number,
+                            null,
                             accent || 'var(--mui-palette-primary-main, #1976d2)',
                             'currentColor',
                             'currentColor',

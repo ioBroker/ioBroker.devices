@@ -457,6 +457,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 <Icon
                     src={icon}
                     style={{
+                        width: '1em',
+                        height: '1em',
                         color: isActive ? color || undefined : undefined,
                         opacity: isActive ? 1 : 0.5,
                         transition: 'opacity 0.25s ease, color 0.25s ease',
