@@ -61,6 +61,8 @@ import {
     WidgetSlider,
     WidgetTank,
     WidgetImage,
+    WidgetWeatherCurrent,
+    WidgetWeatherForecast,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -807,6 +809,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             (widget.control.type === Types.location || widget.control.type === Types.locationOne)
         ) {
             Widget = WidgetLocation;
+        } else if (widget.control && widget.control.type === Types.weatherCurrent) {
+            Widget = WidgetWeatherCurrent;
+        } else if (widget.control && widget.control.type === Types.weatherForecast) {
+            Widget = WidgetWeatherForecast;
         } else if (
             widget.control &&
             (widget.control.type === Types.rgbSingle ||
