@@ -17,6 +17,7 @@ import {
     Paper,
     Tooltip,
     DialogTitle,
+    type SxProps,
 } from '@mui/material';
 
 import type { IconType } from 'react-icons';
@@ -90,7 +91,7 @@ const styles: Record<string, any> = {
     iconStyle: {
         minWidth: 25,
     },
-    buttonWrapper: (theme: IobTheme): any => ({
+    buttonWrapper: (theme: IobTheme): SxProps => ({
         display: 'flex',
         top: 0,
         background: theme.palette.mode === 'light' ? '#0000000d' : '#ffffff12',
@@ -279,7 +280,7 @@ interface TreeViewProps {
 }
 
 interface TreeViewState {
-    listItems: any[];
+    listItems: TreeItem[];
     expanded: string[];
     selected: string | undefined;
     renaming: null | string;
@@ -287,7 +288,7 @@ interface TreeViewState {
     errorText: string;
     width: number;
     filterMenuOpened: boolean;
-    addNew: null | TreeItem;
+    addNew: undefined | TreeItem;
     addNewName: string;
     typeFilter: string;
     searchText: string;
@@ -319,7 +320,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
             errorText: '',
             width: this.props.width || 300,
             filterMenuOpened: false,
-            addNew: null,
+            addNew: undefined,
             addNewName: '',
             typeFilter: window.localStorage ? window.localStorage.getItem('TreeView.typeFilter') || '' : '', // lamp, window, ...
             searchText: window.localStorage ? window.localStorage.getItem('TreeView.searchText') || '' : '',
@@ -365,7 +366,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
         return (
             <Dialog
                 key="newDialog"
-                onClose={() => this.setState({ addNew: null })}
+                onClose={() => this.setState({ addNew: undefined })}
                 open={!!this.state.addNew}
                 style={styles.dialogNew}
             >
@@ -390,9 +391,9 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                                         await this.props.onAddNew(this.state.addNewName, this.state.addNew!.id);
                                     }
                                     this.toggleExpanded(id, true);
-                                    this.setState({ addNew: null, addNewName: '' });
+                                    this.setState({ addNew: undefined, addNewName: '' });
                                 } else {
-                                    this.setState({ addNew: null, addNewName: '' });
+                                    this.setState({ addNew: undefined, addNewName: '' });
                                 }
                             }
                         }}
@@ -426,7 +427,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                                 await this.props.onAddNew(this.state.addNewName, this.state.addNew!.id);
                             }
                             this.toggleExpanded(id, true);
-                            this.setState({ addNew: null, addNewName: '' });
+                            this.setState({ addNew: undefined, addNewName: '' });
                         }}
                         startIcon={<IconOK />}
                         color="primary"
@@ -436,7 +437,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                     <Button
                         color="grey"
                         variant="contained"
-                        onClick={() => this.setState({ addNew: null, addNewName: '' })}
+                        onClick={() => this.setState({ addNew: undefined, addNewName: '' })}
                         startIcon={<IconCancel />}
                     >
                         {I18n.t('Cancel')}
@@ -454,7 +455,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
         let el: TreeItem | undefined =
             typeof _selected === 'object' ? _selected : this.state.listItems.find(it => it.id === _selected);
         do {
-            el = el?.parent && this.state.listItems.find(it => it.id === el!.parent);
+            el = el?.parent ? this.state.listItems.find(it => it.id === el!.parent) : undefined;
             if (el) {
                 if (!_expanded.includes(el.id)) {
                     _expanded.push(el.id);
@@ -673,14 +674,16 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
         const result: (React.JSX.Element | null)[] = [inner];
 
         if (isExpanded) {
-            children.forEach(it => result.push(this.renderOneItem(items, it) as any as React.JSX.Element));
+            children.forEach(it => result.push(this.renderOneItem(items, it) as unknown as React.JSX.Element));
         }
         return result;
     }
 
     renderAllItems(items: TreeItem[]): React.JSX.Element {
         const result: (React.JSX.Element | null)[] = [];
-        items.forEach(item => !item.parent && result.push(this.renderOneItem(items, item) as any as React.JSX.Element));
+        items.forEach(
+            item => !item.parent && result.push(this.renderOneItem(items, item) as unknown as React.JSX.Element),
+        );
 
         return (
             <List

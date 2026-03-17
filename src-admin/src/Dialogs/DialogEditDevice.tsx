@@ -21,6 +21,7 @@ import {
     Tabs,
     Tooltip,
     Box,
+    type SxProps,
 } from '@mui/material';
 
 import {
@@ -140,7 +141,7 @@ const styles: Record<string, any> = {
         width: 24,
         height: 24,
     },
-    icon: (theme: IobTheme): any => ({
+    icon: (theme: IobTheme): SxProps => ({
         color: theme.palette.mode === 'light' ? 'black' : 'white',
         display: 'inline-block',
         verticalAlign: 'middle',

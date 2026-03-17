@@ -34,6 +34,7 @@ import {
     Select,
     Box,
     Switch,
+    type SxProps,
 } from '@mui/material';
 
 import {
@@ -193,7 +194,7 @@ const prepareList = (
 
         result.push({
             id: obj.obj?._id || ids[i],
-            title: Utils.getObjectName(data as any as Record<string, ioBroker.Object>, ids[i], I18n.getLanguage()),
+            title: Utils.getObjectName(data as unknown as Record<string, ioBroker.Object>, ids[i], I18n.getLanguage()),
             icon,
             color: obj.common.color || null,
             depth: parts.length - 1,
@@ -458,7 +459,7 @@ const styles: Record<string, any> = {
         width: 20,
         height: 20,
     },
-    tableIcon: (theme: IobTheme): any => ({
+    tableIcon: (theme: IobTheme): SxProps => ({
         width: 24,
         height: 24,
         display: 'flex',
@@ -652,7 +653,7 @@ const styles: Record<string, any> = {
             },
         },
     },
-    table: (theme: IobTheme): any => ({
+    table: (theme: IobTheme): SxProps => ({
         '& th': {
             background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white',
         },
@@ -697,7 +698,7 @@ const styles: Record<string, any> = {
             pointerEvents: 'none',
         },
     },
-    selected: (theme: IobTheme): any => ({
+    selected: (theme: IobTheme): SxProps => ({
         background: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
     }),
     wrapperHeadButtons: {
@@ -2283,7 +2284,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 );
             } else {
                 children.forEach((it: ListItem, i: number) =>
-                    result.push(this.renderOneItem(items, it, i) as any as React.JSX.Element | null),
+                    result.push(this.renderOneItem(items, it, i) as unknown as React.JSX.Element | null),
                 );
             }
         }
@@ -2333,7 +2334,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     renderAllItems(items: ListItem[]): React.JSX.Element[] {
         return items
             .filter(item => !item.parent)
-            .map((item: ListItem, i: number) => this.renderOneItem(items, item, i) as any as React.JSX.Element);
+            .map((item: ListItem, i: number) => this.renderOneItem(items, item, i) as unknown as React.JSX.Element);
     }
 
     renderHeaderType(): React.JSX.Element {

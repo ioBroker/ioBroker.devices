@@ -1,5 +1,5 @@
-import type { PatternControl } from '@iobroker/type-detector';
 import type { Color, DeviceStatus, ValueOrObject, ValueOrState } from './common';
+import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
 
 export interface ItemInfo {
     type: 'widget' | 'category';
@@ -20,9 +20,21 @@ export interface ItemInfo {
     parent?: string;
 }
 
+export interface DevicesDetectorState extends DetectorState {
+    id: string;
+    stateRole?: string;
+}
+export interface DevicesPatternControl {
+    states: DevicesDetectorState[];
+    type: Types;
+    storeId: string;
+    parentId: string;
+    deviceId: string;
+    channelId: string;
+}
 export interface WidgetInfo extends ItemInfo {
     type: 'widget';
-    control: PatternControl;
+    control: DevicesPatternControl;
     custom?: {
         enabled: true;
         image?: string;

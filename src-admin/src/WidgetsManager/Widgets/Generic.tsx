@@ -126,13 +126,7 @@ const INDICATOR_NAMES = [
 const INDICATOR_ICON_SIZE = 14;
 
 /** Extra info state names — shown in "i" dialog when present on a device */
-const EXTRA_INFO_NAMES = [
-    'ELECTRIC_POWER',
-    'CURRENT',
-    'VOLTAGE',
-    'CONSUMPTION',
-    'FREQUENCY',
-] as const;
+const EXTRA_INFO_NAMES = ['ELECTRIC_POWER', 'CURRENT', 'VOLTAGE', 'CONSUMPTION', 'FREQUENCY'] as const;
 
 const EXTRA_INFO_LABELS: Record<string, string> = {
     ELECTRIC_POWER: 'wm_Power',
@@ -523,11 +517,14 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     private onExtraInfoChange = (id: string, state: ioBroker.State): void => {
-        this.setState(prev => ({
-            extraInfo: prev.extraInfo.map(e =>
-                e.id === id ? { ...e, value: state.val as number | string | null } : e,
-            ),
-        } as Partial<TState> as TState));
+        this.setState(
+            prev =>
+                ({
+                    extraInfo: prev.extraInfo.map(e =>
+                        e.id === id ? { ...e, value: state.val as number | string | null } : e,
+                    ),
+                }) as Partial<TState> as TState,
+        );
     };
 
     // eslint-disable-next-line class-methods-use-this
@@ -537,11 +534,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
         if (typeof entry.value === 'number') {
             const abs = Math.abs(entry.value);
-            const str = abs >= 100
-                ? Math.round(entry.value).toString()
-                : abs >= 10
-                  ? entry.value.toFixed(1)
-                  : entry.value.toFixed(2);
+            const str =
+                abs >= 100
+                    ? Math.round(entry.value).toString()
+                    : abs >= 10
+                      ? entry.value.toFixed(1)
+                      : entry.value.toFixed(2);
             return entry.unit ? `${str} ${entry.unit}` : str;
         }
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
@@ -573,10 +571,16 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                 '&:last-child': { borderBottom: 'none' },
                             }}
                         >
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {entry.label}
                             </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600 }}
+                            >
                                 {this.formatExtraInfoValue(entry)}
                             </Typography>
                         </Box>
@@ -842,7 +846,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 return stateId;
             }
             // Follow alias to target
-            const aliasId = (obj.common as any)?.alias?.id;
+            const aliasId = obj.common?.alias?.id;
             if (aliasId) {
                 const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
                 if (targetId && targetId !== stateId) {
@@ -892,7 +896,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 if (!historyId) {
                     continue;
                 }
-                const result: any = await socket.getHistory(historyId, {
+                const result = await socket.getHistory(historyId, {
                     instance: this.historyInstance,
                     start,
                     end,

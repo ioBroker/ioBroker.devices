@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
-import { TableRow } from '@mui/material';
+import { type SxProps, TableRow } from '@mui/material';
 
 import { Utils, I18n } from '@iobroker/adapter-react-v5';
 import type { PatternControlEx } from '../types';
@@ -14,7 +14,7 @@ export interface DragWrapperProps {
     onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
     id: string;
     children: (React.JSX.Element | null)[];
-    sx: Record<string, any>;
+    sx: SxProps;
     backgroundRow: string | null;
     onClick: () => void;
 

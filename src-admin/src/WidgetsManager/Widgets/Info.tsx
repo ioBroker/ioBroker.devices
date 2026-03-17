@@ -76,7 +76,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         // Collect all ACTUAL states (info type allows multiple)
         this.stateIds = states
             .filter(s => s.name === 'ACTUAL' && s.id)
-            .map(s => ({ id: s.id, role: (s as any).role || '' }));
+            .map(s => ({ id: s.id, role: s.stateRole || '' }));
 
         this.state = {
             ...this.state,

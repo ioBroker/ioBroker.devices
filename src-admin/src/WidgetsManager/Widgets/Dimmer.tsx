@@ -1,5 +1,15 @@
 import React from 'react';
-import { Box, Button, Dialog, DialogContent, IconButton, Slider, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogContent,
+    IconButton,
+    Slider,
+    Switch as MuiSwitch,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
@@ -409,7 +419,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                     {isActive ? `${Math.round(brightness)}%` : I18n.t('wm_Off')}
                 </Typography>
                 {hasEffect ? (
-                    <Tooltip title={effectLabel!}>
+                    <Tooltip title={effectLabel}>
                         <AutoFixHigh sx={{ fontSize: 12, color: accent || 'primary.main' }} />
                     </Tooltip>
                 ) : null}
@@ -449,21 +459,42 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                     position: 'relative',
                 }}
             >
-                <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}>
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw}
-                        strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" opacity={0.15} />
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none"
+                <svg
+                    viewBox={`0 0 ${vb} ${vb}`}
+                    style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}
+                >
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={sw}
+                        strokeDasharray={`${arcLength} ${circumference}`}
+                        strokeLinecap="round"
+                        opacity={0.15}
+                    />
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
                         stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
-                        strokeWidth={sw} strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round"
-                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }} />
+                        strokeWidth={sw}
+                        strokeDasharray={`${progress} ${circumference}`}
+                        strokeLinecap="round"
+                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
+                    />
                 </svg>
-                <Typography sx={{
-                    position: 'absolute',
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: isActive ? (accent || 'primary.main') : 'text.secondary',
-                }}>
+                <Typography
+                    sx={{
+                        position: 'absolute',
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: isActive ? accent || 'primary.main' : 'text.secondary',
+                    }}
+                >
                     {Math.round(brightness)}%
                 </Typography>
             </Box>
@@ -491,7 +522,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         </IconButton>
                     </Tooltip>
                 ) : null}
-                {isRound ? this.renderArcKnob() : (
+                {isRound ? (
+                    this.renderArcKnob()
+                ) : (
                     <Slider
                         value={brightness}
                         min={0}
@@ -554,14 +587,20 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         <Close fontSize="small" />
                     </IconButton>
 
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, pr: 4 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 600, mb: 2, pr: 4 }}
+                    >
                         {this.props.settings?.name || name || '...'}
                     </Typography>
 
                     {/* Effect selector */}
                     {this.effectId && effectEntries.length > 0 ? (
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
                                 <AutoFixHigh sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
                                 {I18n.t('wm_Effect')}
                             </Typography>
@@ -598,7 +637,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                     {/* Transition time slider */}
                     {this.transitionTimeId ? (
                         <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
                                 <Timer sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
                                 {I18n.t('wm_Transition time')}
                             </Typography>
@@ -612,7 +654,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                                     onChangeCommitted={(_e, value) => this.setTransitionTime(value as number)}
                                     sx={{ flex: 1 }}
                                 />
-                                <Typography variant="body2" sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}
+                                >
                                     {transitionTime != null ? `${(transitionTime / 1000).toFixed(1)}s` : '—'}
                                 </Typography>
                             </Box>

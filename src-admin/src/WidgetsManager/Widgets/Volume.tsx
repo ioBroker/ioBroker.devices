@@ -267,21 +267,42 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
                     position: 'relative',
                 }}
             >
-                <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}>
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw}
-                        strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" opacity={0.15} />
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none"
+                <svg
+                    viewBox={`0 0 ${vb} ${vb}`}
+                    style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}
+                >
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={sw}
+                        strokeDasharray={`${arcLength} ${circumference}`}
+                        strokeLinecap="round"
+                        opacity={0.15}
+                    />
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
                         stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
-                        strokeWidth={sw} strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round"
-                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }} />
+                        strokeWidth={sw}
+                        strokeDasharray={`${progress} ${circumference}`}
+                        strokeLinecap="round"
+                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
+                    />
                 </svg>
-                <Typography sx={{
-                    position: 'absolute',
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: isActive ? (accent || 'primary.main') : 'text.secondary',
-                }}>
+                <Typography
+                    sx={{
+                        position: 'absolute',
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: isActive ? accent || 'primary.main' : 'text.secondary',
+                    }}
+                >
                     {volume}%
                 </Typography>
             </Box>

@@ -50,17 +50,20 @@ const PREDEFINED_ICON_PATHS: Record<string, string> = {
     boat: 'M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z',
     car: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
     moped: 'M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zm12-1c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
-    bicycle: 'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm14-8.5c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zM12.8 10L10.2 16H6v-2h2.8l1.7-2.8L8.8 8l2-3.3L14 8h3V6h-4l-2.8 4z',
+    bicycle:
+        'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm14-8.5c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zM12.8 10L10.2 16H6v-2h2.8l1.7-2.8L8.8 8l2-3.3L14 8h3V6h-4l-2.8 4z',
     yacht: 'M12 3L5 16h7V3zm0 3l5 8h-5V6zM3 18q9 4 18 0H3z',
 };
 
 /** Create a pin-shaped SVG marker with an inner icon */
 function createPinSvg(innerPath: string, color: string): string {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="44" viewBox="0 0 32 44">` +
+    return (
+        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="44" viewBox="0 0 32 44">` +
         `<path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 28 16 28s16-16 16-28C32 7.16 24.84 0 16 0z" fill="${color}"/>` +
         `<circle cx="16" cy="14" r="10" fill="white" opacity="0.25"/>` +
         `<g transform="translate(6,4) scale(0.833)" fill="white"><path d="${innerPath}"/></g>` +
-        `</svg>`;
+        `</svg>`
+    );
 }
 
 /** Create the default dot marker icon */
@@ -74,7 +77,11 @@ function createDefaultMarkerIcon(size = 12, color = '#1976d2'): L.DivIcon {
 }
 
 /** Create a Leaflet icon based on markerIcon setting value */
-function createMarkerIcon(markerIconSetting: string, size: 'small' | 'large' = 'small', color = '#1976d2'): L.Icon | L.DivIcon {
+function createMarkerIcon(
+    markerIconSetting: string,
+    size: 'small' | 'large' = 'small',
+    color = '#1976d2',
+): L.Icon | L.DivIcon {
     // Custom uploaded image (base64 data URI)
     if (markerIconSetting?.startsWith('data:')) {
         const s = size === 'large' ? 40 : 28;
@@ -405,7 +412,11 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
                 this.circle.setRadius(r);
             } else {
                 this.circle = L.circle(pos, {
-                    radius: r, color, fillColor: color, fillOpacity: 0.15, weight: 1,
+                    radius: r,
+                    color,
+                    fillColor: color,
+                    fillOpacity: 0.15,
+                    weight: 1,
                 }).addTo(this.map);
             }
         } else if (this.circle) {
@@ -498,7 +509,11 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
                 this.dialogCircle.setRadius(r);
             } else {
                 this.dialogCircle = L.circle(pos, {
-                    radius: r, color, fillColor: color, fillOpacity: 0.15, weight: 1.5,
+                    radius: r,
+                    color,
+                    fillColor: color,
+                    fillOpacity: 0.15,
+                    weight: 1.5,
                 }).addTo(this.dialogMap);
             }
         } else if (this.dialogCircle) {
@@ -570,6 +585,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         return this.state.latitude != null && this.state.longitude != null;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return true;
     }
@@ -639,11 +655,17 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
                             py: 0.5,
                         }}
                     >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600 }}
+                        >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {showCoords && latitude != null && longitude != null && (
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ opacity: 0.8 }}
+                            >
                                 {this.formatFullPosition()}
                                 {elevation != null ? ` · ${elevation.toFixed(0)} m` : ''}
                             </Typography>
@@ -668,10 +690,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
 
     // --- Render: always map background ---
 
-    private renderMapTile(
-        isWide: boolean,
-        aspectRatio?: string,
-    ): React.JSX.Element {
+    private renderMapTile(isWide: boolean, aspectRatio?: string): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
