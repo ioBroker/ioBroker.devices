@@ -31,6 +31,9 @@ export interface WidgetSettings {
     pin: string;
     hideWhenOk: boolean;
     onBrightness: number;
+    showCoordinates: boolean;
+    /** Base64 data URI for custom map marker icon (png/jpg/svg) */
+    markerIcon: string;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -43,6 +46,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     pin: '',
     hideWhenOk: false,
     onBrightness: 100,
+    showCoordinates: false,
+    markerIcon: '',
 };
 
 export interface WidgetGenericProps {

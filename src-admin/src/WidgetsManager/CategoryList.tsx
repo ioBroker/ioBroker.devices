@@ -42,6 +42,7 @@ interface GuiConfig {
         image?: string;
         imageScope?: 'header' | 'page';
         customWidgets?: CustomWidgetDef[];
+        widgetOrder?: string[];
     };
 }
 
@@ -343,6 +344,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             backgroundColor: guiConfig.root.backgroundColor || '',
                             image: guiConfig.root.image || '',
                             imageScope: guiConfig.root.imageScope || 'header',
+                            customWidgets: guiConfig.root.customWidgets,
+                            widgetOrder: guiConfig.root.widgetOrder,
                         };
                     }
                     return { guiConfig, categorySettings };
@@ -596,6 +599,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 image: rootConfig.image || '',
                 imageScope: rootConfig.imageScope || 'header',
                 customWidgets: rootConfig.customWidgets,
+                widgetOrder: rootConfig.widgetOrder,
             };
         }
 
@@ -612,7 +616,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const imageScope = cat.custom?.imageScope || 'header';
             const customWidgets = cat.custom?.customWidgets;
 
-            categorySettings[id] = { name, color, backgroundColor, image, imageScope, customWidgets };
+            const widgetOrder = cat.custom?.widgetOrder;
+            categorySettings[id] = { name, color, backgroundColor, image, imageScope, customWidgets, widgetOrder };
         }
         this.setState({ categorySettings });
     }
@@ -689,6 +694,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     backgroundColor: settings.backgroundColor || '',
                     image: settings.image || '',
                     imageScope: settings.imageScope || 'header',
+                    ...(settings.widgetOrder ? { widgetOrder: settings.widgetOrder } : {}),
                 };
                 await this.props.socket.setObject(categoryId, obj);
             }
@@ -712,6 +718,56 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private onCloseCategorySettings = (): void => {
         this.setState({ categorySettingsCategoryId: null });
     };
+
+    // --- Widget order ---
+
+    private onWidgetOrderChange = (categoryId: string, widgetOrder: string[]): void => {
+        const existing = this.state.categorySettings[categoryId] || {
+            name: '', color: '', backgroundColor: '', image: '', imageScope: 'header' as const,
+        };
+        const updatedSettings: CategorySettings = { ...existing, widgetOrder };
+        const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
+
+        if (categoryId === ROOT_CATEGORY) {
+            const guiConfig: GuiConfig = {
+                ...this.state.guiConfig,
+                root: {
+                    ...this.state.guiConfig?.root,
+                    widgetOrder,
+                },
+            };
+            this.setState({ categorySettings, guiConfig });
+            void this.saveRootSettings(guiConfig);
+        } else {
+            // Update local category custom
+            const categories = this.state.categories.map(cat => {
+                if (String(cat.id) === categoryId) {
+                    return { ...cat, custom: { ...cat.custom, widgetOrder } };
+                }
+                return cat;
+            });
+            this.setState({ categorySettings, categories });
+            void this.saveWidgetOrderToObject(categoryId, widgetOrder);
+        }
+    };
+
+    private async saveWidgetOrderToObject(categoryId: string, widgetOrder: string[]): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = (await this.props.socket.getObject(categoryId)) as ioBroker.StateObject | null | undefined;
+            if (obj) {
+                const common = obj.common || {};
+                common.custom ||= {};
+                common.custom[instanceId] = {
+                    ...common.custom[instanceId],
+                    widgetOrder,
+                };
+                await this.props.socket.setObject(categoryId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save widget order:', err);
+        }
+    }
 
     // --- Custom widgets ---
 
@@ -886,6 +942,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onOpenCustomWidgetSettings={
                                 this.props.showSettingsButton ? this.onOpenCustomWidgetSettings : undefined
                             }
+                            onWidgetOrderChange={
+                                this.props.showSettingsButton ? this.onWidgetOrderChange : undefined
+                            }
                             admin={this.props.admin}
                         />
                         <WidgetSettingsDialog
@@ -904,6 +963,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             showHideWhenOk={
                                 settingsWidget?.control?.type === Types.floodAlarm ||
                                 settingsWidget?.control?.type === Types.fireAlarm
+                            }
+                            showCoordinates={
+                                settingsWidget?.control?.type === Types.location ||
+                                settingsWidget?.control?.type === Types.locationOne
                             }
                             showOnBrightness={
                                 settingsWidget != null &&

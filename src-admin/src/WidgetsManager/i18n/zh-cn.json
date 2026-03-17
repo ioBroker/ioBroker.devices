@@ -82,5 +82,10 @@
     "wm_Brightness": "亮度",
     "wm_Color temperature": "色温",
     "wm_On brightness": "开启亮度",
-    "wm_Long press for settings": "长按打开颜色设置"
+    "wm_Long press for settings": "长按打开颜色设置",
+    "wm_Show coordinates": "显示坐标",
+    "wm_N": "北",
+    "wm_S": "南",
+    "wm_E": "东",
+    "wm_W": "西"
 }

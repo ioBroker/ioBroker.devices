@@ -82,5 +82,10 @@
     "wm_Brightness": "Яскравість",
     "wm_Color temperature": "Колірна температура",
     "wm_On brightness": "Яскравість увімкнення",
-    "wm_Long press for settings": "Довге натискання для налаштувань кольору"
+    "wm_Long press for settings": "Довге натискання для налаштувань кольору",
+    "wm_Show coordinates": "Показати координати",
+    "wm_N": "Пн",
+    "wm_S": "Пд",
+    "wm_E": "Сх",
+    "wm_W": "Зх"
 }

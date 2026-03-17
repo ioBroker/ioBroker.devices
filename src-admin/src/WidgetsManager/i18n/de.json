@@ -82,5 +82,10 @@
     "wm_Brightness": "Helligkeit",
     "wm_Color temperature": "Farbtemperatur",
     "wm_On brightness": "Ein-Helligkeit",
-    "wm_Long press for settings": "Langes Drücken für Farbeinstellungen"
+    "wm_Long press for settings": "Langes Drücken für Farbeinstellungen",
+    "wm_Show coordinates": "Koordinaten anzeigen",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "O",
+    "wm_W": "W"
 }

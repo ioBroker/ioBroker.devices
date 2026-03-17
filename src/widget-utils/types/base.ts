@@ -58,6 +58,7 @@ export interface CategoryInfo extends ItemInfo {
         noTemperature?: boolean;
         noWindows?: boolean;
         customWidgets?: CustomWidgetDef[];
+        widgetOrder?: string[];
     };
 }
 

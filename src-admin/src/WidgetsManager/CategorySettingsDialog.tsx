@@ -25,6 +25,7 @@ export interface CategorySettings {
     /** 'header' = background only behind header, 'page' = background behind whole page */
     imageScope: 'header' | 'page';
     customWidgets?: CustomWidgetDef[];
+    widgetOrder?: string[];
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
