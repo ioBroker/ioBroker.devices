@@ -586,6 +586,10 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 control: {
                     type: device.type,
                     states: device.states,
+                    storeId: '',
+                    parentId: '',
+                    deviceId: '',
+                    channelId: '',
                 },
                 custom: obj.common.custom?.[this.adapter.namespace],
             });
