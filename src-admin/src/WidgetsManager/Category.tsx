@@ -705,6 +705,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     // --- Ordered items for grid ---
 
+    // eslint-disable-next-line react/no-unused-class-component-methods
     getOrderedItems(): Array<{
         type: 'category' | 'widget' | 'custom';
         id: string;
@@ -780,7 +781,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetAirCondition;
         } else if (widget.control && widget.control.type === Types.warning) {
             Widget = WidgetWarning;
-        } else if (widget.control && (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)) {
+        } else if (
+            widget.control &&
+            (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)
+        ) {
             Widget = WidgetVolume;
         } else if (
             widget.control &&
@@ -790,7 +794,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         } else if (
             widget.control?.type === Types.info &&
             widget.control.states.some(
-                s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test((s as any).stateRole || ''),
+                s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
             )
         ) {
             Widget = WidgetTank;
@@ -835,6 +839,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
+    // eslint-disable-next-line react/no-unused-class-component-methods
     renderCustomWidget(def: CustomWidgetDef): React.JSX.Element | null {
         const categoryId = String(this.props.category.id);
         const settingsCb = this.props.onOpenCustomWidgetSettings
@@ -866,6 +871,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         }
     }
 
+    // eslint-disable-next-line react/no-unused-class-component-methods
     renderCategoryTile(category: CategoryInfo): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';

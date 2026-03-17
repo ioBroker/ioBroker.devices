@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, ButtonBase, IconButton, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -141,7 +141,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
-        const btnSx = (active: boolean) => (theme: any) => ({
+        const btnSx = (active: boolean) => (theme: IobTheme) => ({
             flex: 1,
             borderRadius: '12px',
             color: active ? accent || theme.palette.primary.main : theme.palette.text.secondary,

@@ -175,7 +175,7 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                         transition: 'color 0.25s ease',
                     }}
                 >
-                    {level > 0 ? (title || I18n.t('wm_Warning')) : I18n.t('wm_OK')}
+                    {level > 0 ? title || I18n.t('wm_Warning') : I18n.t('wm_OK')}
                 </Typography>
             </Box>
         );
@@ -195,10 +195,13 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                         color: level > 0 ? color : 'success.main',
                     }}
                 >
-                    {level > 0 ? (title || I18n.t('wm_Warning')) : I18n.t('wm_OK')}
+                    {level > 0 ? title || I18n.t('wm_Warning') : I18n.t('wm_OK')}
                 </Typography>
                 {start || end ? (
-                    <Typography variant="caption" sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}
+                    >
                         {start && end ? `${start} – ${end}` : start || end}
                     </Typography>
                 ) : null}

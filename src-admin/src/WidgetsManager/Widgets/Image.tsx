@@ -162,9 +162,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                     )}
 
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>
-                            {indicators}
-                        </Box>
+                        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>{indicators}</Box>
                     ) : null}
 
                     {/* Name overlay at bottom */}
@@ -252,7 +250,9 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                                 }}
                             />
                         ) : (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            <Box
+                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
+                            >
                                 <BrokenImage sx={{ fontSize: 32, color: 'text.disabled' }} />
                             </Box>
                         )}
@@ -336,9 +336,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                     )}
 
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>
-                            {indicators}
-                        </Box>
+                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
                     ) : null}
 
                     {/* Name overlay at bottom */}

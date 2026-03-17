@@ -667,6 +667,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 control: {
                     type: device.type,
                     states: device.states,
+                    storeId: '',
+                    parentId: '',
+                    deviceId: '',
+                    channelId: '',
                 },
                 custom: obj.common.custom?.[this.adapter.namespace],
             });

@@ -39,12 +39,31 @@ import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
     return (
-        <SvgIcon {...props} viewBox="0 0 24 24">
-            <rect x="7" y="2" width="10" height="2.5" rx="1.25" />
-            <rect x="11" y="4.5" width="2" height="4" />
+        <SvgIcon
+            {...props}
+            viewBox="0 0 24 24"
+        >
+            <rect
+                x="7"
+                y="2"
+                width="10"
+                height="2.5"
+                rx="1.25"
+            />
+            <rect
+                x="11"
+                y="4.5"
+                width="2"
+                height="4"
+            />
             <path d="M3,8.5 L21,8.5 L12,14 Z" />
             <path d="M3,15.5 L21,15.5 L12,10 Z" />
-            <rect x="10" y="15.5" width="4" height="6.5" />
+            <rect
+                x="10"
+                y="15.5"
+                width="4"
+                height="6.5"
+            />
         </SvgIcon>
     );
 }

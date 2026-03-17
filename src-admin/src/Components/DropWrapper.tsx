@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 
-import { TableRow } from '@mui/material';
+import { TableRow, type SxProps } from '@mui/material';
 
 import { Utils, I18n } from '@iobroker/adapter-react-v5';
 
@@ -15,7 +15,7 @@ export interface DropWrapperProps {
     onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
     id: string;
     children: (React.JSX.Element | null)[];
-    sx: Record<string, any>;
+    sx: SxProps;
     backgroundRow: string | null;
     onClick: () => void;
 

@@ -558,7 +558,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                     transition: 'color 0.25s ease',
                 })}
             >
-                {posText}{tiltText}
+                {posText}
+                {tiltText}
             </Typography>
         );
     }
@@ -609,17 +610,29 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                 {hasButtons ? (
                     <Box sx={{ display: 'flex', gap: 0 }}>
                         {this.openId ? (
-                            <IconButton size="small" onClick={this.open} sx={{ color: 'text.secondary', p: 0.25 }}>
+                            <IconButton
+                                size="small"
+                                onClick={this.open}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
                                 <KeyboardArrowUp fontSize="small" />
                             </IconButton>
                         ) : null}
                         {this.stopId ? (
-                            <IconButton size="small" onClick={this.stop} sx={{ color: 'text.secondary', p: 0.25 }}>
+                            <IconButton
+                                size="small"
+                                onClick={this.stop}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
                                 <Stop fontSize="small" />
                             </IconButton>
                         ) : null}
                         {this.closeId ? (
-                            <IconButton size="small" onClick={this.close} sx={{ color: 'text.secondary', p: 0.25 }}>
+                            <IconButton
+                                size="small"
+                                onClick={this.close}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
                                 <KeyboardArrowDown fontSize="small" />
                             </IconButton>
                         ) : null}

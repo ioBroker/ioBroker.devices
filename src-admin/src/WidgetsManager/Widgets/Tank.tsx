@@ -35,7 +35,10 @@ function TankIcon(props: {
     const clipId = `tank-icon-clip-${id}`;
 
     return (
-        <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%' }}>
+        <svg
+            viewBox={`0 0 ${vb} ${vb}`}
+            style={{ width: '100%', height: '100%' }}
+        >
             {/* Tank outline */}
             <rect
                 x={wall / 2}
@@ -258,7 +261,12 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
 
         return (
             <Box sx={{ width: '1em', height: '1em' }}>
-                <TankIcon level={level} fillColor={fillColor} id={this.props.widget.id} animate={this.shouldAnimate()} />
+                <TankIcon
+                    level={level}
+                    fillColor={fillColor}
+                    id={this.props.widget.id}
+                    animate={this.shouldAnimate()}
+                />
             </Box>
         );
     }
@@ -327,7 +335,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                     {this.renderFillBackground(fillColor)}
 
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}>
+                        <Box
+                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                        >
                             {indicators}
                         </Box>
                     ) : null}
@@ -345,7 +355,12 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         }}
                     >
                         <Box sx={{ width: 'max(56px, 34cqi)', height: 'max(56px, 34cqi)' }}>
-                            <TankIcon level={level} fillColor={fillColor} id={`compact-${this.props.widget.id}`} animate={this.shouldAnimate()} />
+                            <TankIcon
+                                level={level}
+                                fillColor={fillColor}
+                                id={`compact-${this.props.widget.id}`}
+                                animate={this.shouldAnimate()}
+                            />
                         </Box>
                         <Typography
                             variant="body2"
@@ -441,9 +456,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         {this.renderTileStatus()}
                     </Box>
 
-                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                        {this.renderTileAction()}
-                    </Box>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </Box>
                 {this.renderSettingsButton()}
@@ -531,9 +544,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         {this.renderTileStatus()}
                     </Box>
 
-                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                        {this.renderTileAction()}
-                    </Box>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
                 {this.renderSettingsButton()}

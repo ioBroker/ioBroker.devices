@@ -74,10 +74,10 @@ export function rgbToCie(r: number, g: number, b: number): [number, number] {
     // Wide gamut D65 conversion (Philips Hue)
     const X = rr * 0.664511 + gg * 0.154324 + bb * 0.162028;
     const Y = rr * 0.283881 + gg * 0.668433 + bb * 0.047685;
-    const Z = rr * 0.000088 + gg * 0.072310 + bb * 0.986039;
+    const Z = rr * 0.000088 + gg * 0.07231 + bb * 0.986039;
     const sum = X + Y + Z;
     if (sum === 0) {
-        return [0.3127, 0.3290]; // D65 white point
+        return [0.3127, 0.329]; // D65 white point
     }
     return [X / sum, Y / sum];
 }
@@ -91,11 +91,17 @@ export function cieToRgb(x: number, y: number, brightness = 1): [number, number,
     // XYZ to linear sRGB
     let rr = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
     let gg = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
-    let bb = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+    let bb = X * 0.051713 - Y * 0.121364 + Z * 1.01153;
     // Clamp negatives
-    if (rr < 0) { rr = 0; }
-    if (gg < 0) { gg = 0; }
-    if (bb < 0) { bb = 0; }
+    if (rr < 0) {
+        rr = 0;
+    }
+    if (gg < 0) {
+        gg = 0;
+    }
+    if (bb < 0) {
+        bb = 0;
+    }
     // Gamma correction
     rr = rr <= 0.0031308 ? 12.92 * rr : 1.055 * rr ** (1 / 2.4) - 0.055;
     gg = gg <= 0.0031308 ? 12.92 * gg : 1.055 * gg ** (1 / 2.4) - 0.055;

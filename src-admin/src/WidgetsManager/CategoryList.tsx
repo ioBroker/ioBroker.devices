@@ -557,7 +557,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return true;
         }
         // Follow alias to target and check there
-        const aliasId = (obj.common as any)?.alias?.id;
+        const aliasId = obj.common?.alias?.id;
         if (aliasId) {
             const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
             if (targetId && targetId !== stateId) {
@@ -996,7 +996,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             showAnimation={
                                 settingsWidget?.control?.type === Types.info &&
                                 !!settingsWidget?.control?.states.some(
-                                    s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test((s as any).role || ''),
+                                    s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
                                 )
                             }
                             showOnBrightness={

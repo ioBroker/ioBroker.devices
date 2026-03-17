@@ -150,7 +150,11 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                 | null
                 | undefined;
             if (obj?.common?.states && typeof obj.common.states === 'object') {
-                this.setState({ [stateKey]: obj.common.states as Record<string, string> } as any);
+                if (stateKey === 'modeStates') {
+                    this.setState({ modeStates: obj.common.states as Record<string, string> });
+                } else {
+                    this.setState({ speedStates: obj.common.states as Record<string, string> });
+                }
             }
         } catch {
             // ignore
@@ -583,7 +587,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     ) : null}
                     {setTemp != null ? (
                         <Tooltip title={I18n.t('wm_Set temperature')}>
-                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 500, color: 'text.secondary' }}
+                            >
                                 → {WidgetAirCondition.formatTemp(setTemp)}
                             </Typography>
                         </Tooltip>
@@ -605,13 +612,22 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         {humidity != null ? (
                             <Typography
                                 variant="caption"
-                                sx={{ fontWeight: 500, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                sx={{
+                                    fontWeight: 500,
+                                    color: 'text.secondary',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                }}
                             >
                                 💧 {Math.round(humidity)}%
                             </Typography>
                         ) : null}
                         {speedLabel ? (
-                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 500, color: 'text.secondary' }}
+                            >
                                 <Air sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.25 }} />
                                 {WidgetAirCondition.getSpeedLabel(speedLabel)}
                             </Typography>
@@ -631,11 +647,17 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {actualTemp != null ? (
-                        <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
+                        >
                             {WidgetAirCondition.formatTemp(actualTemp)}
                         </Typography>
                     ) : null}
-                    <Typography variant="h6" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                    >
                         → {WidgetAirCondition.formatTemp(setTemp)}
                     </Typography>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
@@ -651,13 +673,22 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         {humidity != null ? (
                             <Typography
                                 variant="body2"
-                                sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
+                                sx={{
+                                    color: 'text.secondary',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    whiteSpace: 'nowrap',
+                                }}
                             >
                                 💧 {Math.round(humidity)}%
                             </Typography>
                         ) : null}
                         {speedLabel ? (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}
+                            >
                                 <Air sx={{ fontSize: 14 }} />
                                 {WidgetAirCondition.getSpeedLabel(speedLabel)}
                             </Typography>
@@ -676,10 +707,23 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
 
         const {
-            name, setTemp, actualTemp, humidity, boost, power,
-            mode, modeStates, speed, speedStates,
-            swing, swingStates, swingIsBoolean,
-            setMin, setMax, setStep, dragging,
+            name,
+            setTemp,
+            actualTemp,
+            humidity,
+            boost,
+            power,
+            mode,
+            modeStates,
+            speed,
+            speedStates,
+            swing,
+            swingStates,
+            swingIsBoolean,
+            setMin,
+            setMax,
+            setStep,
+            dragging,
         } = this.state;
         const displayTemp = actualTemp ?? setTemp;
         const modeEntries = Object.entries(modeStates);
@@ -716,7 +760,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     </IconButton>
 
                     {/* Title */}
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, pr: 4 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 600, mb: 2, pr: 4 }}
+                    >
                         {this.props.settings?.name || name || '...'}
                     </Typography>
 
@@ -776,11 +823,17 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     gap: 0.5,
                                 }}
                             >
-                                <Typography variant="h3" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                                <Typography
+                                    variant="h3"
+                                    sx={{ fontWeight: 700, lineHeight: 1 }}
+                                >
                                     {WidgetAirCondition.formatTemp(setTemp)}
                                 </Typography>
                                 {actualTemp != null && setTemp != null ? (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
                                         {I18n.t('wm_Actual')}: {WidgetAirCondition.formatTemp(actualTemp)}
                                     </Typography>
                                 ) : null}
@@ -832,7 +885,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         >
                             {humidity != null ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                    <Typography
+                                        variant="body1"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
                                         💧 {Math.round(humidity)}%
                                     </Typography>
                                 </Box>
@@ -840,7 +896,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             {boost ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                     <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} />
-                                    <Typography variant="body1" sx={{ color: '#f44336' }}>
+                                    <Typography
+                                        variant="body1"
+                                        sx={{ color: '#f44336' }}
+                                    >
                                         Boost
                                     </Typography>
                                 </Box>
@@ -892,7 +951,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     {/* Mode selector */}
                     {modeEntries.length > 0 ? (
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
                                 {I18n.t('wm_Mode')}
                             </Typography>
                             <Box
@@ -914,7 +976,11 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                             key={key}
                                             variant={isActive ? 'contained' : 'outlined'}
                                             color="inherit"
-                                            startIcon={WidgetAirCondition.renderModeIcon(label, 18, isActive ? '#fff' : info.color)}
+                                            startIcon={WidgetAirCondition.renderModeIcon(
+                                                label,
+                                                18,
+                                                isActive ? '#fff' : info.color,
+                                            )}
                                             onClick={() => this.setMode(numKey)}
                                             size="small"
                                             sx={{
@@ -942,7 +1008,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     {/* Speed selector */}
                     {speedEntries.length > 0 ? (
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
                                 <Air sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
                                 {I18n.t('wm_Speed')}
                             </Typography>
@@ -979,7 +1048,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     {/* Swing control */}
                     {this.swingId ? (
                         <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
                                 <SwapVert sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
                                 {I18n.t('wm_Swing')}
                             </Typography>
@@ -1016,7 +1088,12 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                                 color={isActive ? 'primary' : 'inherit'}
                                                 onClick={() => this.setSwing(numKey)}
                                                 size="small"
-                                                sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
+                                                sx={{
+                                                    textTransform: 'none',
+                                                    borderRadius: '20px',
+                                                    minWidth: 0,
+                                                    px: 1.5,
+                                                }}
                                             >
                                                 {WidgetAirCondition.getSwingLabel(label)}
                                             </Button>
@@ -1080,7 +1157,9 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}>
+                        <Box
+                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                        >
                             {indicators}
                         </Box>
                     ) : null}
@@ -1165,8 +1244,12 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     {WidgetAirCondition.formatTemp(actualTemp)}
                                 </Typography>
                             ) : null}
-                            {boost ? <LocalFireDepartment sx={{ fontSize: 'max(12px, 7cqi)', color: '#f44336' }} /> : null}
-                            {power === false ? <PowerSettingsNew sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.disabled' }} /> : null}
+                            {boost ? (
+                                <LocalFireDepartment sx={{ fontSize: 'max(12px, 7cqi)', color: '#f44336' }} />
+                            ) : null}
+                            {power === false ? (
+                                <PowerSettingsNew sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.disabled' }} />
+                            ) : null}
                             {modeLabel ? WidgetAirCondition.renderModeIcon(modeLabel, 14) : null}
                         </Box>
                     </Box>
@@ -1259,15 +1342,23 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                                 {actualTemp != null ? (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
+                                    >
                                         {WidgetAirCondition.formatTemp(actualTemp)}
                                     </Typography>
                                 ) : null}
-                                <Typography variant="h6" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                <Typography
+                                    variant="h6"
+                                    sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                                >
                                     → {WidgetAirCondition.formatTemp(setTemp)}
                                 </Typography>
                                 {boost ? <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} /> : null}
-                                {power === false ? <PowerSettingsNew sx={{ fontSize: 20, color: 'text.disabled' }} /> : null}
+                                {power === false ? (
+                                    <PowerSettingsNew sx={{ fontSize: 20, color: 'text.disabled' }} />
+                                ) : null}
                                 {modeLabel ? (
                                     <Tooltip title={WidgetAirCondition.getModeInfo(modeLabel).displayName}>
                                         {WidgetAirCondition.renderModeIcon(modeLabel, 20)}
@@ -1278,7 +1369,12 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 {humidity != null ? (
                                     <Typography
                                         variant="body2"
-                                        sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                        sx={{
+                                            color: 'text.secondary',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                        }}
                                     >
                                         💧 {Math.round(humidity)}%
                                     </Typography>
@@ -1286,7 +1382,12 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 {speedLabel ? (
                                     <Typography
                                         variant="body2"
-                                        sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                        sx={{
+                                            color: 'text.secondary',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                        }}
                                     >
                                         <Air sx={{ fontSize: 14 }} />
                                         {WidgetAirCondition.getSpeedLabel(speedLabel)}

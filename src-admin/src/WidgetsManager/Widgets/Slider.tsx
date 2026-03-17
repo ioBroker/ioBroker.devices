@@ -19,12 +19,31 @@ import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGener
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
     return (
-        <SvgIcon {...props} viewBox="0 0 24 24">
-            <rect x="7" y="2" width="10" height="2.5" rx="1.25" />
-            <rect x="11" y="4.5" width="2" height="4" />
+        <SvgIcon
+            {...props}
+            viewBox="0 0 24 24"
+        >
+            <rect
+                x="7"
+                y="2"
+                width="10"
+                height="2.5"
+                rx="1.25"
+            />
+            <rect
+                x="11"
+                y="4.5"
+                width="2"
+                height="4"
+            />
             <path d="M3,8.5 L21,8.5 L12,14 Z" />
             <path d="M3,15.5 L21,15.5 L12,10 Z" />
-            <rect x="10" y="15.5" width="4" height="6.5" />
+            <rect
+                x="10"
+                y="15.5"
+                width="4"
+                height="6.5"
+            />
         </SvgIcon>
     );
 }
@@ -127,7 +146,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                             this.setState({ statesMap: map });
                         }
                     } else if (typeof statesObj === 'object') {
-                        const map = statesObj as Record<string, string>;
+                        const map = statesObj;
                         if (Object.keys(map).length > 0) {
                             this.setState({ statesMap: map });
                         }
@@ -181,11 +200,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         if (!statesMap) {
             return '';
         }
-        return (
-            statesMap[String(rawValue)] ||
-            statesMap[String(Math.round(rawValue))] ||
-            String(rawValue)
-        );
+        return statesMap[String(rawValue)] || statesMap[String(Math.round(rawValue))] || String(rawValue);
     }
 
     private selectMode(value: string): void {
@@ -343,10 +358,12 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
 
-        const iconSx = sx || ((theme: Theme): React.CSSProperties => ({
-            color: isActive ? accent || theme.palette.primary.main : theme.palette.text.disabled,
-            transition: 'color 0.25s ease',
-        }));
+        const iconSx =
+            sx ||
+            ((theme: Theme): React.CSSProperties => ({
+                color: isActive ? accent || theme.palette.primary.main : theme.palette.text.disabled,
+                transition: 'color 0.25s ease',
+            }));
 
         switch (sliderType) {
             case 'valve':
@@ -444,10 +461,14 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                                     variant={selected ? 'filled' : 'outlined'}
                                     color={selected ? 'primary' : 'default'}
                                     onClick={() => this.selectMode(value)}
-                                    sx={selected && accent ? {
-                                        backgroundColor: accent,
-                                        '&:hover': { backgroundColor: accent },
-                                    } : undefined}
+                                    sx={
+                                        selected && accent
+                                            ? {
+                                                  backgroundColor: accent,
+                                                  '&:hover': { backgroundColor: accent },
+                                              }
+                                            : undefined
+                                    }
                                 />
                             );
                         })}
@@ -471,7 +492,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         // Short labels and few modes: show inline chips
         if (entries.length <= 4 && totalLength <= 30) {
             return (
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                <Box
+                    sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}
+                    onClick={e => e.stopPropagation()}
+                >
                     {entries.map(([value, label]) => {
                         const selected = currentKey === value;
                         return (
@@ -482,10 +506,14 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                                 variant={selected ? 'filled' : 'outlined'}
                                 color={selected ? 'primary' : 'default'}
                                 onClick={() => this.selectMode(value)}
-                                sx={selected && accent ? {
-                                    backgroundColor: accent,
-                                    '&:hover': { backgroundColor: accent },
-                                } : undefined}
+                                sx={
+                                    selected && accent
+                                        ? {
+                                              backgroundColor: accent,
+                                              '&:hover': { backgroundColor: accent },
+                                          }
+                                        : undefined
+                                }
                             />
                         );
                     })}
@@ -542,7 +570,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}>
+                        <Box
+                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                        >
                             {indicators}
                         </Box>
                     ) : null}
@@ -629,21 +659,42 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     position: 'relative',
                 }}
             >
-                <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}>
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw}
-                        strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" opacity={0.15} />
-                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none"
+                <svg
+                    viewBox={`0 0 ${vb} ${vb}`}
+                    style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}
+                >
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={sw}
+                        strokeDasharray={`${arcLength} ${circumference}`}
+                        strokeLinecap="round"
+                        opacity={0.15}
+                    />
+                    <circle
+                        cx={vb / 2}
+                        cy={vb / 2}
+                        r={r}
+                        fill="none"
                         stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
-                        strokeWidth={sw} strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round"
-                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }} />
+                        strokeWidth={sw}
+                        strokeDasharray={`${progress} ${circumference}`}
+                        strokeLinecap="round"
+                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
+                    />
                 </svg>
-                <Typography sx={{
-                    position: 'absolute',
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: isActive ? (accent || 'primary.main') : 'text.secondary',
-                }}>
+                <Typography
+                    sx={{
+                        position: 'absolute',
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: isActive ? accent || 'primary.main' : 'text.secondary',
+                    }}
+                >
                     {isActive ? displayValue : I18n.t('wm_Off')}
                 </Typography>
             </Box>
@@ -743,7 +794,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     />
 
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}>
+                        <Box
+                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                        >
                             {indicators}
                         </Box>
                     ) : null}

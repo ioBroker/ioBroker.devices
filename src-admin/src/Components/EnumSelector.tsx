@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Checkbox, Chip, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Checkbox, Chip, FormControl, InputLabel, MenuItem, Select, type SxProps } from '@mui/material';
 
 import { I18n, Icon, Utils } from '@iobroker/adapter-react-v5';
 
@@ -28,7 +28,7 @@ export default function EnumSelector(props: {
     enumIDs: string[];
     objects: Record<string, ioBroker.Object>;
     style?: React.CSSProperties;
-    sx?: Record<string, any>;
+    sx?: SxProps;
     disabled?: boolean;
 }): React.JSX.Element {
     const [open, setOpen] = useState(false);
