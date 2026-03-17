@@ -82,5 +82,10 @@
     "wm_Brightness": "Helderheid",
     "wm_Color temperature": "Kleurtemperatuur",
     "wm_On brightness": "Aan-helderheid",
-    "wm_Long press for settings": "Lang indrukken voor kleurinstellingen"
+    "wm_Long press for settings": "Lang indrukken voor kleurinstellingen",
+    "wm_Show coordinates": "Coördinaten tonen",
+    "wm_N": "N",
+    "wm_S": "Z",
+    "wm_E": "O",
+    "wm_W": "W"
 }

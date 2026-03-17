@@ -82,5 +82,10 @@
     "wm_Brightness": "Jasność",
     "wm_Color temperature": "Temperatura barwowa",
     "wm_On brightness": "Jasność włączenia",
-    "wm_Long press for settings": "Długie naciśnięcie dla ustawień kolorów"
+    "wm_Long press for settings": "Długie naciśnięcie dla ustawień kolorów",
+    "wm_Show coordinates": "Pokaż współrzędne",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "E",
+    "wm_W": "W"
 }

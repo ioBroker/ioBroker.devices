@@ -31,6 +31,7 @@ interface WidgetSettingsDialogProps {
     showPin?: boolean;
     showHideWhenOk?: boolean;
     showOnBrightness?: boolean;
+    showCoordinates?: boolean;
     objectName?: string;
     objectColor?: string;
 }
@@ -47,6 +48,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         showPin,
         showHideWhenOk,
         showOnBrightness,
+        showCoordinates,
         objectName,
         objectColor,
     } = props;
@@ -236,6 +238,20 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     />
                 ) : null}
 
+                {showCoordinates ? (
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={!!local.showCoordinates}
+                                onChange={(_, checked) => setLocal({ ...local, showCoordinates: checked })}
+                                color="primary"
+                            />
+                        }
+                        label={I18n.t('wm_Show coordinates')}
+                        sx={{ mt: 1, display: 'flex' }}
+                    />
+                ) : null}
+
                 {showChart ? (
                     <Box sx={{ mt: 2 }}>
                         <Typography
@@ -277,7 +293,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         local.blindType === settings.blindType &&
                         (local.pin || '') === (settings.pin || '') &&
                         !!local.hideWhenOk === !!settings.hideWhenOk &&
-                        (local.onBrightness ?? 100) === (settings.onBrightness ?? 100)
+                        (local.onBrightness ?? 100) === (settings.onBrightness ?? 100) &&
+                        !!local.showCoordinates === !!settings.showCoordinates
                     }
                     startIcon={<Save />}
                     onClick={() => onSave(local)}

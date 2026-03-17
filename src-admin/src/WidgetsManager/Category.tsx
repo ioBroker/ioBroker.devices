@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useCallback, useMemo, useState } from 'react';
 
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from '@mui/material';
 import {
@@ -6,6 +6,7 @@ import {
     ArrowBack,
     ChevronRight,
     DirectionsRun,
+    DragIndicator,
     MeetingRoom,
     SensorDoor,
     SensorWindow,
@@ -16,6 +17,20 @@ import {
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { alpha } from '@mui/material/styles';
 import { Types } from '@iobroker/type-detector';
+import {
+    DndContext,
+    DragOverlay,
+    closestCenter,
+    PointerSensor,
+    TouchSensor,
+    useSensor,
+    useSensors,
+    type DragStartEvent,
+    type DragEndEvent,
+    type DragOverEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/widget-utils';
 import {
@@ -38,6 +53,8 @@ import {
     WidgetClock,
     WidgetVolume,
     WidgetColorLight,
+    WidgetInfo as WidgetInfoWidget,
+    WidgetLocation,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -57,6 +74,7 @@ interface CategoryProps {
     onAddCustomWidget?: (categoryId: string) => void;
     onRemoveCustomWidget?: (categoryId: string, widgetId: string) => void;
     onOpenCustomWidgetSettings?: (categoryId: string, widgetId: string) => void;
+    onWidgetOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
     /** true if running in admin, false if in web */
     admin: boolean;
 }
@@ -99,6 +117,246 @@ interface StatusSubscription {
     role: StatusRole;
     /** Widget name for window/door sensors */
     widgetName?: string;
+}
+
+type OrderedItem = { type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef };
+
+function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettings>): string | undefined {
+    if (item.type === 'category') {
+        return '1 / -1';
+    }
+    let size = '1x1';
+    if (item.type === 'widget') {
+        size = widgetSettings[item.id]?.size || '1x1';
+    } else {
+        size = (item.data as CustomWidgetDef).size || '1x1';
+    }
+    if (size === '2x0.5' || size === '2x1') {
+        return 'span 2';
+    }
+    return undefined;
+}
+
+/** Thin wrapper so each grid cell is a valid droppable/draggable for dnd-kit */
+function SortableItem(props: {
+    id: string;
+    gridColumn?: string;
+    isDragging: boolean;
+    children: React.ReactNode;
+}): React.JSX.Element {
+    const { id, gridColumn, isDragging, children } = props;
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+    } = useSortable({ id });
+
+    const style: React.CSSProperties = {
+        position: 'relative',
+        gridColumn: gridColumn || undefined,
+        opacity: isDragging ? 0.25 : 1,
+        transform: CSS.Transform.toString(transform),
+        transition: transition || undefined,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+        >
+            <Box
+                ref={setActivatorNodeRef}
+                {...listeners}
+                sx={theme => ({
+                    position: 'absolute',
+                    top: 4,
+                    left: 4,
+                    p: '2px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'grab',
+                    zIndex: 3,
+                    color: theme.palette.text.secondary,
+                    opacity: 0.5,
+                    transition: 'opacity 0.2s, background-color 0.2s',
+                    '&:hover': {
+                        opacity: 1,
+                        backgroundColor: theme.palette.action.hover,
+                    },
+                })}
+            >
+                <DragIndicator sx={{ fontSize: 16 }} />
+            </Box>
+            {children}
+        </div>
+    );
+}
+
+function SortableGrid(props: {
+    category: Category;
+    canDrag: boolean;
+    categoryId: string;
+    onOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
+    widgetSettings: Record<string, WidgetSettings>;
+}): React.JSX.Element {
+    const { category, canDrag, categoryId, onOrderChange, widgetSettings } = props;
+    const sourceItems = category.getOrderedItems();
+    const sourceIds = useMemo(() => sourceItems.map(i => i.id), [sourceItems]);
+
+    // Local order kept in sync with props, but updated live during drag
+    const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    // Sync liveOrder with props when items are added/removed (not just reordered)
+    const prevSourceRef = React.useRef(sourceIds);
+    if (prevSourceRef.current !== sourceIds) {
+        prevSourceRef.current = sourceIds;
+        // Only reset if the set of IDs changed (add/remove), not just order
+        const liveSet = new Set(liveOrder);
+        const sourceSet = new Set(sourceIds);
+        if (liveOrder.length !== sourceIds.length || sourceIds.some(id => !liveSet.has(id)) || liveOrder.some(id => !sourceSet.has(id))) {
+            setLiveOrder(sourceIds);
+        }
+    }
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    );
+
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        setActiveId(String(event.active.id));
+    }, []);
+
+    // Reorder live during drag so the grid reflows naturally
+    const handleDragOver = useCallback((event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) {
+            return;
+        }
+        setLiveOrder(prev => {
+            const oldIdx = prev.indexOf(String(active.id));
+            const newIdx = prev.indexOf(String(over.id));
+            if (oldIdx < 0 || newIdx < 0) {
+                return prev;
+            }
+            return arrayMove(prev, oldIdx, newIdx);
+        });
+    }, []);
+
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event;
+            setActiveId(null);
+            if (!over || active.id === over.id) {
+                return;
+            }
+            // Persist the final order
+            onOrderChange?.(categoryId, liveOrder);
+        },
+        [categoryId, onOrderChange, liveOrder],
+    );
+
+    const handleDragCancel = useCallback(() => {
+        setActiveId(null);
+        setLiveOrder(sourceIds);
+    }, [sourceIds]);
+
+    // Build item map for fast lookup
+    const itemMap = useMemo(() => {
+        const map = new Map<string, OrderedItem>();
+        for (const item of sourceItems) {
+            map.set(item.id, item);
+        }
+        return map;
+    }, [sourceItems]);
+
+    const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
+    const activeItem = activeId ? itemMap.get(activeId) : null;
+
+    const renderContent = (item: OrderedItem): React.ReactNode => {
+        if (item.type === 'category') {
+            return category.renderCategoryTile(item.data as CategoryInfo);
+        }
+        if (item.type === 'widget') {
+            return category.renderWidget(item.data as WidgetInfo);
+        }
+        return category.renderCustomWidget(item.data as CustomWidgetDef);
+    };
+
+    if (!canDrag) {
+        return (
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                    gap: 1.5,
+                }}
+            >
+                {orderedItems.map(item => {
+                    const gridColumn = getGridColumn(item, widgetSettings);
+                    return gridColumn ? (
+                        <div
+                            key={item.id}
+                            style={{ gridColumn }}
+                        >
+                            {renderContent(item)}
+                        </div>
+                    ) : (
+                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
+                    );
+                })}
+            </Box>
+        );
+    }
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+        >
+            <SortableContext
+                items={liveOrder}
+                strategy={rectSortingStrategy}
+            >
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                        gap: 1.5,
+                    }}
+                >
+                    {orderedItems.map(item => (
+                        <SortableItem
+                            key={item.id}
+                            id={item.id}
+                            gridColumn={getGridColumn(item, widgetSettings)}
+                            isDragging={item.id === activeId}
+                        >
+                            {renderContent(item)}
+                        </SortableItem>
+                    ))}
+                </Box>
+            </SortableContext>
+            <DragOverlay dropAnimation={null}>
+                {activeItem ? (
+                    <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>
+                        {renderContent(activeItem)}
+                    </Box>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
+    );
 }
 
 export default class Category extends Component<CategoryProps, CategoryState> {
@@ -439,6 +697,30 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         }
     };
 
+    // --- Ordered items for grid ---
+
+    getOrderedItems(): Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef }> {
+        const categoryId = String(this.props.category.id);
+        const catSettings = this.props.categorySettings[categoryId];
+        const customWidgets = catSettings?.customWidgets || [];
+        const order = catSettings?.widgetOrder;
+
+        const items: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef }> = [
+            ...this.subCategories.map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
+            ...this.widgets.map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
+            ...customWidgets.map(cw => ({ type: 'custom' as const, id: cw.id, data: cw })),
+        ];
+
+        if (!order?.length) {
+            return items;
+        }
+
+        const orderMap = new Map(order.map((id, idx) => [id, idx]));
+        const ordered = items.filter(i => orderMap.has(i.id)).sort((a, b) => orderMap.get(a.id)! - orderMap.get(b.id)!);
+        const unordered = items.filter(i => !orderMap.has(i.id));
+        return [...ordered, ...unordered];
+    }
+
     getText(text: ioBroker.StringOrTranslated): string {
         if (typeof text === 'object') {
             return text[this.props.language] || text.en;
@@ -479,6 +761,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetThermostat;
         } else if (widget.control && widget.control.type === Types.volume) {
             Widget = WidgetVolume;
+        } else if (widget.control && widget.control.type === Types.info) {
+            Widget = WidgetInfoWidget;
+        } else if (
+            widget.control &&
+            (widget.control.type === Types.location || widget.control.type === Types.locationOne)
+        ) {
+            Widget = WidgetLocation;
         } else if (
             widget.control &&
             (widget.control.type === Types.rgbSingle ||
@@ -903,17 +1192,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             zIndex: 1,
                         }}
                     >
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
-                                gap: 1.5,
-                            }}
-                        >
-                            {this.subCategories.map(c => this.renderCategoryTile(c))}
-                            {this.widgets.map(w => this.renderWidget(w))}
-                            {customWidgets.map(cw => this.renderCustomWidget(cw))}
-                        </Box>
+                        <SortableGrid
+                            category={this}
+                            canDrag={!!this.props.onWidgetOrderChange}
+                            categoryId={String(this.props.category.id)}
+                            onOrderChange={this.props.onWidgetOrderChange}
+                            widgetSettings={this.props.widgetSettings}
+                        />
                     </Box>
                 ) : null}
             </Box>

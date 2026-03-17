@@ -82,5 +82,10 @@
     "wm_Brightness": "Brilho",
     "wm_Color temperature": "Temperatura de cor",
     "wm_On brightness": "Brilho ao ligar",
-    "wm_Long press for settings": "Pressão longa para configurações de cor"
+    "wm_Long press for settings": "Pressão longa para configurações de cor",
+    "wm_Show coordinates": "Mostrar coordenadas",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "L",
+    "wm_W": "O"
 }

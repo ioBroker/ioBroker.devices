@@ -74,7 +74,6 @@ import {
     Icon,
     Utils,
     I18n,
-    withWidth,
     Message as MessageDialog,
     Router,
     SelectWithIcon,
@@ -307,6 +306,15 @@ const prepareList = (
 };
 
 const WIDTHS = [1350, 1050, 950, 1250, 600, 500, 450];
+
+/**
+ * Minimum windowWidth to show each optional column.
+ *  Hide order (first hidden as screen shrinks): Function → Room → Type → States
+ */
+const COL_FUNC = 1250;
+const COL_ROOM = 1100;
+const COL_TYPE = 1000;
+const COL_STATES = 900;
 
 const ALIAS = 'alias.';
 const LINKEDDEVICES = 'linkeddevices.';
@@ -816,7 +824,7 @@ function DndWrapper(props: {
     );
 }
 
-class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
+export default class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     private readonly inputRef: RefObject<HTMLInputElement>;
 
     private readonly splitContainerRef: RefObject<HTMLDivElement>;
@@ -1028,6 +1036,14 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         }
     }
 
+    /** Effective width used for column visibility — accounts for split screen */
+    private get tableWidth(): number {
+        if (this.state.splitScreen) {
+            return this.state.splitLeftWidth || Math.floor(this.state.windowWidth / 2);
+        }
+        return this.state.windowWidth;
+    }
+
     onHashChange = (): void => {
         const location = Router.getLocation();
         if (location.dialog === 'edit' && location.id && location.id !== this.state.editId) {
@@ -1095,7 +1111,7 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         }, 300);
     };
 
-    private static readonly MIN_SPLIT_LEFT_WIDTH = 1000;
+    private static readonly MIN_SPLIT_LEFT_WIDTH = 500;
     private static readonly MIN_SPLIT_RIGHT_WIDTH = 300;
 
     onSplitDividerMouseDown = (e: React.MouseEvent): void => {
@@ -1941,7 +1957,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
             iconStyle.color = background;
         }
 
-        let j = 0;
         const WrapperRow = item.type === 'folder' ? DropWrapper : DragWrapper;
         const inner = (
             <WrapperRow
@@ -2052,34 +2067,34 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         </Tooltip>
                     </div>
                 </TableCell>
-                {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {device && this.tableWidth >= COL_FUNC ? (
                     <TableCell
                         size="small"
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}
                     >
                         {this.renderEnumCell(device.functions, funcEnums, index!)}
                     </TableCell>
                 ) : null}
 
-                {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {device && this.tableWidth >= COL_ROOM ? (
                     <TableCell
                         size="small"
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}
                     >
                         {this.renderEnumCell(device.rooms, roomsEnums, index!)}
                     </TableCell>
                 ) : null}
 
-                {device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {device && this.tableWidth >= COL_TYPE ? (
                     <TableCell
                         size="small"
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={styles.cell}
                     >
                         {ListDevices.renderTypeCell(device.type)}
                     </TableCell>
                 ) : null}
-                {device && this.state.windowWidth >= WIDTHS[0] ? (
-                    <TableCell style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}>
+                {device && this.tableWidth >= COL_STATES ? (
+                    <TableCell style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}>
                         {device.states.filter(state => state.id).length}
                     </TableCell>
                 ) : null}
@@ -2156,30 +2171,30 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                         </div>
                     </TableCell>
                 )}
-                {!device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {!device && this.tableWidth >= COL_FUNC ? (
                     <TableCell
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}
                         size="small"
                         colSpan={1}
                     />
                 ) : null}
-                {!device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {!device && this.tableWidth >= COL_ROOM ? (
                     <TableCell
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}
                         size="small"
                         colSpan={1}
                     />
                 ) : null}
-                {!device && this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                {!device && this.tableWidth >= COL_TYPE ? (
                     <TableCell
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={styles.cell}
                         size="small"
                         colSpan={1}
                     />
                 ) : null}
-                {!device && this.state.windowWidth >= WIDTHS[0] ? (
+                {!device && this.tableWidth >= COL_STATES ? (
                     <TableCell
-                        style={this.state.windowWidth > WIDTHS[2] ? styles.cell : styles.cellMobile}
+                        style={this.tableWidth > COL_TYPE ? styles.cell : styles.cellMobile}
                         size="small"
                         colSpan={1}
                     >
@@ -2423,8 +2438,6 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
     }
 
     renderDevices(): React.JSX.Element {
-        let j = 0;
-
         return (
             <Paper
                 style={
@@ -2443,16 +2456,16 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
                             <TableCell style={{ ...styles.headerCell, ...styles.tableNameCell }}>
                                 {I18n.t('Name')}
                             </TableCell>
-                            {this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                            {this.tableWidth >= COL_FUNC ? (
                                 <TableCell style={styles.headerCell}>{this.renderHeaderFunction()}</TableCell>
                             ) : null}
-                            {this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                            {this.tableWidth >= COL_ROOM ? (
                                 <TableCell style={styles.headerCell}>{this.renderHeaderRoom()}</TableCell>
                             ) : null}
-                            {this.state.windowWidth >= WIDTHS[1 + j++] ? (
+                            {this.tableWidth >= COL_TYPE ? (
                                 <TableCell style={styles.headerCell}>{this.renderHeaderType()}</TableCell>
                             ) : null}
-                            {this.state.windowWidth >= WIDTHS[0] ? (
+                            {this.tableWidth >= COL_STATES ? (
                                 <TableCell style={{ ...styles.headerCell, width: 50 }}>{I18n.t('States')}</TableCell>
                             ) : null}
                             <TableCell
@@ -3641,5 +3654,3 @@ class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
         );
     }
 }
-
-export default withWidth()(ListDevices);

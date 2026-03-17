@@ -82,5 +82,10 @@
     "wm_Brightness": "Brightness",
     "wm_Color temperature": "Color temperature",
     "wm_On brightness": "On brightness",
-    "wm_Long press for settings": "Long press for color settings"
+    "wm_Long press for settings": "Long press for color settings",
+    "wm_Show coordinates": "Show coordinates",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "E",
+    "wm_W": "W"
 }

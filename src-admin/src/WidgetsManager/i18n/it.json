@@ -82,5 +82,10 @@
     "wm_Brightness": "Luminosità",
     "wm_Color temperature": "Temperatura colore",
     "wm_On brightness": "Luminosità di accensione",
-    "wm_Long press for settings": "Pressione prolungata per impostazioni colore"
+    "wm_Long press for settings": "Pressione prolungata per impostazioni colore",
+    "wm_Show coordinates": "Mostra coordinate",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "E",
+    "wm_W": "O"
 }

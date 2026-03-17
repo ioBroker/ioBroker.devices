@@ -82,5 +82,10 @@
     "wm_Brightness": "Brillo",
     "wm_Color temperature": "Temperatura de color",
     "wm_On brightness": "Brillo de encendido",
-    "wm_Long press for settings": "Mantener pulsado para ajustes de color"
+    "wm_Long press for settings": "Mantener pulsado para ajustes de color",
+    "wm_Show coordinates": "Mostrar coordenadas",
+    "wm_N": "N",
+    "wm_S": "S",
+    "wm_E": "E",
+    "wm_W": "O"
 }

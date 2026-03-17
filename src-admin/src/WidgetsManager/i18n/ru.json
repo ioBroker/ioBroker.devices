@@ -82,5 +82,10 @@
     "wm_Brightness": "Яркость",
     "wm_Color temperature": "Цветовая температура",
     "wm_On brightness": "Яркость включения",
-    "wm_Long press for settings": "Долгое нажатие для настроек цвета"
+    "wm_Long press for settings": "Долгое нажатие для настроек цвета",
+    "wm_Show coordinates": "Показать координаты",
+    "wm_N": "С",
+    "wm_S": "Ю",
+    "wm_E": "В",
+    "wm_W": "З"
 }
