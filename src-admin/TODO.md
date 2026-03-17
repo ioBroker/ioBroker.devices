@@ -13,7 +13,6 @@
 - If some device has additional information like ELECTRIC_POWER, CURRENT, VOLTAGE, CONSUMPTION, FREQUENCY, show "i" icon on tile and by clicking it open the indformation dialog.
 - image  
 - levelSlider/percentage
-- location/locationOne with leaflet or similar
 - Use for volumeGroup the same widget (volume) but just slighly show, that it is grouped
 - warning: same as fire/flood
 - Information. If it is only one state: show big in the middle of the tile.

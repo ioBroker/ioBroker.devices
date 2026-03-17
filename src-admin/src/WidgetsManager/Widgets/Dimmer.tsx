@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Slider, Switch as MuiSwitch, Typography } from '@mui/material';
-import { LightbulbOutlined } from '@mui/icons-material';
+import { Box, Button, Dialog, DialogContent, IconButton, Slider, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
+import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -11,6 +11,11 @@ interface WidgetDimmerState extends WidgetGenericState {
     dragging: boolean;
     dimMin: number;
     dimMax: number;
+    effect: number | string | null;
+    effectStates: Record<string, string>;
+    transitionTime: number | null;
+    transitionMax: number;
+    dialogOpen: boolean;
 }
 
 export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
@@ -18,6 +23,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     private readonly actualId: string | null;
     private readonly onSetId: string | null;
     private readonly onActualId: string | null;
+    private readonly effectId: string | null;
+    private readonly transitionTimeId: string | null;
 
     private arcRef = React.createRef<HTMLDivElement>();
     private dragStartPos: { x: number; y: number } | null = null;
@@ -35,6 +42,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         this.actualId = actual?.id ?? set?.id ?? null;
         this.onSetId = onSet?.id ?? null;
         this.onActualId = onActual?.id ?? onSet?.id ?? null;
+        this.effectId = states.find(s => s.name === 'EFFECT')?.id ?? null;
+        this.transitionTimeId = states.find(s => s.name === 'TRANSITION_TIME')?.id ?? null;
 
         this.state = {
             ...this.state,
@@ -43,6 +52,11 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             dragging: false,
             dimMin: 0,
             dimMax: 100,
+            effect: null,
+            effectStates: {},
+            transitionTime: null,
+            transitionMax: 10000,
+            dialogOpen: false,
         };
     }
 
@@ -53,6 +67,14 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         }
         if (this.onActualId) {
             this.props.stateContext.getState(this.onActualId, this.onOnOffChange);
+        }
+        if (this.effectId) {
+            this.props.stateContext.getState(this.effectId, this.onEffectChange);
+            void this.loadEffectObject();
+        }
+        if (this.transitionTimeId) {
+            this.props.stateContext.getState(this.transitionTimeId, this.onTransitionChange);
+            void this.loadTransitionObject();
         }
         void this.loadDimmerObject();
     }
@@ -79,6 +101,76 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         }
     }
 
+    private async loadEffectObject(): Promise<void> {
+        if (!this.effectId) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(this.effectId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj?.common?.states && typeof obj.common.states === 'object') {
+                this.setState({ effectStates: obj.common.states as Record<string, string> });
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private async loadTransitionObject(): Promise<void> {
+        if (!this.transitionTimeId) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(this.transitionTimeId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj?.common) {
+                const max = obj.common.max != null ? Number(obj.common.max) : 10000;
+                if (!isNaN(max) && max > 0) {
+                    this.setState({ transitionMax: max });
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private onEffectChange = (_id: string, state: ioBroker.State): void => {
+        const effect = state.val;
+        if (effect !== this.state.effect) {
+            this.setState({ effect: effect as number | string | null });
+        }
+    };
+
+    private onTransitionChange = (_id: string, state: ioBroker.State): void => {
+        const val = state.val != null ? Number(state.val) : null;
+        const transitionTime = val != null && !isNaN(val) ? val : null;
+        if (transitionTime !== this.state.transitionTime) {
+            this.setState({ transitionTime });
+        }
+    };
+
+    private setEffect = (value: number | string): void => {
+        if (this.effectId) {
+            void this.props.stateContext.getSocket().setState(this.effectId, value);
+            this.setState({ effect: value });
+        }
+    };
+
+    private setTransitionTime = (value: number): void => {
+        if (this.transitionTimeId) {
+            void this.props.stateContext.getSocket().setState(this.transitionTimeId, value);
+            this.setState({ transitionTime: value });
+        }
+    };
+
+    private hasExtendedControls(): boolean {
+        return !!(this.effectId || this.transitionTimeId);
+    }
+
     /** Convert a raw device value to 0-100 percent */
     private rawToPercent(raw: number): number {
         const { dimMin, dimMax } = this.state;
@@ -102,6 +194,12 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         }
         if (this.onActualId) {
             this.props.stateContext.removeState(this.onActualId, this.onOnOffChange);
+        }
+        if (this.effectId) {
+            this.props.stateContext.removeState(this.effectId, this.onEffectChange);
+        }
+        if (this.transitionTimeId) {
+            this.props.stateContext.removeState(this.transitionTimeId, this.onTransitionChange);
         }
     }
 
@@ -283,47 +381,134 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         );
     }
 
+    private getCurrentEffectLabel(): string | null {
+        const { effect, effectStates } = this.state;
+        if (effect == null) {
+            return null;
+        }
+        return effectStates[String(effect)] || null;
+    }
+
     protected renderTileStatus(): React.JSX.Element {
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const { brightness } = this.state;
+        const effectLabel = this.getCurrentEffectLabel();
+        const hasEffect = effectLabel && effectLabel.toLowerCase() !== 'none';
 
         return (
-            <Typography
-                variant="caption"
-                sx={theme => ({
-                    fontWeight: 500,
-                    color: isActive ? accent || theme.palette.primary.main : theme.palette.text.secondary,
-                    transition: 'color 0.25s ease',
-                })}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography
+                    variant="caption"
+                    sx={theme => ({
+                        fontWeight: 500,
+                        color: isActive ? accent || theme.palette.primary.main : theme.palette.text.secondary,
+                        transition: 'color 0.25s ease',
+                    })}
+                >
+                    {isActive ? `${Math.round(brightness)}%` : I18n.t('wm_Off')}
+                </Typography>
+                {hasEffect ? (
+                    <Tooltip title={effectLabel!}>
+                        <AutoFixHigh sx={{ fontSize: 12, color: accent || 'primary.main' }} />
+                    </Tooltip>
+                ) : null}
+            </Box>
+        );
+    }
+
+    private renderArcKnob(): React.JSX.Element {
+        const { brightness, dragging } = this.state;
+        const isActive = this.isTileActive();
+        const accent = this.getAccentColor();
+        const vb = 100;
+        const sw = 10;
+        const r = (vb - sw) / 2;
+        const circumference = 2 * Math.PI * r;
+        const arcLength = circumference * 0.75;
+        const progress = (brightness / 100) * arcLength;
+
+        return (
+            <Box
+                ref={this.arcRef}
+                onPointerDown={this.onArcPointerDown}
+                onPointerMove={this.onArcPointerMove}
+                onPointerUp={this.onArcPointerUp}
+                onPointerCancel={this.onArcPointerUp}
+                onClick={e => e.stopPropagation()}
+                sx={{
+                    width: 48,
+                    height: 48,
+                    flexShrink: 0,
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                }}
             >
-                {isActive ? `${Math.round(brightness)}%` : I18n.t('wm_Off')}
-            </Typography>
+                <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}>
+                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw}
+                        strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" opacity={0.15} />
+                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none"
+                        stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
+                        strokeWidth={sw} strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round"
+                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }} />
+                </svg>
+                <Typography sx={{
+                    position: 'absolute',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    color: isActive ? (accent || 'primary.main') : 'text.secondary',
+                }}>
+                    {Math.round(brightness)}%
+                </Typography>
+            </Box>
         );
     }
 
     protected renderTileAction(): React.JSX.Element {
         const { brightness } = this.state;
         const accent = this.getAccentColor();
+        const isRound = (this.props.settings?.wideSliderStyle || 'horizontal') === 'round';
 
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Slider
-                    value={brightness}
-                    min={0}
-                    max={100}
-                    size="small"
-                    onClick={e => e.stopPropagation()}
-                    onChange={this.setBrightness}
-                    sx={theme => ({
-                        width: 80,
-                        color: accent || theme.palette.primary.main,
-                        '& .MuiSlider-thumb': {
-                            width: 14,
-                            height: 14,
-                        },
-                    })}
-                />
+                {this.hasExtendedControls() ? (
+                    <Tooltip title={I18n.t('wm_Effect')}>
+                        <IconButton
+                            size="small"
+                            onClick={e => {
+                                e.stopPropagation();
+                                this.setState({ dialogOpen: true });
+                            }}
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            <AutoFixHigh sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </Tooltip>
+                ) : null}
+                {isRound ? this.renderArcKnob() : (
+                    <Slider
+                        value={brightness}
+                        min={0}
+                        max={100}
+                        size="small"
+                        onClick={e => e.stopPropagation()}
+                        onChange={this.setBrightness}
+                        sx={theme => ({
+                            width: 80,
+                            color: accent || theme.palette.primary.main,
+                            '& .MuiSlider-thumb': {
+                                width: 14,
+                                height: 14,
+                            },
+                        })}
+                    />
+                )}
                 <MuiSwitch
                     checked={this.isTileActive()}
                     onClick={e => e.stopPropagation()}
@@ -341,6 +526,100 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                     }
                 />
             </Box>
+        );
+    }
+
+    private renderExtendedDialog(): React.JSX.Element | null {
+        if (!this.state.dialogOpen || !this.hasExtendedControls()) {
+            return null;
+        }
+
+        const { name, effect, effectStates, transitionTime, transitionMax } = this.state;
+        const effectEntries = Object.entries(effectStates);
+
+        return (
+            <Dialog
+                open
+                onClose={() => this.setState({ dialogOpen: false })}
+                maxWidth="xs"
+                fullWidth
+                slotProps={{ paper: { sx: { borderRadius: '24px' } } }}
+            >
+                <DialogContent sx={{ p: 3, pt: 2, position: 'relative' }}>
+                    <IconButton
+                        size="small"
+                        onClick={() => this.setState({ dialogOpen: false })}
+                        sx={{ position: 'absolute', top: 8, right: 8 }}
+                    >
+                        <Close fontSize="small" />
+                    </IconButton>
+
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, pr: 4 }}>
+                        {this.props.settings?.name || name || '...'}
+                    </Typography>
+
+                    {/* Effect selector */}
+                    {this.effectId && effectEntries.length > 0 ? (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                                <AutoFixHigh sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Effect')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                {effectEntries.map(([key, label]) => {
+                                    const isNum = !isNaN(Number(key));
+                                    const val = isNum ? Number(key) : key;
+                                    const isActive = effect != null && String(effect) === key;
+                                    return (
+                                        <Button
+                                            key={key}
+                                            variant={isActive ? 'contained' : 'outlined'}
+                                            color={isActive ? 'primary' : 'inherit'}
+                                            onClick={() => this.setEffect(val)}
+                                            size="small"
+                                            sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
+                                        >
+                                            {label}
+                                        </Button>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {/* Transition time slider */}
+                    {this.transitionTimeId ? (
+                        <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                                <Timer sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Transition time')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
+                                <Slider
+                                    value={transitionTime ?? 0}
+                                    min={0}
+                                    max={transitionMax}
+                                    step={100}
+                                    onChange={(_e, value) => this.setState({ transitionTime: value as number })}
+                                    onChangeCommitted={(_e, value) => this.setTransitionTime(value as number)}
+                                    sx={{ flex: 1 }}
+                                />
+                                <Typography variant="body2" sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                    {transitionTime != null ? `${(transitionTime / 1000).toFixed(1)}s` : '—'}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         );
     }
 
@@ -363,6 +642,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative' }}
             >
                 <Box
@@ -456,6 +736,15 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                 </Box>
                 {this.renderSettingsButton()}
             </Box>
+        );
+    }
+
+    render(): React.JSX.Element {
+        return (
+            <>
+                {super.render()}
+                {this.renderExtendedDialog()}
+            </>
         );
     }
 }

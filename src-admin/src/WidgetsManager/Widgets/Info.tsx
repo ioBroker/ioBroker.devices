@@ -350,6 +350,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box

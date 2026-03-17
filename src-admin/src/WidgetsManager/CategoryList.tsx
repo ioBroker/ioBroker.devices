@@ -176,14 +176,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     // --- Hash routing ---
 
     private getCategoryName(category: CategoryInfo): string {
-        if (typeof category.name === 'string') {
-            return category.name || String(category.id);
+        if (category.name && typeof category.name === 'string') {
+            return category.name;
         }
-        if (typeof category.name === 'object' && 'en' in category.name) {
-            const translated = category.name;
+        if (
+            category.name &&
+            typeof category.name === 'object' &&
+            !(category.name as { objectId: string; property: string }).objectId
+        ) {
+            const translated = category.name as ioBroker.Translated;
             return translated[this.language] || translated.en || String(category.id);
         }
-        return String(category.id);
+        return String(category.id).split('.').pop() || '';
     }
 
     /** Build hash path like #Room/SubRoom by walking up the parent chain */
@@ -723,7 +727,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private onWidgetOrderChange = (categoryId: string, widgetOrder: string[]): void => {
         const existing = this.state.categorySettings[categoryId] || {
-            name: '', color: '', backgroundColor: '', image: '', imageScope: 'header' as const,
+            name: '',
+            color: '',
+            backgroundColor: '',
+            image: '',
+            imageScope: 'header' as const,
         };
         const updatedSettings: CategorySettings = { ...existing, widgetOrder };
         const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
@@ -942,9 +950,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onOpenCustomWidgetSettings={
                                 this.props.showSettingsButton ? this.onOpenCustomWidgetSettings : undefined
                             }
-                            onWidgetOrderChange={
-                                this.props.showSettingsButton ? this.onWidgetOrderChange : undefined
-                            }
+                            onWidgetOrderChange={this.props.showSettingsButton ? this.onWidgetOrderChange : undefined}
                             admin={this.props.admin}
                         />
                         <WidgetSettingsDialog
@@ -962,11 +968,36 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             showPin={settingsWidget?.control?.type === Types.lock}
                             showHideWhenOk={
                                 settingsWidget?.control?.type === Types.floodAlarm ||
-                                settingsWidget?.control?.type === Types.fireAlarm
+                                settingsWidget?.control?.type === Types.fireAlarm ||
+                                settingsWidget?.control?.type === Types.warning
                             }
                             showCoordinates={
                                 settingsWidget?.control?.type === Types.location ||
                                 settingsWidget?.control?.type === Types.locationOne
+                            }
+                            showMarkerIcon={
+                                settingsWidget?.control?.type === Types.location ||
+                                settingsWidget?.control?.type === Types.locationOne
+                            }
+                            showMapTheme={
+                                settingsWidget?.control?.type === Types.location ||
+                                settingsWidget?.control?.type === Types.locationOne
+                            }
+                            showSliderType={
+                                settingsWidget?.control?.type === Types.slider ||
+                                settingsWidget?.control?.type === Types.percentage
+                            }
+                            showWideSliderStyle={
+                                settingsWidget?.control?.type === Types.dimmer ||
+                                settingsWidget?.control?.type === Types.volume ||
+                                settingsWidget?.control?.type === Types.slider ||
+                                settingsWidget?.control?.type === Types.percentage
+                            }
+                            showAnimation={
+                                settingsWidget?.control?.type === Types.info &&
+                                !!settingsWidget?.control?.states.some(
+                                    s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test((s as any).role || ''),
+                                )
                             }
                             showOnBrightness={
                                 settingsWidget != null &&
@@ -982,6 +1013,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 ) &&
                                 !settingsWidget.control.states.some(s => s.name === 'ON_SET' || s.name === 'ON')
                             }
+                            showRefreshInterval={settingsWidget?.control?.type === Types.image}
                             objectName={this.state.settingsObjectName}
                             objectColor={this.state.settingsObjectColor}
                         />

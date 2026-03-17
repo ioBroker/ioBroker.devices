@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, IconButton, Slider, Typography } from '@mui/material';
-import { Stop } from '@mui/icons-material';
+import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
+import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -10,6 +10,7 @@ interface WidgetBlindState extends WidgetGenericState {
     dragging: boolean;
     min: number;
     max: number;
+    tiltPosition: number | null;
 }
 
 interface BlindSvgProps {
@@ -281,6 +282,10 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly stopId: string | null;
+    private readonly openId: string | null;
+    private readonly closeId: string | null;
+    private readonly tiltSetId: string | null;
+    private readonly tiltActualId: string | null;
 
     private tileRef = React.createRef<HTMLDivElement>();
     private dragStartPos: { x: number; y: number } | null = null;
@@ -293,10 +298,18 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         const set = states.find(s => s.name === 'SET');
         const actual = states.find(s => s.name === 'ACTUAL');
         const stop = states.find(s => s.name === 'STOP');
+        const open = states.find(s => s.name === 'OPEN');
+        const close = states.find(s => s.name === 'CLOSE');
+        const tiltSet = states.find(s => s.name === 'TILT_SET');
+        const tiltActual = states.find(s => s.name === 'TILT_ACTUAL');
 
         this.setId = set?.id ?? null;
         this.actualId = actual?.id ?? set?.id ?? null;
         this.stopId = stop?.id ?? null;
+        this.openId = open?.id ?? null;
+        this.closeId = close?.id ?? null;
+        this.tiltSetId = tiltSet?.id ?? null;
+        this.tiltActualId = tiltActual?.id ?? tiltSet?.id ?? null;
 
         this.state = {
             ...this.state,
@@ -304,6 +317,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
             dragging: false,
             min: 0,
             max: 100,
+            tiltPosition: null,
         };
     }
 
@@ -312,6 +326,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onPositionChange);
         }
+        if (this.tiltActualId) {
+            this.props.stateContext.getState(this.tiltActualId, this.onTiltChange);
+        }
         void this.loadBlindObject();
     }
 
@@ -319,6 +336,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         super.componentWillUnmount();
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onPositionChange);
+        }
+        if (this.tiltActualId) {
+            this.props.stateContext.removeState(this.tiltActualId, this.onTiltChange);
         }
     }
 
@@ -376,6 +396,14 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         }
     };
 
+    private onTiltChange = (_id: string, state: ioBroker.State): void => {
+        const val = state.val != null ? Number(state.val) : null;
+        const tiltPosition = val != null && !isNaN(val) ? Math.round(val) : null;
+        if (tiltPosition !== this.state.tiltPosition) {
+            this.setState({ tiltPosition });
+        }
+    };
+
     stop = (e?: React.MouseEvent): void => {
         if (e) {
             e.stopPropagation();
@@ -383,6 +411,31 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         if (this.stopId) {
             void this.props.stateContext.getSocket().setState(this.stopId, true);
         }
+    };
+
+    private open = (e: React.MouseEvent): void => {
+        e.stopPropagation();
+        if (this.openId) {
+            void this.props.stateContext.getSocket().setState(this.openId, true);
+        } else if (this.setId) {
+            void this.props.stateContext.getSocket().setState(this.setId, this.state.max);
+        }
+    };
+
+    private close = (e: React.MouseEvent): void => {
+        e.stopPropagation();
+        if (this.closeId) {
+            void this.props.stateContext.getSocket().setState(this.closeId, true);
+        } else if (this.setId) {
+            void this.props.stateContext.getSocket().setState(this.setId, this.state.min);
+        }
+    };
+
+    private onTiltSliderChange = (_e: Event, value: number | number[]): void => {
+        if (this.tiltSetId) {
+            void this.props.stateContext.getSocket().setState(this.tiltSetId, value as number);
+        }
+        this.setState({ tiltPosition: value as number });
     };
 
     // --- Vertical drag interaction ---
@@ -489,9 +542,12 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
     }
 
     protected renderTileStatus(): React.JSX.Element {
-        const { position } = this.state;
+        const { position, tiltPosition } = this.state;
         const isActive = position > 0;
         const accent = this.getAccentColor();
+
+        const posText = position === 100 ? I18n.t('wm_Open') : position === 0 ? I18n.t('wm_Closed') : `${position}%`;
+        const tiltText = tiltPosition != null && this.tiltSetId ? ` ↕${tiltPosition}%` : '';
 
         return (
             <Typography
@@ -502,17 +558,19 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                     transition: 'color 0.25s ease',
                 })}
             >
-                {position === 100 ? I18n.t('wm_Open') : position === 0 ? I18n.t('wm_Closed') : `${position}%`}
+                {posText}{tiltText}
             </Typography>
         );
     }
 
     protected renderTileAction(): React.JSX.Element {
-        const { position } = this.state;
+        const { position, tiltPosition } = this.state;
         const accent = this.getAccentColor();
+        const hasButtons = this.openId || this.closeId || this.stopId;
 
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {/* Position slider */}
                 <Slider
                     value={position}
                     min={0}
@@ -521,22 +579,51 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                     onClick={e => e.stopPropagation()}
                     onChange={this.setPosition}
                     sx={theme => ({
-                        width: 80,
+                        width: 70,
                         color: accent || theme.palette.primary.main,
-                        '& .MuiSlider-thumb': {
-                            width: 14,
-                            height: 14,
-                        },
+                        '& .MuiSlider-thumb': { width: 14, height: 14 },
                     })}
                 />
-                {this.stopId ? (
-                    <IconButton
-                        size="small"
-                        onClick={this.stop}
-                        sx={{ color: 'text.secondary' }}
-                    >
-                        <Stop fontSize="small" />
-                    </IconButton>
+                {/* Tilt slider */}
+                {this.tiltSetId && tiltPosition != null ? (
+                    <Tooltip title={I18n.t('wm_Tilted')}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                            <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
+                            <Slider
+                                value={tiltPosition}
+                                min={0}
+                                max={100}
+                                size="small"
+                                onClick={e => e.stopPropagation()}
+                                onChangeCommitted={this.onTiltSliderChange}
+                                sx={theme => ({
+                                    width: 40,
+                                    color: accent || theme.palette.text.secondary,
+                                    '& .MuiSlider-thumb': { width: 10, height: 10 },
+                                })}
+                            />
+                        </Box>
+                    </Tooltip>
+                ) : null}
+                {/* Control buttons */}
+                {hasButtons ? (
+                    <Box sx={{ display: 'flex', gap: 0 }}>
+                        {this.openId ? (
+                            <IconButton size="small" onClick={this.open} sx={{ color: 'text.secondary', p: 0.25 }}>
+                                <KeyboardArrowUp fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                        {this.stopId ? (
+                            <IconButton size="small" onClick={this.stop} sx={{ color: 'text.secondary', p: 0.25 }}>
+                                <Stop fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                        {this.closeId ? (
+                            <IconButton size="small" onClick={this.close} sx={{ color: 'text.secondary', p: 0.25 }}>
+                                <KeyboardArrowDown fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                    </Box>
                 ) : null}
             </Box>
         );
@@ -552,6 +639,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative' }}
             >
                 <Box

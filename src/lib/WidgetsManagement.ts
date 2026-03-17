@@ -1,13 +1,26 @@
 import ChannelDetector, { type PatternControl } from '@iobroker/type-detector';
 import type DevicesAdapter from '../main';
 import { WidgetsManagement } from '../widget-utils';
+import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
 
 const ROOT_CATEGORY = '__root__';
 const ALIAS = 'alias.';
 const ALIAS_MAX = 'alias.0.\u9999';
 const LINKEDDEVICES = 'linkeddevices.';
 
-type InternalDevice = PatternControl & { channelId: string };
+export interface DevicesDetectorState extends DetectorState {
+    id: string;
+    stateRole?: string;
+}
+
+export interface DevicesPatternControl {
+    states: DevicesDetectorState[];
+    type: Types;
+    storeId: string;
+    parentId: string;
+    deviceId: string;
+    channelId: string;
+}
 
 function findMainStateId(device: PatternControl): string | undefined {
     const state = device.states.find(s => s.id && s.required);
@@ -27,9 +40,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     private enumMemberIds: string[] = [];
     private idsInEnums: string[] = [];
     /** All detected devices */
-    private allDevices: InternalDevice[] = [];
+    private allDevices: DevicesPatternControl[] = [];
     /** Only devices with `common.custom[namespace].enabled === true` */
-    private enabledDevices: InternalDevice[] = [];
+    private enabledDevices: DevicesPatternControl[] = [];
     private loaded: Promise<void> | null = null;
     private notifyTimeout: ReturnType<typeof setTimeout> | null = null;
     /** Lazily rebuilt sorted keys cache */
@@ -51,31 +64,46 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     /**
      * Resolve the channelId for a detected device (same logic as updateEnumsForOneDevice).
      */
-    private resolveChannelId(device: InternalDevice): void {
+    private resolveChannelId(device: DevicesPatternControl): void {
         const mainStateId = findMainStateId(device);
         if (!mainStateId) {
-            device.channelId = '';
+            device.storeId = '';
             return;
         }
-
-        const statesCount = device.states.filter(s => s.id).length;
-        let channelId = mainStateId;
+        const statesCount = device.states.filter(state => state.id).length;
+        let storeId = mainStateId;
         if (
             mainStateId.includes('.') &&
-            (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))
+            (statesCount > 1 || storeId.startsWith(ALIAS) || storeId.startsWith(LINKEDDEVICES))
         ) {
-            channelId = getParentId(mainStateId);
+            storeId = getParentId(mainStateId);
             if (
-                !this.objects[channelId]?.common ||
-                (this.objects[channelId].type !== 'channel' &&
-                    this.objects[channelId].type !== 'device' &&
-                    this.objects[channelId].type !== 'folder')
+                !this.objects[storeId]?.common ||
+                (this.objects[storeId].type !== 'channel' &&
+                    this.objects[storeId].type !== 'device' &&
+                    this.objects[storeId].type !== 'folder')
             ) {
-                channelId = mainStateId;
+                storeId = mainStateId;
             }
         }
 
-        device.channelId = channelId;
+        device.storeId = storeId;
+
+        const channelId = getParentId(storeId);
+        if (
+            this.objects[channelId]?.common &&
+            (this.objects[channelId].type === 'device' || this.objects[channelId].type === 'channel')
+        ) {
+            device.channelId = channelId;
+            if (this.objects[channelId].type === 'channel') {
+                const deviceId = getParentId(channelId);
+                if (this.objects[deviceId]?.type === 'device') {
+                    device.deviceId = deviceId;
+                }
+            }
+        } else {
+            device.channelId = storeId;
+        }
     }
 
     /**
@@ -215,13 +243,13 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     /**
      * Run ChannelDetector.detect() only for the given IDs. Returns newly detected devices.
      */
-    private detectForIds(ids: string[]): InternalDevice[] {
+    private detectForIds(ids: string[]): DevicesPatternControl[] {
         if (!ids.length) {
             return [];
         }
         const keys = this.getSortedKeys();
         const usedIds: string[] = [];
-        const result: InternalDevice[] = [];
+        const result: DevicesPatternControl[] = [];
 
         for (const id of ids) {
             const detected = this.detector.detect({
@@ -233,9 +261,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             });
             if (detected) {
                 for (const device of detected) {
-                    const d = device as InternalDevice;
+                    const d = device as DevicesPatternControl;
                     this.resolveChannelId(d);
-                    if (d.channelId) {
+                    if (d.storeId) {
                         result.push(d);
                         break; // ignore "smaller" devices
                     }
@@ -254,7 +282,49 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             return;
         }
         const set = new Set(channelIds);
-        this.allDevices = this.allDevices.filter(d => !set.has(d.channelId));
+        this.allDevices = this.allDevices.filter(d => !set.has(d.storeId));
+    }
+
+    private findIdInEnums(lookForId: string): string {
+        // Try to find room, to which this device belongs to
+        let useEnum = '';
+        for (const enumId of this.enumIds) {
+            if (enumId.startsWith('enum.rooms.')) {
+                const enumObj: ioBroker.EnumObject = this.objects[enumId] as ioBroker.EnumObject;
+                if (
+                    enumObj?.common?.members?.includes(lookForId) ||
+                    enumObj?.common?.members?.find(id => id.startsWith(`${lookForId}.`))
+                ) {
+                    useEnum = enumId;
+                }
+            }
+        }
+        if (!useEnum) {
+            for (const enumId of this.enumIds) {
+                if (enumId.startsWith('enum.functions.')) {
+                    const enumObj: ioBroker.EnumObject = this.objects[enumId] as ioBroker.EnumObject;
+                    if (
+                        enumObj?.common?.members?.includes(lookForId) ||
+                        enumObj?.common?.members?.find(id => id.startsWith(`${lookForId}.`))
+                    ) {
+                        useEnum = enumId;
+                    }
+                }
+            }
+        }
+
+        if (!useEnum) {
+            for (const enumId of this.enumIds) {
+                const enumObj: ioBroker.EnumObject = this.objects[enumId] as ioBroker.EnumObject;
+                if (
+                    enumObj?.common?.members?.includes(lookForId) ||
+                    enumObj?.common?.members?.find(id => id.startsWith(`${lookForId}.`))
+                ) {
+                    useEnum = enumId;
+                }
+            }
+        }
+        return useEnum;
     }
 
     /**
@@ -264,8 +334,93 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     private rebuildEnabledDevices(): void {
         const customKey = this.adapter.namespace;
         this.enabledDevices = this.allDevices.filter(
-            d => d.channelId && this.objects[d.channelId]?.common?.custom?.[customKey]?.enabled,
+            d => d.storeId && this.objects[d.storeId]?.common?.custom?.[customKey]?.enabled,
         );
+
+        // Special case: the devices not from alias.0
+        for (const device of this.enabledDevices) {
+            // try to find a parent category
+            let parentId = getParentId(device.storeId);
+            if (parentId && this.categories?.has(parentId)) {
+                device.parentId = parentId;
+                continue;
+            }
+            if (parentId.startsWith(ALIAS) || parentId.startsWith(LINKEDDEVICES)) {
+                device.parentId = parentId;
+                let parentCategoryId = getParentId(parentId);
+                // Create virtual category
+                this.categories?.set(parentId, {
+                    type: 'category',
+                    id: parentId,
+                    name: this.objects[parentId]
+                        ? this.objects[parentId].common.name || parentId.split('.').pop() || ''
+                        : '',
+                    icon: this.objects[parentId] ? this.objects[parentId].common.icon : undefined,
+                    color: this.objects[parentId] ? this.objects[parentId].common.color : undefined,
+                    parent: parentCategoryId === 'alias.0' ? ROOT_CATEGORY : parentCategoryId,
+                    custom: this.objects[parentId]?.common.custom?.[this.adapter.namespace],
+                });
+                parentId = parentCategoryId;
+                parentCategoryId = getParentId(parentId);
+                while (parentId !== 'alias.0' && parentId && !this.categories?.has(parentId)) {
+                    // Create virtual category
+                    this.categories?.set(parentId, {
+                        type: 'category',
+                        id: parentId,
+                        name: this.objects[parentId]
+                            ? this.objects[parentId].common.name || parentId.split('.').pop() || ''
+                            : '',
+                        icon: this.objects[parentId] ? this.objects[parentId].common.icon : undefined,
+                        color: this.objects[parentId] ? this.objects[parentId].common.color : undefined,
+                        parent: parentCategoryId === 'alias.0' ? ROOT_CATEGORY : parentCategoryId,
+                        custom: this.objects[parentId]?.common.custom?.[this.adapter.namespace],
+                    });
+                    parentId = parentCategoryId;
+                    parentCategoryId = getParentId(parentId);
+                }
+            } else {
+                // Try to find room, to which this device belongs to
+                let useEnum = this.findIdInEnums(device.storeId);
+                useEnum ||= this.findIdInEnums(device.channelId);
+                useEnum ||= this.findIdInEnums(device.deviceId);
+                if (useEnum) {
+                    device.parentId = useEnum;
+                    let parentCategoryId = getParentId(useEnum);
+                    // if no parent category, assign to root
+                    this.categories?.set(useEnum, {
+                        type: 'category',
+                        id: useEnum,
+                        name: this.objects[useEnum]
+                            ? this.objects[useEnum].common.name || useEnum.split('.').pop() || ''
+                            : '',
+                        icon: this.objects[useEnum] ? this.objects[useEnum].common.icon : undefined,
+                        color: this.objects[useEnum] ? this.objects[useEnum].common.color : undefined,
+                        parent: parentCategoryId.split('.').length > 2 ? parentCategoryId : ROOT_CATEGORY,
+                        custom: this.objects[useEnum]?.common.custom?.[this.adapter.namespace],
+                    });
+                    parentId = parentCategoryId;
+                    parentCategoryId = getParentId(parentId);
+                    while (parentId.split('.').length > 2 && parentId && !this.categories?.has(parentId)) {
+                        // Create virtual category
+                        this.categories?.set(parentId, {
+                            type: 'category',
+                            id: parentId,
+                            name: this.objects[parentId]
+                                ? this.objects[parentId].common.name || parentId.split('.').pop() || ''
+                                : '',
+                            icon: this.objects[parentId] ? this.objects[parentId].common.icon : undefined,
+                            color: this.objects[parentId] ? this.objects[parentId].common.color : undefined,
+                            parent: parentCategoryId.split('.').length > 2 ? parentCategoryId : ROOT_CATEGORY,
+                            custom: this.objects[parentId]?.common.custom?.[this.adapter.namespace],
+                        });
+                        parentId = parentCategoryId;
+                        parentCategoryId = getParentId(parentId);
+                    }
+                } else {
+                    this.adapter.log.warn(`Cannot find parent for "${device.storeId}"!`);
+                }
+            }
+        }
     }
 
     /**
@@ -293,9 +448,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         // Check if any existing device references this ID in its states
         const affected: string[] = [];
         for (const device of this.allDevices) {
-            if (device.channelId === id || device.states.some(s => s.id === id)) {
-                if (!affected.includes(device.channelId)) {
-                    affected.push(device.channelId);
+            if (device.storeId === id || device.states.some(s => s.id === id)) {
+                if (!affected.includes(device.storeId)) {
+                    affected.push(device.storeId);
                 }
             }
         }
@@ -440,20 +595,19 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         this.widgets = new Map();
 
         for (const device of this.enabledDevices) {
-            const obj = this.objects[device.channelId];
+            const obj = this.objects[device.storeId];
             if (!obj) {
                 continue;
             }
 
             const name =
                 typeof obj.common.name === 'object'
-                    ? obj.common.name[this.adapter.language || 'en'] || obj.common.name.en || device.channelId
-                    : obj.common.name || device.channelId;
+                    ? obj.common.name[this.adapter.language || 'en'] || obj.common.name.en || device.storeId
+                    : obj.common.name || device.storeId;
 
             const icon = obj.common.icon || undefined;
             const color = obj.common.color || undefined;
 
-            const parentId = getParentId(device.channelId);
             // delete all empty states
             for (let i = device.states.length - 1; i >= 0; i--) {
                 // delete empty lines
@@ -461,6 +615,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     device.states.splice(i, 1);
                     continue;
                 }
+                // We must deliver role, as in some widgets it is used to determine the widget type
+                device.states[i].stateRole = this.objects[device.states[i].id]?.common?.role;
                 /** Remove useless for GUI information */
                 if (device.states[i].original) {
                     delete device.states[i].original;
@@ -501,13 +657,13 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             }
 
             // Support of categories only in aliases.
-            this.widgets.set(device.channelId, {
+            this.widgets.set(device.storeId, {
                 type: 'widget',
-                id: device.channelId,
+                id: device.storeId,
                 name,
                 icon,
                 color,
-                parent: parentId && parentId !== 'alias.0' ? parentId : undefined,
+                parent: device.parentId,
                 control: {
                     type: device.type,
                     states: device.states,
@@ -519,7 +675,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         let someDeleted = false;
         do {
             someDeleted = false;
-            // Fo through all categories and remove the empty one (except root)
+            // go through all categories and remove the empty one (except root)
             this.categories?.forEach((category, id) => {
                 if (id === ROOT_CATEGORY) {
                     return;

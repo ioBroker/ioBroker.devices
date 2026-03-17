@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Box, ButtonBase, Tooltip, Typography } from '@mui/material';
+import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, Tooltip, Typography } from '@mui/material';
 import {
     ArrowDownward,
     ArrowUpward,
@@ -10,6 +10,7 @@ import {
     BatteryFull,
     Build,
     Error as ErrorIcon,
+    InfoOutlined,
     LinkOff,
     Settings,
     Sync,
@@ -32,8 +33,20 @@ export interface WidgetSettings {
     hideWhenOk: boolean;
     onBrightness: number;
     showCoordinates: boolean;
-    /** Base64 data URI for custom map marker icon (png/jpg/svg) */
+    /** Base64 data URI or predefined type name for map marker icon */
     markerIcon: string;
+    /** Map tile theme: standard, dark, satellite */
+    mapTheme: string;
+    /** Slider visual type: normal, valve, fan, gauge */
+    sliderType: string;
+    /** Wide view slider style: horizontal (MUI slider) or round (arc knob) */
+    wideSliderStyle: string;
+    /** Show wave animation on tank widget */
+    showAnimation: boolean;
+    /** Image refresh interval in seconds (0 = no refresh) */
+    refreshInterval: number;
+    /** Append ?ts=timestamp to image URL for cache busting */
+    appendTimestamp: boolean;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -48,6 +61,12 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     onBrightness: 100,
     showCoordinates: false,
     markerIcon: '',
+    mapTheme: 'standard',
+    sliderType: 'normal',
+    wideSliderStyle: 'horizontal',
+    showAnimation: true,
+    refreshInterval: 0,
+    appendTimestamp: false,
 };
 
 export interface WidgetGenericProps {
@@ -75,12 +94,22 @@ export interface ChartSeries {
     color: string;
 }
 
+export interface ExtraInfoEntry {
+    id: string;
+    stateName: string;
+    label: string;
+    unit: string;
+    value: number | string | null;
+}
+
 export interface WidgetGenericState {
     name: string | null;
     icon: string | null;
     color: string | null;
     indicators: IndicatorValues;
     chartSeries: ChartSeries[];
+    extraInfo: ExtraInfoEntry[];
+    infoDialogOpen: boolean;
 }
 
 const INDICATOR_NAMES = [
@@ -95,6 +124,23 @@ const INDICATOR_NAMES = [
 ] as const;
 
 const INDICATOR_ICON_SIZE = 14;
+
+/** Extra info state names — shown in "i" dialog when present on a device */
+const EXTRA_INFO_NAMES = [
+    'ELECTRIC_POWER',
+    'CURRENT',
+    'VOLTAGE',
+    'CONSUMPTION',
+    'FREQUENCY',
+] as const;
+
+const EXTRA_INFO_LABELS: Record<string, string> = {
+    ELECTRIC_POWER: 'wm_Power',
+    CURRENT: 'wm_Current',
+    VOLTAGE: 'wm_Voltage',
+    CONSUMPTION: 'wm_Consumption',
+    FREQUENCY: 'wm_Frequency',
+};
 
 export function getTileStyles(
     theme: Theme,
@@ -143,6 +189,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 > {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
+    /** Extra info state IDs (ELECTRIC_POWER, CURRENT, etc.) */
+    private readonly extraInfoIds: { id: string; stateName: string }[] = [];
     /** common.states mapping for the ERROR indicator (numeric error codes → text) */
     private errorStatesMap: Record<string, string> | null = null;
     private historyInstance: string | null = null;
@@ -157,13 +205,18 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             color: null,
             indicators: { ...DEFAULT_INDICATORS },
             chartSeries: [] as ChartSeries[],
-        } as TState;
+            extraInfo: [] as ExtraInfoEntry[],
+            infoDialogOpen: false,
+        } as unknown as TState;
 
         // Collect indicator state IDs from control.states
         if (props.widget.control?.states) {
             for (const s of props.widget.control.states) {
                 if ((INDICATOR_NAMES as readonly string[]).includes(s.name) && s.id) {
                     this.indicatorIds[s.name as (typeof INDICATOR_NAMES)[number]] = s.id;
+                }
+                if ((EXTRA_INFO_NAMES as readonly string[]).includes(s.name) && s.id) {
+                    this.extraInfoIds.push({ id: s.id, stateName: s.name });
                 }
             }
         }
@@ -237,6 +290,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 });
         }
 
+        // Load extra info states (ELECTRIC_POWER, CURRENT, etc.)
+        if (this.extraInfoIds.length > 0) {
+            void this.loadExtraInfoMetadata();
+        }
+
         // Start chart data loading if configured
         this.startChartRefresh();
         this.adjustNameFontSize();
@@ -252,6 +310,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             if (id) {
                 this.props.stateContext.removeState(id, this.onIndicatorChange);
             }
+        }
+        for (const entry of this.extraInfoIds) {
+            this.props.stateContext.removeState(entry.id, this.onExtraInfoChange);
         }
     }
 
@@ -426,6 +487,109 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
 
         return text;
+    }
+
+    // --- Extra info (ELECTRIC_POWER, CURRENT, VOLTAGE, etc.) ---
+
+    private async loadExtraInfoMetadata(): Promise<void> {
+        const entries: ExtraInfoEntry[] = [];
+        for (const { id, stateName } of this.extraInfoIds) {
+            let label = I18n.t(EXTRA_INFO_LABELS[stateName] || stateName);
+            let unit = '';
+            try {
+                const obj = (await this.props.stateContext.getSocket().getObject(id)) as
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
+                if (obj?.common) {
+                    unit = obj.common.unit || '';
+                    const objName =
+                        typeof obj.common.name === 'object'
+                            ? obj.common.name[this.props.language] || obj.common.name.en || ''
+                            : obj.common.name || '';
+                    if (objName) {
+                        label = objName;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+            entries.push({ id, stateName, label, unit, value: null });
+            this.props.stateContext.getState(id, this.onExtraInfoChange);
+        }
+        if (entries.length > 0) {
+            this.setState({ extraInfo: entries } as Partial<TState> as TState);
+        }
+    }
+
+    private onExtraInfoChange = (id: string, state: ioBroker.State): void => {
+        this.setState(prev => ({
+            extraInfo: prev.extraInfo.map(e =>
+                e.id === id ? { ...e, value: state.val as number | string | null } : e,
+            ),
+        } as Partial<TState> as TState));
+    };
+
+    // eslint-disable-next-line class-methods-use-this
+    private formatExtraInfoValue(entry: ExtraInfoEntry): string {
+        if (entry.value == null) {
+            return '—';
+        }
+        if (typeof entry.value === 'number') {
+            const abs = Math.abs(entry.value);
+            const str = abs >= 100
+                ? Math.round(entry.value).toString()
+                : abs >= 10
+                  ? entry.value.toFixed(1)
+                  : entry.value.toFixed(2);
+            return entry.unit ? `${str} ${entry.unit}` : str;
+        }
+        return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
+    }
+
+    protected renderInfoDialog(): React.JSX.Element | null {
+        if (!this.state.infoDialogOpen || !this.state.extraInfo.length) {
+            return null;
+        }
+        return (
+            <Dialog
+                open
+                onClose={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>{this.props.settings?.name || this.state.name || '...'}</DialogTitle>
+                <DialogContent>
+                    {this.state.extraInfo.map(entry => (
+                        <Box
+                            key={entry.id}
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                py: 0.75,
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:last-child': { borderBottom: 'none' },
+                            }}
+                        >
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                {entry.label}
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {this.formatExtraInfoValue(entry)}
+                            </Typography>
+                        </Box>
+                    ))}
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    /** CSS class for the widget outer container, e.g. "widget-slider" */
+    protected getWidgetClass(): string {
+        const type = this.props.widget.control?.type || 'unknown';
+        return `widget-${type}`;
     }
 
     // --- Overridable tile methods ---
@@ -849,48 +1013,95 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     // --- Settings button ---
 
     protected renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
+        const hasSettings = !!this.props.onOpenSettings;
+        const hasInfo = this.state.extraInfo.length > 0;
+
+        if (!hasSettings && !hasInfo) {
             return null;
         }
+
         const isEnabled = this.props.settings?.enabled !== false;
 
         return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.widget.id);
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.widget.id);
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 1,
-                    color: isEnabled ? theme.palette.primary.main : theme.palette.text.disabled,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': {
-                        opacity: 1,
-                        backgroundColor: theme.palette.action.hover,
-                    },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
+            <>
+                {hasSettings ? (
+                    <Box
+                        component="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            this.props.onOpenSettings!(this.props.widget.id);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                this.props.onOpenSettings!(this.props.widget.id);
+                            }
+                        }}
+                        sx={theme => ({
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            p: '3px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            zIndex: 1,
+                            color: isEnabled ? theme.palette.primary.main : theme.palette.text.disabled,
+                            opacity: 0.6,
+                            transition: 'opacity 0.2s, background-color 0.2s',
+                            '&:hover': {
+                                opacity: 1,
+                                backgroundColor: theme.palette.action.hover,
+                            },
+                        })}
+                    >
+                        <Settings sx={{ fontSize: 16 }} />
+                    </Box>
+                ) : null}
+                {hasInfo ? (
+                    <Box
+                        component="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                            }
+                        }}
+                        sx={theme => ({
+                            position: 'absolute',
+                            top: 6,
+                            right: hasSettings ? 30 : 6,
+                            p: '3px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            zIndex: 1,
+                            color: theme.palette.info.main,
+                            opacity: 0.5,
+                            transition: 'opacity 0.2s, background-color 0.2s',
+                            '&:hover': {
+                                opacity: 1,
+                                backgroundColor: theme.palette.action.hover,
+                            },
+                        })}
+                    >
+                        <InfoOutlined sx={{ fontSize: 16 }} />
+                    </Box>
+                ) : null}
+                {this.renderInfoDialog()}
+            </>
         );
     }
 
@@ -907,6 +1118,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <ButtonBase
@@ -986,6 +1198,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
@@ -1052,6 +1265,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}

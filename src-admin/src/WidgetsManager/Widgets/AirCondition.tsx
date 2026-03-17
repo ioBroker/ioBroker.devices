@@ -1,34 +1,36 @@
 import React from 'react';
 import { Box, Button, ButtonBase, Dialog, DialogContent, IconButton, Slider, Tooltip, Typography } from '@mui/material';
 import {
-    Thermostat,
-    WaterDrop,
-    Add,
-    Remove,
-    LocalFireDepartment,
-    Close,
-    PowerSettingsNew,
-    Celebration,
-    AutoMode,
     AcUnit,
-    EnergySavingsLeaf,
+    Add,
     Air,
-    Whatshot,
+    AutoMode,
+    Close,
+    EnergySavingsLeaf,
+    LocalFireDepartment,
+    PowerSettingsNew,
+    Remove,
+    SwapVert,
     Tune,
+    Whatshot,
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
-interface WidgetThermostatState extends WidgetGenericState {
+interface WidgetAirConditionState extends WidgetGenericState {
     setTemp: number | null;
     actualTemp: number | null;
     humidity: number | null;
     boost: boolean;
     power: boolean | null;
-    party: boolean | null;
     mode: number | null;
     modeStates: Record<string, string>;
+    speed: number | null;
+    speedStates: Record<string, string>;
+    swing: number | boolean | null;
+    swingStates: Record<string, string>;
+    swingIsBoolean: boolean;
     setMin: number;
     setMax: number;
     setStep: number;
@@ -36,14 +38,15 @@ interface WidgetThermostatState extends WidgetGenericState {
     dialogOpen: boolean;
 }
 
-export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
+export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly humidityId: string | null;
     private readonly boostId: string | null;
     private readonly powerId: string | null;
-    private readonly partyId: string | null;
     private readonly modeId: string | null;
+    private readonly speedId: string | null;
+    private readonly swingId: string | null;
     private readonly arcRef = React.createRef<HTMLDivElement>();
 
     constructor(props: WidgetGenericProps) {
@@ -54,8 +57,9 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         this.humidityId = states.find(s => s.name === 'HUMIDITY')?.id ?? null;
         this.boostId = states.find(s => s.name === 'BOOST')?.id ?? null;
         this.powerId = states.find(s => s.name === 'POWER')?.id ?? null;
-        this.partyId = states.find(s => s.name === 'PARTY')?.id ?? null;
         this.modeId = states.find(s => s.name === 'MODE')?.id ?? null;
+        this.speedId = states.find(s => s.name === 'SPEED')?.id ?? null;
+        this.swingId = states.find(s => s.name === 'SWING')?.id ?? null;
 
         this.state = {
             ...this.state,
@@ -64,10 +68,14 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             humidity: null,
             boost: false,
             power: null,
-            party: null,
             mode: null,
             modeStates: {},
-            setMin: 5,
+            speed: null,
+            speedStates: {},
+            swing: null,
+            swingStates: {},
+            swingIsBoolean: false,
+            setMin: 16,
             setMax: 30,
             setStep: 0.5,
             dragging: false,
@@ -92,12 +100,17 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         if (this.powerId) {
             this.props.stateContext.getState(this.powerId, this.onPowerChange);
         }
-        if (this.partyId) {
-            this.props.stateContext.getState(this.partyId, this.onPartyChange);
-        }
         if (this.modeId) {
             this.props.stateContext.getState(this.modeId, this.onModeChange);
-            void this.loadModeObject();
+            void this.loadStatesObject(this.modeId, 'modeStates');
+        }
+        if (this.speedId) {
+            this.props.stateContext.getState(this.speedId, this.onSpeedChange);
+            void this.loadStatesObject(this.speedId, 'speedStates');
+        }
+        if (this.swingId) {
+            this.props.stateContext.getState(this.swingId, this.onSwingChange);
+            void this.loadSwingObject();
         }
         void this.loadSetObject();
     }
@@ -119,25 +132,46 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         if (this.powerId) {
             this.props.stateContext.removeState(this.powerId, this.onPowerChange);
         }
-        if (this.partyId) {
-            this.props.stateContext.removeState(this.partyId, this.onPartyChange);
-        }
         if (this.modeId) {
             this.props.stateContext.removeState(this.modeId, this.onModeChange);
         }
+        if (this.speedId) {
+            this.props.stateContext.removeState(this.speedId, this.onSpeedChange);
+        }
+        if (this.swingId) {
+            this.props.stateContext.removeState(this.swingId, this.onSwingChange);
+        }
     }
 
-    private async loadModeObject(): Promise<void> {
-        if (!this.modeId) {
-            return;
-        }
+    private async loadStatesObject(id: string, stateKey: 'modeStates' | 'speedStates'): Promise<void> {
         try {
-            const obj = (await this.props.stateContext.getSocket().getObject(this.modeId)) as
+            const obj = (await this.props.stateContext.getSocket().getObject(id)) as
                 | ioBroker.StateObject
                 | null
                 | undefined;
             if (obj?.common?.states && typeof obj.common.states === 'object') {
-                this.setState({ modeStates: obj.common.states as Record<string, string> });
+                this.setState({ [stateKey]: obj.common.states as Record<string, string> } as any);
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private async loadSwingObject(): Promise<void> {
+        if (!this.swingId) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(this.swingId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            if (obj?.common) {
+                const isBoolean = obj.common.type === 'boolean';
+                this.setState({ swingIsBoolean: isBoolean });
+                if (!isBoolean && obj.common.states && typeof obj.common.states === 'object') {
+                    this.setState({ swingStates: obj.common.states as Record<string, string> });
+                }
             }
         } catch {
             // ignore
@@ -154,7 +188,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                 | null
                 | undefined;
             if (obj?.common) {
-                const min = obj.common.min != null ? Number(obj.common.min) : 5;
+                const min = obj.common.min != null ? Number(obj.common.min) : 16;
                 const max = obj.common.max != null ? Number(obj.common.max) : 30;
                 const step = obj.common.step != null ? Number(obj.common.step) : 0.5;
                 if (!isNaN(min) && !isNaN(max) && max > min) {
@@ -166,7 +200,9 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     }
 
-    onSetChange = (_id: string, state: ioBroker.State): void => {
+    // --- State change handlers ---
+
+    private onSetChange = (_id: string, state: ioBroker.State): void => {
         if (this.state.dragging) {
             return;
         }
@@ -177,7 +213,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     };
 
-    onActualChange = (_id: string, state: ioBroker.State): void => {
+    private onActualChange = (_id: string, state: ioBroker.State): void => {
         const val = state.val != null ? Number(state.val) : null;
         const actualTemp = val != null && !isNaN(val) ? val : null;
         if (actualTemp !== this.state.actualTemp) {
@@ -185,7 +221,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     };
 
-    onHumidityChange = (_id: string, state: ioBroker.State): void => {
+    private onHumidityChange = (_id: string, state: ioBroker.State): void => {
         const val = state.val != null ? Number(state.val) : null;
         const humidity = val != null && !isNaN(val) ? val : null;
         if (humidity !== this.state.humidity) {
@@ -193,26 +229,44 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     };
 
-    onBoostChange = (_id: string, state: ioBroker.State): void => {
+    private onBoostChange = (_id: string, state: ioBroker.State): void => {
         const boost = !!state.val;
         if (boost !== this.state.boost) {
             this.setState({ boost });
         }
     };
 
-    onPowerChange = (_id: string, state: ioBroker.State): void => {
+    private onPowerChange = (_id: string, state: ioBroker.State): void => {
         const power = !!state.val;
         if (power !== this.state.power) {
             this.setState({ power });
         }
     };
 
-    onPartyChange = (_id: string, state: ioBroker.State): void => {
-        const party = !!state.val;
-        if (party !== this.state.party) {
-            this.setState({ party });
+    private onModeChange = (_id: string, state: ioBroker.State): void => {
+        const val = state.val != null ? Number(state.val) : null;
+        const mode = val != null && !isNaN(val) ? val : null;
+        if (mode !== this.state.mode) {
+            this.setState({ mode });
         }
     };
+
+    private onSpeedChange = (_id: string, state: ioBroker.State): void => {
+        const val = state.val != null ? Number(state.val) : null;
+        const speed = val != null && !isNaN(val) ? val : null;
+        if (speed !== this.state.speed) {
+            this.setState({ speed });
+        }
+    };
+
+    private onSwingChange = (_id: string, state: ioBroker.State): void => {
+        const swing = state.val;
+        if (swing !== this.state.swing) {
+            this.setState({ swing: swing as number | boolean | null });
+        }
+    };
+
+    // --- Actions ---
 
     private togglePower = (): void => {
         if (this.powerId) {
@@ -222,19 +276,11 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     };
 
-    private toggleParty = (): void => {
-        if (this.partyId) {
-            const newVal = !this.state.party;
-            void this.props.stateContext.getSocket().setState(this.partyId, newVal);
-            this.setState({ party: newVal });
-        }
-    };
-
-    onModeChange = (_id: string, state: ioBroker.State): void => {
-        const val = state.val != null ? Number(state.val) : null;
-        const mode = val != null && !isNaN(val) ? val : null;
-        if (mode !== this.state.mode) {
-            this.setState({ mode });
+    private toggleBoost = (): void => {
+        if (this.boostId) {
+            const newVal = !this.state.boost;
+            void this.props.stateContext.getSocket().setState(this.boostId, newVal);
+            this.setState({ boost: newVal });
         }
     };
 
@@ -245,78 +291,19 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
     };
 
-    /** Metadata for well-known HVAC mode labels (matched case-insensitively). */
-    private static readonly MODE_MAP: Record<string, { color: string; i18nKey: string }> = {
-        auto: { color: '#9c27b0', i18nKey: 'wm_mode_auto' },
-        cool: { color: '#2196f3', i18nKey: 'wm_mode_cool' },
-        dry: { color: '#00bcd4', i18nKey: 'wm_mode_dry' },
-        eco: { color: '#4caf50', i18nKey: 'wm_mode_eco' },
-        fan_only: { color: '#03a9f4', i18nKey: 'wm_mode_fan_only' },
-        heat: { color: '#ff5722', i18nKey: 'wm_mode_heat' },
-        off: { color: '#9e9e9e', i18nKey: 'wm_mode_off' },
-        manual: { color: '#607d8b', i18nKey: 'wm_mode_manual' },
-        boost: { color: '#f44336', i18nKey: 'wm_mode_boost' },
-        party: { color: '#ff9800', i18nKey: 'wm_mode_party' },
+    private setSpeed = (value: number): void => {
+        if (this.speedId) {
+            void this.props.stateContext.getSocket().setState(this.speedId, value);
+            this.setState({ speed: value });
+        }
     };
 
-    private static getModeInfo(label: string): { color: string; displayName: string } {
-        const key = label.toLowerCase().trim();
-        const meta = WidgetThermostat.MODE_MAP[key];
-        if (meta) {
-            return { color: meta.color, displayName: I18n.t(meta.i18nKey) };
+    private setSwing = (value: number | boolean): void => {
+        if (this.swingId) {
+            void this.props.stateContext.getSocket().setState(this.swingId, value);
+            this.setState({ swing: value });
         }
-        return { color: '#9e9e9e', displayName: label };
-    }
-
-    private static renderModeIcon(label: string, fontSize: number, color?: string): React.JSX.Element {
-        const key = label.toLowerCase().trim();
-        const sx = { fontSize, color: color || WidgetThermostat.getModeInfo(label).color };
-        switch (key) {
-            case 'auto':
-                return <AutoMode sx={sx} />;
-            case 'cool':
-                return <AcUnit sx={sx} />;
-            case 'dry':
-                return <Air sx={sx} />;
-            case 'eco':
-                return <EnergySavingsLeaf sx={sx} />;
-            case 'fan_only':
-                return <Air sx={sx} />;
-            case 'heat':
-                return <Whatshot sx={sx} />;
-            case 'off':
-                return <PowerSettingsNew sx={sx} />;
-            case 'manual':
-                return <Tune sx={sx} />;
-            case 'boost':
-                return <LocalFireDepartment sx={sx} />;
-            case 'party':
-                return <Celebration sx={sx} />;
-            default:
-                return <Tune sx={sx} />;
-        }
-    }
-
-    /** Get the label string for the current mode value */
-    private getCurrentModeLabel(): string | null {
-        const { mode, modeStates } = this.state;
-        if (mode == null) {
-            return null;
-        }
-        return modeStates[String(mode)] || null;
-    }
-
-    /** True when a power mechanism exists AND the device is powered off */
-    private isPoweredOff(): boolean {
-        // Explicit POWER state
-        if (this.powerId && this.state.power === false) {
-            return true;
-        }
-        // MODE set to "OFF"
-        const modeLabel = this.getCurrentModeLabel();
-
-        return !!(this.modeId && modeLabel && modeLabel.toLowerCase().trim() === 'off');
-    }
+    };
 
     private sendSetTemp(value: number): void {
         if (this.setId) {
@@ -327,11 +314,13 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
 
     private adjustTemp = (delta: number): void => {
         const current = this.state.setTemp ?? this.state.setMin;
-        this.sendSetTemp(current + delta);
-        this.setState({ setTemp: Math.max(this.state.setMin, Math.min(this.state.setMax, current + delta)) });
+        const newVal = Math.max(this.state.setMin, Math.min(this.state.setMax, current + delta));
+        this.sendSetTemp(newVal);
+        this.setState({ setTemp: newVal });
     };
 
-    /** Convert a pointer position (clientX/Y) to a temperature value via the arc geometry. */
+    // --- Arc drag ---
+
     private angleToTemp(clientX: number, clientY: number): number {
         const el = this.arcRef.current;
         if (!el) {
@@ -343,16 +332,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const dx = clientX - cx;
         const dy = clientY - cy;
 
-        // Angle clockwise from 12 o'clock (top)
         let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
         if (angle < 0) {
             angle += 360;
         }
 
-        // Arc starts at 225° from top, covers 270° clockwise
         let normalized = (angle - 225 + 360) % 360;
-
-        // Dead zone (the 90° gap at the bottom): clamp to nearest end
         if (normalized > 270) {
             normalized = normalized > 315 ? 0 : 270;
         }
@@ -387,6 +372,149 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         this.setState({ setTemp: temp, dragging: false });
     };
 
+    // --- Mode helpers ---
+
+    private static readonly MODE_MAP: Record<string, { color: string; i18nKey: string }> = {
+        auto: { color: '#9c27b0', i18nKey: 'wm_mode_auto' },
+        cool: { color: '#2196f3', i18nKey: 'wm_mode_cool' },
+        dry: { color: '#00bcd4', i18nKey: 'wm_mode_dry' },
+        eco: { color: '#4caf50', i18nKey: 'wm_mode_eco' },
+        fan_only: { color: '#03a9f4', i18nKey: 'wm_mode_fan_only' },
+        heat: { color: '#ff5722', i18nKey: 'wm_mode_heat' },
+        off: { color: '#9e9e9e', i18nKey: 'wm_mode_off' },
+        manual: { color: '#607d8b', i18nKey: 'wm_mode_manual' },
+        boost: { color: '#f44336', i18nKey: 'wm_mode_boost' },
+    };
+
+    private static getModeInfo(label: string): { color: string; displayName: string } {
+        const key = label.toLowerCase().trim();
+        const meta = WidgetAirCondition.MODE_MAP[key];
+        if (meta) {
+            return { color: meta.color, displayName: I18n.t(meta.i18nKey) };
+        }
+        return { color: '#9e9e9e', displayName: label };
+    }
+
+    private static renderModeIcon(label: string, fontSize: number, color?: string): React.JSX.Element {
+        const key = label.toLowerCase().trim();
+        const sx = { fontSize, color: color || WidgetAirCondition.getModeInfo(label).color };
+        switch (key) {
+            case 'auto':
+                return <AutoMode sx={sx} />;
+            case 'cool':
+                return <AcUnit sx={sx} />;
+            case 'dry':
+                return <Air sx={sx} />;
+            case 'eco':
+                return <EnergySavingsLeaf sx={sx} />;
+            case 'fan_only':
+                return <Air sx={sx} />;
+            case 'heat':
+                return <Whatshot sx={sx} />;
+            case 'off':
+                return <PowerSettingsNew sx={sx} />;
+            case 'manual':
+                return <Tune sx={sx} />;
+            case 'boost':
+                return <LocalFireDepartment sx={sx} />;
+            default:
+                return <Tune sx={sx} />;
+        }
+    }
+
+    // --- Speed helpers ---
+
+    private static readonly SPEED_MAP: Record<string, { i18nKey: string }> = {
+        auto: { i18nKey: 'wm_speed_auto' },
+        high: { i18nKey: 'wm_speed_high' },
+        low: { i18nKey: 'wm_speed_low' },
+        medium: { i18nKey: 'wm_speed_medium' },
+        quiet: { i18nKey: 'wm_speed_quiet' },
+        turbo: { i18nKey: 'wm_speed_turbo' },
+    };
+
+    private static getSpeedLabel(label: string): string {
+        const key = label.toLowerCase().trim();
+        const meta = WidgetAirCondition.SPEED_MAP[key];
+        return meta ? I18n.t(meta.i18nKey) : label;
+    }
+
+    // --- Swing helpers ---
+
+    private static readonly SWING_MAP: Record<string, { i18nKey: string }> = {
+        auto: { i18nKey: 'wm_swing_auto' },
+        horizontal: { i18nKey: 'wm_swing_horizontal' },
+        stationary: { i18nKey: 'wm_swing_stationary' },
+        vertical: { i18nKey: 'wm_swing_vertical' },
+    };
+
+    private static getSwingLabel(label: string): string {
+        const key = label.toLowerCase().trim();
+        const meta = WidgetAirCondition.SWING_MAP[key];
+        return meta ? I18n.t(meta.i18nKey) : label;
+    }
+
+    // --- Derived state helpers ---
+
+    private getCurrentModeLabel(): string | null {
+        const { mode, modeStates } = this.state;
+        if (mode == null) {
+            return null;
+        }
+        return modeStates[String(mode)] || null;
+    }
+
+    private getCurrentSpeedLabel(): string | null {
+        const { speed, speedStates } = this.state;
+        if (speed == null) {
+            return null;
+        }
+        return speedStates[String(speed)] || null;
+    }
+
+    private isPoweredOff(): boolean {
+        if (this.powerId && this.state.power === false) {
+            return true;
+        }
+        const modeLabel = this.getCurrentModeLabel();
+        return !!(this.modeId && modeLabel && modeLabel.toLowerCase().trim() === 'off');
+    }
+
+    // --- Color helpers ---
+
+    private getModeColor(): string {
+        const modeLabel = this.getCurrentModeLabel();
+        if (!modeLabel) {
+            return '#2196f3';
+        }
+        return WidgetAirCondition.getModeInfo(modeLabel).color;
+    }
+
+    private static getTempColor(t: number | null): string {
+        if (t == null) {
+            return 'text.disabled';
+        }
+        if (t < 18) {
+            return '#2196f3';
+        }
+        if (t < 22) {
+            return '#4caf50';
+        }
+        if (t < 26) {
+            return '#ff9800';
+        }
+        return '#f44336';
+    }
+
+    private static formatTemp(t: number | null): string {
+        if (t == null) {
+            return '—';
+        }
+        return `${t.toFixed(1)}°`;
+    }
+
+    // --- History ---
+
     protected getHistoryIds(): { id: string; color: string }[] {
         const ids: { id: string; color: string }[] = [];
         if (this.actualId) {
@@ -401,31 +529,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         return ids;
     }
 
-    private static getTempColor(t: number | null): string {
-        if (t == null) {
-            return 'text.disabled';
-        }
-        if (t < 10) {
-            return '#2196f3';
-        }
-        if (t < 20) {
-            return '#4caf50';
-        }
-        if (t < 26) {
-            return '#ff9800';
-        }
-        return '#f44336';
-    }
-
-    static formatTemp(t: number | null): string {
-        if (t == null) {
-            return '—';
-        }
-        return `${t.toFixed(1)}°`;
-    }
+    // --- Tile overrides ---
 
     protected isTileActive(): boolean {
-        return this.state.setTemp != null || this.state.actualTemp != null;
+        return !this.isPoweredOff() && (this.state.setTemp != null || this.state.actualTemp != null);
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -438,21 +545,17 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     }
 
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = super.renderTileIcon();
+        const baseIcon = this.renderBaseIcon();
         if (baseIcon) {
             return baseIcon;
         }
+        const modeLabel = this.getCurrentModeLabel();
+        const modeColor = this.getModeColor();
 
-        const displayTemp = this.state.actualTemp ?? this.state.setTemp;
-
-        return (
-            <Thermostat
-                sx={{
-                    color: WidgetThermostat.getTempColor(displayTemp),
-                    transition: 'color 0.25s ease',
-                }}
-            />
-        );
+        if (modeLabel) {
+            return WidgetAirCondition.renderModeIcon(modeLabel, 24, this.isPoweredOff() ? undefined : modeColor);
+        }
+        return <AcUnit sx={{ color: this.isPoweredOff() ? 'text.disabled' : '#2196f3' }} />;
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
@@ -461,8 +564,9 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             return null;
         }
 
-        const { setTemp, actualTemp, humidity, boost, power, party } = this.state;
+        const { setTemp, actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
+        const speedLabel = this.getCurrentSpeedLabel();
 
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -473,17 +577,14 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="caption"
                                 sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                             >
-                                {WidgetThermostat.formatTemp(actualTemp)}
+                                {WidgetAirCondition.formatTemp(actualTemp)}
                             </Typography>
                         </Tooltip>
                     ) : null}
                     {setTemp != null ? (
                         <Tooltip title={I18n.t('wm_Set temperature')}>
-                            <Typography
-                                variant="caption"
-                                sx={{ fontWeight: 500, color: 'text.secondary' }}
-                            >
-                                → {WidgetThermostat.formatTemp(setTemp)}
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                                → {WidgetAirCondition.formatTemp(setTemp)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -493,96 +594,81 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             <PowerSettingsNew sx={{ fontSize: 14, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
-                    {party ? (
-                        <Tooltip title={I18n.t('wm_Party')}>
-                            <Celebration sx={{ fontSize: 14, color: '#ff9800' }} />
-                        </Tooltip>
-                    ) : null}
                     {modeLabel ? (
-                        <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
-                            {WidgetThermostat.renderModeIcon(modeLabel, 14)}
+                        <Tooltip title={WidgetAirCondition.getModeInfo(modeLabel).displayName}>
+                            {WidgetAirCondition.renderModeIcon(modeLabel, 14)}
                         </Tooltip>
                     ) : null}
                 </Box>
-                {humidity != null ? (
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            fontWeight: 500,
-                            color: 'text.secondary',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                        }}
-                    >
-                        <WaterDrop sx={{ fontSize: 12 }} />
-                        {Math.round(humidity)}%
-                    </Typography>
+                {humidity != null || speedLabel ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {humidity != null ? (
+                            <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 500, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '2px' }}
+                            >
+                                💧 {Math.round(humidity)}%
+                            </Typography>
+                        ) : null}
+                        {speedLabel ? (
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                                <Air sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.25 }} />
+                                {WidgetAirCondition.getSpeedLabel(speedLabel)}
+                            </Typography>
+                        ) : null}
+                    </Box>
                 ) : null}
             </Box>
         );
     }
 
     protected renderTileAction(): React.JSX.Element | null {
-        const { setTemp, actualTemp, humidity, boost, power, party } = this.state;
+        const { setTemp, actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
+        const speedLabel = this.getCurrentSpeedLabel();
 
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {actualTemp != null ? (
-                        <Tooltip title={I18n.t('wm_Actual temperature')}>
-                            <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
-                            >
-                                {WidgetThermostat.formatTemp(actualTemp)}
-                            </Typography>
-                        </Tooltip>
-                    ) : null}
-                    <Tooltip title={I18n.t('wm_Set temperature')}>
-                        <Typography
-                            variant="h6"
-                            sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
-                        >
-                            → {WidgetThermostat.formatTemp(setTemp)}
+                        <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                            {WidgetAirCondition.formatTemp(actualTemp)}
                         </Typography>
-                    </Tooltip>
+                    ) : null}
+                    <Typography variant="h6" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        → {WidgetAirCondition.formatTemp(setTemp)}
+                    </Typography>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
-                    {power === false ? (
-                        <Tooltip title={I18n.t('wm_Power')}>
-                            <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} />
-                        </Tooltip>
-                    ) : null}
-                    {party ? (
-                        <Tooltip title={I18n.t('wm_Party')}>
-                            <Celebration sx={{ fontSize: 18, color: '#ff9800' }} />
-                        </Tooltip>
-                    ) : null}
+                    {power === false ? <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} /> : null}
                     {modeLabel ? (
-                        <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
-                            {WidgetThermostat.renderModeIcon(modeLabel, 18)}
+                        <Tooltip title={WidgetAirCondition.getModeInfo(modeLabel).displayName}>
+                            {WidgetAirCondition.renderModeIcon(modeLabel, 18)}
                         </Tooltip>
                     ) : null}
                 </Box>
-                {humidity != null ? (
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            color: 'text.secondary',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        <WaterDrop sx={{ fontSize: 14 }} />
-                        {Math.round(humidity)}%
-                    </Typography>
+                {humidity != null || speedLabel ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {humidity != null ? (
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}
+                            >
+                                💧 {Math.round(humidity)}%
+                            </Typography>
+                        ) : null}
+                        {speedLabel ? (
+                            <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <Air sx={{ fontSize: 14 }} />
+                                {WidgetAirCondition.getSpeedLabel(speedLabel)}
+                            </Typography>
+                        ) : null}
+                    </Box>
                 ) : null}
             </Box>
         );
     }
+
+    // --- Dialog ---
 
     private renderDialog(): React.JSX.Element | null {
         if (!this.state.dialogOpen) {
@@ -590,22 +676,15 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
 
         const {
-            name,
-            setTemp,
-            actualTemp,
-            humidity,
-            boost,
-            power,
-            party,
-            mode,
-            modeStates,
-            setMin,
-            setMax,
-            setStep,
-            dragging,
+            name, setTemp, actualTemp, humidity, boost, power,
+            mode, modeStates, speed, speedStates,
+            swing, swingStates, swingIsBoolean,
+            setMin, setMax, setStep, dragging,
         } = this.state;
         const displayTemp = actualTemp ?? setTemp;
         const modeEntries = Object.entries(modeStates);
+        const speedEntries = Object.entries(speedStates);
+        const swingEntries = Object.entries(swingStates);
         const currentModeLabel = mode != null ? modeStates[String(mode)] || null : null;
         const poweredOff = this.isPoweredOff();
         const dimmedSx = poweredOff ? { opacity: 0.5, transition: 'opacity 0.25s ease' } : {};
@@ -637,10 +716,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     </IconButton>
 
                     {/* Title */}
-                    <Typography
-                        variant="h6"
-                        sx={{ fontWeight: 600, mb: 2, pr: 4 }}
-                    >
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, pr: 4 }}>
                         {this.props.settings?.name || name || '...'}
                     </Typography>
 
@@ -684,7 +760,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     cy={vb / 2}
                                     r={r}
                                     fill="none"
-                                    stroke={WidgetThermostat.getTempColor(displayTemp)}
+                                    stroke={WidgetAirCondition.getTempColor(displayTemp)}
                                     strokeWidth={sw}
                                     strokeDasharray={`${progress} ${circumference}`}
                                     strokeLinecap="round"
@@ -700,18 +776,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     gap: 0.5,
                                 }}
                             >
-                                <Typography
-                                    variant="h3"
-                                    sx={{ fontWeight: 700, lineHeight: 1 }}
-                                >
-                                    {WidgetThermostat.formatTemp(setTemp)}
+                                <Typography variant="h3" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                                    {WidgetAirCondition.formatTemp(setTemp)}
                                 </Typography>
                                 {actualTemp != null && setTemp != null ? (
-                                    <Typography
-                                        variant="body2"
-                                        sx={{ color: 'text.secondary' }}
-                                    >
-                                        {I18n.t('wm_Actual')}: {WidgetThermostat.formatTemp(actualTemp)}
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                        {I18n.t('wm_Actual')}: {WidgetAirCondition.formatTemp(actualTemp)}
                                     </Typography>
                                 ) : null}
                             </Box>
@@ -722,9 +792,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, mb: 2, ...dimmedSx }}>
                         <IconButton
                             onClick={() => this.adjustTemp(-setStep)}
-                            sx={theme => ({
-                                border: `1px solid ${theme.palette.divider}`,
-                            })}
+                            sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
                         >
                             <Remove />
                         </IconButton>
@@ -740,22 +808,17 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 this.sendSetTemp(value as number);
                                 this.setState({ dragging: false });
                             }}
-                            sx={{
-                                flex: 1,
-                                color: WidgetThermostat.getTempColor(setTemp),
-                            }}
+                            sx={{ flex: 1, color: WidgetAirCondition.getTempColor(setTemp) }}
                         />
                         <IconButton
                             onClick={() => this.adjustTemp(setStep)}
-                            sx={theme => ({
-                                border: `1px solid ${theme.palette.divider}`,
-                            })}
+                            sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
                         >
                             <Add />
                         </IconButton>
                     </Box>
 
-                    {/* Info row: humidity + boost + current mode label */}
+                    {/* Info row: humidity + boost + current mode */}
                     {humidity != null || boost || currentModeLabel ? (
                         <Box
                             sx={{
@@ -763,57 +826,42 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 alignItems: 'center',
                                 gap: 2,
                                 justifyContent: 'center',
-                                mb: this.powerId || this.partyId || modeEntries.length > 0 ? 2 : 0,
+                                mb: 2,
                                 ...dimmedSx,
                             }}
                         >
                             {humidity != null ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <WaterDrop sx={{ fontSize: 20, color: 'text.secondary' }} />
-                                    <Typography
-                                        variant="body1"
-                                        sx={{ color: 'text.secondary' }}
-                                    >
-                                        {Math.round(humidity)}%
+                                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                        💧 {Math.round(humidity)}%
                                     </Typography>
                                 </Box>
                             ) : null}
                             {boost ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                     <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} />
-                                    <Typography
-                                        variant="body1"
-                                        sx={{ color: '#f44336' }}
-                                    >
+                                    <Typography variant="body1" sx={{ color: '#f44336' }}>
                                         Boost
                                     </Typography>
                                 </Box>
                             ) : null}
                             {currentModeLabel ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    {WidgetThermostat.renderModeIcon(currentModeLabel, 20)}
+                                    {WidgetAirCondition.renderModeIcon(currentModeLabel, 20)}
                                     <Typography
                                         variant="body1"
-                                        sx={{ color: WidgetThermostat.getModeInfo(currentModeLabel).color }}
+                                        sx={{ color: WidgetAirCondition.getModeInfo(currentModeLabel).color }}
                                     >
-                                        {WidgetThermostat.getModeInfo(currentModeLabel).displayName}
+                                        {WidgetAirCondition.getModeInfo(currentModeLabel).displayName}
                                     </Typography>
                                 </Box>
                             ) : null}
                         </Box>
                     ) : null}
 
-                    {/* Power + Party toggles */}
-                    {this.powerId || this.partyId ? (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                justifyContent: 'center',
-                                mb: modeEntries.length > 0 ? 2 : 0,
-                            }}
-                        >
+                    {/* Power + Boost toggles */}
+                    {this.powerId || this.boostId ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', mb: 2 }}>
                             {this.powerId ? (
                                 <Button
                                     variant={power ? 'contained' : 'outlined'}
@@ -826,16 +874,16 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     {I18n.t('wm_Power')}
                                 </Button>
                             ) : null}
-                            {this.partyId ? (
+                            {this.boostId ? (
                                 <Button
-                                    variant={party ? 'contained' : 'outlined'}
-                                    color={party ? 'warning' : 'inherit'}
-                                    startIcon={<Celebration />}
-                                    onClick={this.toggleParty}
+                                    variant={boost ? 'contained' : 'outlined'}
+                                    color={boost ? 'error' : 'inherit'}
+                                    startIcon={<LocalFireDepartment />}
+                                    onClick={this.toggleBoost}
                                     size="small"
                                     sx={{ textTransform: 'none', borderRadius: '20px' }}
                                 >
-                                    {I18n.t('wm_Party')}
+                                    Boost
                                 </Button>
                             ) : null}
                         </Box>
@@ -843,50 +891,139 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
 
                     {/* Mode selector */}
                     {modeEntries.length > 0 ? (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.75,
-                                justifyContent: 'center',
-                                flexWrap: 'wrap',
-                                ...dimmedSx,
-                            }}
-                        >
-                            {modeEntries.map(([key, label]) => {
-                                const numKey = Number(key);
-                                const isActive = mode === numKey;
-                                const info = WidgetThermostat.getModeInfo(label);
-                                return (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                                {I18n.t('wm_Mode')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap',
+                                    ...dimmedSx,
+                                }}
+                            >
+                                {modeEntries.map(([key, label]) => {
+                                    const numKey = Number(key);
+                                    const isActive = mode === numKey;
+                                    const info = WidgetAirCondition.getModeInfo(label);
+                                    return (
+                                        <Button
+                                            key={key}
+                                            variant={isActive ? 'contained' : 'outlined'}
+                                            color="inherit"
+                                            startIcon={WidgetAirCondition.renderModeIcon(label, 18, isActive ? '#fff' : info.color)}
+                                            onClick={() => this.setMode(numKey)}
+                                            size="small"
+                                            sx={{
+                                                textTransform: 'none',
+                                                borderRadius: '20px',
+                                                minWidth: 0,
+                                                px: 1.5,
+                                                ...(isActive
+                                                    ? {
+                                                          backgroundColor: info.color,
+                                                          color: '#fff',
+                                                          '&:hover': { backgroundColor: info.color, opacity: 0.9 },
+                                                      }
+                                                    : {}),
+                                            }}
+                                        >
+                                            {info.displayName}
+                                        </Button>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {/* Speed selector */}
+                    {speedEntries.length > 0 ? (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                                <Air sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Speed')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap',
+                                    ...dimmedSx,
+                                }}
+                            >
+                                {speedEntries.map(([key, label]) => {
+                                    const numKey = Number(key);
+                                    const isActive = speed === numKey;
+                                    return (
+                                        <Button
+                                            key={key}
+                                            variant={isActive ? 'contained' : 'outlined'}
+                                            color={isActive ? 'primary' : 'inherit'}
+                                            onClick={() => this.setSpeed(numKey)}
+                                            size="small"
+                                            sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
+                                        >
+                                            {WidgetAirCondition.getSpeedLabel(label)}
+                                        </Button>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {/* Swing control */}
+                    {this.swingId ? (
+                        <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}>
+                                <SwapVert sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Swing')}
+                            </Typography>
+                            {swingIsBoolean ? (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', ...dimmedSx }}>
                                     <Button
-                                        key={key}
-                                        variant={isActive ? 'contained' : 'outlined'}
-                                        color="inherit"
-                                        startIcon={WidgetThermostat.renderModeIcon(
-                                            label,
-                                            18,
-                                            isActive ? '#fff' : info.color,
-                                        )}
-                                        onClick={() => this.setMode(numKey)}
+                                        variant={swing ? 'contained' : 'outlined'}
+                                        color={swing ? 'primary' : 'inherit'}
+                                        onClick={() => this.setSwing(!swing)}
                                         size="small"
-                                        sx={{
-                                            textTransform: 'none',
-                                            borderRadius: '20px',
-                                            minWidth: 0,
-                                            px: 1.5,
-                                            ...(isActive
-                                                ? {
-                                                      backgroundColor: info.color,
-                                                      color: '#fff',
-                                                      '&:hover': { backgroundColor: info.color, opacity: 0.9 },
-                                                  }
-                                                : {}),
-                                        }}
+                                        sx={{ textTransform: 'none', borderRadius: '20px' }}
                                     >
-                                        {info.displayName}
+                                        {swing ? I18n.t('wm_On') : I18n.t('wm_Off')}
                                     </Button>
-                                );
-                            })}
+                                </Box>
+                            ) : swingEntries.length > 0 ? (
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.75,
+                                        justifyContent: 'center',
+                                        flexWrap: 'wrap',
+                                        ...dimmedSx,
+                                    }}
+                                >
+                                    {swingEntries.map(([key, label]) => {
+                                        const numKey = Number(key);
+                                        const isActive = swing === numKey;
+                                        return (
+                                            <Button
+                                                key={key}
+                                                variant={isActive ? 'contained' : 'outlined'}
+                                                color={isActive ? 'primary' : 'inherit'}
+                                                onClick={() => this.setSwing(numKey)}
+                                                size="small"
+                                                sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
+                                            >
+                                                {WidgetAirCondition.getSwingLabel(label)}
+                                            </Button>
+                                        );
+                                    })}
+                                </Box>
+                            ) : null}
                         </Box>
                     ) : null}
                 </DialogContent>
@@ -894,8 +1031,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         );
     }
 
+    // --- Compact 1x1 ---
+
     renderCompact(): React.JSX.Element {
-        const { name, setTemp, actualTemp, boost, power, party, setMin, setMax, dragging } = this.state;
+        const { name, setTemp, actualTemp, boost, power, setMin, setMax, dragging } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
@@ -941,9 +1080,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     })}
                 >
                     {indicators ? (
-                        <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
-                        >
+                        <Box sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}>
                             {indicators}
                         </Box>
                     ) : null}
@@ -977,7 +1114,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 cy={vb / 2}
                                 r={r}
                                 fill="none"
-                                stroke={isActive ? WidgetThermostat.getTempColor(displayTemp) : 'transparent'}
+                                stroke={isActive ? WidgetAirCondition.getTempColor(displayTemp) : 'transparent'}
                                 strokeWidth={sw}
                                 strokeDasharray={`${progress} ${circumference}`}
                                 strokeLinecap="round"
@@ -994,14 +1131,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         >
                             {this.renderTileIcon()}
                             {setTemp != null ? (
-                                <Tooltip title={I18n.t('wm_Set temperature')}>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 }}
-                                    >
-                                        {WidgetThermostat.formatTemp(setTemp)}
-                                    </Typography>
-                                </Tooltip>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 }}
+                                >
+                                    {WidgetAirCondition.formatTemp(setTemp)}
+                                </Typography>
                             ) : null}
                         </Box>
                     </Box>
@@ -1023,23 +1158,16 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                             {actualTemp != null && setTemp != null ? (
-                                <Tooltip title={I18n.t('wm_Actual temperature')}>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
-                                    >
-                                        {WidgetThermostat.formatTemp(actualTemp)}
-                                    </Typography>
-                                </Tooltip>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
+                                >
+                                    {WidgetAirCondition.formatTemp(actualTemp)}
+                                </Typography>
                             ) : null}
-                            {boost ? (
-                                <LocalFireDepartment sx={{ fontSize: 'max(12px, 7cqi)', color: '#f44336' }} />
-                            ) : null}
-                            {power === false ? (
-                                <PowerSettingsNew sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.disabled' }} />
-                            ) : null}
-                            {party ? <Celebration sx={{ fontSize: 'max(12px, 7cqi)', color: '#ff9800' }} /> : null}
-                            {modeLabel ? WidgetThermostat.renderModeIcon(modeLabel, 14) : null}
+                            {boost ? <LocalFireDepartment sx={{ fontSize: 'max(12px, 7cqi)', color: '#f44336' }} /> : null}
+                            {power === false ? <PowerSettingsNew sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.disabled' }} /> : null}
+                            {modeLabel ? WidgetAirCondition.renderModeIcon(modeLabel, 14) : null}
                         </Box>
                     </Box>
                     {this.renderChart()}
@@ -1050,9 +1178,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         );
     }
 
+    // --- WideTall 2x1 ---
+
     renderWideTall(): React.JSX.Element {
-        const { name, setTemp, actualTemp, humidity, boost, power, party } = this.state;
+        const { name, setTemp, actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
+        const speedLabel = this.getCurrentSpeedLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
@@ -1065,7 +1196,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                 className={this.getWidgetClass()}
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
-                {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
+                {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
@@ -1095,7 +1226,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         </Box>
                     ) : null}
 
-                    {/* Name — full width on its own line */}
+                    {/* Name */}
                     <Typography
                         ref={this.nameRef}
                         variant="body2"
@@ -1111,7 +1242,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         {this.props.settings?.name || name || '...'}
                     </Typography>
 
-                    {/* Icon + info + set temp row */}
+                    {/* Icon + info row */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box
                             sx={{
@@ -1128,53 +1259,42 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                                 {actualTemp != null ? (
-                                    <Tooltip title={I18n.t('wm_Actual temperature')}>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
-                                        >
-                                            {WidgetThermostat.formatTemp(actualTemp)}
-                                        </Typography>
-                                    </Tooltip>
-                                ) : null}
-                                {humidity != null ? (
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: 'text.secondary',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '2px',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                    >
-                                        <WaterDrop sx={{ fontSize: 14 }} />
-                                        {Math.round(humidity)}%
+                                    <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                        {WidgetAirCondition.formatTemp(actualTemp)}
                                     </Typography>
                                 ) : null}
-                                {boost ? <LocalFireDepartment sx={{ fontSize: 16, color: '#f44336' }} /> : null}
-                                {power === false ? (
-                                    <PowerSettingsNew sx={{ fontSize: 16, color: 'text.disabled' }} />
-                                ) : null}
-                                {party ? <Celebration sx={{ fontSize: 16, color: '#ff9800' }} /> : null}
+                                <Typography variant="h6" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                    → {WidgetAirCondition.formatTemp(setTemp)}
+                                </Typography>
+                                {boost ? <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} /> : null}
+                                {power === false ? <PowerSettingsNew sx={{ fontSize: 20, color: 'text.disabled' }} /> : null}
                                 {modeLabel ? (
-                                    <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
-                                        {WidgetThermostat.renderModeIcon(modeLabel, 16)}
+                                    <Tooltip title={WidgetAirCondition.getModeInfo(modeLabel).displayName}>
+                                        {WidgetAirCondition.renderModeIcon(modeLabel, 20)}
                                     </Tooltip>
                                 ) : null}
                             </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {humidity != null ? (
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                    >
+                                        💧 {Math.round(humidity)}%
+                                    </Typography>
+                                ) : null}
+                                {speedLabel ? (
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                    >
+                                        <Air sx={{ fontSize: 14 }} />
+                                        {WidgetAirCondition.getSpeedLabel(speedLabel)}
+                                    </Typography>
+                                ) : null}
+                            </Box>
                         </Box>
-
-                        <Tooltip title={I18n.t('wm_Set temperature')}>
-                            <Typography
-                                variant="h5"
-                                sx={{ fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
-                            >
-                                → {WidgetThermostat.formatTemp(setTemp)}
-                            </Typography>
-                        </Tooltip>
                     </Box>
-
                     {this.renderChart()}
                 </ButtonBase>
                 {this.renderSettingsButton()}
@@ -1184,4 +1304,4 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     }
 }
 
-export default WidgetThermostat;
+export default WidgetAirCondition;
