@@ -22,3 +22,5 @@
 - Water or tank level: use widget from "information" type of device, where the user can set the type of the visualisation
 - weatherCurrent and weatherForecast
 - Show on the category/room tile the same information as on the category inside (on status): window, temperature and so on
+
+- Themes
