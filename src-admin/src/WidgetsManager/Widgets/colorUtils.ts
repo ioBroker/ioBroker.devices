@@ -62,6 +62,51 @@ export function rgbToHsv(r: number, g: number, b: number): [number, number, numb
     return [h, s, v];
 }
 
+/** RGB to CIE xy color space */
+export function rgbToCie(r: number, g: number, b: number): [number, number] {
+    // sRGB to linear
+    let rr = r / 255;
+    let gg = g / 255;
+    let bb = b / 255;
+    rr = rr > 0.04045 ? ((rr + 0.055) / 1.055) ** 2.4 : rr / 12.92;
+    gg = gg > 0.04045 ? ((gg + 0.055) / 1.055) ** 2.4 : gg / 12.92;
+    bb = bb > 0.04045 ? ((bb + 0.055) / 1.055) ** 2.4 : bb / 12.92;
+    // Wide gamut D65 conversion (Philips Hue)
+    const X = rr * 0.664511 + gg * 0.154324 + bb * 0.162028;
+    const Y = rr * 0.283881 + gg * 0.668433 + bb * 0.047685;
+    const Z = rr * 0.000088 + gg * 0.072310 + bb * 0.986039;
+    const sum = X + Y + Z;
+    if (sum === 0) {
+        return [0.3127, 0.3290]; // D65 white point
+    }
+    return [X / sum, Y / sum];
+}
+
+/** CIE xy to approximate RGB */
+export function cieToRgb(x: number, y: number, brightness = 1): [number, number, number] {
+    const z = 1 - x - y;
+    const Y = brightness;
+    const X = y === 0 ? 0 : (Y / y) * x;
+    const Z = y === 0 ? 0 : (Y / y) * z;
+    // XYZ to linear sRGB
+    let rr = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
+    let gg = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
+    let bb = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+    // Clamp negatives
+    if (rr < 0) { rr = 0; }
+    if (gg < 0) { gg = 0; }
+    if (bb < 0) { bb = 0; }
+    // Gamma correction
+    rr = rr <= 0.0031308 ? 12.92 * rr : 1.055 * rr ** (1 / 2.4) - 0.055;
+    gg = gg <= 0.0031308 ? 12.92 * gg : 1.055 * gg ** (1 / 2.4) - 0.055;
+    bb = bb <= 0.0031308 ? 12.92 * bb : 1.055 * bb ** (1 / 2.4) - 0.055;
+    return [
+        Math.max(0, Math.min(255, Math.round(rr * 255))),
+        Math.max(0, Math.min(255, Math.round(gg * 255))),
+        Math.max(0, Math.min(255, Math.round(bb * 255))),
+    ];
+}
+
 /** Color temperature (Kelvin) to approximate RGB */
 export function ctToRgb(kelvin: number): [number, number, number] {
     const temp = kelvin / 100;

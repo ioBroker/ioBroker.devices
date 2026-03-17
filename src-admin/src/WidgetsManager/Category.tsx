@@ -43,6 +43,9 @@ import {
     WidgetMotion,
     WidgetWindow,
     WidgetBlind,
+    WidgetBlindButtons,
+    WidgetAirCondition,
+    WidgetWarning,
     WidgetLock,
     WidgetDoor,
     WidgetFloodAlarm,
@@ -55,6 +58,9 @@ import {
     WidgetColorLight,
     WidgetInfo as WidgetInfoWidget,
     WidgetLocation,
+    WidgetSlider,
+    WidgetTank,
+    WidgetImage,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -119,7 +125,11 @@ interface StatusSubscription {
     widgetName?: string;
 }
 
-type OrderedItem = { type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef };
+type OrderedItem = {
+    type: 'category' | 'widget' | 'custom';
+    id: string;
+    data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+};
 
 function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettings>): string | undefined {
     if (item.type === 'category') {
@@ -145,14 +155,7 @@ function SortableItem(props: {
     children: React.ReactNode;
 }): React.JSX.Element {
     const { id, gridColumn, isDragging, children } = props;
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        setActivatorNodeRef,
-        transform,
-        transition,
-    } = useSortable({ id });
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id });
 
     const style: React.CSSProperties = {
         position: 'relative',
@@ -220,7 +223,11 @@ function SortableGrid(props: {
         // Only reset if the set of IDs changed (add/remove), not just order
         const liveSet = new Set(liveOrder);
         const sourceSet = new Set(sourceIds);
-        if (liveOrder.length !== sourceIds.length || sourceIds.some(id => !liveSet.has(id)) || liveOrder.some(id => !sourceSet.has(id))) {
+        if (
+            liveOrder.length !== sourceIds.length ||
+            sourceIds.some(id => !liveSet.has(id)) ||
+            liveOrder.some(id => !sourceSet.has(id))
+        ) {
             setLiveOrder(sourceIds);
         }
     }
@@ -350,9 +357,7 @@ function SortableGrid(props: {
             </SortableContext>
             <DragOverlay dropAnimation={null}>
                 {activeItem ? (
-                    <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>
-                        {renderContent(activeItem)}
-                    </Box>
+                    <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>{renderContent(activeItem)}</Box>
                 ) : null}
             </DragOverlay>
         </DndContext>
@@ -402,18 +407,19 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         },
     ): void {
         if (category.name && typeof category.name === 'object') {
-            if ((category.name as ioBroker.Translated).en) {
-                state.names[category.id] = this.getText(category.name as ioBroker.Translated);
-            } else if ((category.name as { objectId: string; property: string }).objectId) {
+            if ((category.name as { objectId: string; property: string }).objectId) {
                 this.props.stateContext.getObjectProperty(
                     (category.name as { objectId: string; property: string }).objectId,
                     (category.name as { objectId: string; property: string }).property,
                     this.onNameChange,
                 );
+            } else {
+                state.names[category.id] = this.getText(category.name as ioBroker.Translated);
             }
-        } else {
-            state.names[category.id] = category.name || '';
+        } else if (typeof typeof category.name === 'string') {
+            state.names[category.id] = category.name;
         }
+        state.names[category.id] ||= category.id.toString().split('.').pop() || '';
 
         if (category.icon && typeof category.icon === 'object') {
             if ((category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
@@ -699,13 +705,21 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     // --- Ordered items for grid ---
 
-    getOrderedItems(): Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef }> {
+    getOrderedItems(): Array<{
+        type: 'category' | 'widget' | 'custom';
+        id: string;
+        data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+    }> {
         const categoryId = String(this.props.category.id);
         const catSettings = this.props.categorySettings[categoryId];
         const customWidgets = catSettings?.customWidgets || [];
         const order = catSettings?.widgetOrder;
 
-        const items: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: CategoryInfo | WidgetInfo | CustomWidgetDef }> = [
+        const items: Array<{
+            type: 'category' | 'widget' | 'custom';
+            id: string;
+            data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+        }> = [
             ...this.subCategories.map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
             ...this.widgets.map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
             ...customWidgets.map(cw => ({ type: 'custom' as const, id: cw.id, data: cw })),
@@ -729,6 +743,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return text;
     }
 
+    // eslint-disable-next-line react/no-unused-class-component-methods
     renderWidget(widget: WidgetInfo): React.JSX.Element {
         let Widget: React.ComponentType<WidgetGenericProps> | undefined;
         if (widget.control && widget.control.type === Types.socket) {
@@ -745,6 +760,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetWindow;
         } else if (widget.control && widget.control.type === Types.blind) {
             Widget = WidgetBlind;
+        } else if (widget.control && widget.control.type === Types.blindButtons) {
+            Widget = WidgetBlindButtons;
         } else if (widget.control && widget.control.type === Types.lock) {
             Widget = WidgetLock;
         } else if (widget.control && widget.control.type === Types.door) {
@@ -759,8 +776,26 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetIlluminance;
         } else if (widget.control && widget.control.type === Types.thermostat) {
             Widget = WidgetThermostat;
-        } else if (widget.control && widget.control.type === Types.volume) {
+        } else if (widget.control && widget.control.type === Types.airCondition) {
+            Widget = WidgetAirCondition;
+        } else if (widget.control && widget.control.type === Types.warning) {
+            Widget = WidgetWarning;
+        } else if (widget.control && (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)) {
             Widget = WidgetVolume;
+        } else if (
+            widget.control &&
+            (widget.control.type === Types.slider || widget.control.type === Types.percentage)
+        ) {
+            Widget = WidgetSlider;
+        } else if (
+            widget.control?.type === Types.info &&
+            widget.control.states.some(
+                s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test((s as any).stateRole || ''),
+            )
+        ) {
+            Widget = WidgetTank;
+        } else if (widget.control && widget.control.type === Types.image) {
+            Widget = WidgetImage;
         } else if (widget.control && widget.control.type === Types.info) {
             Widget = WidgetInfoWidget;
         } else if (

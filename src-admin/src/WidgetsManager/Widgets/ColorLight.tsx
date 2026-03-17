@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
-import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb } from './colorUtils';
+import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
 
 // --- State interface ---
@@ -43,6 +43,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
     protected readonly hueId: string | null; // hue type
     protected readonly saturationId: string | null;
     protected readonly ctId: string | null; // color temperature
+    protected readonly cieId: string | null; // CIE xy string
 
     private arcRef = React.createRef<HTMLDivElement>();
     private dragStartPos: { x: number; y: number } | null = null;
@@ -73,6 +74,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         this.hueId = find('HUE');
         this.saturationId = find('SATURATION');
         this.ctId = find('TEMPERATURE');
+        this.cieId = find('CIE');
 
         // Dimmer may not exist for some pure-color types
         const dimmer = find('DIMMER') ?? find('BRIGHTNESS');
@@ -137,6 +139,9 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         if (this.ctId) {
             this.props.stateContext.getState(this.ctId, this.onCtChange);
         }
+        if (this.cieId) {
+            this.props.stateContext.getState(this.cieId, this.onCieChange);
+        }
 
         void this.loadDimmerObject();
         void this.loadCtObject();
@@ -177,6 +182,9 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         }
         if (this.ctId) {
             this.props.stateContext.removeState(this.ctId, this.onCtChange);
+        }
+        if (this.cieId) {
+            this.props.stateContext.removeState(this.cieId, this.onCieChange);
         }
     }
 
@@ -316,6 +324,15 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         this.setState({ color: rgbToHex(r, g, b), ctValue: kelvin });
     };
 
+    private onCieChange = (_id: string, state: ioBroker.State): void => {
+        const val = String(state.val || '');
+        const parts = val.split(',').map(Number);
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            const [r, g, b] = cieToRgb(parts[0], parts[1]);
+            this.setState({ color: rgbToHex(r, g, b) });
+        }
+    };
+
     // --- Send color to device ---
 
     protected sendColor(hex: string): void {
@@ -346,6 +363,9 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
             if (this.saturationId) {
                 void socket.setState(this.saturationId, Math.round(s * 100));
             }
+        } else if (type === Types.cie && this.cieId) {
+            const [cx, cy] = rgbToCie(r, g, b);
+            void socket.setState(this.cieId, `${cx.toFixed(4)},${cy.toFixed(4)}`);
         }
         // CT is not set from RGB hex — it has its own control
     }
@@ -658,6 +678,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         const tile = (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative' }}
             >
                 <Box

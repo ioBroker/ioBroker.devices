@@ -250,6 +250,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
@@ -313,6 +314,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', gridColumn: 'span 2' }}
             >
                 <Box
@@ -375,6 +377,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
@@ -440,6 +443,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
@@ -490,6 +494,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', gridColumn: 'span 2' }}
             >
                 <Box
@@ -561,6 +566,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         return (
             <Box
                 id={this.props.id}
+                className="widget-clock"
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />

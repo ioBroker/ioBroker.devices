@@ -235,9 +235,66 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
         );
     }
 
+    private renderArcKnob(): React.JSX.Element {
+        const { volume, dragging } = this.state;
+        const isActive = this.isTileActive();
+        const accent = this.getAccentColor();
+        const vb = 100;
+        const sw = 10;
+        const r = (vb - sw) / 2;
+        const circumference = 2 * Math.PI * r;
+        const arcLength = circumference * 0.75;
+        const progress = (volume / 100) * arcLength;
+
+        return (
+            <Box
+                ref={this.arcRef}
+                onPointerDown={this.onArcPointerDown}
+                onPointerMove={this.onArcPointerMove}
+                onPointerUp={this.onArcPointerUp}
+                onPointerCancel={this.onArcPointerUp}
+                onClick={e => e.stopPropagation()}
+                sx={{
+                    width: 48,
+                    height: 48,
+                    flexShrink: 0,
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                }}
+            >
+                <svg viewBox={`0 0 ${vb} ${vb}`} style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}>
+                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw}
+                        strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" opacity={0.15} />
+                    <circle cx={vb / 2} cy={vb / 2} r={r} fill="none"
+                        stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
+                        strokeWidth={sw} strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round"
+                        style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }} />
+                </svg>
+                <Typography sx={{
+                    position: 'absolute',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    color: isActive ? (accent || 'primary.main') : 'text.secondary',
+                }}>
+                    {volume}%
+                </Typography>
+            </Box>
+        );
+    }
+
     protected renderTileAction(): React.JSX.Element {
         const { volume } = this.state;
         const accent = this.getAccentColor();
+
+        if ((this.props.settings?.wideSliderStyle || 'horizontal') === 'round') {
+            return this.renderArcKnob();
+        }
 
         return (
             <Slider
@@ -275,6 +332,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box

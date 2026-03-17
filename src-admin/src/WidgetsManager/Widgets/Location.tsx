@@ -17,14 +17,90 @@ interface WidgetLocationState extends WidgetGenericState {
     dialogOpen: boolean;
 }
 
-/** Shared marker icon factory */
-function createMarkerIcon(size = 12): L.DivIcon {
+// --- Map tile themes ---
+
+interface MapTheme {
+    url: string;
+    attribution: string;
+    maxZoom: number;
+}
+
+const MAP_THEMES: Record<string, MapTheme> = {
+    standard: {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+    },
+    dark: {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxZoom: 20,
+    },
+    satellite: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '&copy; Esri',
+        maxZoom: 18,
+    },
+};
+
+// --- Predefined marker icon SVG paths (Material Design) ---
+
+const PREDEFINED_ICON_PATHS: Record<string, string> = {
+    person: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+    boat: 'M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z',
+    car: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z',
+    moped: 'M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zm12-1c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z',
+    bicycle: 'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm14-8.5c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zM12.8 10L10.2 16H6v-2h2.8l1.7-2.8L8.8 8l2-3.3L14 8h3V6h-4l-2.8 4z',
+    yacht: 'M12 3L5 16h7V3zm0 3l5 8h-5V6zM3 18q9 4 18 0H3z',
+};
+
+/** Create a pin-shaped SVG marker with an inner icon */
+function createPinSvg(innerPath: string, color: string): string {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="44" viewBox="0 0 32 44">` +
+        `<path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 28 16 28s16-16 16-28C32 7.16 24.84 0 16 0z" fill="${color}"/>` +
+        `<circle cx="16" cy="14" r="10" fill="white" opacity="0.25"/>` +
+        `<g transform="translate(6,4) scale(0.833)" fill="white"><path d="${innerPath}"/></g>` +
+        `</svg>`;
+}
+
+/** Create the default dot marker icon */
+function createDefaultMarkerIcon(size = 12, color = '#1976d2'): L.DivIcon {
     return L.divIcon({
         className: '',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#1976d2;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
     });
+}
+
+/** Create a Leaflet icon based on markerIcon setting value */
+function createMarkerIcon(markerIconSetting: string, size: 'small' | 'large' = 'small', color = '#1976d2'): L.Icon | L.DivIcon {
+    // Custom uploaded image (base64 data URI)
+    if (markerIconSetting?.startsWith('data:')) {
+        const s = size === 'large' ? 40 : 28;
+        return L.icon({
+            iconUrl: markerIconSetting,
+            iconSize: [s, s],
+            iconAnchor: [s / 2, s],
+        });
+    }
+
+    // Predefined icon type
+    const path = PREDEFINED_ICON_PATHS[markerIconSetting];
+    if (path) {
+        const pinW = size === 'large' ? 32 : 24;
+        const pinH = size === 'large' ? 44 : 33;
+        const svg = createPinSvg(path, color);
+        return L.divIcon({
+            className: '',
+            html: `<div style="width:${pinW}px;height:${pinH}px">${svg}</div>`,
+            iconSize: [pinW, pinH],
+            iconAnchor: [pinW / 2, pinH],
+        });
+    }
+
+    // Default dot
+    return createDefaultMarkerIcon(size === 'large' ? 16 : 12, color);
 }
 
 /**
@@ -43,15 +119,19 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
     /** Tile map */
     private mapContainer: HTMLDivElement | null = null;
     private map: L.Map | null = null;
+    private tileLayer: L.TileLayer | null = null;
     private marker: L.Marker | null = null;
     private circle: L.Circle | null = null;
     private lastLat: number | null = null;
     private lastLng: number | null = null;
     private lastRadius: number | null = null;
+    private lastMapTheme: string = '';
+    private lastMarkerIcon: string = '';
 
     /** Dialog map */
     private dialogMapContainer: HTMLDivElement | null = null;
     private dialogMap: L.Map | null = null;
+    private dialogTileLayer: L.TileLayer | null = null;
     private dialogMarker: L.Marker | null = null;
     private dialogCircle: L.Circle | null = null;
 
@@ -132,12 +212,29 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         super.componentDidUpdate(prevProps);
         const { latitude, longitude, radius, accuracy } = this.state;
         const r = radius || accuracy;
+
+        // Position/radius change
         if (latitude !== this.lastLat || longitude !== this.lastLng || r !== this.lastRadius) {
             this.lastLat = latitude;
             this.lastLng = longitude;
             this.lastRadius = r;
             this.updateMap();
             this.updateDialogMap();
+        }
+
+        // Map theme change
+        const newTheme = this.props.settings?.mapTheme || 'standard';
+        if (newTheme !== this.lastMapTheme) {
+            this.lastMapTheme = newTheme;
+            this.updateTileTheme(this.map, 'tile');
+            this.updateTileTheme(this.dialogMap, 'dialog');
+        }
+
+        // Marker icon change
+        const newMarker = this.props.settings?.markerIcon || '';
+        if (newMarker !== this.lastMarkerIcon) {
+            this.lastMarkerIcon = newMarker;
+            this.updateMarkerIcons();
         }
     }
 
@@ -192,6 +289,52 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         this.setState({ accuracy: val != null && !isNaN(val) ? val : null });
     };
 
+    // --- Helpers ---
+
+    private getThemeConfig(): MapTheme {
+        const key = this.props.settings?.mapTheme || 'standard';
+        return MAP_THEMES[key] || MAP_THEMES.standard;
+    }
+
+    private getMarkerColor(): string {
+        return this.props.settings?.color || '#1976d2';
+    }
+
+    // --- Tile theme update ---
+
+    private updateTileTheme(map: L.Map | null, which: 'tile' | 'dialog'): void {
+        if (!map) {
+            return;
+        }
+        const theme = this.getThemeConfig();
+        const layerRef = which === 'tile' ? this.tileLayer : this.dialogTileLayer;
+        if (layerRef) {
+            layerRef.remove();
+        }
+        const newLayer = L.tileLayer(theme.url, {
+            maxZoom: theme.maxZoom,
+            ...(which === 'dialog' ? { attribution: theme.attribution } : {}),
+        }).addTo(map);
+        if (which === 'tile') {
+            this.tileLayer = newLayer;
+        } else {
+            this.dialogTileLayer = newLayer;
+        }
+    }
+
+    // --- Marker icon update ---
+
+    private updateMarkerIcons(): void {
+        const markerSetting = this.props.settings?.markerIcon || '';
+        const color = this.getMarkerColor();
+        if (this.marker) {
+            this.marker.setIcon(createMarkerIcon(markerSetting, 'small', color));
+        }
+        if (this.dialogMarker) {
+            this.dialogMarker.setIcon(createMarkerIcon(markerSetting, 'large', color));
+        }
+    }
+
     // --- Tile map (non-interactive) ---
 
     private initMap(): void {
@@ -200,6 +343,12 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         }
         const lat = this.state.latitude ?? 51.505;
         const lng = this.state.longitude ?? 13.404;
+        const theme = this.getThemeConfig();
+        const markerSetting = this.props.settings?.markerIcon || '';
+        const color = this.getMarkerColor();
+
+        this.lastMapTheme = this.props.settings?.mapTheme || 'standard';
+        this.lastMarkerIcon = markerSetting;
 
         this.map = L.map(this.mapContainer, {
             center: [lat, lng],
@@ -214,18 +363,21 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
             keyboard: false,
         });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
+        this.tileLayer = L.tileLayer(theme.url, {
+            maxZoom: theme.maxZoom,
         }).addTo(this.map);
 
-        this.marker = L.marker([lat, lng], { icon: createMarkerIcon(), interactive: false }).addTo(this.map);
+        this.marker = L.marker([lat, lng], {
+            icon: createMarkerIcon(markerSetting, 'small', color),
+            interactive: false,
+        }).addTo(this.map);
 
         const r = this.state.radius || this.state.accuracy;
         if (r && r > 0) {
             this.circle = L.circle([lat, lng], {
                 radius: r,
-                color: '#1976d2',
-                fillColor: '#1976d2',
+                color,
+                fillColor: color,
                 fillOpacity: 0.15,
                 weight: 1,
             }).addTo(this.map);
@@ -246,13 +398,14 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         this.marker?.setLatLng(pos);
 
         const r = radius || accuracy;
+        const color = this.getMarkerColor();
         if (r && r > 0) {
             if (this.circle) {
                 this.circle.setLatLng(pos);
                 this.circle.setRadius(r);
             } else {
                 this.circle = L.circle(pos, {
-                    radius: r, color: '#1976d2', fillColor: '#1976d2', fillOpacity: 0.15, weight: 1,
+                    radius: r, color, fillColor: color, fillOpacity: 0.15, weight: 1,
                 }).addTo(this.map);
             }
         } else if (this.circle) {
@@ -265,6 +418,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         if (this.map) {
             this.map.remove();
             this.map = null;
+            this.tileLayer = null;
             this.marker = null;
             this.circle = null;
         }
@@ -285,6 +439,9 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         }
         const lat = this.state.latitude ?? 51.505;
         const lng = this.state.longitude ?? 13.404;
+        const theme = this.getThemeConfig();
+        const markerSetting = this.props.settings?.markerIcon || '';
+        const color = this.getMarkerColor();
 
         this.dialogMap = L.map(this.dialogMapContainer, {
             center: [lat, lng],
@@ -299,19 +456,22 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
             keyboard: true,
         });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors',
+        this.dialogTileLayer = L.tileLayer(theme.url, {
+            maxZoom: theme.maxZoom,
+            attribution: theme.attribution,
         }).addTo(this.dialogMap);
 
-        this.dialogMarker = L.marker([lat, lng], { icon: createMarkerIcon(16), interactive: false }).addTo(this.dialogMap);
+        this.dialogMarker = L.marker([lat, lng], {
+            icon: createMarkerIcon(markerSetting, 'large', color),
+            interactive: false,
+        }).addTo(this.dialogMap);
 
         const r = this.state.radius || this.state.accuracy;
         if (r && r > 0) {
             this.dialogCircle = L.circle([lat, lng], {
                 radius: r,
-                color: '#1976d2',
-                fillColor: '#1976d2',
+                color,
+                fillColor: color,
                 fillOpacity: 0.15,
                 weight: 1.5,
             }).addTo(this.dialogMap);
@@ -331,13 +491,14 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         this.dialogMarker?.setLatLng(pos);
 
         const r = radius || accuracy;
+        const color = this.getMarkerColor();
         if (r && r > 0) {
             if (this.dialogCircle) {
                 this.dialogCircle.setLatLng(pos);
                 this.dialogCircle.setRadius(r);
             } else {
                 this.dialogCircle = L.circle(pos, {
-                    radius: r, color: '#1976d2', fillColor: '#1976d2', fillOpacity: 0.15, weight: 1.5,
+                    radius: r, color, fillColor: color, fillOpacity: 0.15, weight: 1.5,
                 }).addTo(this.dialogMap);
             }
         } else if (this.dialogCircle) {
@@ -350,6 +511,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         if (this.dialogMap) {
             this.dialogMap.remove();
             this.dialogMap = null;
+            this.dialogTileLayer = null;
             this.dialogMarker = null;
             this.dialogCircle = null;
         }
@@ -520,6 +682,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         return (
             <Box
                 id={String(this.props.widget.id)}
+                className={this.getWidgetClass()}
                 sx={{
                     position: 'relative',
                     containerType: 'inline-size',
