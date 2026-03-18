@@ -29,7 +29,7 @@
     "@iobroker/testing": "^5.2.2",
     "@types/node": "^25.5.0",
     "colorette": "^2.0.20",
-    "puppeteer": "^24.38.0"
+    "puppeteer": "^24.39.1"
   },
   "main": "admin/tab.html",
   "files": [
