@@ -28,7 +28,37 @@ export interface CwConfigColor {
     label: string;
 }
 
-export type CwConfigItem = CwConfigSelect | CwConfigCheckbox | CwConfigColor;
+export interface CwConfigInstanceSelect {
+    type: 'instanceSelect';
+    /** i18n key for the field label */
+    label: string;
+    /** Adapter names to list instances for */
+    adapterNames: string[];
+}
+
+export interface CwConfigText {
+    type: 'text';
+    /** i18n key for the field label */
+    label: string;
+    default?: string;
+    /** Placeholder text (i18n key) */
+    placeholder?: string;
+    /** Helper text below the input (i18n key) */
+    helperText?: string;
+    /** Input type: 'text' (default) or 'number' */
+    inputType?: 'text' | 'number';
+}
+
+export interface CwConfigCitySearch {
+    type: 'citySearch';
+    /** i18n key for the field label */
+    label: string;
+}
+
+export type CwConfigItem = (CwConfigSelect | CwConfigCheckbox | CwConfigColor | CwConfigInstanceSelect | CwConfigCitySearch | CwConfigText) & {
+    /** Only show this item when the specified key has the specified value */
+    visibleWhen?: Record<string, unknown>;
+};
 
 export interface CwWidgetConfig {
     /** i18n key for the widget type name (dialog title) */
@@ -46,6 +76,12 @@ export function getConfigDefault(item: CwConfigItem): unknown {
             return item.default ?? true;
         case 'color':
             return '';
+        case 'instanceSelect':
+            return '';
+        case 'citySearch':
+            return '';
+        case 'text':
+            return item.default ?? '';
     }
 }
 
@@ -98,6 +134,87 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 type: 'checkbox',
                 label: 'wm_Show seconds',
                 default: true,
+            },
+        },
+    },
+    weather: {
+        name: 'wm_Weather',
+        items: {
+            weatherSource: {
+                type: 'select',
+                label: 'wm_Weather source',
+                options: [
+                    { value: 'adapter', label: 'wm_Adapter' },
+                    { value: 'openmeteo', label: 'Open-Meteo' },
+                    { value: 'yrno', label: 'yr.no' },
+                ],
+                default: 'adapter',
+                format: 'radio',
+            },
+            adapterInstance: {
+                type: 'instanceSelect',
+                label: 'wm_Adapter instance',
+                adapterNames: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
+                visibleWhen: { weatherSource: 'adapter' },
+            },
+            cityName: {
+                type: 'citySearch',
+                label: 'wm_City',
+                visibleWhen: { weatherSource: ['openmeteo', 'yrno'] },
+            },
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '2x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
+            },
+        },
+    },
+    iframe: {
+        name: 'wm_Iframe',
+        items: {
+            url: {
+                type: 'text',
+                label: 'URL',
+                placeholder: 'wm_URL placeholder',
+            },
+            refreshInterval: {
+                type: 'text',
+                label: 'wm_Refresh interval',
+                default: '0',
+                helperText: 'wm_Refresh interval help',
+                inputType: 'number',
+            },
+            appendTimestamp: {
+                type: 'checkbox',
+                label: 'wm_Append timestamp',
+                default: false,
+            },
+            clickAction: {
+                type: 'select',
+                label: 'wm_Click action',
+                options: [
+                    { value: 'dialog', label: 'wm_Open in dialog' },
+                    { value: 'newTab', label: 'wm_Open in new tab' },
+                    { value: 'sameTab', label: 'wm_Open in same tab' },
+                ],
+                default: 'dialog',
+            },
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '2x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
             },
         },
     },

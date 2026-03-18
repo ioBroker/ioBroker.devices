@@ -742,7 +742,6 @@ interface ListDevicesProps {
     theme: IobTheme;
     themeType: ThemeType;
     prefix?: string;
-    width: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 interface ListDevicesState {

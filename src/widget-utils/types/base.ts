@@ -41,7 +41,7 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe';
 
 export interface CustomWidgetDef {
     id: string;
@@ -56,6 +56,24 @@ export interface CustomWidgetDef {
     showDow?: boolean;
     /** Show seconds. Default: true */
     showSeconds?: boolean;
+    /** Weather adapter instance (e.g., "openweathermap.0") */
+    adapterInstance?: string;
+    /** Weather data source: adapter-based, open-meteo API, or yr.no API */
+    weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
+    /** Latitude for open-meteo */
+    latitude?: number;
+    /** Longitude for open-meteo */
+    longitude?: number;
+    /** City name for display (open-meteo) */
+    cityName?: string;
+    /** URL for iframe widget */
+    url?: string;
+    /** Refresh interval in seconds (0 = no auto-refresh) */
+    refreshInterval?: number;
+    /** Append ?ts=<timestamp> to URL for cache-busting */
+    appendTimestamp?: boolean;
+    /** Click action: open in dialog, new tab, or same tab */
+    clickAction?: 'dialog' | 'newTab' | 'sameTab';
 }
 
 export interface CategoryInfo extends ItemInfo {

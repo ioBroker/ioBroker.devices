@@ -1,30 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Box,
     Button,
     Checkbox,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
     FormControlLabel,
     IconButton,
+    List,
+    ListItemButton,
+    ListItemText,
     MenuItem,
     Select,
+    TextField,
     ToggleButton,
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
-import { Close, Delete, Save } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { Close, Delete, MyLocation, Save } from '@mui/icons-material';
+import { I18n, type Connection } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
 import {
     CUSTOM_WIDGET_CONFIGS,
     getConfigDefault,
+    type CwConfigCitySearch,
     type CwConfigColor,
+    type CwConfigInstanceSelect,
     type CwConfigItem,
     type CwConfigSelect,
+    type CwConfigText,
 } from './CustomWidgetConfigs';
 
 interface CustomWidgetSettingsDialogProps {
@@ -33,6 +41,22 @@ interface CustomWidgetSettingsDialogProps {
     onClose: () => void;
     onSave: (def: CustomWidgetDef) => void;
     onDelete: () => void;
+    /** Socket for dynamic data (e.g., listing adapter instances) */
+    socket?: Connection;
+}
+
+/** Extra keys that citySearch can write besides its own key */
+const EXTRA_KEYS = ['latitude', 'longitude'] as const;
+
+// --- Geocoding result type ---
+
+interface GeoResult {
+    name: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    admin1?: string;
+    country_code?: string;
 }
 
 // --- Item renderers ---
@@ -162,12 +186,290 @@ function renderColor(
     );
 }
 
+function renderText(
+    key: string,
+    item: CwConfigText,
+    value: string,
+    onChange: (v: unknown) => void,
+): React.JSX.Element {
+    return (
+        <Box
+            key={key}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            <TextField
+                value={value}
+                onChange={e => onChange(item.inputType === 'number' ? e.target.value : e.target.value)}
+                placeholder={item.placeholder ? I18n.t(item.placeholder) : undefined}
+                helperText={item.helperText ? I18n.t(item.helperText) : undefined}
+                type={item.inputType || 'text'}
+                size="small"
+                fullWidth
+            />
+        </Box>
+    );
+}
+
+/** Dynamic instance selector component */
+function InstanceSelect(props: {
+    configKey: string;
+    item: CwConfigInstanceSelect;
+    value: string;
+    onChange: (v: unknown) => void;
+    socket?: Connection;
+}): React.JSX.Element {
+    const { configKey, item, value, onChange, socket } = props;
+    const [instances, setInstances] = useState<{ id: string; label: string }[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!socket) {
+            setLoading(false);
+            return;
+        }
+        let cancelled = false;
+
+        void (async () => {
+            const found: { id: string; label: string }[] = [];
+            for (const adapterName of item.adapterNames) {
+                try {
+                    const res = await socket.getAdapterInstances(adapterName);
+                    if (cancelled) {
+                        return;
+                    }
+                    if (Array.isArray(res)) {
+                        for (const inst of res) {
+                            const instanceId = inst._id.replace('system.adapter.', '');
+                            const rawName = inst.common?.name;
+                            const name =
+                                rawName && typeof rawName === 'object'
+                                    ? (rawName as ioBroker.Translated).en || instanceId
+                                    : (rawName as string) || instanceId;
+                            found.push({ id: instanceId, label: `${name} (${instanceId})` });
+                        }
+                    }
+                } catch {
+                    // adapter not installed — skip
+                }
+            }
+            if (!cancelled) {
+                setInstances(found);
+                setLoading(false);
+                // Auto-select first if nothing selected
+                if (!value && found.length === 1) {
+                    onChange(found[0].id);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [socket, item.adapterNames.join(',')]);
+
+    return (
+        <Box
+            key={configKey}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+                    <CircularProgress size={18} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {I18n.t('wm_Loading instances')}...
+                    </Typography>
+                </Box>
+            ) : instances.length === 0 ? (
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {I18n.t('wm_No weather adapters')}
+                </Typography>
+            ) : (
+                <Select
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    size="small"
+                    fullWidth
+                    displayEmpty
+                >
+                    <MenuItem value="" disabled>
+                        {I18n.t('wm_Select instance')}
+                    </MenuItem>
+                    {instances.map(inst => (
+                        <MenuItem key={inst.id} value={inst.id}>
+                            {inst.label}
+                        </MenuItem>
+                    ))}
+                </Select>
+            )}
+        </Box>
+    );
+}
+
+/** City search component using open-meteo geocoding API */
+function CitySearch(props: {
+    configKey: string;
+    item: CwConfigCitySearch;
+    value: string;
+    latitude?: number;
+    longitude?: number;
+    onChange: (cityName: string, lat?: number, lon?: number) => void;
+}): React.JSX.Element {
+    const { configKey, item, value, latitude, longitude, onChange } = props;
+    const [query, setQuery] = useState(value || '');
+    const [results, setResults] = useState<GeoResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Sync external value changes
+    useEffect(() => {
+        if (value && value !== query) {
+            setQuery(value);
+        }
+    }, [value]);
+
+    const doSearch = useCallback((q: string) => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+        }
+        if (!q || q.length < 2) {
+            setResults([]);
+            setShowResults(false);
+            return;
+        }
+        timerRef.current = setTimeout(() => {
+            setSearching(true);
+            const lang = I18n.getLanguage() || 'en';
+            fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${lang}`)
+                .then(r => r.json())
+                .then((data: { results?: GeoResult[] }) => {
+                    setResults(data.results || []);
+                    setShowResults(true);
+                    setSearching(false);
+                })
+                .catch(() => {
+                    setSearching(false);
+                    setShowResults(false);
+                });
+        }, 400);
+    }, []);
+
+    useEffect(() => () => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+        }
+    }, []);
+
+    const handleSelect = (r: GeoResult): void => {
+        const display = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country || ''}` : `${r.name}, ${r.country || ''}`;
+        setQuery(display);
+        setResults([]);
+        setShowResults(false);
+        onChange(display, r.latitude, r.longitude);
+    };
+
+    return (
+        <Box
+            key={configKey}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            <TextField
+                value={query}
+                onChange={e => {
+                    setQuery(e.target.value);
+                    doSearch(e.target.value);
+                }}
+                placeholder={I18n.t('wm_Search city')}
+                size="small"
+                fullWidth
+                slotProps={{
+                    input: {
+                        endAdornment: searching ? <CircularProgress size={16} /> : <MyLocation sx={{ fontSize: 18, color: 'text.secondary' }} />,
+                    },
+                }}
+            />
+            {showResults && results.length > 0 ? (
+                <List
+                    dense
+                    sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        mt: 0.5,
+                        maxHeight: 200,
+                        overflow: 'auto',
+                    }}
+                >
+                    {results.map((r, i) => (
+                        <ListItemButton
+                            key={`${r.latitude}-${r.longitude}-${i}`}
+                            onClick={() => handleSelect(r)}
+                        >
+                            <ListItemText
+                                primary={r.name}
+                                secondary={[r.admin1, r.country].filter(Boolean).join(', ')}
+                            />
+                            <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1, whiteSpace: 'nowrap' }}>
+                                {r.latitude.toFixed(2)}, {r.longitude.toFixed(2)}
+                            </Typography>
+                        </ListItemButton>
+                    ))}
+                </List>
+            ) : null}
+            {showResults && results.length === 0 && !searching ? (
+                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                    {I18n.t('wm_No results')}
+                </Typography>
+            ) : null}
+            {latitude != null && longitude != null ? (
+                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                    {latitude.toFixed(4)}°, {longitude.toFixed(4)}°
+                </Typography>
+            ) : null}
+        </Box>
+    );
+}
+
 function renderConfigItem(
     key: string,
     item: CwConfigItem,
     value: unknown,
     onChange: (v: unknown) => void,
-): React.JSX.Element {
+    socket?: Connection,
+    values?: Record<string, unknown>,
+    updateMulti?: (updates: Record<string, unknown>) => void,
+): React.JSX.Element | null {
+    // Check visibleWhen condition (supports exact value or array of allowed values)
+    if (item.visibleWhen && values) {
+        for (const [condKey, condVal] of Object.entries(item.visibleWhen)) {
+            if (Array.isArray(condVal)) {
+                if (!condVal.includes(values[condKey])) {
+                    return null;
+                }
+            } else if (values[condKey] !== condVal) {
+                return null;
+            }
+        }
+    }
+
     switch (item.type) {
         case 'select':
             return renderSelect(key, item, value as string, onChange);
@@ -187,13 +489,51 @@ function renderConfigItem(
                     label={I18n.t(item.label)}
                 />
             );
+        case 'instanceSelect':
+            return (
+                <InstanceSelect
+                    key={key}
+                    configKey={key}
+                    item={item}
+                    value={value as string}
+                    onChange={onChange}
+                    socket={socket}
+                />
+            );
+        case 'text':
+            return renderText(key, item, value as string, onChange);
+        case 'citySearch':
+            return (
+                <CitySearch
+                    key={key}
+                    configKey={key}
+                    item={item}
+                    value={value as string}
+                    latitude={values?.latitude as number | undefined}
+                    longitude={values?.longitude as number | undefined}
+                    onChange={(cityName, lat, lon) => {
+                        if (updateMulti) {
+                            const updates: Record<string, unknown> = { [key]: cityName };
+                            if (lat != null) {
+                                updates.latitude = lat;
+                            }
+                            if (lon != null) {
+                                updates.longitude = lon;
+                            }
+                            updateMulti(updates);
+                        } else {
+                            onChange(cityName);
+                        }
+                    }}
+                />
+            );
     }
 }
 
 // --- Dialog ---
 
 export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDialogProps): React.JSX.Element | null {
-    const { open, widgetDef, onClose, onSave, onDelete } = props;
+    const { open, widgetDef, onClose, onSave, onDelete, socket } = props;
     const [values, setValues] = useState<Record<string, unknown>>({});
 
     const config = widgetDef ? CUSTOM_WIDGET_CONFIGS[widgetDef.type] : null;
@@ -206,6 +546,13 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 for (const [key, item] of Object.entries(cfg.items)) {
                     const stored = (widgetDef as unknown as Record<string, unknown>)[key];
                     initial[key] = stored !== undefined ? stored : getConfigDefault(item);
+                }
+                // Load extra keys (latitude, longitude) that aren't in config.items
+                for (const extraKey of EXTRA_KEYS) {
+                    const stored = (widgetDef as unknown as Record<string, unknown>)[extraKey];
+                    if (stored !== undefined) {
+                        initial[extraKey] = stored;
+                    }
                 }
                 setValues(initial);
             }
@@ -220,10 +567,17 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         setValues(prev => ({ ...prev, [key]: value }));
     };
 
+    const updateMulti = (updates: Record<string, unknown>): void => {
+        setValues(prev => ({ ...prev, ...updates }));
+    };
+
     const hasChanges = Object.entries(config.items).some(([key, item]) => {
         const stored = (widgetDef as unknown as Record<string, unknown>)[key];
         const original = stored !== undefined ? stored : getConfigDefault(item);
         return values[key] !== original;
+    }) || EXTRA_KEYS.some(k => {
+        const stored = (widgetDef as unknown as Record<string, unknown>)[k];
+        return values[k] !== undefined && values[k] !== stored;
     });
 
     const handleSave = (): void => {
@@ -233,6 +587,12 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             const defaultVal = getConfigDefault(item);
             if (value !== defaultVal) {
                 newDef[key] = value;
+            }
+        }
+        // Copy extra keys (latitude, longitude) from values
+        for (const extraKey of EXTRA_KEYS) {
+            if (values[extraKey] != null) {
+                newDef[extraKey] = values[extraKey];
             }
         }
         onSave(newDef as unknown as CustomWidgetDef);
@@ -249,7 +609,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             <DialogContent>
                 <Box sx={{ mt: 1 }}>
                     {Object.entries(config.items).map(([key, item]) =>
-                        renderConfigItem(key, item, values[key], v => updateValue(key, v)),
+                        renderConfigItem(key, item, values[key], v => updateValue(key, v), socket, values, updateMulti),
                     )}
                 </Box>
                 <Button

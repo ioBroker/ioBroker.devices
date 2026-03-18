@@ -2,14 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Box,
     Button,
+    Checkbox,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControlLabel,
     IconButton,
     TextField,
     ToggleButton,
     ToggleButtonGroup,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
@@ -26,6 +29,8 @@ export interface CategorySettings {
     imageScope: 'header' | 'page';
     customWidgets?: CustomWidgetDef[];
     widgetOrder?: string[];
+    /** Hide the config/play toggle button (root category only) */
+    hideConfigButton?: boolean;
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
@@ -130,6 +135,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
     // --- Camera ---
 
+    const cameraAvailable = typeof navigator !== 'undefined' &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        (window.isSecureContext !== false);
+
     const stopCamera = useCallback((): void => {
         if (streamRef.current) {
             for (const track of streamRef.current.getTracks()) {
@@ -204,12 +213,15 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         }
     }, [open, stopCamera]);
 
+    const isRoot = categoryId === '__root__';
+
     const hasChanges =
         local.name !== (settings.name || categoryName) ||
         local.color !== (settings.color || '') ||
         local.backgroundColor !== (settings.backgroundColor || '') ||
         local.image !== (settings.image || '') ||
-        local.imageScope !== (settings.imageScope || 'header');
+        local.imageScope !== (settings.imageScope || 'header') ||
+        (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton);
 
     return (
         <>
@@ -323,15 +335,23 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             >
                                 {I18n.t('wm_Upload')}
                             </Button>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<CameraAlt />}
-                                onClick={() => void openCamera()}
-                                sx={{ textTransform: 'none', flex: 1 }}
+                            <Tooltip
+                                title={cameraAvailable ? '' : I18n.t('wm_Camera requires HTTPS')}
+                                arrow
                             >
-                                {I18n.t('wm_Take photo')}
-                            </Button>
+                                <span style={{ flex: 1 }}>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<CameraAlt />}
+                                        onClick={() => void openCamera()}
+                                        disabled={!cameraAvailable}
+                                        sx={{ textTransform: 'none', width: '100%' }}
+                                    >
+                                        {I18n.t('wm_Take photo')}
+                                    </Button>
+                                </span>
+                            </Tooltip>
                             <Button
                                 variant="outlined"
                                 size="small"
@@ -396,6 +416,19 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 <ToggleButton value="page">{I18n.t('wm_Whole page')}</ToggleButton>
                             </ToggleButtonGroup>
                         </Box>
+                    ) : null}
+                    {isRoot ? (
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={!!local.hideConfigButton}
+                                    onChange={(_e, v) => setLocal({ ...local, hideConfigButton: v })}
+                                    size="small"
+                                />
+                            }
+                            label={I18n.t('wm_Hide config button')}
+                            sx={{ mt: 1 }}
+                        />
                     ) : null}
                 </DialogContent>
                 <DialogActions>

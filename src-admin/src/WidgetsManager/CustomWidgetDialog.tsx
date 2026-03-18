@@ -9,7 +9,7 @@ import {
     ListItemIcon,
     ListItemText,
 } from '@mui/material';
-import { AccessTime, Close } from '@mui/icons-material';
+import { AccessTime, Close, Language, WbCloudy } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType } from '../../../src/widget-utils';
@@ -27,6 +27,18 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <AccessTime />,
         i18nKey: 'wm_Clock',
         descriptionKey: 'wm_Clock_desc',
+    },
+    {
+        type: 'weather',
+        icon: <WbCloudy />,
+        i18nKey: 'wm_Weather',
+        descriptionKey: 'wm_Weather_desc',
+    },
+    {
+        type: 'iframe',
+        icon: <Language />,
+        i18nKey: 'wm_Iframe',
+        descriptionKey: 'wm_Iframe_desc',
     },
 ];
 

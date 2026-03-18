@@ -131,6 +131,7 @@
         "connectionType": "none",
         "dataSource": "none",
         "tier": 3,
+        "onlyWWW": false,
         "icon": "devices.svg",
         "enabled": true,
         "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.devices/master/admin/devices.svg",
@@ -139,7 +140,7 @@
         "singleton": true,
         "type": "general",
         "eraseOnUpload": true,
-        "mode": "none",
+        "mode": "daemon",
         "adminTab": {
             "singleton": true,
             "name": {
