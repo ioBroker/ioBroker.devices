@@ -1,13 +1,15 @@
-import React, { Component, useCallback, useMemo, useState } from 'react';
+import React, { Component, useCallback, useMemo, useRef, useState } from 'react';
 
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from '@mui/material';
 import {
     Add,
     ArrowBack,
+    Build,
     ChevronRight,
     DirectionsRun,
     DragIndicator,
     MeetingRoom,
+    PlayArrow,
     SensorDoor,
     SensorWindow,
     Settings,
@@ -54,6 +56,7 @@ import {
     WidgetIlluminance,
     WidgetThermostat,
     WidgetClock,
+    WidgetWeather,
     WidgetVolume,
     WidgetColorLight,
     WidgetInfo as WidgetInfoWidget,
@@ -63,10 +66,12 @@ import {
     WidgetImage,
     WidgetWeatherCurrent,
     WidgetWeatherForecast,
+    WidgetIframe,
 } from './Widgets';
 
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
+import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -85,6 +90,10 @@ interface CategoryProps {
     onWidgetOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
     /** true if running in admin, false if in web */
     admin: boolean;
+    /** Whether config/editing mode is active */
+    configMode?: boolean;
+    /** Toggle between config and play mode. If undefined, no toggle button is shown. */
+    onToggleConfigMode?: () => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -109,6 +118,8 @@ interface CategoryState {
     icons: { [categoryId: string]: string };
     colors: { [categoryId: string]: string };
     categoryStatus: CategoryStatus;
+    /** Status summaries for each sub-category (keyed by category ID) */
+    subCategoryStatuses: Record<string, CategoryStatus>;
 }
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
@@ -125,6 +136,8 @@ interface StatusSubscription {
     role: StatusRole;
     /** Widget name for window/door sensors */
     widgetName?: string;
+    /** Which category this sensor belongs to (for sub-category status) */
+    categoryId?: string;
 }
 
 type OrderedItem = {
@@ -141,7 +154,10 @@ function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetS
     if (item.type === 'widget') {
         size = widgetSettings[item.id]?.size || '1x1';
     } else {
-        size = (item.data as CustomWidgetDef).size || '1x1';
+        const def = item.data as CustomWidgetDef;
+        // Fall back to the config default when size wasn't persisted (older widgets)
+        const configDefault = CUSTOM_WIDGET_CONFIGS[def.type]?.items.size;
+        size = def.size || (configDefault ? String(getConfigDefault(configDefault)) : '1x1');
     }
     if (size === '2x0.5' || size === '2x1') {
         return 'span 2';
@@ -218,8 +234,12 @@ function SortableGrid(props: {
     const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
     const [activeId, setActiveId] = useState<string | null>(null);
 
+    // Ref to always access latest liveOrder inside callbacks (avoids stale closures)
+    const liveOrderRef = useRef(liveOrder);
+    liveOrderRef.current = liveOrder;
+
     // Sync liveOrder with props when items are added/removed (not just reordered)
-    const prevSourceRef = React.useRef(sourceIds);
+    const prevSourceRef = useRef(sourceIds);
     if (prevSourceRef.current !== sourceIds) {
         prevSourceRef.current = sourceIds;
         // Only reset if the set of IDs changed (add/remove), not just order
@@ -260,16 +280,16 @@ function SortableGrid(props: {
     }, []);
 
     const handleDragEnd = useCallback(
-        (event: DragEndEvent) => {
-            const { active, over } = event;
+        (_event: DragEndEvent) => {
             setActiveId(null);
-            if (!over || active.id === over.id) {
-                return;
+            // handleDragOver already updated liveOrder during drag,
+            // so active.id === over.id is common — always persist if order changed
+            const currentOrder = liveOrderRef.current;
+            if (currentOrder.some((id, idx) => id !== prevSourceRef.current[idx])) {
+                onOrderChange?.(categoryId, currentOrder);
             }
-            // Persist the final order
-            onOrderChange?.(categoryId, liveOrder);
         },
-        [categoryId, onOrderChange, liveOrder],
+        [categoryId, onOrderChange],
     );
 
     const handleDragCancel = useCallback(() => {
@@ -389,6 +409,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             icons: {},
             colors: {},
             categoryStatus: { ...DEFAULT_CATEGORY_STATUS },
+            subCategoryStatuses: {},
         };
     }
 
@@ -476,12 +497,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return '';
     }
 
-    private subscribeCategoryStatus(): void {
-        const allWidgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
-        this.statusSubs = [];
-        this.statusValues = {};
-
-        for (const w of allWidgets) {
+    private subscribeWidgetsForStatus(widgets: WidgetInfo[], categoryId?: string): void {
+        for (const w of widgets) {
             const type = w.control?.type;
             if (!type) {
                 continue;
@@ -504,11 +521,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             const actual = w.control.states.find(s => s.name === 'ACTUAL');
             if (actual?.id) {
                 // Avoid duplicate subscriptions for the same state
-                if (!this.statusSubs.some(s => s.stateId === actual.id)) {
+                if (!this.statusSubs.some(s => s.stateId === actual.id && s.categoryId === categoryId)) {
                     this.statusSubs.push({
                         stateId: actual.id,
                         role,
                         widgetName: role === 'window' || role === 'door' ? this.getWidgetName(w) : undefined,
+                        categoryId,
                     });
                     this.props.stateContext.getState(actual.id, this.onStatusChange);
                 }
@@ -517,11 +535,26 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             // Temperature sensor may have a SECOND state with humidity
             if (type === Types.temperature) {
                 const second = w.control.states.find(s => s.name === 'SECOND');
-                if (second?.id && !this.statusSubs.some(s => s.stateId === second.id)) {
-                    this.statusSubs.push({ stateId: second.id, role: 'humidity' });
+                if (second?.id && !this.statusSubs.some(s => s.stateId === second.id && s.categoryId === categoryId)) {
+                    this.statusSubs.push({ stateId: second.id, role: 'humidity', categoryId });
                     this.props.stateContext.getState(second.id, this.onStatusChange);
                 }
             }
+        }
+    }
+
+    private subscribeCategoryStatus(): void {
+        this.statusSubs = [];
+        this.statusValues = {};
+
+        // Subscribe for current category's own widgets (no categoryId tag)
+        const currentWidgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
+        this.subscribeWidgetsForStatus(currentWidgets);
+
+        // Subscribe for each sub-category's widgets (tagged with sub-category ID)
+        for (const subCat of this.subCategories) {
+            const subWidgets = this.props.widgets.filter(w => w.parent === subCat.id);
+            this.subscribeWidgetsForStatus(subWidgets, String(subCat.id));
         }
     }
 
@@ -542,14 +575,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return val ? 1 : 0;
     }
 
-    private recalcCategoryStatus(): void {
+    private static computeStatus(subs: StatusSubscription[], values: Record<string, ioBroker.StateValue>): CategoryStatus {
         let temperature: number | null = null;
         let humidity: number | null = null;
         let motionActive = false;
         const openings: OpeningSensor[] = [];
 
-        for (const sub of this.statusSubs) {
-            const val = this.statusValues[sub.stateId];
+        for (const sub of subs) {
+            const val = values[sub.stateId];
             switch (sub.role) {
                 case 'temperature':
                     if (temperature === null && val != null) {
@@ -584,7 +617,23 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
         }
 
-        this.setState({ categoryStatus: { temperature, humidity, motionActive, openings } });
+        return { temperature, humidity, motionActive, openings };
+    }
+
+    private recalcCategoryStatus(): void {
+        // Compute status for current category (subs without categoryId)
+        const currentSubs = this.statusSubs.filter(s => !s.categoryId);
+        const categoryStatus = Category.computeStatus(currentSubs, this.statusValues);
+
+        // Compute status for each sub-category
+        const subCategoryStatuses: Record<string, CategoryStatus> = {};
+        const catIds = new Set(this.statusSubs.map(s => s.categoryId).filter(Boolean) as string[]);
+        for (const catId of catIds) {
+            const catSubs = this.statusSubs.filter(s => s.categoryId === catId);
+            subCategoryStatuses[catId] = Category.computeStatus(catSubs, this.statusValues);
+        }
+
+        this.setState({ categoryStatus, subCategoryStatuses });
     }
 
     onNameChange = (id: string, property: string, value: ioBroker.StringOrTranslated): void => {
@@ -872,12 +921,120 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+            case 'weather':
+                return (
+                    <WidgetWeather
+                        key={def.id}
+                        id={def.id}
+                        weatherSource={def.weatherSource}
+                        adapterInstance={def.adapterInstance}
+                        latitude={def.latitude}
+                        longitude={def.longitude}
+                        cityName={def.cityName}
+                        language={this.props.language}
+                        size={def.size}
+                        color={def.color}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
+            case 'iframe':
+                return (
+                    <WidgetIframe
+                        key={def.id}
+                        id={def.id}
+                        url={def.url}
+                        refreshInterval={def.refreshInterval}
+                        appendTimestamp={def.appendTimestamp}
+                        clickAction={def.clickAction}
+                        size={def.size}
+                        color={def.color}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
             default:
                 return null;
         }
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
+    /** Render status summary for a sub-category tile (temperature, humidity, openings, motion) */
+    private renderSubCategoryStatus(category: CategoryInfo, deviceCount: number): React.JSX.Element {
+        const status = this.state.subCategoryStatuses[String(category.id)];
+        const hasStatus = status && (
+            status.temperature !== null ||
+            status.humidity !== null ||
+            status.motionActive ||
+            status.openings.some(o => o.state !== 0)
+        );
+
+        if (!hasStatus) {
+            // Fall back to device count only
+            return deviceCount > 0 ? (
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {deviceCount === 1
+                        ? I18n.t('wm_one_device')
+                        : I18n.t('wm_n_devices', deviceCount.toString())}
+                </Typography>
+            ) : <></>;
+        }
+
+        const openWindows = status.openings.filter(o => o.kind === 'window' && o.state !== 0);
+        const openDoors = status.openings.filter(o => o.kind === 'door' && o.state !== 0);
+
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.25 }}>
+                {status.temperature !== null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <Thermostat sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                            {status.temperature.toFixed(1)}°
+                        </Typography>
+                    </Box>
+                ) : null}
+                {status.humidity !== null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <WaterDrop sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                            {Math.round(status.humidity)}%
+                        </Typography>
+                    </Box>
+                ) : null}
+                {status.motionActive ? (
+                    <Tooltip title={I18n.t('wm_Motion')}>
+                        <DirectionsRun sx={{ fontSize: 16, color: 'warning.main' }} />
+                    </Tooltip>
+                ) : null}
+                {openWindows.length > 0 ? (
+                    <Tooltip title={openWindows.map(o => Category.getOpeningTooltip(o)).join(', ')}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <SensorWindow sx={{ fontSize: 16, color: 'warning.main' }} />
+                            {openWindows.length > 1 ? (
+                                <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
+                                    {openWindows.length}
+                                </Typography>
+                            ) : null}
+                        </Box>
+                    </Tooltip>
+                ) : null}
+                {openDoors.length > 0 ? (
+                    <Tooltip title={openDoors.map(o => Category.getOpeningTooltip(o)).join(', ')}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <SensorDoor sx={{ fontSize: 16, color: 'warning.main' }} />
+                            {openDoors.length > 1 ? (
+                                <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
+                                    {openDoors.length}
+                                </Typography>
+                            ) : null}
+                        </Box>
+                    </Tooltip>
+                ) : null}
+            </Box>
+        );
+    }
+
     renderCategoryTile(category: CategoryInfo): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
@@ -972,16 +1129,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     >
                         {name}
                     </Typography>
-                    {deviceCount > 0 ? (
-                        <Typography
-                            variant="caption"
-                            sx={{ color: 'text.secondary' }}
-                        >
-                            {deviceCount === 1
-                                ? I18n.t('wm_one_device')
-                                : I18n.t('wm_n_devices', deviceCount.toString())}
-                        </Typography>
-                    ) : null}
+                    {this.renderSubCategoryStatus(category, deviceCount)}
                 </Box>
 
                 <ChevronRight sx={{ color: 'text.secondary', flexShrink: 0, position: 'relative', zIndex: 1 }} />
@@ -1145,6 +1293,25 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     position: 'relative',
                 })}
             >
+                {/* Floating config toggle — only when no header is shown */}
+                {!hasHeader && this.props.onToggleConfigMode ? (
+                    <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+                        <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                            <IconButton
+                                size="small"
+                                onClick={this.props.onToggleConfigMode}
+                                sx={{
+                                    opacity: this.props.configMode ? 0.5 : 0.35,
+                                    '&:hover': { opacity: 1 },
+                                }}
+                            >
+                                {this.props.configMode
+                                    ? <PlayArrow fontSize="small" />
+                                    : <Build fontSize="small" sx={{ fontSize: 18 }} />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                ) : null}
                 {/* Fixed header — hidden for root category (no parent, no name) */}
                 {hasHeader ? (
                     <Box
@@ -1217,6 +1384,22 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                         sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                     >
                                         <Settings fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                            {this.props.onToggleConfigMode ? (
+                                <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={this.props.onToggleConfigMode}
+                                        sx={{
+                                            opacity: this.props.configMode ? 0.5 : 0.35,
+                                            '&:hover': { opacity: 1 },
+                                        }}
+                                    >
+                                        {this.props.configMode
+                                            ? <PlayArrow fontSize="small" />
+                                            : <Build fontSize="small" sx={{ fontSize: 18 }} />}
                                     </IconButton>
                                 </Tooltip>
                             ) : null}

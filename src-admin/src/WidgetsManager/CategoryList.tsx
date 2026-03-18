@@ -25,6 +25,7 @@ import WidgetSettingsDialog from './WidgetSettingsDialog';
 import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
 import CustomWidgetDialog from './CustomWidgetDialog';
 import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
+import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 
 interface SpecialTile {
     type: 'clock';
@@ -86,6 +87,8 @@ interface CategoryListState extends CommunicationState {
     customWidgetSettingsCategoryId: string | null;
     customWidgetSettingsWidgetId: string | null;
     guiConfig?: GuiConfig;
+    /** When true, editing controls are shown; when false, play/runtime mode */
+    configMode: boolean;
 }
 
 const WM_SETTINGS_KEY = 'wm_widget_settings';
@@ -168,6 +171,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             customWidgetDialogCategoryId: null,
             customWidgetSettingsCategoryId: null,
             customWidgetSettingsWidgetId: null,
+            configMode: !!this.props.showSettingsButton,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -793,7 +797,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return;
         }
         const id = `custom_${type}_${Date.now().toString(36)}`;
-        const def = { id, type };
+        // Initialize with config defaults so grid sizing works immediately
+        const defaults: Record<string, unknown> = {};
+        const widgetConfig = CUSTOM_WIDGET_CONFIGS[type];
+        if (widgetConfig) {
+            for (const [key, item] of Object.entries(widgetConfig.items)) {
+                defaults[key] = getConfigDefault(item);
+            }
+        }
+        const def: CustomWidgetDef = { id, type, ...defaults } as CustomWidgetDef;
         const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
         const customWidgets = [...(settings.customWidgets || []), def];
         const categorySettings = {
@@ -922,6 +934,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 ? this.state.widgets.find(w => w.id === this.state.settingsWidgetId)
                 : null;
 
+        // Editing callbacks are enabled only when showSettingsButton AND configMode are both true
+        const editing = !!this.props.showSettingsButton && this.state.configMode;
+        const hideConfigButton = this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton;
+
         if (currentCategory) {
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
@@ -938,19 +954,19 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 this.updateHash(category);
                             }}
                             widgetSettings={this.state.widgetSettings}
-                            onOpenSettings={this.props.showSettingsButton ? this.onOpenSettings : undefined}
+                            onOpenSettings={editing ? this.onOpenSettings : undefined}
                             categorySettings={this.state.categorySettings}
-                            onOpenCategorySettings={
-                                this.props.showSettingsButton ? this.onOpenCategorySettings : undefined
+                            onOpenCategorySettings={editing ? this.onOpenCategorySettings : undefined}
+                            onAddCustomWidget={editing ? this.onOpenCustomWidgetDialog : undefined}
+                            onRemoveCustomWidget={editing ? this.onRemoveCustomWidget : undefined}
+                            onOpenCustomWidgetSettings={editing ? this.onOpenCustomWidgetSettings : undefined}
+                            onWidgetOrderChange={editing ? this.onWidgetOrderChange : undefined}
+                            configMode={this.state.configMode}
+                            onToggleConfigMode={
+                                this.props.showSettingsButton && !hideConfigButton
+                                    ? () => this.setState(prev => ({ configMode: !prev.configMode }))
+                                    : undefined
                             }
-                            onAddCustomWidget={
-                                this.props.showSettingsButton ? this.onOpenCustomWidgetDialog : undefined
-                            }
-                            onRemoveCustomWidget={this.props.showSettingsButton ? this.onRemoveCustomWidget : undefined}
-                            onOpenCustomWidgetSettings={
-                                this.props.showSettingsButton ? this.onOpenCustomWidgetSettings : undefined
-                            }
-                            onWidgetOrderChange={this.props.showSettingsButton ? this.onWidgetOrderChange : undefined}
                             admin={this.props.admin}
                         />
                         <WidgetSettingsDialog
@@ -1062,6 +1078,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onClose={this.onCloseCustomWidgetSettings}
                             onSave={this.onSaveCustomWidgetSettings}
                             onDelete={this.onDeleteCustomWidgetFromSettings}
+                            socket={this.props.socket}
                         />
                     </div>
                 </ThemeProvider>

@@ -25,5 +25,7 @@ export { WidgetTank } from './Tank';
 export { WidgetImage } from './Image';
 export { WidgetWeatherCurrent } from './WeatherCurrent';
 export { WidgetWeatherForecast } from './WeatherForecast';
+export { WidgetWeather } from './Weather';
+export { WidgetIframe } from './Iframe';
 export { getTileStyles, DEFAULT_WIDGET_SETTINGS } from './Generic';
 export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';

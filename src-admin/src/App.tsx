@@ -91,6 +91,7 @@ export default class App extends GenericApp {
                             socket={this.socket}
                             adapterName="devices"
                             instance={this.instance}
+                            themeName={this.state.themeName}
                         />
                     </Paper>
                     {this.renderError()}
