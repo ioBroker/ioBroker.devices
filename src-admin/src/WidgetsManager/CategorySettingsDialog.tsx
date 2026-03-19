@@ -16,9 +16,11 @@ import {
     Typography,
 } from '@mui/material';
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
-import { I18n, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
+import type { WidgetGroup } from './groupUtils';
+import IconPickerDialog from './IconPickerDialog';
 
 export interface CategorySettings {
     name: string;
@@ -29,8 +31,11 @@ export interface CategorySettings {
     imageScope: 'header' | 'page';
     customWidgets?: CustomWidgetDef[];
     widgetOrder?: string[];
+    widgetGroups?: WidgetGroup[];
     /** Hide the config/play toggle button (root category only) */
     hideConfigButton?: boolean;
+    /** PWA / Chrome extension icon path (root only) */
+    icon?: string;
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
@@ -61,9 +66,13 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const filePrefix = admin ? 'files/' : '';
     const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
+    const [iconPreview, setIconPreview] = useState<string>('');
     const [cameraOpen, setCameraOpen] = useState(false);
     const [fileDialogOpen, setFileDialogOpen] = useState(false);
+    const [iconFileDialogOpen, setIconFileDialogOpen] = useState(false);
+    const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const iconInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
@@ -76,6 +85,8 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             // Stored path has no prefix; add prefix for display
             const img = settings.image || '';
             setPreview(img ? `/${filePrefix}${img.replace(/^\//, '')}` : '');
+            const ico = settings.icon || '';
+            setIconPreview(ico ? `/${filePrefix}${ico.replace(/^\//, '')}` : '');
         }
     }, [settings, open, categoryName, filePrefix]);
 
@@ -133,11 +144,78 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         setLocal(prev => ({ ...prev, image: '' }));
     };
 
+    // --- Icon (PWA / Chrome extension) ---
+
+    const processIcon = useCallback(
+        async (dataUrl: string): Promise<void> => {
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>(resolve => {
+                img.onload = () => resolve();
+            });
+            // Resize to 512x512 square for PWA
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d')!;
+            // Center-crop to square
+            const srcSize = Math.min(img.width, img.height);
+            const sx = (img.width - srcSize) / 2;
+            const sy = (img.height - srcSize) / 2;
+            ctx.drawImage(img, sx, sy, srcSize, srcSize, 0, 0, size, size);
+            const pngDataUrl = canvas.toDataURL('image/png');
+            const base64 = pngDataUrl.replace(/^data:image\/png;base64,/, '');
+            const fileName = 'pwa_icon.png';
+
+            try {
+                await socket.writeFile64(instance, fileName, base64);
+                const storedPath = `/${instance}/${fileName}`;
+                setIconPreview(`/${filePrefix}${instance}/${fileName}?t=${Date.now()}`);
+                setLocal(prev => ({ ...prev, icon: storedPath }));
+            } catch (err) {
+                console.error('Failed to upload icon:', err);
+            }
+        },
+        [socket, instance, filePrefix],
+    );
+
+    const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const file = e.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev: ProgressEvent<FileReader>): void => {
+            void processIcon(ev.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const handleIconFileSelected = (selected: string | string[] | undefined): void => {
+        setIconFileDialogOpen(false);
+        if (!selected) {
+            return;
+        }
+        const filePath = Array.isArray(selected) ? selected[0] : selected;
+        if (filePath) {
+            const clean = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+            const storedPath = `/${clean}`;
+            setIconPreview(`/${filePrefix}${clean}`);
+            setLocal(prev => ({ ...prev, icon: storedPath }));
+        }
+    };
+
+    const handleDeleteIcon = (): void => {
+        setIconPreview('');
+        setLocal(prev => ({ ...prev, icon: '' }));
+    };
+
     // --- Camera ---
 
-    const cameraAvailable = typeof navigator !== 'undefined' &&
-        !!navigator.mediaDevices?.getUserMedia &&
-        (window.isSecureContext !== false);
+    const cameraAvailable =
+        typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && window.isSecureContext !== false;
 
     const stopCamera = useCallback((): void => {
         if (streamRef.current) {
@@ -221,7 +299,8 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         local.backgroundColor !== (settings.backgroundColor || '') ||
         local.image !== (settings.image || '') ||
         local.imageScope !== (settings.imageScope || 'header') ||
-        (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton);
+        (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton) ||
+        (local.icon || '') !== (settings.icon || '');
 
     return (
         <>
@@ -417,6 +496,51 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             </ToggleButtonGroup>
                         </Box>
                     ) : null}
+                    {!isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Icons')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                    onClick={() => setIconPickerOpen(true)}
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: 1,
+                                        border: '2px dashed',
+                                        borderColor: 'divider',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        '&:hover': { borderColor: 'primary.main' },
+                                    }}
+                                >
+                                    {local.icon ? (
+                                        <Icon
+                                            src={local.icon}
+                                            style={{ width: 32, height: 32 }}
+                                        />
+                                    ) : (
+                                        <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
+                                    )}
+                                </Box>
+                                {local.icon ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setLocal(prev => ({ ...prev, icon: '' }))}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                        </Box>
+                    ) : null}
+
                     {isRoot ? (
                         <FormControlLabel
                             control={
@@ -429,6 +553,66 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             label={I18n.t('wm_Hide config button')}
                             sx={{ mt: 1 }}
                         />
+                    ) : null}
+
+                    {isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_App icon')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {iconPreview ? (
+                                    <Box
+                                        component="img"
+                                        src={iconPreview}
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: 1,
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            objectFit: 'cover',
+                                        }}
+                                    />
+                                ) : null}
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<CloudUpload />}
+                                    onClick={() => iconInputRef.current?.click()}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    {I18n.t('wm_Upload')}
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<FolderOpen />}
+                                    onClick={() => setIconFileDialogOpen(true)}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    {I18n.t('wm_Browse')}
+                                </Button>
+                                <input
+                                    ref={iconInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={handleIconUpload}
+                                />
+                                {iconPreview ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleDeleteIcon}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                        </Box>
                     ) : null}
                 </DialogContent>
                 <DialogActions>
@@ -459,6 +643,37 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
+                />
+            ) : null}
+
+            {/* Category icon picker dialog (non-root) */}
+            {iconPickerOpen ? (
+                <IconPickerDialog
+                    open
+                    title={I18n.t('wm_Icons')}
+                    value={local.icon || ''}
+                    onClose={() => setIconPickerOpen(false)}
+                    onSelect={iconValue => {
+                        setLocal(prev => ({ ...prev, icon: iconValue }));
+                        if (iconValue) {
+                            setIconPickerOpen(false);
+                        }
+                    }}
+                    socket={socket}
+                    theme={theme}
+                    admin={admin}
+                />
+            ) : null}
+
+            {/* Icon file browser dialog */}
+            {iconFileDialogOpen ? (
+                <DialogSelectFile
+                    socket={socket}
+                    theme={theme}
+                    imagePrefix={admin ? './files/' : '../'}
+                    filterByType="images"
+                    onClose={() => setIconFileDialogOpen(false)}
+                    onOk={handleIconFileSelected}
                 />
             ) : null}
 

@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { translateWeather } from './weatherTranslations';
 
 interface ForecastDay {
     index: number;
@@ -32,8 +33,16 @@ interface WidgetWeatherForecastState extends WidgetGenericState {
 
 /** State names for day-0 of forecast */
 const DAY0_STATES = [
-    'ICON', 'TEMP_MIN', 'TEMP_MAX', 'TEMP', 'DOW', 'STATE',
-    'HUMIDITY', 'PRECIPITATION_CHANCE', 'WIND_SPEED', 'LOCATION',
+    'ICON',
+    'TEMP_MIN',
+    'TEMP_MAX',
+    'TEMP',
+    'DOW',
+    'STATE',
+    'HUMIDITY',
+    'PRECIPITATION_CHANCE',
+    'WIND_SPEED',
+    'LOCATION',
 ] as const;
 
 export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastState> {
@@ -56,7 +65,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         for (const s of states) {
             const match = /^(\w+?)(\d+)$/.exec(s.name);
             if (match && s.id) {
-                const baseName = match[1];
                 const dayIdx = parseInt(match[2], 10);
                 if (dayIdx >= 1 && dayIdx <= 7) {
                     this.multiDayIds[s.name] = s.id;
@@ -237,7 +245,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         return this.state.tempMin != null || this.state.tempMax != null;
     }
 
-    private renderWeatherIcon(src: string | null, size: number): React.JSX.Element {
+    static renderWeatherIcon(src: string | null, size: number): React.JSX.Element {
         if (src) {
             return (
                 <img
@@ -269,7 +277,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         if (baseIcon) {
             return baseIcon;
         }
-        return this.renderWeatherIcon(this.state.icon, 40);
+        return WidgetWeatherForecast.renderWeatherIcon(this.state.icon, 40);
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
@@ -297,7 +305,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                             whiteSpace: 'nowrap',
                         }}
                     >
-                        {this.state.weatherState}
+                        {translateWeather(this.state.weatherState)}
                     </Typography>
                 ) : null}
             </Box>
@@ -309,17 +317,26 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
 
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                <Typography
+                    variant="h5"
+                    sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                >
                     {this.formatTempRange()}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     {weatherState ? (
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            {weatherState}
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            {translateWeather(weatherState)}
                         </Typography>
                     ) : null}
                     {precipitationChance != null ? (
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {Math.round(precipitationChance)}% rain
                         </Typography>
                     ) : null}
@@ -365,10 +382,8 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
 
                     {/* Weather icon + temp range */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {this.renderWeatherIcon(icon, 32)}
-                        <Typography
-                            sx={{ fontWeight: 700, fontSize: 'max(1rem, 10cqi)', lineHeight: 1.1 }}
-                        >
+                        {WidgetWeatherForecast.renderWeatherIcon(icon, 32)}
+                        <Typography sx={{ fontWeight: 700, fontSize: 'max(1rem, 10cqi)', lineHeight: 1.1 }}>
                             {this.formatTempRange()}
                         </Typography>
                     </Box>
@@ -386,7 +401,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                                 whiteSpace: 'nowrap',
                             }}
                         >
-                            {weatherState}
+                            {translateWeather(weatherState)}
                         </Typography>
                     ) : null}
 
@@ -411,10 +426,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
     }
 
     /** Render a single forecast day row */
-    private renderForecastRow(
-        day: ForecastDay,
-        compact?: boolean,
-    ): React.JSX.Element {
+    static renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
         const fontSize = compact ? '0.7rem' : '0.8rem';
         const iconSize = compact ? 22 : 28;
 
@@ -445,14 +457,17 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                 </Typography>
 
                 {/* Icon */}
-                {this.renderWeatherIcon(day.icon, iconSize)}
+                {WidgetWeatherForecast.renderWeatherIcon(day.icon, iconSize)}
 
                 {/* Temp range */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
                     {day.tempMax != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                             <ArrowUpward sx={{ fontSize: 12, color: '#f44336' }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, fontSize }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, fontSize }}
+                            >
                                 {Math.round(day.tempMax)}°
                             </Typography>
                         </Box>
@@ -460,7 +475,10 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                     {day.tempMin != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                             <ArrowDownward sx={{ fontSize: 12, color: '#2196f3' }} />
-                            <Typography variant="caption" sx={{ fontSize, color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontSize, color: 'text.secondary' }}
+                            >
                                 {Math.round(day.tempMin)}°
                             </Typography>
                         </Box>
@@ -469,7 +487,10 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
 
                 {/* Precipitation */}
                 {day.precipitationChance != null ? (
-                    <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }}>
+                    <Typography
+                        variant="caption"
+                        sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }}
+                    >
                         {Math.round(day.precipitationChance)}%
                     </Typography>
                 ) : null}
@@ -478,10 +499,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
     }
 
     renderWideTall(): React.JSX.Element {
-        const {
-            icon, tempMin, tempMax, weatherState, humidity,
-            precipitationChance, windSpeed, forecastDays,
-        } = this.state;
+        const { icon, tempMin, tempMax, weatherState, forecastDays } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
@@ -489,9 +507,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const indicators = this.renderIndicators();
 
         // Show up to 5 forecast days
-        const visibleDays = forecastDays
-            .filter(d => d.icon || d.tempMin != null || d.tempMax != null)
-            .slice(0, 5);
+        const visibleDays = forecastDays.filter(d => d.icon || d.tempMin != null || d.tempMax != null).slice(0, 5);
 
         return (
             <Box
@@ -520,14 +536,17 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
 
                     {/* Top: today's forecast */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        {this.renderWeatherIcon(icon, 44)}
+                        {WidgetWeatherForecast.renderWeatherIcon(icon, 44)}
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                                 <Typography sx={{ fontWeight: 700, fontSize: '1.3rem', lineHeight: 1.1 }}>
                                     {tempMax != null ? `${Math.round(tempMax)}°` : '—'}
                                 </Typography>
                                 {tempMin != null ? (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
                                         {Math.round(tempMin)}°
                                     </Typography>
                                 ) : null}
@@ -543,7 +562,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                                         display: 'block',
                                     }}
                                 >
-                                    {weatherState}
+                                    {translateWeather(weatherState)}
                                 </Typography>
                             ) : null}
                         </Box>
@@ -562,7 +581,9 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                                 justifyContent: 'center',
                             }}
                         >
-                            {visibleDays.map(day => this.renderForecastRow(day, visibleDays.length > 3))}
+                            {visibleDays.map(day =>
+                                WidgetWeatherForecast.renderForecastRow(day, visibleDays.length > 3),
+                            )}
                         </Box>
                     ) : null}
 

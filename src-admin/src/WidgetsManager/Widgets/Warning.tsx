@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -145,6 +145,21 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
 
         const { level } = this.state;
         const color = getLevelColor(level);
+        const customIcon = level > 0 ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
+
+        if (customIcon) {
+            return (
+                <Icon
+                    src={customIcon}
+                    style={{
+                        width: '1em',
+                        height: '1em',
+                        color: level > 0 ? color : 'grey',
+                        transition: 'color 0.25s ease',
+                    }}
+                />
+            );
+        }
 
         return (
             <WarningIcon
@@ -175,7 +190,9 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                         transition: 'color 0.25s ease',
                     }}
                 >
-                    {level > 0 ? title || I18n.t('wm_Warning') : I18n.t('wm_OK')}
+                    {level > 0
+                        ? title || this.props.settings?.textActive || I18n.t('wm_Warning')
+                        : this.props.settings?.textInactive || I18n.t('wm_OK')}
                 </Typography>
             </Box>
         );
@@ -195,7 +212,9 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                         color: level > 0 ? color : 'success.main',
                     }}
                 >
-                    {level > 0 ? title || I18n.t('wm_Warning') : I18n.t('wm_OK')}
+                    {level > 0
+                        ? title || this.props.settings?.textActive || I18n.t('wm_Warning')
+                        : this.props.settings?.textInactive || I18n.t('wm_OK')}
                 </Typography>
                 {start || end ? (
                     <Typography
@@ -212,7 +231,12 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
     render(): React.JSX.Element {
         if (this.props.settings?.hideWhenOk && this.state.level <= 0) {
             if (!this.props.onOpenSettings) {
-                return <React.Fragment />;
+                return (
+                    <div
+                        data-wm-hidden
+                        style={{ display: 'none' }}
+                    />
+                );
             }
             return <Box sx={{ opacity: 0.5 }}>{super.render()}</Box>;
         }

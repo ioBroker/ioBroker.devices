@@ -47,6 +47,7 @@ import {
     type IobTheme,
     type AdminConnection,
     DeviceTypeIcon,
+    Icon,
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
@@ -62,6 +63,7 @@ import {
     renameMultipleEntries,
 } from '../Components/helpers/utils';
 import DialogEditStates from './DialogEditStates';
+import IconPickerDialog from '../WidgetsManager/IconPickerDialog';
 import type { PatternControlEx } from '../types';
 
 const styles: Record<string, any> = {
@@ -406,6 +408,20 @@ interface DialogEditDeviceState {
     changeProperties: DialogEditPropertiesState;
     editStates: string | null;
     states: Record<string, { [value: string]: string } | undefined>;
+    /** Dialog for editing alias state common: type, role, min, max, unit */
+    editStateCommon: {
+        stateId: string;
+        type: ioBroker.CommonType;
+        role: string;
+        min: string;
+        max: string;
+        unit: string;
+        originalType: ioBroker.CommonType;
+        originalRole: string;
+        originalMin: string;
+        originalMax: string;
+        originalUnit: string;
+    } | null;
     dialogAddState: {
         editState: string | null;
         name?: string;
@@ -413,6 +429,8 @@ interface DialogEditDeviceState {
         onClose: boolean | null;
     } | null;
     channelInfo: PatternControlEx;
+    iconPickerOpen: boolean;
+    deviceIcon: string;
 }
 
 class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEditDeviceState> {
@@ -441,10 +459,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         this.channelId = channelInfo.channelId;
         let name = '';
+        let deviceIcon = '';
         const channelObj = props.objects[this.channelId];
 
         if (channelObj?.common) {
             name = Utils.getObjectNameFromObj(channelObj, null, { language: I18n.getLanguage() });
+            deviceIcon = (channelObj.common as Record<string, any>).icon || '';
         }
 
         const indicatorsAvailable = !!channelInfo.states.filter(item => item.indicator).length;
@@ -484,8 +504,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             changeProperties: {},
             editStates: null,
             states,
+            editStateCommon: null,
             dialogAddState: null,
             channelInfo,
+            iconPickerOpen: false,
+            deviceIcon,
         };
 
         this.pattern =
@@ -873,16 +896,64 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     };
 
     showDeviceIcon(): React.JSX.Element {
+        const iconColor = this.props.theme.palette.mode === 'dark' ? '#FFFFFF' : '#000';
         return (
-            <Box sx={styles.icon}>
-                <DeviceTypeIcon
-                    type={this.state.channelInfo.type}
-                    style={{
-                        ...styles.deviceIconStyle,
-                        color: this.props.theme.palette.mode === 'dark' ? '#FFFFFF' : '#000',
-                    }}
-                />
+            <Box
+                sx={{
+                    ...styles.icon(this.props.theme),
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.7 },
+                }}
+                onClick={() => this.setState({ iconPickerOpen: true })}
+            >
+                {this.state.deviceIcon ? (
+                    <Icon
+                        src={this.state.deviceIcon}
+                        style={styles.deviceIconStyle as React.CSSProperties}
+                    />
+                ) : (
+                    <DeviceTypeIcon
+                        type={this.state.channelInfo.type}
+                        style={{
+                            ...styles.deviceIconStyle,
+                            color: iconColor,
+                        }}
+                    />
+                )}
             </Box>
+        );
+    }
+
+    renderIconPicker(): React.JSX.Element | null {
+        if (!this.state.iconPickerOpen) {
+            return null;
+        }
+        return (
+            <IconPickerDialog
+                open
+                title={I18n.t('Icon')}
+                value={this.state.deviceIcon}
+                onClose={() => this.setState({ iconPickerOpen: false })}
+                onSelect={async (iconValue: string) => {
+                    this.setState({ deviceIcon: iconValue, iconPickerOpen: false });
+                    try {
+                        const obj = await this.props.socket.getObject(this.channelId);
+                        if (obj) {
+                            if (iconValue) {
+                                obj.common.icon = iconValue;
+                            } else {
+                                delete (obj.common as Record<string, any>).icon;
+                            }
+                            await this.props.socket.setObject(obj._id, obj);
+                        }
+                    } catch {
+                        // ignore
+                    }
+                }}
+                socket={this.props.socket}
+                theme={this.props.theme}
+                admin
+            />
         );
     }
 
@@ -1149,7 +1220,17 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={titleTooltip}
                                 >
-                                    <div style={styles.wrapperOidName}>
+                                    <div
+                                        style={{
+                                            ...styles.wrapperOidName,
+                                            ...(alias && this.state.ids[name] ? { cursor: 'pointer' } : undefined),
+                                        }}
+                                        onClick={
+                                            alias && this.state.ids[name]
+                                                ? () => this.openEditStateCommon(name)
+                                                : undefined
+                                        }
+                                    >
                                         <Box sx={styles.wrapperOidNameIcon}>
                                             <IconsState
                                                 style={{
@@ -1426,7 +1507,19 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     title={titleTooltip}
                 >
-                    <div style={styles.wrapperOidName}>
+                    <div
+                        style={{
+                            ...styles.wrapperOidName,
+                            ...(alias && this.state.ids[name] && typeof this.state.ids[name] === 'string'
+                                ? { cursor: 'pointer' }
+                                : undefined),
+                        }}
+                        onClick={
+                            alias && this.state.ids[name] && typeof this.state.ids[name] === 'string'
+                                ? () => this.openEditStateCommon(name)
+                                : undefined
+                        }
+                    >
                         <Box sx={styles.wrapperOidNameIcon}>
                             <IconsState
                                 style={{
@@ -1599,6 +1692,207 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     </Box>
                 </div>
             </Box>
+        );
+    }
+
+    /** Open dialog to edit type/role/min/max/unit of an alias state */
+    async openEditStateCommon(stateName: string): Promise<void> {
+        // Build the full state ID from the channel ID and state name
+        const stateId = `${this.channelId}.${stateName}`;
+        try {
+            const obj = (await this.props.socket.getObject(stateId)) as ioBroker.StateObject | null;
+            if (!obj?.common) {
+                return;
+            }
+            this.setState({
+                editStateCommon: {
+                    stateId,
+                    type: obj.common.type || 'mixed',
+                    role: obj.common.role || '',
+                    min: obj.common.min != null ? String(obj.common.min) : '',
+                    max: obj.common.max != null ? String(obj.common.max) : '',
+                    unit: obj.common.unit || '',
+                    originalType: obj.common.type || 'mixed',
+                    originalRole: obj.common.role || '',
+                    originalMin: obj.common.min != null ? String(obj.common.min) : '',
+                    originalMax: obj.common.max != null ? String(obj.common.max) : '',
+                    originalUnit: obj.common.unit || '',
+                },
+            });
+        } catch {
+            // Object doesn't exist or can't be read
+        }
+    }
+
+    /** Save edited type/role/min/max/unit to the alias state object */
+    async saveEditStateCommon(): Promise<void> {
+        const { editStateCommon } = this.state;
+        if (!editStateCommon) {
+            return;
+        }
+        try {
+            const obj = (await this.props.socket.getObject(editStateCommon.stateId)) as ioBroker.StateObject | null;
+            if (!obj?.common) {
+                return;
+            }
+
+            // Type and role
+            obj.common.type = editStateCommon.type;
+            obj.common.role = editStateCommon.role;
+
+            // Min/Max/Unit — only meaningful for number type
+            if (editStateCommon.type === 'number') {
+                const minVal = editStateCommon.min.trim() === '' ? undefined : parseFloat(editStateCommon.min);
+                const maxVal = editStateCommon.max.trim() === '' ? undefined : parseFloat(editStateCommon.max);
+
+                if (minVal !== undefined && !isNaN(minVal)) {
+                    obj.common.min = minVal;
+                } else {
+                    delete obj.common.min;
+                }
+                if (maxVal !== undefined && !isNaN(maxVal)) {
+                    obj.common.max = maxVal;
+                } else {
+                    delete obj.common.max;
+                }
+                obj.common.unit = editStateCommon.unit || '';
+            } else {
+                delete obj.common.min;
+                delete obj.common.max;
+                delete obj.common.unit;
+            }
+
+            await this.props.socket.setObject(editStateCommon.stateId, obj);
+        } catch {
+            // ignore
+        }
+        this.setState({ editStateCommon: null });
+    }
+
+    renderEditStateCommonDialog(): React.JSX.Element | null {
+        const { editStateCommon } = this.state;
+        if (!editStateCommon) {
+            return null;
+        }
+
+        const hasChanges =
+            editStateCommon.type !== editStateCommon.originalType ||
+            editStateCommon.role !== editStateCommon.originalRole ||
+            editStateCommon.min !== editStateCommon.originalMin ||
+            editStateCommon.max !== editStateCommon.originalMax ||
+            editStateCommon.unit !== editStateCommon.originalUnit;
+
+        const isNumber = editStateCommon.type === 'number';
+
+        return (
+            <Dialog
+                open
+                onClose={() => this.setState({ editStateCommon: null })}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>{editStateCommon.stateId.split('.').pop()}</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <TextField
+                            select
+                            label={I18n.t('Type')}
+                            value={editStateCommon.type}
+                            onChange={e =>
+                                this.setState({
+                                    editStateCommon: {
+                                        ...editStateCommon,
+                                        type: e.target.value as ioBroker.CommonType,
+                                    },
+                                })
+                            }
+                            size="small"
+                            fullWidth
+                            slotProps={{ select: { native: true } }}
+                        >
+                            <option value="number">number</option>
+                            <option value="string">string</option>
+                            <option value="boolean">boolean</option>
+                            <option value="mixed">mixed</option>
+                            <option value="array">array</option>
+                            <option value="object">object</option>
+                            <option value="json">json</option>
+                        </TextField>
+                        <TextField
+                            label={I18n.t('Role')}
+                            value={editStateCommon.role}
+                            onChange={e =>
+                                this.setState({
+                                    editStateCommon: { ...editStateCommon, role: e.target.value },
+                                })
+                            }
+                            size="small"
+                            fullWidth
+                            placeholder="value, state, ..."
+                        />
+                    </Box>
+                    {isNumber ? (
+                        <>
+                            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                                <TextField
+                                    label="Min"
+                                    type="number"
+                                    value={editStateCommon.min}
+                                    onChange={e =>
+                                        this.setState({
+                                            editStateCommon: { ...editStateCommon, min: e.target.value },
+                                        })
+                                    }
+                                    size="small"
+                                    fullWidth
+                                />
+                                <TextField
+                                    label="Max"
+                                    type="number"
+                                    value={editStateCommon.max}
+                                    onChange={e =>
+                                        this.setState({
+                                            editStateCommon: { ...editStateCommon, max: e.target.value },
+                                        })
+                                    }
+                                    size="small"
+                                    fullWidth
+                                />
+                            </Box>
+                            <TextField
+                                label={I18n.t('Unit')}
+                                value={editStateCommon.unit}
+                                onChange={e =>
+                                    this.setState({
+                                        editStateCommon: { ...editStateCommon, unit: e.target.value },
+                                    })
+                                }
+                                size="small"
+                                fullWidth
+                                sx={{ mt: 2 }}
+                                placeholder="°C, %, lux, ..."
+                            />
+                        </>
+                    ) : null}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        variant="contained"
+                        disabled={!hasChanges}
+                        startIcon={<IconCheck />}
+                        onClick={() => this.saveEditStateCommon()}
+                    >
+                        {I18n.t('Save')}
+                    </Button>
+                    <Button
+                        color="grey"
+                        startIcon={<IconClose />}
+                        onClick={() => this.setState({ editStateCommon: null })}
+                    >
+                        {I18n.t('Close')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         );
     }
 
@@ -1806,6 +2100,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 </DialogActions>
                 {this.renderEditStates()}
                 {this.renderDialogAddState()}
+                {this.renderEditStateCommonDialog()}
+                {this.renderIconPicker()}
             </Dialog>
         );
     }

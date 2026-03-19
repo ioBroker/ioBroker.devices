@@ -38,10 +38,15 @@ export interface WidgetInfo extends ItemInfo {
     custom?: {
         enabled: true;
         image?: string;
+        parent?: string;
+        /** Widget is visually disabled in the UI */
+        uiDisabled?: boolean;
+        /** Arbitrary widget settings (size, chartHours, color, icons, etc.) */
+        [key: string]: any;
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind';
 
 export interface CustomWidgetDef {
     id: string;
@@ -74,6 +79,12 @@ export interface CustomWidgetDef {
     appendTimestamp?: boolean;
     /** Click action: open in dialog, new tab, or same tab */
     clickAction?: 'dialog' | 'newTab' | 'sameTab';
+    /** Wind direction state ID (degrees 0-360) */
+    directionStateId?: string;
+    /** Wind speed state ID */
+    speedStateId?: string;
+    /** Wind gusts state ID */
+    gustsStateId?: string;
 }
 
 export interface CategoryInfo extends ItemInfo {
@@ -89,6 +100,12 @@ export interface CategoryInfo extends ItemInfo {
         noWindows?: boolean;
         customWidgets?: CustomWidgetDef[];
         widgetOrder?: string[];
+        widgetGroups?: Array<{
+            id: string;
+            name: string;
+            collapsed?: boolean;
+            widgetIds: string[];
+        }>;
     };
 }
 

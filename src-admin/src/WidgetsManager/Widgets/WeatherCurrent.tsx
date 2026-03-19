@@ -1,16 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import {
-    Air,
-    Opacity,
-    Speed,
-    Thermostat,
-    WaterDrop,
-    WbSunny,
-    WbCloudy,
-} from '@mui/icons-material';
+import { Air, Opacity, Speed, Thermostat, WaterDrop, WbSunny, WbCloudy } from '@mui/icons-material';
 
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { translateWeather } from './weatherTranslations';
 
 interface WidgetWeatherCurrentState extends WidgetGenericState {
     temperature: number | null;
@@ -205,7 +198,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                             maxWidth: '100%',
                         }}
                     >
-                        {weather}
+                        {translateWeather(weather)}
                     </Typography>
                 ) : null}
             </Box>
@@ -218,7 +211,10 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, overflow: 'hidden' }}>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                    >
                         {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
                     </Typography>
                     {weather ? (
@@ -231,7 +227,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                                 textOverflow: 'ellipsis',
                             }}
                         >
-                            {weather}
+                            {translateWeather(weather)}
                         </Typography>
                     ) : null}
                 </Box>
@@ -239,7 +235,10 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     {humidity != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <WaterDrop sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {Math.round(humidity)}%
                             </Typography>
                         </Box>
@@ -247,7 +246,10 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     {windSpeed != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <Air sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {Math.round(windSpeed)} km/h
                                 {windDirection ? ` ${windDirection}°` : ''}
                             </Typography>
@@ -256,7 +258,10 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     {pressure != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <Speed sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {Math.round(pressure)} hPa
                             </Typography>
                         </Box>
@@ -267,7 +272,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
     }
 
     renderCompact(): React.JSX.Element {
-        const { temperature, weather, icon } = this.state;
+        const { temperature, weather } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
@@ -328,7 +333,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                                 whiteSpace: 'nowrap',
                             }}
                         >
-                            {weather}
+                            {translateWeather(weather)}
                         </Typography>
                     ) : null}
 
@@ -354,7 +359,17 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
     }
 
     renderWideTall(): React.JSX.Element {
-        const { temperature, weather, humidity, windSpeed, windDirection, pressure, precipitationChance, realFeel, uv } = this.state;
+        const {
+            temperature,
+            weather,
+            humidity,
+            windSpeed,
+            windDirection,
+            pressure,
+            precipitationChance,
+            realFeel,
+            uv,
+        } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
@@ -432,8 +447,11 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                                 {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
                             </Typography>
                             {weather ? (
-                                <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
-                                    {weather}
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'text.secondary', lineHeight: 1.2 }}
+                                >
+                                    {translateWeather(weather)}
                                 </Typography>
                             ) : null}
                         </Box>

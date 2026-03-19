@@ -1,5 +1,6 @@
 import React from 'react';
 import { SensorDoor, MeetingRoom } from '@mui/icons-material';
+import { Icon } from '@iobroker/adapter-react-v5';
 
 import { WidgetWindow } from './Window';
 
@@ -12,6 +13,21 @@ export class WidgetDoor extends WidgetWindow {
 
         const { isOpen } = this.state;
         const accent = this.getAccentColor();
+        const customIcon = isOpen ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
+
+        if (customIcon) {
+            return (
+                <Icon
+                    src={customIcon}
+                    style={{
+                        width: '1em',
+                        height: '1em',
+                        color: isOpen ? accent || '#ed6c02' : 'grey',
+                        transition: 'color 0.25s ease',
+                    }}
+                />
+            );
+        }
 
         if (isOpen) {
             return (

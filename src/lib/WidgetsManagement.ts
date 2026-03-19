@@ -657,13 +657,14 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             }
 
             // Support of categories only in aliases.
+            const customData = obj.common.custom?.[this.adapter.namespace];
             this.widgets.set(device.storeId, {
                 type: 'widget',
                 id: device.storeId,
                 name,
                 icon,
                 color,
-                parent: device.parentId,
+                parent: customData?.parent || device.parentId,
                 control: {
                     type: device.type,
                     states: device.states,

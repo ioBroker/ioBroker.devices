@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { SensorWindow, SensorWindowOutlined } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -93,7 +93,9 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
         if (this.state.openState === 2) {
             return I18n.t('wm_Tilted');
         }
-        return this.state.isOpen ? I18n.t('wm_Open') : I18n.t('wm_Closed');
+        return this.state.isOpen
+            ? this.props.settings?.textActive || I18n.t('wm_Open')
+            : this.props.settings?.textInactive || I18n.t('wm_Closed');
     }
 
     protected renderTileIcon(): React.JSX.Element {
@@ -104,6 +106,21 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
 
         const { isOpen, openState } = this.state;
         const accent = this.getAccentColor();
+        const customIcon = isOpen ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
+
+        if (customIcon) {
+            return (
+                <Icon
+                    src={customIcon}
+                    style={{
+                        width: '1em',
+                        height: '1em',
+                        color: isOpen ? accent || '#0288d1' : 'grey',
+                        transition: 'color 0.25s ease',
+                    }}
+                />
+            );
+        }
 
         // Tilted: rotated filled icon
         if (openState === 2) {

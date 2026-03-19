@@ -12,6 +12,8 @@ export default class StateContext {
     private readonly subscribedObjects: { [id: string]: { property: string; cb: ObjectChangeListener }[] } = {};
     private objects: { [id: string]: ioBroker.Object } = {};
     private states: { [id: string]: ioBroker.State } = {};
+    /** Persistent object cache — survives unsubscribe, cleared only on destroy */
+    private readonly objectCache: { [id: string]: ioBroker.Object } = {};
 
     constructor(private readonly socket: Connection) {}
 
@@ -37,6 +39,7 @@ export default class StateContext {
     private onObjectChange = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (this.subscribedObjects[id]) {
             this.objects[id] = obj || ({ _id: id, common: { name: id } } as ioBroker.Object);
+            this.objectCache[id] = this.objects[id];
             this.subscribedObjects[id].forEach(item => {
                 const parts = item.property.split('.');
                 let current: any = this.objects[id];
@@ -80,26 +83,31 @@ export default class StateContext {
     }
 
     async getObject<T>(id: string): Promise<T | undefined> {
-        if (!this.objects[id]) {
-            const object = await this.socket.getObject(id);
-            if (!object) {
-                throw new Error(`Object with id ${id} not found`);
-            } else {
-                this.objects[id] = object;
-            }
+        if (this.objects[id]) {
+            return this.objects[id] as T;
         }
-
-        return this.objects[id] as T;
+        if (this.objectCache[id]) {
+            return this.objectCache[id] as T;
+        }
+        const object = await this.socket.getObject(id);
+        if (!object) {
+            throw new Error(`Object with id ${id} not found`);
+        }
+        this.objects[id] = object;
+        this.objectCache[id] = object;
+        return object as T;
     }
 
     getObjectProperty(id: string, property: string, cb: ObjectChangeListener): void {
         if (!this.subscribedObjects[id]) {
             this.subscribedObjects[id] = [{ property, cb }];
             if (!this.objects[id]) {
-                void this.socket.getObject(id).then(async obj => {
-                    this.onObjectChange(id, obj);
-                    await this.socket.subscribeObject(id, this.onObjectChange);
-                });
+                void (this.objectCache[id] ? Promise.resolve(this.objectCache[id]) : this.socket.getObject(id)).then(
+                    async obj => {
+                        this.onObjectChange(id, obj);
+                        await this.socket.subscribeObject(id, this.onObjectChange);
+                    },
+                );
             } else {
                 setTimeout(() => this.onObjectChange(id, this.objects[id]), 0);
             }

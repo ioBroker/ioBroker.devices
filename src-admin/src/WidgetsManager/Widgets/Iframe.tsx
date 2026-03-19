@@ -113,7 +113,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         );
     }
 
-    private renderIframe(url: string, interactive: boolean): React.JSX.Element {
+    static renderIframe(url: string, interactive: boolean): React.JSX.Element {
         return (
             <Box
                 component="iframe"
@@ -150,10 +150,13 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                     })}
                 >
                     {url ? (
-                        this.renderIframe(url, false)
+                        WidgetIframe.renderIframe(url, false)
                     ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {I18n.t('wm_Not configured')}
                             </Typography>
                         </Box>
@@ -186,7 +189,10 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         this.renderIframe(url, false)
                     ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {I18n.t('wm_Not configured')}
                             </Typography>
                         </Box>
@@ -220,7 +226,10 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         this.renderIframe(url, false)
                     ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {I18n.t('wm_Not configured')}
                             </Typography>
                         </Box>
@@ -242,7 +251,17 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                 open
                 onClose={() => this.setState({ dialogOpen: false })}
                 maxWidth={false}
-                slotProps={{ paper: { sx: { width: '95vw', height: '95vh', maxWidth: '95vw', maxHeight: '95vh', borderRadius: '12px' } } }}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            width: '95vw',
+                            height: '95vh',
+                            maxWidth: '95vw',
+                            maxHeight: '95vh',
+                            borderRadius: '12px',
+                        },
+                    },
+                }}
             >
                 <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 1 }}>
