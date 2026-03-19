@@ -49,22 +49,49 @@ const WMO_KEYS: Record<number, string> = {
     99: 'wm_w_Thunderstorm with heavy hail',
 };
 
-/** Translate a weather i18n key, returns null if key is missing */
+/** Translate a weather i18n key, returns null if the key is missing */
 function tw(key: string | undefined): string | null {
     return key ? I18n.t(key) : null;
 }
 
 /** WMO code → simple weather emoji for display */
 function wmoToIcon(code: number): string {
-    if (code === 0) return '\u2600\uFE0F'; // ☀️
-    if (code <= 2) return '\u26C5'; // ⛅
-    if (code === 3) return '\u2601\uFE0F'; // ☁️
-    if (code <= 48) return '\uD83C\uDF2B\uFE0F'; // 🌫️
-    if (code <= 57) return '\uD83C\uDF26\uFE0F'; // 🌦️
-    if (code <= 67) return '\uD83C\uDF27\uFE0F'; // 🌧️
-    if (code <= 77) return '\uD83C\uDF28\uFE0F'; // 🌨️
-    if (code <= 82) return '\uD83C\uDF26\uFE0F'; // 🌦️
-    if (code <= 86) return '\uD83C\uDF28\uFE0F'; // 🌨️
+    if (code === 0) {
+        // ☀️
+        return '\u2600\uFE0F';
+    }
+    if (code <= 2) {
+        // ⛅
+        return '\u26C5';
+    }
+    if (code === 3) {
+        // ☁️
+        return '\u2601\uFE0F';
+    }
+    if (code <= 48) {
+        // 🌫️
+        return '\uD83C\uDF2B\uFE0F';
+    }
+    if (code <= 57) {
+        // 🌦️
+        return '\uD83C\uDF26\uFE0F';
+    }
+    if (code <= 67) {
+        // 🌧️
+        return '\uD83C\uDF27\uFE0F';
+    }
+    if (code <= 77) {
+        // 🌨️
+        return '\uD83C\uDF28\uFE0F';
+    }
+    if (code <= 82) {
+        // 🌦️
+        return '\uD83C\uDF26\uFE0F';
+    }
+    if (code <= 86) {
+        // 🌨️
+        return '\uD83C\uDF28\uFE0F';
+    }
     return '\u26C8\uFE0F'; // ⛈️
 }
 
@@ -97,7 +124,7 @@ const CURRENT_ROLES: Record<string, string> = {
     'value.temperature.windchill': 'realFeel',
 };
 
-/** Role prefix → forecast field mapping (role ends with .forecast.N or .N) */
+/** Role prefix → forecast field mapping (a role ends with .forecast.N or .N) */
 const FORECAST_ROLES: Record<string, string> = {
     'weather.icon.forecast': 'icon',
     'value.temperature.min.forecast': 'tempMin',
@@ -163,6 +190,14 @@ interface StateSub {
 /** Refresh interval for direct API sources: 30 minutes */
 const API_REFRESH_MS = 30 * 60 * 1000;
 
+/** Module-level cache for weather API responses (key = "source|lat|lon") */
+const weatherApiCache: Record<string, { ts: number; data: unknown }> = {};
+/** Cache lifetime: same as a refresh interval */
+const WEATHER_CACHE_MS = API_REFRESH_MS;
+
+/** Module-level cache for adapter state object discovery (key = instance) */
+const adapterObjectsCache: Record<string, Record<string, ioBroker.StateObject>> = {};
+
 /** yr.no symbol_code → icon URL (from GitHub raw) */
 function yrIconUrl(symbolCode: string): string {
     return `https://raw.githubusercontent.com/metno/weathericons/main/weather/svg/${symbolCode}.svg`;
@@ -211,7 +246,10 @@ function yrSymbolToDescription(code: string): string {
 export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherState> {
     private subs: StateSub[] = [];
     /** Maps stateId → { target: 'current'|'forecast', key: string, dayIndex?: number } */
-    private stateMap: Map<string, { target: 'current'; key: string } | { target: 'forecast'; key: string; dayIndex: number }> = new Map();
+    private stateMap: Map<
+        string,
+        { target: 'current'; key: string } | { target: 'forecast'; key: string; dayIndex: number }
+    > = new Map();
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetWeatherProps) {
@@ -239,7 +277,8 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     componentDidUpdate(prevProps: WidgetWeatherProps): void {
         const sourceChanged = prevProps.weatherSource !== this.props.weatherSource;
         const adapterChanged = prevProps.adapterInstance !== this.props.adapterInstance;
-        const coordsChanged = prevProps.latitude !== this.props.latitude || prevProps.longitude !== this.props.longitude;
+        const coordsChanged =
+            prevProps.latitude !== this.props.latitude || prevProps.longitude !== this.props.longitude;
 
         if (sourceChanged || adapterChanged || coordsChanged) {
             this.cleanup();
@@ -266,7 +305,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     private startDataSource(): void {
         if (this.isDirectApi()) {
             if (this.props.latitude != null && this.props.longitude != null) {
-                const fetcher = () => void this.fetchDirectApi();
+                const fetcher = (): void => void this.fetchDirectApi();
                 fetcher();
                 this.refreshTimer = setInterval(fetcher, API_REFRESH_MS);
             } else {
@@ -313,14 +352,22 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
 
         try {
-            const url =
-                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-                `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure` +
-                `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
-                `&timezone=auto&forecast_days=7`;
+            const cacheKey = `openmeteo|${latitude}|${longitude}`;
+            let data: any;
+            const cached = weatherApiCache[cacheKey];
+            if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
+                data = cached.data;
+            } else {
+                const url =
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+                    `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure` +
+                    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+                    `&timezone=auto&forecast_days=7`;
 
-            const res = await fetch(url);
-            const data = await res.json();
+                const res = await fetch(url);
+                data = await res.json();
+                weatherApiCache[cacheKey] = { ts: Date.now(), data };
+            }
 
             const current = data.current;
             const daily = data.daily;
@@ -328,7 +375,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
             const forecastDays: ForecastDay[] = [];
             if (daily?.time) {
-                // Skip day 0 (today, shown in current section), show days 1-5
+                // Skip day 0 (today, shown in the current section), show days 1-5
                 for (let i = 1; i < Math.min(daily.time.length, 8); i++) {
                     const dayWmo = daily.weather_code?.[i] as number | undefined;
                     forecastDays.push({
@@ -337,7 +384,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         tempMin: daily.temperature_2m_min?.[i] ?? null,
                         tempMax: daily.temperature_2m_max?.[i] ?? null,
                         dow: formatDow(daily.time[i], language),
-                        state: dayWmo != null ? (tw(WMO_KEYS[dayWmo])) : null,
+                        state: dayWmo != null ? tw(WMO_KEYS[dayWmo]) : null,
                         precipitationChance: daily.precipitation_probability_max?.[i] ?? null,
                         wmoCode: dayWmo,
                     });
@@ -348,7 +395,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 loading: false,
                 temperature: current?.temperature_2m ?? null,
                 humidity: current?.relative_humidity_2m ?? null,
-                weatherState: wmoCode != null ? (tw(WMO_KEYS[wmoCode])) : null,
+                weatherState: wmoCode != null ? tw(WMO_KEYS[wmoCode]) : null,
                 windSpeed: current?.wind_speed_10m ?? null,
                 windDirection: current?.wind_direction_10m != null ? degToCardinal(current.wind_direction_10m) : null,
                 pressure: current?.surface_pressure != null ? Math.round(current.surface_pressure) : null,
@@ -373,18 +420,33 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
 
         try {
-            const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
-            const res = await fetch(url, {
-                headers: { 'User-Agent': 'ioBroker.devices/1.0 github.com/ioBroker/ioBroker.devices' },
-            });
-            const data = await res.json();
+            const cacheKey = `yrno|${latitude.toFixed(4)}|${longitude.toFixed(4)}`;
+            let data: any;
+            const cached = weatherApiCache[cacheKey];
+            if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
+                data = cached.data;
+            } else {
+                const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
+                const res = await fetch(url, {
+                    headers: { 'User-Agent': 'ioBroker.devices/1.0 github.com/ioBroker/ioBroker.devices' },
+                });
+                data = await res.json();
+                weatherApiCache[cacheKey] = { ts: Date.now(), data };
+            }
 
             const timeseries: Array<{
                 time: string;
                 data: {
                     instant: { details: Record<string, number> };
                     next_1_hours?: { summary: { symbol_code: string }; details?: Record<string, number> };
-                    next_6_hours?: { summary: { symbol_code: string }; details?: { air_temperature_min?: number; air_temperature_max?: number; precipitation_amount?: number } };
+                    next_6_hours?: {
+                        summary: { symbol_code: string };
+                        details?: {
+                            air_temperature_min?: number;
+                            air_temperature_max?: number;
+                            precipitation_amount?: number;
+                        };
+                    };
                 };
             }> = data?.properties?.timeseries || [];
 
@@ -393,13 +455,17 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 return;
             }
 
-            // Current weather from first entry
+            // Current weather from the first entry
             const now = timeseries[0];
             const instant = now.data.instant.details;
-            const symbolCode = now.data.next_1_hours?.summary?.symbol_code || now.data.next_6_hours?.summary?.symbol_code || '';
+            const symbolCode =
+                now.data.next_1_hours?.summary?.symbol_code || now.data.next_6_hours?.summary?.symbol_code || '';
 
             // Aggregate daily forecast
-            const dayMap = new Map<string, { date: string; tempMin: number; tempMax: number; symbol: string; precip: number }>();
+            const dayMap = new Map<
+                string,
+                { date: string; tempMin: number; tempMax: number; symbol: string; precip: number }
+            >();
             const todayStr = now.time.slice(0, 10);
 
             for (const entry of timeseries) {
@@ -412,7 +478,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 const existing = dayMap.get(dateStr);
 
                 // Get symbol from 6h or 1h summary (prefer entries around noon)
-                const sym = entry.data.next_6_hours?.summary?.symbol_code || entry.data.next_1_hours?.summary?.symbol_code || '';
+                const sym =
+                    entry.data.next_6_hours?.summary?.symbol_code ||
+                    entry.data.next_1_hours?.summary?.symbol_code ||
+                    '';
                 const hour = parseInt(entry.time.slice(11, 13), 10);
                 const isNoon = hour >= 10 && hour <= 14;
 
@@ -469,7 +538,8 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 weatherState: symbolCode ? yrSymbolToDescription(symbolCode) : null,
                 windSpeed: instant.wind_speed != null ? Math.round(instant.wind_speed * 3.6) : null, // m/s → km/h
                 windDirection: instant.wind_from_direction != null ? degToCardinal(instant.wind_from_direction) : null,
-                pressure: instant.air_pressure_at_sea_level != null ? Math.round(instant.air_pressure_at_sea_level) : null,
+                pressure:
+                    instant.air_pressure_at_sea_level != null ? Math.round(instant.air_pressure_at_sea_level) : null,
                 precipitationChance: null,
                 realFeel: null,
                 icon: symbolCode ? yrIconUrl(symbolCode) : null,
@@ -488,12 +558,19 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         const socket = this.props.stateContext.getSocket();
 
         try {
-            // Get all state objects under this instance
-            const objects = await socket.getObjectViewSystem(
-                'state',
-                `${instance}.`,
-                `${instance}.\u9999`,
-            ) as Record<string, ioBroker.StateObject>;
+            // Get all state objects under this instance (cached per instance)
+            let objects: Record<string, ioBroker.StateObject>;
+            if (adapterObjectsCache[instance]) {
+                objects = adapterObjectsCache[instance];
+            } else {
+                objects = (await socket.getObjectViewSystem('state', `${instance}.`, `${instance}.\u9999`)) as Record<
+                    string,
+                    ioBroker.StateObject
+                >;
+                if (objects) {
+                    adapterObjectsCache[instance] = objects;
+                }
+            }
 
             if (!objects) {
                 this.setState({ loading: false });
@@ -531,7 +608,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             // Initialize forecast days
             const maxDay = forecastIndices.size > 0 ? Math.max(...forecastIndices) : -1;
             const forecastDays: ForecastDay[] = [];
-            // Skip day 0 (that's "today" shown in main area), start from 1
+            // Skip day 0 (that's "today" shown in the main area), start from 1
             for (let i = 1; i <= Math.min(maxDay, 7); i++) {
                 forecastDays.push({
                     index: i,
@@ -547,7 +624,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
             // Subscribe to all discovered states
             for (const [stateId] of this.stateMap) {
-                const handler = (id: string, state: ioBroker.State) => this.onStateChange(id, state);
+                const handler = (id: string, state: ioBroker.State): void => this.onStateChange(id, state);
                 this.subs.push({ stateId, handler });
                 this.props.stateContext.getState(stateId, handler);
             }
@@ -651,7 +728,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
     };
 
-    private renderWeatherIcon(src: string | null, size: number, wmoCode?: number): React.JSX.Element {
+    static renderWeatherIcon(src: string | null, size: number, wmoCode?: number): React.JSX.Element {
         if (src) {
             return (
                 <img
@@ -664,7 +741,17 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         // For open-meteo: show WMO emoji if available
         if (wmoCode != null) {
             return (
-                <Box sx={{ fontSize: size * 0.75, lineHeight: 1, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box
+                    sx={{
+                        fontSize: size * 0.75,
+                        lineHeight: 1,
+                        width: size,
+                        height: size,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
                     {wmoToIcon(wmoCode)}
                 </Box>
             );
@@ -713,7 +800,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         );
     }
 
-    private renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
+    static renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
         const fontSize = compact ? '0.7rem' : '0.8rem';
         const iconSize = compact ? 22 : 28;
 
@@ -736,12 +823,15 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 >
                     {day.dow || `D${day.index}`}
                 </Typography>
-                {this.renderWeatherIcon(day.icon, iconSize, day.wmoCode)}
+                {WidgetWeather.renderWeatherIcon(day.icon, iconSize, day.wmoCode)}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
                     {day.tempMax != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                             <ArrowUpward sx={{ fontSize: 12, color: '#f44336' }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, fontSize }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, fontSize }}
+                            >
                                 {Math.round(day.tempMax)}°
                             </Typography>
                         </Box>
@@ -749,14 +839,20 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                     {day.tempMin != null ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                             <ArrowDownward sx={{ fontSize: 12, color: '#2196f3' }} />
-                            <Typography variant="caption" sx={{ fontSize, color: 'text.secondary' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ fontSize, color: 'text.secondary' }}
+                            >
                                 {Math.round(day.tempMin)}°
                             </Typography>
                         </Box>
                     ) : null}
                 </Box>
                 {day.precipitationChance != null ? (
-                    <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }}>
+                    <Typography
+                        variant="caption"
+                        sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }}
+                    >
                         {Math.round(day.precipitationChance)}%
                     </Typography>
                 ) : null}
@@ -767,7 +863,6 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     renderCompact(): React.JSX.Element {
         const { icon, temperature, weatherState, loading, wmoCode } = this.state;
         const { color } = this.props;
-
 
         if (!this.isConfigured()) {
             return (
@@ -782,7 +877,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             ...getTileStyles(theme, false, color),
                         })}
                     >
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {I18n.t('wm_Not configured')}
                         </Typography>
                     </Box>
@@ -811,12 +909,17 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 >
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>...</Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                ...
+                            </Typography>
                         </Box>
                     ) : (
                         <>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {this.renderWeatherIcon(icon, 36, wmoCode)}
+                                {WidgetWeather.renderWeatherIcon(icon, 36, wmoCode)}
                                 <Typography sx={{ fontWeight: 700, fontSize: 'max(1.2rem, 12cqi)', lineHeight: 1.1 }}>
                                     {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
                                 </Typography>
@@ -861,7 +964,6 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         const { icon, temperature, weatherState, humidity, windSpeed, pressure, loading, wmoCode } = this.state;
         const { color } = this.props;
 
-
         return (
             <Box sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}>
                 <Box
@@ -878,17 +980,33 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                     })}
                 >
                     {loading ? (
-                        <Typography variant="caption" sx={{ color: 'text.secondary', mx: 'auto' }}>...</Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary', mx: 'auto' }}
+                        >
+                            ...
+                        </Typography>
                     ) : (
                         <>
-                            {this.renderWeatherIcon(icon, 40, wmoCode)}
+                            {WidgetWeather.renderWeatherIcon(icon, 40, wmoCode)}
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{ fontWeight: 700 }}
+                                    >
                                         {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                                color: 'text.secondary',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
                                             {weatherState}
                                         </Typography>
                                     ) : null}
@@ -897,7 +1015,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                     {humidity != null ? (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                                             <WaterDrop sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: 'text.secondary' }}
+                                            >
                                                 {Math.round(humidity)}%
                                             </Typography>
                                         </Box>
@@ -905,7 +1026,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                     {windSpeed != null ? (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                                             <Air sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: 'text.secondary' }}
+                                            >
                                                 {Math.round(windSpeed)} km/h
                                             </Typography>
                                         </Box>
@@ -913,7 +1037,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                     {pressure != null ? (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                                             <Speed sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: 'text.secondary' }}
+                                            >
                                                 {Math.round(pressure)} hPa
                                             </Typography>
                                         </Box>
@@ -930,8 +1057,16 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     renderWideTall(): React.JSX.Element {
         const {
-            icon, temperature, weatherState, humidity, windSpeed, pressure,
-            precipitationChance, forecastDays, loading, wmoCode,
+            icon,
+            temperature,
+            weatherState,
+            humidity,
+            windSpeed,
+            pressure,
+            precipitationChance,
+            forecastDays,
+            loading,
+            wmoCode,
         } = this.state;
         const { color } = this.props;
 
@@ -959,19 +1094,27 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 >
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>...</Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                ...
+                            </Typography>
                         </Box>
                     ) : (
                         <>
                             {/* Top: current weather */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                {this.renderWeatherIcon(icon, 52, wmoCode)}
+                                {WidgetWeather.renderWeatherIcon(icon, 52, wmoCode)}
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
                                         {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{ color: 'text.secondary', lineHeight: 1.2 }}
+                                        >
                                             {weatherState}
                                         </Typography>
                                     ) : null}
@@ -981,25 +1124,53 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             {/* Details */}
                             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                                 {humidity != null ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'text.secondary' }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            color: 'text.secondary',
+                                        }}
+                                    >
                                         <WaterDrop sx={{ fontSize: 14 }} />
                                         <Typography variant="caption">{Math.round(humidity)}%</Typography>
                                     </Box>
                                 ) : null}
                                 {windSpeed != null ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'text.secondary' }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            color: 'text.secondary',
+                                        }}
+                                    >
                                         <Air sx={{ fontSize: 14 }} />
                                         <Typography variant="caption">{Math.round(windSpeed)} km/h</Typography>
                                     </Box>
                                 ) : null}
                                 {pressure != null ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'text.secondary' }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            color: 'text.secondary',
+                                        }}
+                                    >
                                         <Speed sx={{ fontSize: 14 }} />
                                         <Typography variant="caption">{Math.round(pressure)} hPa</Typography>
                                     </Box>
                                 ) : null}
                                 {precipitationChance != null ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'text.secondary' }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            color: 'text.secondary',
+                                        }}
+                                    >
                                         <Opacity sx={{ fontSize: 14 }} />
                                         <Typography variant="caption">{Math.round(precipitationChance)}%</Typography>
                                     </Box>
@@ -1019,14 +1190,21 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         justifyContent: 'center',
                                     }}
                                 >
-                                    {visibleDays.map(day => this.renderForecastRow(day, visibleDays.length > 3))}
+                                    {visibleDays.map(day =>
+                                        WidgetWeather.renderForecastRow(day, visibleDays.length > 3),
+                                    )}
                                 </Box>
                             ) : null}
 
                             {/* Label */}
                             <Typography
                                 variant="body2"
-                                sx={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                sx={{
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap',
+                                    textOverflow: 'ellipsis',
+                                }}
                             >
                                 {this.props.cityName || I18n.t('wm_Weather')}
                             </Typography>
@@ -1050,8 +1228,17 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
 
         const {
-            icon, temperature, weatherState, humidity, windSpeed, windDirection,
-            pressure, precipitationChance, realFeel, wmoCode, forecastDays,
+            icon,
+            temperature,
+            weatherState,
+            humidity,
+            windSpeed,
+            windDirection,
+            pressure,
+            precipitationChance,
+            realFeel,
+            wmoCode,
+            forecastDays,
         } = this.state;
 
         const allDays = forecastDays.filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null);
@@ -1065,21 +1252,35 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                 fullWidth
             >
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', pr: 1 }}>
-                    <Typography variant="h6" sx={{ flex: 1, fontWeight: 700 }}>{title}</Typography>
-                    <IconButton size="small" onClick={() => this.setState({ detailOpen: false })}>
+                    <Typography
+                        variant="h6"
+                        sx={{ flex: 1, fontWeight: 700 }}
+                    >
+                        {title}
+                    </Typography>
+                    <IconButton
+                        size="small"
+                        onClick={() => this.setState({ detailOpen: false })}
+                    >
                         <Close />
                     </IconButton>
                 </DialogTitle>
                 <DialogContent>
                     {/* Current weather */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                        {this.renderWeatherIcon(icon, 64, wmoCode)}
+                        {WidgetWeather.renderWeatherIcon(icon, 64, wmoCode)}
                         <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+                            <Typography
+                                variant="h4"
+                                sx={{ fontWeight: 700, lineHeight: 1.1 }}
+                            >
                                 {temperature != null ? `${temperature.toFixed(1)}°C` : '\u2014'}
                             </Typography>
                             {weatherState ? (
-                                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                <Typography
+                                    variant="body1"
+                                    sx={{ color: 'text.secondary' }}
+                                >
                                     {weatherState}
                                 </Typography>
                             ) : null}
@@ -1102,10 +1303,18 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <WaterDrop sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}
+                                    >
                                         {I18n.t('wm_Humidity')}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{Math.round(humidity)}%</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {Math.round(humidity)}%
+                                    </Typography>
                                 </Box>
                             </Box>
                         ) : null}
@@ -1113,10 +1322,16 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Air sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}
+                                    >
                                         {I18n.t('wm_Wind')}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
                                         {Math.round(windSpeed)} km/h{windDirection ? ` ${windDirection}` : ''}
                                     </Typography>
                                 </Box>
@@ -1126,10 +1341,18 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Speed sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}
+                                    >
                                         {I18n.t('wm_Pressure')}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{Math.round(pressure)} hPa</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {Math.round(pressure)} hPa
+                                    </Typography>
                                 </Box>
                             </Box>
                         ) : null}
@@ -1137,10 +1360,18 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Opacity sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}
+                                    >
                                         {I18n.t('wm_Precipitation')}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{Math.round(precipitationChance)}%</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {Math.round(precipitationChance)}%
+                                    </Typography>
                                 </Box>
                             </Box>
                         ) : null}
@@ -1148,10 +1379,18 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Thermostat sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.2 }}
+                                    >
                                         {I18n.t('wm_Feels like')}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{realFeel.toFixed(1)}°C</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {realFeel.toFixed(1)}°C
+                                    </Typography>
                                 </Box>
                             </Box>
                         ) : null}
@@ -1160,7 +1399,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                     {/* 7-day forecast */}
                     {allDays.length > 0 ? (
                         <>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                            <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 700, mb: 1 }}
+                            >
                                 {I18n.t('wm_Forecast')}
                             </Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -1183,13 +1425,16 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         >
                                             {day.dow || `D${day.index}`}
                                         </Typography>
-                                        {this.renderWeatherIcon(day.icon, 32, day.wmoCode)}
+                                        {WidgetWeather.renderWeatherIcon(day.icon, 32, day.wmoCode)}
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 {day.tempMax != null ? (
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                                                         <ArrowUpward sx={{ fontSize: 14, color: '#f44336' }} />
-                                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ fontWeight: 600 }}
+                                                        >
                                                             {Math.round(day.tempMax)}°
                                                         </Typography>
                                                     </Box>
@@ -1197,7 +1442,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                                 {day.tempMin != null ? (
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                                                         <ArrowDownward sx={{ fontSize: 14, color: '#2196f3' }} />
-                                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ color: 'text.secondary' }}
+                                                        >
                                                             {Math.round(day.tempMin)}°
                                                         </Typography>
                                                     </Box>
@@ -1213,9 +1461,19 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                             ) : null}
                                         </Box>
                                         {day.precipitationChance != null ? (
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '3px',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
                                                 <Opacity sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{ color: 'text.secondary' }}
+                                                >
                                                     {Math.round(day.precipitationChance)}%
                                                 </Typography>
                                             </Box>

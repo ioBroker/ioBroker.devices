@@ -9,7 +9,7 @@ import {
     ListItemIcon,
     ListItemText,
 } from '@mui/material';
-import { AccessTime, Close, Language, WbCloudy } from '@mui/icons-material';
+import { AccessTime, Air, Close, Language, WbCloudy } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType } from '../../../src/widget-utils';
@@ -39,6 +39,12 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <Language />,
         i18nKey: 'wm_Iframe',
         descriptionKey: 'wm_Iframe_desc',
+    },
+    {
+        type: 'wind',
+        icon: <Air />,
+        i18nKey: 'wm_Wind',
+        descriptionKey: 'wm_Wind_desc',
     },
 ];
 

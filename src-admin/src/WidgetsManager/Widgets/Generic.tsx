@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, Tooltip, Typography } from '@mui/material';
+import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
 import {
     ArrowDownward,
     ArrowUpward,
@@ -9,6 +9,7 @@ import {
     Battery80,
     BatteryFull,
     Build,
+    Close,
     Error as ErrorIcon,
     InfoOutlined,
     LinkOff,
@@ -21,6 +22,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { WidgetInfo } from '../../../../src/widget-utils';
 import type StateContext from '../StateContext';
+import ChartDialog from './ChartDialog';
 
 export interface WidgetSettings {
     enabled: boolean;
@@ -47,6 +49,18 @@ export interface WidgetSettings {
     refreshInterval: number;
     /** Append ?ts=timestamp to image URL for cache busting */
     appendTimestamp: boolean;
+    /** Custom text shown when widget is in active/alarm state */
+    textActive: string;
+    /** Custom text shown when widget is in inactive/OK state */
+    textInactive: string;
+    /** Custom color for inactive state */
+    colorInactive: string;
+    /** Custom icon URL/base64 for active/alarm state */
+    iconActive: string;
+    /** Custom icon URL/base64 for inactive/OK state */
+    iconInactive: string;
+    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in common.icon) */
+    icon: string;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -67,6 +81,12 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     showAnimation: true,
     refreshInterval: 0,
     appendTimestamp: false,
+    textActive: '',
+    textInactive: '',
+    colorInactive: '',
+    iconActive: '',
+    iconInactive: '',
+    icon: '',
 };
 
 export interface WidgetGenericProps {
@@ -76,6 +96,8 @@ export interface WidgetGenericProps {
     size?: '1x1' | '2x0.5' | '2x1';
     settings?: WidgetSettings;
     onOpenSettings?: (widgetId: string | number) => void;
+    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
+    defaultHistory?: string;
 }
 
 export interface IndicatorValues {
@@ -92,6 +114,7 @@ export interface IndicatorValues {
 export interface ChartSeries {
     data: { ts: number; val: number }[];
     color: string;
+    name?: string;
 }
 
 export interface ExtraInfoEntry {
@@ -110,6 +133,7 @@ export interface WidgetGenericState {
     chartSeries: ChartSeries[];
     extraInfo: ExtraInfoEntry[];
     infoDialogOpen: boolean;
+    chartDialogOpen: boolean;
 }
 
 const INDICATOR_NAMES = [
@@ -141,27 +165,28 @@ export function getTileStyles(
     isActive: boolean,
     accentColor?: string,
     interactive = true,
+    inactiveColor?: string,
 ): Record<string, unknown> {
     const accent = accentColor || theme.palette.primary.main;
     const isDark = theme.palette.mode === 'dark';
+
+    let bgInactive: string;
+    let borderInactive: string;
+    if (inactiveColor) {
+        bgInactive = alpha(inactiveColor, 0.12);
+        borderInactive = alpha(inactiveColor, 0.3);
+    } else {
+        bgInactive = isDark ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.035);
+        borderInactive = isDark ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.08);
+    }
 
     return {
         borderRadius: '16px',
         boxSizing: 'border-box',
         padding: theme.spacing(2),
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        backgroundColor: isActive
-            ? alpha(accent, 0.12)
-            : isDark
-              ? alpha(theme.palette.common.white, 0.06)
-              : alpha(theme.palette.common.black, 0.035),
-        border: `1.5px solid ${
-            isActive
-                ? alpha(accent, 0.3)
-                : isDark
-                  ? alpha(theme.palette.common.white, 0.08)
-                  : alpha(theme.palette.common.black, 0.08)
-        }`,
+        backgroundColor: isActive ? alpha(accent, 0.12) : bgInactive,
+        border: `1.5px solid ${isActive ? alpha(accent, 0.3) : borderInactive}`,
         ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
     };
 }
@@ -201,6 +226,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             chartSeries: [] as ChartSeries[],
             extraInfo: [] as ExtraInfoEntry[],
             infoDialogOpen: false,
+            chartDialogOpen: false,
         } as unknown as TState;
 
         // Collect indicator state IDs from control.states
@@ -311,11 +337,37 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     componentDidUpdate(prevProps: Readonly<WidgetGenericProps>): void {
-        const prevHours = prevProps.settings?.chartHours || 0;
-        const newHours = this.props.settings?.chartHours || 0;
+        const prevHours = prevProps.settings?.chartHours ?? 12;
+        const newHours = this.props.settings?.chartHours ?? 12;
         if (prevHours !== newHours) {
             this.startChartRefresh();
         }
+
+        // Sync name/icon/color from widget props when they change
+        const state: Partial<WidgetGenericState> = {};
+        if (prevProps.widget.name !== this.props.widget.name) {
+            if (this.props.widget.name && typeof this.props.widget.name === 'object') {
+                if ((this.props.widget.name as ioBroker.Translated).en) {
+                    state.name = this.getText(this.props.widget.name as ioBroker.Translated);
+                }
+            } else {
+                state.name = this.props.widget.name || '';
+            }
+        }
+        if (prevProps.widget.icon !== this.props.widget.icon) {
+            if (typeof this.props.widget.icon === 'string') {
+                state.icon = this.props.widget.icon || null;
+            }
+        }
+        if (prevProps.widget.color !== this.props.widget.color) {
+            if (typeof this.props.widget.color === 'string') {
+                state.color = this.props.widget.color || null;
+            }
+        }
+        if (Object.keys(state).length) {
+            this.setState(state as TState);
+        }
+
         this.adjustNameFontSize();
     }
 
@@ -488,7 +540,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private async loadExtraInfoMetadata(): Promise<void> {
         const entries: ExtraInfoEntry[] = [];
         for (const { id, stateName } of this.extraInfoIds) {
-            let label = I18n.t(EXTRA_INFO_LABELS[stateName] || stateName);
+            const label = I18n.t(EXTRA_INFO_LABELS[stateName] || stateName);
             let unit = '';
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
@@ -497,13 +549,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     | undefined;
                 if (obj?.common) {
                     unit = obj.common.unit || '';
-                    const objName =
-                        typeof obj.common.name === 'object'
-                            ? obj.common.name[this.props.language] || obj.common.name.en || ''
-                            : obj.common.name || '';
-                    if (objName) {
-                        label = objName;
-                    }
                 }
             } catch {
                 // ignore
@@ -556,7 +601,15 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>{this.props.settings?.name || this.state.name || '...'}</DialogTitle>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+                    {this.props.settings?.name || this.state.name || '...'}
+                    <IconButton
+                        size="small"
+                        onClick={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                    >
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
                 <DialogContent>
                     {this.state.extraInfo.map(entry => (
                         <Box
@@ -607,9 +660,18 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return this.props.settings?.color || this.state.color || undefined;
     }
 
+    protected getInactiveColor(): string | undefined {
+        return this.props.settings?.colorInactive || undefined;
+    }
+
     // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return false;
+    }
+
+    /** Whether this widget can open chart dialog on click (non-controllable with chart data) */
+    protected hasChartAction(): boolean {
+        return !this.hasTileAction() && this.state.chartSeries.length > 0;
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -622,19 +684,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
      *  Subclasses that override renderTileIcon can call this to get the custom icon.
      */
     protected renderBaseIcon(): React.JSX.Element | null {
-        const { icon, color } = this.state;
+        const { icon } = this.state;
         const isActive = this.isTileActive();
 
         if (icon) {
+            const accent = this.getAccentColor();
+            const inactiveColor = this.getInactiveColor();
             return (
                 <Icon
                     src={icon}
                     style={{
                         width: '1em',
                         height: '1em',
-                        color: isActive ? color || undefined : undefined,
-                        opacity: isActive ? 1 : 0.5,
-                        transition: 'opacity 0.25s ease, color 0.25s ease',
+                        color: isActive ? accent || '#1976d2' : inactiveColor || 'grey',
+                        transition: 'color 0.25s ease',
                     }}
                 />
             );
@@ -815,8 +878,14 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     /** Override in subclasses to provide state IDs for chart display */
     // eslint-disable-next-line class-methods-use-this
-    protected getHistoryIds(): { id: string; color: string }[] {
+    protected getHistoryIds(): { id: string; color: string; name?: string }[] {
         return [];
+    }
+
+    /** Override in subclasses to provide the unit for chart tooltip */
+    // eslint-disable-next-line class-methods-use-this
+    protected getChartUnit(): string | undefined {
+        return undefined;
     }
 
     private startChartRefresh(): void {
@@ -824,7 +893,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             clearInterval(this.chartTimer);
             this.chartTimer = null;
         }
-        const chartHours = this.props.settings?.chartHours || 0;
+        const chartHours = this.props.settings?.chartHours ?? 12;
         const historyIds = this.getHistoryIds();
         if (chartHours > 0 && historyIds.length) {
             void this.loadChartData(historyIds);
@@ -834,15 +903,22 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
     }
 
+    /** Cache for resolved history IDs — avoids repeated object lookups on every chart refresh */
+    private resolvedHistoryIds: Record<string, string | null> = {};
+
     /** Returns the ID to use for history queries, resolving aliases if needed */
     private async resolveHistoryId(stateId: string): Promise<string | null> {
-        const socket = this.props.stateContext.getSocket();
+        if (stateId in this.resolvedHistoryIds) {
+            return this.resolvedHistoryIds[stateId];
+        }
         try {
-            const obj = (await socket.getObject(stateId)) as ioBroker.StateObject | null | undefined;
+            const obj = await this.props.stateContext.getObject<ioBroker.StateObject>(stateId);
             if (!obj) {
+                this.resolvedHistoryIds[stateId] = null;
                 return null;
             }
             if (obj.common?.custom?.[this.historyInstance!]?.enabled) {
+                this.resolvedHistoryIds[stateId] = stateId;
                 return stateId;
             }
             // Follow alias to target
@@ -850,8 +926,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             if (aliasId) {
                 const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
                 if (targetId && targetId !== stateId) {
-                    const targetObj = (await socket.getObject(targetId)) as ioBroker.StateObject | null | undefined;
+                    const targetObj = await this.props.stateContext.getObject<ioBroker.StateObject>(targetId);
                     if (targetObj?.common?.custom?.[this.historyInstance!]?.enabled) {
+                        this.resolvedHistoryIds[stateId] = targetId;
                         return targetId;
                     }
                 }
@@ -859,12 +936,13 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         } catch {
             // ignore
         }
+        this.resolvedHistoryIds[stateId] = null;
         return null;
     }
 
-    private async loadChartData(historyIds?: { id: string; color: string }[]): Promise<void> {
+    private async loadChartData(historyIds?: { id: string; color: string; name?: string }[]): Promise<void> {
         historyIds ||= this.getHistoryIds();
-        const chartHours = this.props.settings?.chartHours || 0;
+        const chartHours = this.props.settings?.chartHours ?? 12;
         if (!historyIds.length || chartHours <= 0) {
             return;
         }
@@ -872,12 +950,16 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const socket = this.props.stateContext.getSocket();
 
         if (this.historyInstance === null) {
-            try {
-                const sysConfig: ioBroker.SystemConfigObject | null | undefined =
-                    await socket.getObject('system.config');
-                this.historyInstance = sysConfig?.common?.defaultHistory || '';
-            } catch {
-                this.historyInstance = '';
+            if (this.props.defaultHistory) {
+                this.historyInstance = this.props.defaultHistory;
+            } else {
+                try {
+                    const sysConfig =
+                        await this.props.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
+                    this.historyInstance = sysConfig?.common?.defaultHistory || '';
+                } catch {
+                    this.historyInstance = '';
+                }
             }
         }
         if (!this.historyInstance) {
@@ -889,7 +971,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const aggregate = chartHours > 6 ? 'minmax' : 'none';
 
         const series: ChartSeries[] = [];
-        for (const { id, color } of historyIds) {
+        for (const { id, color, name } of historyIds) {
             try {
                 // Resolve alias: if state has no history, check alias target
                 const historyId = await this.resolveHistoryId(id);
@@ -915,7 +997,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         }
                     }
                 }
-                series.push({ data, color });
+                series.push({ data, color, name });
             } catch (e) {
                 console.warn(`Failed to load history for ${id}:`, e);
             }
@@ -924,12 +1006,33 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         this.setState({ chartSeries: series } as Partial<TState> as TState);
     }
 
+    protected renderChartDialog(): React.JSX.Element | null {
+        if (!this.state.chartDialogOpen || !this.historyInstance) {
+            return null;
+        }
+        const historyIds = this.getHistoryIds();
+        if (!historyIds.length) {
+            return null;
+        }
+        return (
+            <ChartDialog
+                open
+                onClose={() => this.setState({ chartDialogOpen: false } as Partial<TState> as TState)}
+                title={this.props.settings?.name || (this.state.name ?? '') || String(this.props.widget.id)}
+                historyIds={historyIds}
+                historyInstance={this.historyInstance}
+                socket={this.props.stateContext.getSocket()}
+                unit={this.getChartUnit()}
+            />
+        );
+    }
+
     protected renderChart(): React.JSX.Element | null {
         const { chartSeries } = this.state;
         if (!chartSeries?.length) {
             return null;
         }
-        const chartHours = this.props.settings?.chartHours || 0;
+        const chartHours = this.props.settings?.chartHours ?? 12;
         if (chartHours <= 0) {
             return null;
         }
@@ -1115,9 +1218,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
+        const inactiveColor = this.getInactiveColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const clickable = this.hasTileAction() && !isDisabled;
+        const chartAction = this.hasChartAction() && !isDisabled;
+        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
 
         return (
             <Box
@@ -1129,7 +1234,14 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     component="div"
                     disabled={!clickable}
                     disableRipple={!clickable}
-                    onClick={clickable ? () => this.onTileClick() : undefined}
+                    onClick={
+                        clickable
+                            ? () =>
+                                  chartAction
+                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
+                                      : this.onTileClick()
+                            : undefined
+                    }
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -1141,7 +1253,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 10cqi)',
                     })}
@@ -1195,9 +1307,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
+        const inactiveColor = this.getInactiveColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const clickable = this.hasTileAction() && !isDisabled;
+        const chartAction = this.hasChartAction() && !isDisabled;
+        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
 
         return (
             <Box
@@ -1206,7 +1320,14 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
-                    onClick={clickable ? () => this.onTileClick() : undefined}
+                    onClick={
+                        clickable
+                            ? () =>
+                                  chartAction
+                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
+                                      : this.onTileClick()
+                            : undefined
+                    }
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
@@ -1217,7 +1338,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         cursor: clickable ? 'pointer' : 'default',
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
-                        ...getTileStyles(theme, isActive, accent),
+                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
                 >
@@ -1262,9 +1383,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
+        const inactiveColor = this.getInactiveColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const clickable = this.hasTileAction() && !isDisabled;
+        const chartAction = this.hasChartAction() && !isDisabled;
+        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
 
         return (
             <Box
@@ -1278,7 +1401,14 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     component="div"
                     disabled={!clickable}
                     disableRipple={!clickable}
-                    onClick={clickable ? () => this.onTileClick() : undefined}
+                    onClick={
+                        clickable
+                            ? () =>
+                                  chartAction
+                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
+                                      : this.onTileClick()
+                            : undefined
+                    }
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,
@@ -1292,7 +1422,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         overflow: 'hidden',
                         opacity: isDisabled ? 0.4 : 1,
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 5cqi)',
                     })}
@@ -1344,13 +1474,24 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     render(): React.JSX.Element {
         const size = this.props.settings?.size || this.props.size || '1x1';
+        let widget: React.JSX.Element;
         if (size === '2x0.5') {
-            return this.renderWide();
+            widget = this.renderWide();
+        } else if (size === '2x1') {
+            widget = this.renderWideTall();
+        } else {
+            widget = this.renderCompact();
         }
-        if (size === '2x1') {
-            return this.renderWideTall();
+        const chartDialog = this.renderChartDialog();
+        if (chartDialog) {
+            return (
+                <>
+                    {widget}
+                    {chartDialog}
+                </>
+            );
         }
-        return this.renderCompact();
+        return widget;
     }
 }
 

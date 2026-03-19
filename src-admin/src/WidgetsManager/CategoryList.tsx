@@ -26,6 +26,8 @@ import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySetting
 import CustomWidgetDialog from './CustomWidgetDialog';
 import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
+import { autoGroupItems, flattenGroups, moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
+import SidePanelInstallDialog from './SidePanelInstallDialog';
 
 interface SpecialTile {
     type: 'clock';
@@ -42,8 +44,11 @@ interface GuiConfig {
         backgroundColor?: string;
         image?: string;
         imageScope?: 'header' | 'page';
+        /** PWA / Chrome extension icon path */
+        icon?: string;
         customWidgets?: CustomWidgetDef[];
         widgetOrder?: string[];
+        widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
     };
 }
 
@@ -58,13 +63,13 @@ interface CategoryListProps extends CommunicationProps {
     style?: React.CSSProperties;
     /** To trigger the reload of devices, just change this variable */
     triggerLoad?: number;
-    /** If settings button is shown */
+    /** If the settings button is shown */
     showSettingsButton?: boolean;
-    /** Define state that will accept commands from backend */
+    /** Define a state that will accept commands from the backend */
     communicationStateId?: string | boolean;
-    /** Is it runs in admin or in web */
+    /** Is it runs in admin or in web? */
     admin: boolean;
-    /** Define object that will store root settings of the GUI */
+    /** Define an object that will store root settings of the GUI */
     rootSettingsStateId?: string | boolean;
 }
 
@@ -89,10 +94,21 @@ interface CategoryListState extends CommunicationState {
     guiConfig?: GuiConfig;
     /** When true, editing controls are shown; when false, play/runtime mode */
     configMode: boolean;
+    /** Side Panel install dialog open */
+    sidePanelDialogOpen: boolean;
 }
 
-const WM_SETTINGS_KEY = 'wm_widget_settings';
 const ROOT_CATEGORY = '__root__';
+
+/** Widget types where iconInactive is stored in `common.icon` and iconActive in `common.custom` */
+const ALARM_ICON_TYPES = new Set([
+    Types.floodAlarm,
+    Types.fireAlarm,
+    Types.motion,
+    Types.window,
+    Types.door,
+    Types.warning,
+]);
 
 /**
  * Device List Component
@@ -144,16 +160,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             });
         }
 
-        let widgetSettings: Record<string, WidgetSettings> = {};
-        try {
-            const raw = localStorage.getItem(WM_SETTINGS_KEY);
-            if (raw) {
-                widgetSettings = JSON.parse(raw) as Record<string, WidgetSettings>;
-            }
-        } catch {
-            // ignore parse errors
-        }
-
         this.state = {
             ...this.state,
             categories: [],
@@ -161,7 +167,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             filter: '',
             loading: null,
             alive: null,
-            widgetSettings,
+            widgetSettings: {},
             settingsWidgetId: null,
             chartAvailable: false,
             settingsObjectName: '',
@@ -172,6 +178,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             customWidgetSettingsCategoryId: null,
             customWidgetSettingsWidgetId: null,
             configMode: !!this.props.showSettingsButton,
+            sidePanelDialogOpen: false,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -194,7 +201,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return String(category.id).split('.').pop() || '';
     }
 
-    /** Build hash path like #Room/SubRoom by walking up the parent chain */
+    /** Build a hash path like #Room/SubRoom by walking up the parent chain */
     private buildHashPath(category: CategoryInfo): string {
         if (String(category.id) === ROOT_CATEGORY) {
             return '';
@@ -251,7 +258,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.rootSettingsStateId = `${this.state.selectedInstance}.${this.props.rootSettingsStateId || 'config'}`;
         const guiConfigState = await this.props.socket.getObject(this.rootSettingsStateId);
         if (guiConfigState) {
-            this.setState({ guiConfig: guiConfigState.native as GuiConfig });
+            const guiConfig = guiConfigState.native as GuiConfig;
+            this.setState({ guiConfig });
+            // Apply PWA icon on initial load
+            if (guiConfig?.root?.icon) {
+                CategoryList.applyPwaIcon(guiConfig.root.icon, this.props.admin);
+            }
         }
         await this.props.socket.subscribeObject(this.rootSettingsStateId, this.onConfigChanged);
 
@@ -352,12 +364,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             backgroundColor: guiConfig.root.backgroundColor || '',
                             image: guiConfig.root.image || '',
                             imageScope: guiConfig.root.imageScope || 'header',
+                            icon: guiConfig.root.icon || '',
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
+                            widgetGroups: guiConfig.root.widgetGroups,
                         };
                     }
                     return { guiConfig, categorySettings };
                 });
+                // Apply PWA icon if changed
+                if (guiConfig.root?.icon) {
+                    CategoryList.applyPwaIcon(guiConfig.root.icon, this.props.admin);
+                }
             }
         }
     };
@@ -419,17 +437,21 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.setState({ loading: !!alive, alive });
                 if (alive) {
                     await this.loadItems(result => {
-                        // Try to restore category from URL hash, fall back to root
+                        // Try to restore the category from URL hash, fall back to root
                         const currentCategory =
                             this.resolveCategoryFromHash(window.location.hash, result.categories) ||
                             result.categories.find(c => c.id === ROOT_CATEGORY) ||
                             result.categories[0];
+
+                        // Build widget settings from widget.custom (stored in ioBroker objects)
+                        const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
 
                         this.setState({
                             categories: result.categories,
                             widgets: result.widgets,
                             loading: false,
                             currentCategory,
+                            widgetSettings,
                         });
                         console.log(
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
@@ -466,7 +488,17 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const widgets = exists
                 ? this.state.widgets.map(w => (String(w.id) === String(widget.id) ? widget : w))
                 : [...this.state.widgets, widget];
-            this.setState({ widgets });
+
+            // Update widget settings from custom data
+            const widgetSettings = { ...this.state.widgetSettings };
+            const extracted = CategoryList.extractSingleWidgetSettings(widget);
+            if (extracted) {
+                widgetSettings[String(widget.id)] = extracted;
+            } else {
+                delete widgetSettings[String(widget.id)];
+            }
+
+            this.setState({ widgets, widgetSettings });
         }
     }
 
@@ -503,7 +535,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private async loadObjectSettings(widgetId: string | number): Promise<void> {
         try {
-            const obj = await this.props.socket.getObject(String(widgetId));
+            const obj = await this.stateContext.getObject<ioBroker.Object>(String(widgetId));
             if (obj?.common) {
                 const name =
                     typeof obj.common.name === 'object'
@@ -525,8 +557,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
         if (this.defaultHistory === undefined) {
             try {
-                const sysConfig: ioBroker.SystemConfigObject | null | undefined =
-                    await this.props.socket.getObject('system.config');
+                const sysConfig = await this.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
                 this.defaultHistory = sysConfig?.common?.defaultHistory || '';
             } catch {
                 this.defaultHistory = '';
@@ -553,23 +584,25 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private async hasHistoryEnabled(stateId: string): Promise<boolean> {
-        const obj = (await this.props.socket.getObject(stateId)) as ioBroker.StateObject | null | undefined;
+        let obj: ioBroker.StateObject | undefined;
+        try {
+            obj = await this.stateContext.getObject<ioBroker.StateObject>(stateId);
+        } catch {
+            return false;
+        }
         if (!obj) {
             return false;
         }
         if (obj.common?.custom?.[this.defaultHistory!]?.enabled) {
             return true;
         }
-        // Follow alias to target and check there
+        // Follow alias to the target and check there
         const aliasId = obj.common?.alias?.id;
         if (aliasId) {
             const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
             if (targetId && targetId !== stateId) {
                 try {
-                    const targetObj = (await this.props.socket.getObject(targetId)) as
-                        | ioBroker.StateObject
-                        | null
-                        | undefined;
+                    const targetObj = await this.stateContext.getObject<ioBroker.StateObject>(targetId);
                     if (targetObj?.common?.custom?.[this.defaultHistory!]?.enabled) {
                         return true;
                     }
@@ -585,10 +618,146 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const { settingsWidgetId } = this.state;
         if (settingsWidgetId != null) {
             const widgetSettings = { ...this.state.widgetSettings, [String(settingsWidgetId)]: settings };
-            localStorage.setItem(WM_SETTINGS_KEY, JSON.stringify(widgetSettings));
-            this.setState({ widgetSettings, settingsWidgetId: null });
+
+            // Update the local widget icon when the icon changes (for non-alarm widgets via `icon`, for alarm via `iconInactive`)
+            const widget = this.state.widgets.find(w => String(w.id) === String(settingsWidgetId));
+            let widgets = this.state.widgets;
+            if (widget) {
+                const isAlarmType = widget.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
+                const newIcon = isAlarmType ? settings.iconInactive || '' : settings.icon || '';
+                if (newIcon !== (widget.icon || '')) {
+                    widgets = widgets.map(w =>
+                        String(w.id) === String(settingsWidgetId) ? { ...w, icon: newIcon || undefined } : w,
+                    );
+                }
+            }
+
+            this.setState({ widgetSettings, widgets, settingsWidgetId: null });
+            void this.saveWidgetSettingsToObject(String(settingsWidgetId), settings);
         }
     };
+
+    /**
+     * Extract WidgetSettings from a single widget's custom data.
+     * Returns a full WidgetSettings if any non-default values exist, otherwise null.
+     */
+    private static extractSingleWidgetSettings(widget: WidgetInfo): WidgetSettings | null {
+        const custom = widget.custom;
+        if (!custom) {
+            return null;
+        }
+        const settings: Record<string, any> = {};
+        for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS)) {
+            if (key === 'enabled') {
+                // 'enabled' is stored as 'uiDisabled' to avoid conflict with the adapter's enabled flag
+                if (custom.uiDisabled) {
+                    settings.enabled = false;
+                }
+            } else if (key === 'name') {
+                // name is stored in common.name (widget.name), not in custom
+            } else if (key === 'iconInactive' && ALARM_ICON_TYPES.has(widget.control?.type)) {
+                // For alarm types: iconInactive comes from widget.icon (common.icon)
+                if (widget.icon) {
+                    settings.iconInactive = widget.icon;
+                }
+            } else if (key === 'icon' && !ALARM_ICON_TYPES.has(widget.control?.type)) {
+                // For non-alarm types: icon comes from widget.icon (common.icon)
+                if (widget.icon) {
+                    settings.icon = widget.icon;
+                }
+            } else if (key in custom) {
+                settings[key] = custom[key];
+            }
+        }
+
+        if (Object.keys(settings).length === 0) {
+            return null;
+        }
+        return { ...DEFAULT_WIDGET_SETTINGS, ...settings };
+    }
+
+    /**
+     * Build widgetSettings record from all loaded widgets' custom data.
+     */
+    static extractWidgetSettingsFromWidgets(widgets: WidgetInfo[]): Record<string, WidgetSettings> {
+        const result: Record<string, WidgetSettings> = {};
+        for (const widget of widgets) {
+            const settings = CategoryList.extractSingleWidgetSettings(widget);
+            if (settings) {
+                result[String(widget.id)] = settings;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Persist widget settings to `common.custom[instanceId]` in the ioBroker object.
+     * For alarm-type widgets: iconInactive → `common.icon`, iconActive → `custom.iconActive`
+     */
+    private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettings): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        const widget = this.state.widgets.find(w => String(w.id) === widgetId);
+        const isAlarmType = widget?.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
+
+        try {
+            const obj = await this.props.socket.getObject(widgetId);
+            if (!obj) {
+                return;
+            }
+            const common = obj.common as Record<string, any>;
+            common.custom ||= {};
+            const custom = { ...(common.custom[instanceId] || {}) };
+
+            for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettings)[]) {
+                if (key === 'enabled') {
+                    // Store as 'uiDisabled' to avoid conflict with the adapter's enabled flag
+                    if (!settings.enabled) {
+                        custom.uiDisabled = true;
+                    } else {
+                        delete custom.uiDisabled;
+                    }
+                    continue;
+                }
+                if (key === 'name') {
+                    // name → common.name
+                    if (settings.name) {
+                        common.name = settings.name;
+                    }
+                    continue;
+                }
+                if (key === 'iconInactive' && isAlarmType) {
+                    // For alarm types: iconInactive → common.icon
+                    if (settings.iconInactive) {
+                        common.icon = settings.iconInactive;
+                    } else {
+                        delete common.icon;
+                    }
+                    continue;
+                }
+                if (key === 'icon' && !isAlarmType) {
+                    // For non-alarm types: icon → common.icon
+                    if (settings.icon) {
+                        common.icon = settings.icon;
+                    } else {
+                        delete common.icon;
+                    }
+                    continue;
+                }
+                // Store non-default values, remove defaults
+                const value = settings[key];
+                if (value !== DEFAULT_WIDGET_SETTINGS[key]) {
+                    custom[key] = value;
+                } else {
+                    delete custom[key];
+                }
+            }
+
+            common.custom[instanceId] = custom;
+            await this.props.socket.setObject(obj._id, obj);
+        } catch (err) {
+            console.error('Failed to save widget settings:', err);
+        }
+    }
 
     private onCloseSettings = (): void => {
         this.setState({ settingsWidgetId: null });
@@ -606,8 +775,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 backgroundColor: rootConfig.backgroundColor || '',
                 image: rootConfig.image || '',
                 imageScope: rootConfig.imageScope || 'header',
+                icon: rootConfig.icon || '',
                 customWidgets: rootConfig.customWidgets,
                 widgetOrder: rootConfig.widgetOrder,
+                widgetGroups: rootConfig.widgetGroups,
             };
         }
 
@@ -625,7 +796,19 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const customWidgets = cat.custom?.customWidgets;
 
             const widgetOrder = cat.custom?.widgetOrder;
-            categorySettings[id] = { name, color, backgroundColor, image, imageScope, customWidgets, widgetOrder };
+            const widgetGroups = cat.custom?.widgetGroups;
+            const icon = typeof cat.icon === 'string' ? cat.icon : '';
+            categorySettings[id] = {
+                name,
+                color,
+                backgroundColor,
+                image,
+                imageScope,
+                customWidgets,
+                widgetOrder,
+                widgetGroups,
+                icon,
+            };
         }
         this.setState({ categorySettings });
     }
@@ -650,18 +833,24 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         backgroundColor: settings.backgroundColor || '',
                         image: settings.image || '',
                         imageScope: settings.imageScope || 'header',
+                        icon: settings.icon || '',
                     },
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
                 void this.saveRootSettings(guiConfig);
+                // Apply PWA icon
+                if (settings.icon) {
+                    CategoryList.applyPwaIcon(settings.icon, this.props.admin);
+                }
             } else {
-                // Update local category: name/color on category itself, image/imageScope in custom
+                // Update local category: name/color on the category itself, image/imageScope in custom
                 const categories = this.state.categories.map(cat => {
                     if (String(cat.id) === categorySettingsCategoryId) {
                         return {
                             ...cat,
                             name: settings.name || cat.name,
                             color: settings.color || undefined,
+                            icon: settings.icon || undefined,
                             custom: {
                                 enabled: true,
                                 ...cat.custom,
@@ -689,11 +878,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 | undefined;
             if (obj) {
                 const common = obj.common || {};
-                // name and color go to common
+                // name, color and icon go to common
                 if (settings.name) {
                     common.name = settings.name;
                 }
                 common.color = settings.color || '';
+                if (settings.icon) {
+                    common.icon = settings.icon;
+                } else {
+                    delete common.icon;
+                }
                 // image and imageScope go to common.custom[instance]
                 common.custom ||= {};
                 common.custom[instanceId] = {
@@ -721,6 +915,56 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         } catch (err) {
             console.error('Failed to save root settings:', err);
         }
+    }
+
+    /**
+     * Update the browser favicon and PWA manifest dynamically so the
+     * Chrome extension / PWA uses the user-chosen icon.
+     */
+    static applyPwaIcon(iconPath: string, admin: boolean): void {
+        const filePrefix = admin ? '/files/' : '/';
+        const iconUrl = `${filePrefix}${iconPath.replace(/^\//, '')}`;
+
+        // Update favicon
+        let faviconLink = document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
+        if (!faviconLink) {
+            faviconLink = document.createElement('link');
+            faviconLink.rel = 'shortcut icon';
+            document.head.appendChild(faviconLink);
+        }
+        faviconLink.href = iconUrl;
+
+        // Also set apple-touch-icon
+        let appleIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+        if (!appleIcon) {
+            appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            document.head.appendChild(appleIcon);
+        }
+        appleIcon.href = iconUrl;
+
+        // Update PWA manifest with a blob URL containing the icon
+        const manifest = {
+            short_name: document.title || 'Smart Home',
+            name: document.title || 'Smart Home',
+            icons: [
+                { src: iconUrl, sizes: '192x192', type: 'image/png' },
+                { src: iconUrl, sizes: '512x512', type: 'image/png' },
+            ],
+            start_url: '.',
+            display: 'standalone',
+            theme_color: '#000000',
+            background_color: '#121212',
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const manifestUrl = URL.createObjectURL(blob);
+        let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+        if (!manifestLink) {
+            manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            document.head.appendChild(manifestLink);
+        }
+        manifestLink.href = manifestUrl;
     }
 
     private onCloseCategorySettings = (): void => {
@@ -778,6 +1022,129 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             }
         } catch (err) {
             console.error('Failed to save widget order:', err);
+        }
+    }
+
+    // --- Widget groups ---
+
+    private onWidgetGroupsChange = (categoryId: string, widgetGroups: WidgetGroup[]): void => {
+        const existing = this.state.categorySettings[categoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const updatedSettings: CategorySettings = { ...existing, widgetGroups };
+        const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
+
+        if (categoryId === ROOT_CATEGORY) {
+            const guiConfig: GuiConfig = {
+                ...this.state.guiConfig,
+                root: {
+                    ...this.state.guiConfig?.root,
+                    widgetGroups,
+                },
+            };
+            this.setState({ categorySettings, guiConfig });
+            void this.saveRootSettings(guiConfig);
+        } else {
+            const categories = this.state.categories.map(cat => {
+                if (String(cat.id) === categoryId) {
+                    return { ...cat, custom: { ...cat.custom, widgetGroups } };
+                }
+                return cat;
+            });
+            this.setState({ categorySettings, categories });
+            void this.saveWidgetGroupsToObject(categoryId, widgetGroups);
+        }
+    };
+
+    private onToggleGrouping = (
+        categoryId: string,
+        orderedItems: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: unknown }>,
+    ): void => {
+        const existing = this.state.categorySettings[categoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+
+        if (existing.widgetGroups?.length) {
+            // Disable grouping: flatten groups back to widgetOrder
+            const widgetOrder = flattenGroups(existing.widgetGroups);
+            const updatedSettings: CategorySettings = { ...existing, widgetGroups: undefined, widgetOrder };
+            this.onWidgetOrderChange(categoryId, widgetOrder);
+            const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
+            this.setState({ categorySettings });
+
+            if (categoryId === ROOT_CATEGORY) {
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: { ...this.state.guiConfig?.root, widgetGroups: undefined, widgetOrder },
+                };
+                this.setState({ guiConfig });
+                void this.saveRootSettings(guiConfig);
+            } else {
+                const categories = this.state.categories.map(cat => {
+                    if (String(cat.id) === categoryId) {
+                        return { ...cat, custom: { ...cat.custom, widgetGroups: undefined, widgetOrder } };
+                    }
+                    return cat;
+                });
+                this.setState({ categories });
+                void this.saveWidgetGroupsToObject(categoryId, undefined);
+            }
+        } else {
+            // Enable grouping: auto-group
+            const widgetGroups = autoGroupItems(orderedItems);
+            this.onWidgetGroupsChange(categoryId, widgetGroups);
+        }
+    };
+
+    private onWidgetGroupMove = (categoryId: string, widgetId: string, targetGroupId: string): void => {
+        const existing = this.state.categorySettings[categoryId];
+        if (!existing?.widgetGroups?.length) {
+            return;
+        }
+        const updatedGroups = moveWidgetToGroup(existing.widgetGroups, widgetId, targetGroupId);
+        this.onWidgetGroupsChange(categoryId, updatedGroups);
+    };
+
+    private onMoveWidgetToCategory = (widgetId: string, targetCategoryId: string): void => {
+        // Update widget parent in the local state
+        const widgets = this.state.widgets.map(w =>
+            String(w.id) === widgetId ? { ...w, parent: targetCategoryId } : w,
+        );
+        this.setState({ widgets });
+
+        // Persist: save parent override into common.custom[instance].parent
+        void this.saveWidgetParentOverride(widgetId, targetCategoryId);
+    };
+
+    private async saveWidgetParentOverride(widgetId: string, targetCategoryId: string): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = await this.props.socket.getObject(widgetId);
+            if (obj) {
+                const common = obj.common || {};
+                (common as Record<string, any>).custom ||= {};
+                (common as Record<string, any>).custom[instanceId] = {
+                    ...(common as Record<string, any>).custom[instanceId],
+                    parent: targetCategoryId,
+                };
+                await this.props.socket.setObject(obj._id, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save widget parent override:', err);
+        }
+    }
+
+    private async saveWidgetGroupsToObject(categoryId: string, widgetGroups: WidgetGroup[] | undefined): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = (await this.props.socket.getObject(categoryId)) as ioBroker.StateObject | null | undefined;
+            if (obj) {
+                const common = obj.common || {};
+                common.custom ||= {};
+                common.custom[instanceId] = {
+                    ...common.custom[instanceId],
+                    widgetGroups: widgetGroups || null,
+                };
+                await this.props.socket.setObject(categoryId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save widget groups:', err);
         }
     }
 
@@ -961,6 +1328,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onRemoveCustomWidget={editing ? this.onRemoveCustomWidget : undefined}
                             onOpenCustomWidgetSettings={editing ? this.onOpenCustomWidgetSettings : undefined}
                             onWidgetOrderChange={editing ? this.onWidgetOrderChange : undefined}
+                            onWidgetGroupsChange={this.onWidgetGroupsChange}
+                            onToggleGrouping={editing ? this.onToggleGrouping : undefined}
+                            onMoveWidgetToCategory={editing ? this.onMoveWidgetToCategory : undefined}
                             configMode={this.state.configMode}
                             onToggleConfigMode={
                                 this.props.showSettingsButton && !hideConfigButton
@@ -968,6 +1338,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                     : undefined
                             }
                             admin={this.props.admin}
+                            defaultHistory={this.defaultHistory || undefined}
+                            onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                         />
                         <WidgetSettingsDialog
                             open={settingsWidget != null}
@@ -1029,9 +1401,61 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 ) &&
                                 !settingsWidget.control.states.some(s => s.name === 'ON_SET' || s.name === 'ON')
                             }
+                            showAlarmTexts={
+                                settingsWidget?.control?.type === Types.floodAlarm
+                                    ? { activeDefault: I18n.t('wm_Flood'), inactiveDefault: I18n.t('wm_Dry') }
+                                    : settingsWidget?.control?.type === Types.fireAlarm
+                                      ? { activeDefault: I18n.t('wm_Fire'), inactiveDefault: I18n.t('wm_OK') }
+                                      : settingsWidget?.control?.type === Types.motion
+                                        ? { activeDefault: I18n.t('wm_Motion'), inactiveDefault: I18n.t('wm_Clear') }
+                                        : settingsWidget?.control?.type === Types.window
+                                          ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
+                                          : settingsWidget?.control?.type === Types.door
+                                            ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
+                                            : settingsWidget?.control?.type === Types.warning
+                                              ? {
+                                                    activeDefault: I18n.t('wm_Warning'),
+                                                    inactiveDefault: I18n.t('wm_OK'),
+                                                }
+                                              : undefined
+                            }
+                            showAlarmIcons={
+                                settingsWidget?.control?.type === Types.floodAlarm ||
+                                settingsWidget?.control?.type === Types.fireAlarm ||
+                                settingsWidget?.control?.type === Types.motion ||
+                                settingsWidget?.control?.type === Types.window ||
+                                settingsWidget?.control?.type === Types.door ||
+                                settingsWidget?.control?.type === Types.warning
+                            }
+                            showIcon={
+                                !!settingsWidget?.control?.type && !ALARM_ICON_TYPES.has(settingsWidget.control.type)
+                            }
                             showRefreshInterval={settingsWidget?.control?.type === Types.image}
+                            socket={this.props.socket}
+                            theme={this.props.theme}
+                            admin={this.props.admin}
                             objectName={this.state.settingsObjectName}
                             objectColor={this.state.settingsObjectColor}
+                            availableGroups={this.state.categorySettings[String(currentCategory.id)]?.widgetGroups}
+                            currentGroupId={
+                                this.state.settingsWidgetId != null &&
+                                this.state.categorySettings[String(currentCategory.id)]?.widgetGroups
+                                    ? findWidgetGroup(
+                                          this.state.categorySettings[String(currentCategory.id)].widgetGroups!,
+                                          String(this.state.settingsWidgetId),
+                                      )
+                                    : undefined
+                            }
+                            onGroupChange={
+                                this.state.settingsWidgetId != null
+                                    ? (groupId: string) =>
+                                          this.onWidgetGroupMove(
+                                              String(currentCategory.id),
+                                              String(this.state.settingsWidgetId),
+                                              groupId,
+                                          )
+                                    : undefined
+                            }
                         />
                         <CategorySettingsDialog
                             open={this.state.categorySettingsCategoryId != null}
@@ -1079,6 +1503,39 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onSave={this.onSaveCustomWidgetSettings}
                             onDelete={this.onDeleteCustomWidgetFromSettings}
                             socket={this.props.socket}
+                            theme={this.props.theme}
+                            availableGroups={
+                                this.state.customWidgetSettingsCategoryId
+                                    ? this.state.categorySettings[this.state.customWidgetSettingsCategoryId]
+                                          ?.widgetGroups
+                                    : undefined
+                            }
+                            currentGroupId={
+                                this.state.customWidgetSettingsCategoryId &&
+                                this.state.customWidgetSettingsWidgetId &&
+                                this.state.categorySettings[this.state.customWidgetSettingsCategoryId]?.widgetGroups
+                                    ? findWidgetGroup(
+                                          this.state.categorySettings[this.state.customWidgetSettingsCategoryId]
+                                              .widgetGroups!,
+                                          this.state.customWidgetSettingsWidgetId,
+                                      )
+                                    : undefined
+                            }
+                            onGroupChange={
+                                this.state.customWidgetSettingsCategoryId && this.state.customWidgetSettingsWidgetId
+                                    ? (groupId: string) =>
+                                          this.onWidgetGroupMove(
+                                              this.state.customWidgetSettingsCategoryId!,
+                                              this.state.customWidgetSettingsWidgetId!,
+                                              groupId,
+                                          )
+                                    : undefined
+                            }
+                        />
+                        <SidePanelInstallDialog
+                            open={this.state.sidePanelDialogOpen}
+                            onClose={() => this.setState({ sidePanelDialogOpen: false })}
+                            admin={this.props.admin}
                         />
                     </div>
                 </ThemeProvider>

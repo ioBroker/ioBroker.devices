@@ -67,7 +67,7 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
                         isFloatComma={this.state.systemConfig.common.isFloatComma}
                         dateFormat={this.state.systemConfig.common.dateFormat}
                         communicationStateId
-                        admin={false}
+                        admin
                     />
                     {this.renderError()}
                 </ThemeProvider>

@@ -24,3 +24,5 @@
 - Show on the category/room tile the same information as on the category inside (on status): window, temperature and so on
 
 - Themes
+- Favorites: Stern auf dem gerät setzten
+- Sepicif user settings (nur Auswahl von Geräten die für diesen User sichtbar sind)

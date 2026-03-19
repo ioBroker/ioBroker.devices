@@ -31,10 +31,13 @@ import {
     Tune,
     TwoWheeler,
 } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import type { WidgetSettings } from './Widgets/Generic';
 import { SIZE_OPTIONS } from './CustomWidgetConfigs';
+import type { WidgetGroup } from './groupUtils';
+import GroupSelector from './GroupSelector';
+import IconPickerDialog from './IconPickerDialog';
 
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
@@ -105,8 +108,20 @@ interface WidgetSettingsDialogProps {
     showWideSliderStyle?: boolean;
     showAnimation?: boolean;
     showRefreshInterval?: boolean;
+    /** Show text override fields for alarm-like widgets. Contains default labels as placeholders. */
+    showAlarmTexts?: { activeDefault: string; inactiveDefault: string };
+    /** Show icon override fields for alarm-like widgets */
+    showAlarmIcons?: boolean;
+    /** Show a single icon picker for normal (non-alarm) widgets */
+    showIcon?: boolean;
+    socket: Connection;
+    theme: IobTheme;
+    admin: boolean;
     objectName?: string;
     objectColor?: string;
+    availableGroups?: WidgetGroup[];
+    currentGroupId?: string;
+    onGroupChange?: (groupId: string) => void;
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
@@ -132,6 +147,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         objectColor,
     } = props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
+    const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'iconInactive' | 'icon' | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -161,479 +177,757 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     };
 
     return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            maxWidth="xs"
-            fullWidth
-        >
-            <DialogTitle>{widgetName}</DialogTitle>
-            <DialogContent>
-                <TextField
-                    fullWidth
-                    variant="filled"
-                    label={I18n.t('wm_Name')}
-                    value={local.name}
-                    onChange={e => setLocal({ ...local, name: e.target.value })}
-                    placeholder={widgetName}
-                    size="small"
-                    sx={{ mt: 1, mb: 2 }}
-                />
+        <>
+            <Dialog
+                open={open}
+                onClose={onClose}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>{widgetName}</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        variant="filled"
+                        label={I18n.t('wm_Name')}
+                        value={local.name}
+                        onChange={e => setLocal({ ...local, name: e.target.value })}
+                        placeholder={widgetName}
+                        size="small"
+                        sx={{ mt: 1, mb: 2 }}
+                    />
 
-                <Box sx={{ mb: 2 }}>
-                    <Typography
-                        variant="body2"
-                        sx={{ mb: 1, fontWeight: 500 }}
-                    >
-                        {I18n.t('wm_Color')}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                            component="input"
-                            type="color"
-                            value={local.color || '#1976d2'}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                setLocal({ ...local, color: e.target.value })
-                            }
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
-                                cursor: 'pointer',
-                                p: '2px',
-                                backgroundColor: 'transparent',
+                    <Box sx={{ mb: 2, display: 'flex', gap: 3 }}>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 0.5, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Color')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Box
+                                    component="input"
+                                    type="color"
+                                    value={local.color || '#1976d2'}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                        setLocal({ ...local, color: e.target.value })
+                                    }
+                                    sx={{
+                                        width: 36,
+                                        height: 36,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: 1,
+                                        cursor: 'pointer',
+                                        p: '2px',
+                                        backgroundColor: 'transparent',
+                                    }}
+                                />
+                                {local.color ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setLocal({ ...local, color: '' })}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 0.5, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Color inactive')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Box
+                                    component="input"
+                                    type="color"
+                                    value={local.colorInactive || '#9e9e9e'}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                        setLocal({ ...local, colorInactive: e.target.value })
+                                    }
+                                    sx={{
+                                        width: 36,
+                                        height: 36,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: 1,
+                                        cursor: 'pointer',
+                                        p: '2px',
+                                        backgroundColor: 'transparent',
+                                    }}
+                                />
+                                {local.colorInactive ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setLocal({ ...local, colorInactive: '' })}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={local.enabled}
+                                onChange={(_, checked) => setLocal({ ...local, enabled: checked })}
+                                color="primary"
+                            />
+                        }
+                        label={I18n.t('wm_Enabled')}
+                        sx={{ mb: 2 }}
+                    />
+
+                    <Box>
+                        <Typography
+                            variant="body2"
+                            sx={{ mb: 1, fontWeight: 500 }}
+                        >
+                            {I18n.t('wm_Size')}
+                        </Typography>
+                        <ToggleButtonGroup
+                            value={local.size}
+                            exclusive
+                            onChange={(_, value) => {
+                                if (value) {
+                                    setLocal({ ...local, size: value });
+                                }
                             }}
-                        />
-                        {local.color ? (
-                            <IconButton
+                            size="small"
+                        >
+                            {SIZE_OPTIONS.map(opt => (
+                                <ToggleButton
+                                    key={opt.value}
+                                    value={opt.value}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                                        {opt.icon}
+                                        <span>{opt.label}</span>
+                                    </Box>
+                                </ToggleButton>
+                            ))}
+                        </ToggleButtonGroup>
+                    </Box>
+
+                    {showBlindType ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_BlindType')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.blindType || 'shutter'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, blindType: value });
+                                    }
+                                }}
                                 size="small"
-                                onClick={() => setLocal({ ...local, color: '' })}
                             >
-                                <Delete fontSize="small" />
-                            </IconButton>
-                        ) : null}
-                    </Box>
-                </Box>
+                                <ToggleButton value="shutter">{I18n.t('wm_Shutter')}</ToggleButton>
+                                <ToggleButton value="curtain">{I18n.t('wm_Curtain')}</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
 
-                <FormControlLabel
-                    control={
-                        <Switch
-                            checked={local.enabled}
-                            onChange={(_, checked) => setLocal({ ...local, enabled: checked })}
-                            color="primary"
-                        />
-                    }
-                    label={I18n.t('wm_Enabled')}
-                    sx={{ mb: 2 }}
-                />
-
-                <Box>
-                    <Typography
-                        variant="body2"
-                        sx={{ mb: 1, fontWeight: 500 }}
-                    >
-                        {I18n.t('wm_Size')}
-                    </Typography>
-                    <ToggleButtonGroup
-                        value={local.size}
-                        exclusive
-                        onChange={(_, value) => {
-                            if (value) {
-                                setLocal({ ...local, size: value });
-                            }
-                        }}
-                        size="small"
-                    >
-                        {SIZE_OPTIONS.map(opt => (
-                            <ToggleButton
-                                key={opt.value}
-                                value={opt.value}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                                    {opt.icon}
-                                    <span>{opt.label}</span>
-                                </Box>
-                            </ToggleButton>
-                        ))}
-                    </ToggleButtonGroup>
-                </Box>
-
-                {showBlindType ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_BlindType')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.blindType || 'shutter'}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value) {
-                                    setLocal({ ...local, blindType: value });
-                                }
-                            }}
-                            size="small"
-                        >
-                            <ToggleButton value="shutter">{I18n.t('wm_Shutter')}</ToggleButton>
-                            <ToggleButton value="curtain">{I18n.t('wm_Curtain')}</ToggleButton>
-                        </ToggleButtonGroup>
-                    </Box>
-                ) : null}
-
-                {showPin ? (
-                    <TextField
-                        fullWidth
-                        variant="filled"
-                        label={I18n.t('wm_PIN Code')}
-                        value={local.pin || ''}
-                        onChange={e => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            setLocal({ ...local, pin: val });
-                        }}
-                        placeholder="1234"
-                        size="small"
-                        slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 8 } }}
-                        helperText={I18n.t('wm_PIN help')}
-                        sx={{ mt: 2 }}
-                    />
-                ) : null}
-
-                {showHideWhenOk ? (
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={!!local.hideWhenOk}
-                                onChange={(_, checked) => setLocal({ ...local, hideWhenOk: checked })}
-                                color="primary"
-                            />
-                        }
-                        label={I18n.t('wm_Hide when OK')}
-                        sx={{ mt: 1, display: 'flex' }}
-                    />
-                ) : null}
-
-                {showOnBrightness ? (
-                    <TextField
-                        fullWidth
-                        variant="filled"
-                        label={I18n.t('wm_On brightness')}
-                        type="number"
-                        value={local.onBrightness ?? 100}
-                        onChange={e => {
-                            const val = Math.max(1, Math.min(100, Number(e.target.value) || 100));
-                            setLocal({ ...local, onBrightness: val });
-                        }}
-                        size="small"
-                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
-                        helperText="%"
-                        sx={{ mt: 2 }}
-                    />
-                ) : null}
-
-                {showCoordinates ? (
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={!!local.showCoordinates}
-                                onChange={(_, checked) => setLocal({ ...local, showCoordinates: checked })}
-                                color="primary"
-                            />
-                        }
-                        label={I18n.t('wm_Show coordinates')}
-                        sx={{ mt: 1, display: 'flex' }}
-                    />
-                ) : null}
-
-                {showSliderType ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Slider type')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.sliderType || 'normal'}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value) {
-                                    setLocal({ ...local, sliderType: value });
-                                }
-                            }}
-                            size="small"
-                        >
-                            <ToggleButton value="normal">
-                                <Tooltip title={I18n.t('wm_slider_normal')}>
-                                    <Tune sx={{ fontSize: 18, mr: 0.5 }} />
-                                </Tooltip>
-                                {I18n.t('wm_slider_normal')}
-                            </ToggleButton>
-                            <ToggleButton value="valve">
-                                <Tooltip title={I18n.t('wm_slider_valve')}>
-                                    <ValveIcon sx={{ fontSize: 18, mr: 0.5 }} />
-                                </Tooltip>
-                                {I18n.t('wm_slider_valve')}
-                            </ToggleButton>
-                            <ToggleButton value="fan">
-                                <Tooltip title={I18n.t('wm_slider_fan')}>
-                                    <FanIcon sx={{ fontSize: 18, mr: 0.5 }} />
-                                </Tooltip>
-                                {I18n.t('wm_slider_fan')}
-                            </ToggleButton>
-                            <ToggleButton value="gauge">
-                                <Tooltip title={I18n.t('wm_slider_gauge')}>
-                                    <Speed sx={{ fontSize: 18, mr: 0.5 }} />
-                                </Tooltip>
-                                {I18n.t('wm_slider_gauge')}
-                            </ToggleButton>
-                        </ToggleButtonGroup>
-                    </Box>
-                ) : null}
-
-                {showWideSliderStyle && (local.size === '2x0.5' || local.size === '2x1') ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Wide slider style')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.wideSliderStyle || 'horizontal'}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value) {
-                                    setLocal({ ...local, wideSliderStyle: value });
-                                }
-                            }}
-                            size="small"
-                        >
-                            <ToggleButton value="horizontal">{I18n.t('wm_slider_horizontal')}</ToggleButton>
-                            <ToggleButton value="round">{I18n.t('wm_slider_round')}</ToggleButton>
-                        </ToggleButtonGroup>
-                    </Box>
-                ) : null}
-
-                {showAnimation ? (
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={local.showAnimation !== false}
-                                onChange={(_, checked) => setLocal({ ...local, showAnimation: checked })}
-                                color="primary"
-                            />
-                        }
-                        label={I18n.t('wm_Show animation')}
-                        sx={{ mt: 1, display: 'flex' }}
-                    />
-                ) : null}
-
-                {showRefreshInterval ? (
-                    <Box sx={{ mt: 2 }}>
+                    {showPin ? (
                         <TextField
                             fullWidth
                             variant="filled"
-                            label={I18n.t('wm_Refresh interval')}
-                            type="number"
-                            value={local.refreshInterval ?? 0}
+                            label={I18n.t('wm_PIN Code')}
+                            value={local.pin || ''}
                             onChange={e => {
-                                const val = Math.max(0, Number(e.target.value) || 0);
-                                setLocal({ ...local, refreshInterval: val });
+                                const val = e.target.value.replace(/\D/g, '');
+                                setLocal({ ...local, pin: val });
                             }}
+                            placeholder="1234"
                             size="small"
-                            slotProps={{ htmlInput: { min: 0 } }}
-                            helperText={I18n.t('wm_Refresh interval help')}
+                            slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 8 } }}
+                            helperText={I18n.t('wm_PIN help')}
+                            sx={{ mt: 2 }}
                         />
+                    ) : null}
+
+                    {showHideWhenOk ? (
                         <FormControlLabel
                             control={
                                 <Switch
-                                    checked={!!local.appendTimestamp}
-                                    onChange={(_, checked) => setLocal({ ...local, appendTimestamp: checked })}
+                                    checked={!!local.hideWhenOk}
+                                    onChange={(_, checked) => setLocal({ ...local, hideWhenOk: checked })}
                                     color="primary"
                                 />
                             }
-                            label={I18n.t('wm_Append timestamp')}
+                            label={I18n.t('wm_Hide when OK')}
                             sx={{ mt: 1, display: 'flex' }}
                         />
-                    </Box>
-                ) : null}
+                    ) : null}
 
-                {showMarkerIcon ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Marker icon')}
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-                            {PREDEFINED_MARKERS.map(m => {
-                                const selected = !isCustomIcon && (local.markerIcon || '') === m.value;
-                                return (
-                                    <Tooltip
-                                        key={m.value || '__default'}
-                                        title={I18n.t(m.label)}
-                                    >
-                                        <Box
-                                            onClick={() => setLocal({ ...local, markerIcon: m.value })}
-                                            sx={theme => ({
-                                                width: 36,
-                                                height: 36,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                borderRadius: 1,
-                                                cursor: 'pointer',
-                                                border: `2px solid ${selected ? theme.palette.primary.main : 'transparent'}`,
-                                                bgcolor: selected ? 'action.selected' : 'action.hover',
-                                                '&:hover': { bgcolor: 'action.focus' },
-                                            })}
-                                        >
-                                            {m.icon}
-                                        </Box>
-                                    </Tooltip>
-                                );
-                            })}
-                            {/* Upload custom icon button */}
-                            <Tooltip title={I18n.t('wm_Custom')}>
+                    {props.showAlarmTexts ? (
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                            <TextField
+                                variant="filled"
+                                label={I18n.t('wm_Text active')}
+                                value={local.textActive || ''}
+                                onChange={e => setLocal({ ...local, textActive: e.target.value })}
+                                placeholder={props.showAlarmTexts.activeDefault}
+                                size="small"
+                                sx={{ flex: 1 }}
+                            />
+                            <TextField
+                                variant="filled"
+                                label={I18n.t('wm_Text inactive')}
+                                value={local.textInactive || ''}
+                                onChange={e => setLocal({ ...local, textInactive: e.target.value })}
+                                placeholder={props.showAlarmTexts.inactiveDefault}
+                                size="small"
+                                sx={{ flex: 1 }}
+                            />
+                        </Box>
+                    ) : null}
+
+                    {props.showAlarmIcons ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Icons')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                {/* Active icon */}
                                 <Box
-                                    onClick={() => fileInputRef.current?.click()}
-                                    sx={theme => ({
-                                        width: 36,
-                                        height: 36,
+                                    sx={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
+                                        {I18n.t('wm_Icon active')}
+                                    </Typography>
+                                    <Box
+                                        onClick={() => setIconPickerField('iconActive')}
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
+                                            border: '1px dashed',
+                                            borderColor: 'divider',
+                                            '&:hover': { bgcolor: 'action.hover' },
+                                        }}
+                                    >
+                                        {local.iconActive ? (
+                                            <Icon
+                                                src={local.iconActive}
+                                                style={{ width: 32, height: 32, color: local.color || undefined }}
+                                            />
+                                        ) : (
+                                            <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
+                                        )}
+                                    </Box>
+                                    {local.iconActive ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setLocal({ ...local, iconActive: '' });
+                                            }}
+                                        >
+                                            <Delete fontSize="small" />
+                                        </IconButton>
+                                    ) : null}
+                                </Box>
+                                {/* Inactive icon */}
+                                <Box
+                                    sx={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
+                                        {I18n.t('wm_Icon inactive')}
+                                    </Typography>
+                                    <Box
+                                        onClick={() => setIconPickerField('iconInactive')}
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
+                                            border: '1px dashed',
+                                            borderColor: 'divider',
+                                            '&:hover': { bgcolor: 'action.hover' },
+                                        }}
+                                    >
+                                        {local.iconInactive ? (
+                                            <Icon
+                                                src={local.iconInactive}
+                                                style={{ width: 32, height: 32, color: local.colorInactive || 'grey' }}
+                                            />
+                                        ) : (
+                                            <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
+                                        )}
+                                    </Box>
+                                    {local.iconInactive ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setLocal({ ...local, iconInactive: '' });
+                                            }}
+                                        >
+                                            <Delete fontSize="small" />
+                                        </IconButton>
+                                    ) : null}
+                                </Box>
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {props.showIcon ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Icons')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    width: 'fit-content',
+                                }}
+                            >
+                                <Box
+                                    onClick={() => setIconPickerField('icon')}
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         borderRadius: 1,
                                         cursor: 'pointer',
-                                        border: `2px solid ${isCustomIcon ? theme.palette.primary.main : 'transparent'}`,
-                                        bgcolor: isCustomIcon ? 'action.selected' : 'action.hover',
-                                        '&:hover': { bgcolor: 'action.focus' },
-                                    })}
+                                        border: '1px dashed',
+                                        borderColor: 'divider',
+                                        '&:hover': { bgcolor: 'action.hover' },
+                                    }}
                                 >
-                                    {isCustomIcon ? (
-                                        <Box
-                                            component="img"
-                                            src={local.markerIcon}
-                                            sx={{ width: 20, height: 20, objectFit: 'contain' }}
+                                    {local.icon ? (
+                                        <Icon
+                                            src={local.icon}
+                                            style={{ width: 32, height: 32, color: local.color || '#1976d2' }}
                                         />
                                     ) : (
-                                        <CloudUpload sx={{ fontSize: 20 }} />
+                                        <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
                                     )}
                                 </Box>
-                            </Tooltip>
-                            {isCustomIcon ? (
-                                <IconButton
-                                    size="small"
-                                    onClick={() => setLocal({ ...local, markerIcon: '' })}
-                                >
-                                    <Delete fontSize="small" />
-                                </IconButton>
-                            ) : null}
+                                {local.icon ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            setLocal({ ...local, icon: '' });
+                                        }}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
                         </Box>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*,.svg"
-                            style={{ display: 'none' }}
-                            onChange={handleMarkerUpload}
+                    ) : null}
+
+                    {showOnBrightness ? (
+                        <TextField
+                            fullWidth
+                            variant="filled"
+                            label={I18n.t('wm_On brightness')}
+                            type="number"
+                            value={local.onBrightness ?? 100}
+                            onChange={e => {
+                                const val = Math.max(1, Math.min(100, Number(e.target.value) || 100));
+                                setLocal({ ...local, onBrightness: val });
+                            }}
+                            size="small"
+                            slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                            helperText="%"
+                            sx={{ mt: 2 }}
                         />
-                    </Box>
-                ) : null}
+                    ) : null}
 
-                {showMapTheme ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Map theme')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.mapTheme || 'standard'}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value) {
-                                    setLocal({ ...local, mapTheme: value });
-                                }
-                            }}
-                            size="small"
-                        >
-                            <ToggleButton value="standard">{I18n.t('wm_map_standard')}</ToggleButton>
-                            <ToggleButton value="dark">{I18n.t('wm_map_dark')}</ToggleButton>
-                            <ToggleButton value="satellite">{I18n.t('wm_map_satellite')}</ToggleButton>
-                        </ToggleButtonGroup>
-                    </Box>
-                ) : null}
+                    {showCoordinates ? (
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={!!local.showCoordinates}
+                                    onChange={(_, checked) => setLocal({ ...local, showCoordinates: checked })}
+                                    color="primary"
+                                />
+                            }
+                            label={I18n.t('wm_Show coordinates')}
+                            sx={{ mt: 1, display: 'flex' }}
+                        />
+                    ) : null}
 
-                {showChart ? (
-                    <Box sx={{ mt: 2 }}>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Chart')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.chartHours}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value != null) {
-                                    setLocal({ ...local, chartHours: value });
+                    {showSliderType ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Slider type')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.sliderType || 'normal'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, sliderType: value });
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ToggleButton value="normal">
+                                    <Tooltip title={I18n.t('wm_slider_normal')}>
+                                        <Tune sx={{ fontSize: 18, mr: 0.5 }} />
+                                    </Tooltip>
+                                    {I18n.t('wm_slider_normal')}
+                                </ToggleButton>
+                                <ToggleButton value="valve">
+                                    <Tooltip title={I18n.t('wm_slider_valve')}>
+                                        <ValveIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                                    </Tooltip>
+                                    {I18n.t('wm_slider_valve')}
+                                </ToggleButton>
+                                <ToggleButton value="fan">
+                                    <Tooltip title={I18n.t('wm_slider_fan')}>
+                                        <FanIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                                    </Tooltip>
+                                    {I18n.t('wm_slider_fan')}
+                                </ToggleButton>
+                                <ToggleButton value="gauge">
+                                    <Tooltip title={I18n.t('wm_slider_gauge')}>
+                                        <Speed sx={{ fontSize: 18, mr: 0.5 }} />
+                                    </Tooltip>
+                                    {I18n.t('wm_slider_gauge')}
+                                </ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
+
+                    {showWideSliderStyle && (local.size === '2x0.5' || local.size === '2x1') ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Wide slider style')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.wideSliderStyle || 'horizontal'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, wideSliderStyle: value });
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ToggleButton value="horizontal">{I18n.t('wm_slider_horizontal')}</ToggleButton>
+                                <ToggleButton value="round">{I18n.t('wm_slider_round')}</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
+
+                    {showAnimation ? (
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={local.showAnimation !== false}
+                                    onChange={(_, checked) => setLocal({ ...local, showAnimation: checked })}
+                                    color="primary"
+                                />
+                            }
+                            label={I18n.t('wm_Show animation')}
+                            sx={{ mt: 1, display: 'flex' }}
+                        />
+                    ) : null}
+
+                    {showRefreshInterval ? (
+                        <Box sx={{ mt: 2 }}>
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                label={I18n.t('wm_Refresh interval')}
+                                type="number"
+                                value={local.refreshInterval ?? 0}
+                                onChange={e => {
+                                    const val = Math.max(0, Number(e.target.value) || 0);
+                                    setLocal({ ...local, refreshInterval: val });
+                                }}
+                                size="small"
+                                slotProps={{ htmlInput: { min: 0 } }}
+                                helperText={I18n.t('wm_Refresh interval help')}
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={!!local.appendTimestamp}
+                                        onChange={(_, checked) => setLocal({ ...local, appendTimestamp: checked })}
+                                        color="primary"
+                                    />
                                 }
-                            }}
-                            size="small"
-                            sx={{ '& .MuiToggleButton-root': { flex: 1 } }}
-                        >
-                            <ToggleButton value={0}>{I18n.t('wm_Off')}</ToggleButton>
-                            <ToggleButton value={1}>1h</ToggleButton>
-                            <ToggleButton value={3}>3h</ToggleButton>
-                            <ToggleButton value={6}>6h</ToggleButton>
-                            <ToggleButton value={12}>12h</ToggleButton>
-                            <ToggleButton value={24}>24h</ToggleButton>
-                        </ToggleButtonGroup>
-                    </Box>
-                ) : null}
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    variant="contained"
-                    disabled={
-                        local.enabled === settings.enabled &&
-                        local.size === settings.size &&
-                        local.chartHours === settings.chartHours &&
-                        local.name === (settings.name || objectName || widgetName) &&
-                        local.color === (settings.color || objectColor || '') &&
-                        local.blindType === settings.blindType &&
-                        (local.pin || '') === (settings.pin || '') &&
-                        !!local.hideWhenOk === !!settings.hideWhenOk &&
-                        (local.onBrightness ?? 100) === (settings.onBrightness ?? 100) &&
-                        !!local.showCoordinates === !!settings.showCoordinates &&
-                        (local.markerIcon || '') === (settings.markerIcon || '') &&
-                        (local.mapTheme || 'standard') === (settings.mapTheme || 'standard') &&
-                        (local.sliderType || 'normal') === (settings.sliderType || 'normal') &&
-                        (local.wideSliderStyle || 'horizontal') === (settings.wideSliderStyle || 'horizontal') &&
-                        (local.showAnimation !== false) === (settings.showAnimation !== false) &&
-                        (local.refreshInterval ?? 0) === (settings.refreshInterval ?? 0) &&
-                        !!local.appendTimestamp === !!settings.appendTimestamp
-                    }
-                    startIcon={<Save />}
-                    onClick={() => onSave(local)}
-                >
-                    {I18n.t('wm_Save')}
-                </Button>
-                <Button
-                    color="grey"
-                    startIcon={<Close />}
-                    onClick={onClose}
-                >
-                    {I18n.t('wm_Cancel')}
-                </Button>
-            </DialogActions>
-        </Dialog>
+                                label={I18n.t('wm_Append timestamp')}
+                                sx={{ mt: 1, display: 'flex' }}
+                            />
+                        </Box>
+                    ) : null}
+
+                    {showMarkerIcon ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Marker icon')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                                {PREDEFINED_MARKERS.map(m => {
+                                    const selected = !isCustomIcon && (local.markerIcon || '') === m.value;
+                                    return (
+                                        <Tooltip
+                                            key={m.value || '__default'}
+                                            title={I18n.t(m.label)}
+                                        >
+                                            <Box
+                                                onClick={() => setLocal({ ...local, markerIcon: m.value })}
+                                                sx={theme => ({
+                                                    width: 36,
+                                                    height: 36,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    borderRadius: 1,
+                                                    cursor: 'pointer',
+                                                    border: `2px solid ${selected ? theme.palette.primary.main : 'transparent'}`,
+                                                    bgcolor: selected ? 'action.selected' : 'action.hover',
+                                                    '&:hover': { bgcolor: 'action.focus' },
+                                                })}
+                                            >
+                                                {m.icon}
+                                            </Box>
+                                        </Tooltip>
+                                    );
+                                })}
+                                {/* Upload custom icon button */}
+                                <Tooltip title={I18n.t('wm_Custom')}>
+                                    <Box
+                                        onClick={() => fileInputRef.current?.click()}
+                                        sx={theme => ({
+                                            width: 36,
+                                            height: 36,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: 1,
+                                            cursor: 'pointer',
+                                            border: `2px solid ${isCustomIcon ? theme.palette.primary.main : 'transparent'}`,
+                                            bgcolor: isCustomIcon ? 'action.selected' : 'action.hover',
+                                            '&:hover': { bgcolor: 'action.focus' },
+                                        })}
+                                    >
+                                        {isCustomIcon ? (
+                                            <Icon
+                                                src={local.markerIcon}
+                                                style={{ width: 20, height: 20 }}
+                                            />
+                                        ) : (
+                                            <CloudUpload sx={{ fontSize: 20 }} />
+                                        )}
+                                    </Box>
+                                </Tooltip>
+                                {isCustomIcon ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setLocal({ ...local, markerIcon: '' })}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,.svg"
+                                style={{ display: 'none' }}
+                                onChange={handleMarkerUpload}
+                            />
+                        </Box>
+                    ) : null}
+
+                    {showMapTheme ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Map theme')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.mapTheme || 'standard'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, mapTheme: value });
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ToggleButton value="standard">{I18n.t('wm_map_standard')}</ToggleButton>
+                                <ToggleButton value="dark">{I18n.t('wm_map_dark')}</ToggleButton>
+                                <ToggleButton value="satellite">{I18n.t('wm_map_satellite')}</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
+
+                    {showChart ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Chart')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.chartHours}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value != null) {
+                                        setLocal({ ...local, chartHours: value });
+                                    }
+                                }}
+                                size="small"
+                                sx={{ '& .MuiToggleButton-root': { flex: 1 } }}
+                            >
+                                <ToggleButton value={0}>{I18n.t('wm_Off')}</ToggleButton>
+                                <ToggleButton value={1}>1h</ToggleButton>
+                                <ToggleButton value={3}>3h</ToggleButton>
+                                <ToggleButton value={6}>6h</ToggleButton>
+                                <ToggleButton value={12}>12h</ToggleButton>
+                                <ToggleButton value={24}>24h</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
+
+                    {props.availableGroups?.length ? (
+                        <Box sx={{ mt: 2 }}>
+                            <GroupSelector
+                                availableGroups={props.availableGroups}
+                                currentGroupId={props.currentGroupId}
+                                onGroupChange={groupId => props.onGroupChange?.(groupId)}
+                            />
+                        </Box>
+                    ) : null}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        variant="contained"
+                        disabled={
+                            local.enabled === settings.enabled &&
+                            local.size === settings.size &&
+                            local.chartHours === settings.chartHours &&
+                            local.name === (settings.name || objectName || widgetName) &&
+                            local.color === (settings.color || objectColor || '') &&
+                            local.blindType === settings.blindType &&
+                            (local.pin || '') === (settings.pin || '') &&
+                            !!local.hideWhenOk === !!settings.hideWhenOk &&
+                            (local.onBrightness ?? 100) === (settings.onBrightness ?? 100) &&
+                            !!local.showCoordinates === !!settings.showCoordinates &&
+                            (local.markerIcon || '') === (settings.markerIcon || '') &&
+                            (local.mapTheme || 'standard') === (settings.mapTheme || 'standard') &&
+                            (local.sliderType || 'normal') === (settings.sliderType || 'normal') &&
+                            (local.wideSliderStyle || 'horizontal') === (settings.wideSliderStyle || 'horizontal') &&
+                            (local.showAnimation !== false) === (settings.showAnimation !== false) &&
+                            (local.refreshInterval ?? 0) === (settings.refreshInterval ?? 0) &&
+                            !!local.appendTimestamp === !!settings.appendTimestamp &&
+                            (local.textActive || '') === (settings.textActive || '') &&
+                            (local.textInactive || '') === (settings.textInactive || '') &&
+                            (local.colorInactive || '') === (settings.colorInactive || '') &&
+                            (local.iconActive || '') === (settings.iconActive || '') &&
+                            (local.iconInactive || '') === (settings.iconInactive || '') &&
+                            (local.icon || '') === (settings.icon || '')
+                        }
+                        startIcon={<Save />}
+                        onClick={() => onSave(local)}
+                    >
+                        {I18n.t('wm_Save')}
+                    </Button>
+                    <Button
+                        color="grey"
+                        startIcon={<Close />}
+                        onClick={onClose}
+                    >
+                        {I18n.t('wm_Cancel')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Icon picker dialog for active/inactive icons */}
+            {iconPickerField ? (
+                <IconPickerDialog
+                    open
+                    title={I18n.t(
+                        iconPickerField === 'iconActive'
+                            ? 'wm_Icon active'
+                            : iconPickerField === 'iconInactive'
+                              ? 'wm_Icon inactive'
+                              : 'wm_Icons',
+                    )}
+                    value={local[iconPickerField] || ''}
+                    onClose={() => setIconPickerField(null)}
+                    onSelect={iconValue => {
+                        setLocal({ ...local, [iconPickerField]: iconValue });
+                        if (!iconValue) {
+                            // Keep dialog open when clearing
+                            return;
+                        }
+                        setIconPickerField(null);
+                    }}
+                    socket={props.socket}
+                    theme={props.theme}
+                    admin={props.admin}
+                />
+            ) : null}
+        </>
     );
 }

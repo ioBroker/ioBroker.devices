@@ -21,9 +21,13 @@ import {
     Typography,
 } from '@mui/material';
 import { Close, Delete, MyLocation, Save } from '@mui/icons-material';
-import { I18n, type Connection } from '@iobroker/adapter-react-v5';
+import { DialogSelectID, I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
+
+/** Module-level cache for getAdapterInstances results (key = sorted adapter names) */
+const adapterInstancesCache: Record<string, { id: string; label: string }[]> = {};
+
 import {
     CUSTOM_WIDGET_CONFIGS,
     getConfigDefault,
@@ -32,8 +36,11 @@ import {
     type CwConfigInstanceSelect,
     type CwConfigItem,
     type CwConfigSelect,
+    type CwConfigStateId,
     type CwConfigText,
 } from './CustomWidgetConfigs';
+import type { WidgetGroup } from './groupUtils';
+import GroupSelector from './GroupSelector';
 
 interface CustomWidgetSettingsDialogProps {
     open: boolean;
@@ -43,6 +50,10 @@ interface CustomWidgetSettingsDialogProps {
     onDelete: () => void;
     /** Socket for dynamic data (e.g., listing adapter instances) */
     socket?: Connection;
+    theme?: IobTheme;
+    availableGroups?: WidgetGroup[];
+    currentGroupId?: string;
+    onGroupChange?: (groupId: string) => void;
 }
 
 /** Extra keys that citySearch can write besides its own key */
@@ -186,12 +197,7 @@ function renderColor(
     );
 }
 
-function renderText(
-    key: string,
-    item: CwConfigText,
-    value: string,
-    onChange: (v: unknown) => void,
-): React.JSX.Element {
+function renderText(key: string, item: CwConfigText, value: string, onChange: (v: unknown) => void): React.JSX.Element {
     return (
         <Box
             key={key}
@@ -234,6 +240,17 @@ function InstanceSelect(props: {
             return;
         }
         let cancelled = false;
+        const cacheKey = [...item.adapterNames].sort().join(',');
+
+        if (adapterInstancesCache[cacheKey]) {
+            const cached = adapterInstancesCache[cacheKey];
+            setInstances(cached);
+            setLoading(false);
+            if (!value && cached.length === 1) {
+                onChange(cached[0].id);
+            }
+            return;
+        }
 
         void (async () => {
             const found: { id: string; label: string }[] = [];
@@ -250,7 +267,7 @@ function InstanceSelect(props: {
                             const name =
                                 rawName && typeof rawName === 'object'
                                     ? (rawName as ioBroker.Translated).en || instanceId
-                                    : (rawName as string) || instanceId;
+                                    : rawName || instanceId;
                             found.push({ id: instanceId, label: `${name} (${instanceId})` });
                         }
                     }
@@ -259,9 +276,9 @@ function InstanceSelect(props: {
                 }
             }
             if (!cancelled) {
+                adapterInstancesCache[cacheKey] = found;
                 setInstances(found);
                 setLoading(false);
-                // Auto-select first if nothing selected
                 if (!value && found.length === 1) {
                     onChange(found[0].id);
                 }
@@ -271,6 +288,7 @@ function InstanceSelect(props: {
         return () => {
             cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [socket, item.adapterNames.join(',')]);
 
     return (
@@ -287,12 +305,18 @@ function InstanceSelect(props: {
             {loading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
                     <CircularProgress size={18} />
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'text.secondary' }}
+                    >
                         {I18n.t('wm_Loading instances')}...
                     </Typography>
                 </Box>
             ) : instances.length === 0 ? (
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary' }}
+                >
                     {I18n.t('wm_No weather adapters')}
                 </Typography>
             ) : (
@@ -303,11 +327,17 @@ function InstanceSelect(props: {
                     fullWidth
                     displayEmpty
                 >
-                    <MenuItem value="" disabled>
+                    <MenuItem
+                        value=""
+                        disabled
+                    >
                         {I18n.t('wm_Select instance')}
                     </MenuItem>
                     {instances.map(inst => (
-                        <MenuItem key={inst.id} value={inst.id}>
+                        <MenuItem
+                            key={inst.id}
+                            value={inst.id}
+                        >
                             {inst.label}
                         </MenuItem>
                     ))}
@@ -338,6 +368,7 @@ function CitySearch(props: {
         if (value && value !== query) {
             setQuery(value);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
     const doSearch = useCallback((q: string) => {
@@ -352,7 +383,9 @@ function CitySearch(props: {
         timerRef.current = setTimeout(() => {
             setSearching(true);
             const lang = I18n.getLanguage() || 'en';
-            fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${lang}`)
+            fetch(
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${lang}`,
+            )
                 .then(r => r.json())
                 .then((data: { results?: GeoResult[] }) => {
                     setResults(data.results || []);
@@ -366,11 +399,14 @@ function CitySearch(props: {
         }, 400);
     }, []);
 
-    useEffect(() => () => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
-        }
-    }, []);
+    useEffect(
+        () => () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+        },
+        [],
+    );
 
     const handleSelect = (r: GeoResult): void => {
         const display = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country || ''}` : `${r.name}, ${r.country || ''}`;
@@ -402,7 +438,11 @@ function CitySearch(props: {
                 fullWidth
                 slotProps={{
                     input: {
-                        endAdornment: searching ? <CircularProgress size={16} /> : <MyLocation sx={{ fontSize: 18, color: 'text.secondary' }} />,
+                        endAdornment: searching ? (
+                            <CircularProgress size={16} />
+                        ) : (
+                            <MyLocation sx={{ fontSize: 18, color: 'text.secondary' }} />
+                        ),
                     },
                 }}
             />
@@ -427,7 +467,10 @@ function CitySearch(props: {
                                 primary={r.name}
                                 secondary={[r.admin1, r.country].filter(Boolean).join(', ')}
                             />
-                            <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1, whiteSpace: 'nowrap' }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary', ml: 1, whiteSpace: 'nowrap' }}
+                            >
                                 {r.latitude.toFixed(2)}, {r.longitude.toFixed(2)}
                             </Typography>
                         </ListItemButton>
@@ -435,14 +478,89 @@ function CitySearch(props: {
                 </List>
             ) : null}
             {showResults && results.length === 0 && !searching ? (
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}
+                >
                     {I18n.t('wm_No results')}
                 </Typography>
             ) : null}
             {latitude != null && longitude != null ? (
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+                <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}
+                >
                     {latitude.toFixed(4)}°, {longitude.toFixed(4)}°
                 </Typography>
+            ) : null}
+        </Box>
+    );
+}
+
+/** State ID picker component — shows a text field with a browse button that opens SelectID dialog */
+function StateIdPicker(props: {
+    configKey: string;
+    item: CwConfigStateId;
+    value: string;
+    onChange: (v: unknown) => void;
+    socket?: Connection;
+    theme?: IobTheme;
+}): React.JSX.Element {
+    const { configKey, item, value, onChange, socket, theme } = props;
+    const [selectOpen, setSelectOpen] = useState(false);
+
+    return (
+        <Box
+            key={configKey}
+            sx={{ mb: 2 }}
+        >
+            <Typography
+                variant="body2"
+                sx={{ mb: 1, fontWeight: 500 }}
+            >
+                {I18n.t(item.label)}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TextField
+                    value={value || ''}
+                    onChange={e => onChange(e.target.value)}
+                    placeholder={I18n.t('wm_State ID')}
+                    size="small"
+                    fullWidth
+                />
+                <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setSelectOpen(true)}
+                    sx={{ minWidth: 40, px: 1 }}
+                >
+                    ...
+                </Button>
+                {value ? (
+                    <IconButton
+                        size="small"
+                        onClick={() => onChange('')}
+                    >
+                        <Delete fontSize="small" />
+                    </IconButton>
+                ) : null}
+            </Box>
+            {selectOpen && socket ? (
+                <DialogSelectID
+                    theme={theme!}
+                    socket={socket}
+                    dialogName="windStateSelect"
+                    title={I18n.t(item.label)}
+                    selected={value || ''}
+                    onOk={id => {
+                        const selectedId = Array.isArray(id) ? id[0] : id;
+                        if (selectedId) {
+                            onChange(selectedId);
+                        }
+                        setSelectOpen(false);
+                    }}
+                    onClose={() => setSelectOpen(false)}
+                />
             ) : null}
         </Box>
     );
@@ -456,6 +574,7 @@ function renderConfigItem(
     socket?: Connection,
     values?: Record<string, unknown>,
     updateMulti?: (updates: Record<string, unknown>) => void,
+    theme?: IobTheme,
 ): React.JSX.Element | null {
     // Check visibleWhen condition (supports exact value or array of allowed values)
     if (item.visibleWhen && values) {
@@ -527,6 +646,18 @@ function renderConfigItem(
                     }}
                 />
             );
+        case 'stateId':
+            return (
+                <StateIdPicker
+                    key={key}
+                    configKey={key}
+                    item={item}
+                    value={value as string}
+                    onChange={onChange}
+                    socket={socket}
+                    theme={theme}
+                />
+            );
     }
 }
 
@@ -571,14 +702,16 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         setValues(prev => ({ ...prev, ...updates }));
     };
 
-    const hasChanges = Object.entries(config.items).some(([key, item]) => {
-        const stored = (widgetDef as unknown as Record<string, unknown>)[key];
-        const original = stored !== undefined ? stored : getConfigDefault(item);
-        return values[key] !== original;
-    }) || EXTRA_KEYS.some(k => {
-        const stored = (widgetDef as unknown as Record<string, unknown>)[k];
-        return values[k] !== undefined && values[k] !== stored;
-    });
+    const hasChanges =
+        Object.entries(config.items).some(([key, item]) => {
+            const stored = (widgetDef as unknown as Record<string, unknown>)[key];
+            const original = stored !== undefined ? stored : getConfigDefault(item);
+            return values[key] !== original;
+        }) ||
+        EXTRA_KEYS.some(k => {
+            const stored = (widgetDef as unknown as Record<string, unknown>)[k];
+            return values[k] !== undefined && values[k] !== stored;
+        });
 
     const handleSave = (): void => {
         const newDef: Record<string, unknown> = { id: widgetDef.id, type: widgetDef.type };
@@ -609,9 +742,27 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             <DialogContent>
                 <Box sx={{ mt: 1 }}>
                     {Object.entries(config.items).map(([key, item]) =>
-                        renderConfigItem(key, item, values[key], v => updateValue(key, v), socket, values, updateMulti),
+                        renderConfigItem(
+                            key,
+                            item,
+                            values[key],
+                            v => updateValue(key, v),
+                            socket,
+                            values,
+                            updateMulti,
+                            props.theme,
+                        ),
                     )}
                 </Box>
+                {props.availableGroups?.length ? (
+                    <Box sx={{ mb: 2 }}>
+                        <GroupSelector
+                            availableGroups={props.availableGroups}
+                            currentGroupId={props.currentGroupId}
+                            onGroupChange={groupId => props.onGroupChange?.(groupId)}
+                        />
+                    </Box>
+                ) : null}
                 <Button
                     variant="outlined"
                     color="error"

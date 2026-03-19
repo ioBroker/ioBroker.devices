@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Water } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -94,8 +94,22 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
         }
 
         const { alarm } = this.state;
-
         const accent = this.getAccentColor();
+        const customIcon = alarm ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
+
+        if (customIcon) {
+            return (
+                <Icon
+                    src={customIcon}
+                    style={{
+                        width: '1em',
+                        height: '1em',
+                        color: alarm ? accent || FLOOD_COLOR : 'grey',
+                        transition: 'color 0.25s ease',
+                    }}
+                />
+            );
+        }
 
         return (
             <Water
@@ -126,7 +140,9 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                         transition: 'color 0.25s ease',
                     }}
                 >
-                    {alarm ? I18n.t('wm_Flood') : I18n.t('wm_Dry')}
+                    {alarm
+                        ? this.props.settings?.textActive || I18n.t('wm_Flood')
+                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
                 </Typography>
                 {size !== '2x1' && lastChangedAgo ? (
                     <Typography
@@ -154,7 +170,9 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                         color: alarm ? accent || FLOOD_COLOR : 'success.main',
                     }}
                 >
-                    {alarm ? I18n.t('wm_Flood') : I18n.t('wm_Dry')}
+                    {alarm
+                        ? this.props.settings?.textActive || I18n.t('wm_Flood')
+                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
                 </Typography>
                 {lastChangedAgo ? (
                     <Typography
@@ -171,7 +189,12 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
     render(): React.JSX.Element {
         if (this.props.settings?.hideWhenOk && !this.state.alarm) {
             if (!this.props.onOpenSettings) {
-                return <React.Fragment />;
+                return (
+                    <div
+                        data-wm-hidden
+                        style={{ display: 'none' }}
+                    />
+                );
             }
             return <Box sx={{ opacity: 0.5 }}>{super.render()}</Box>;
         }

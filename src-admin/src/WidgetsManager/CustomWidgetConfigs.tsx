@@ -55,7 +55,21 @@ export interface CwConfigCitySearch {
     label: string;
 }
 
-export type CwConfigItem = (CwConfigSelect | CwConfigCheckbox | CwConfigColor | CwConfigInstanceSelect | CwConfigCitySearch | CwConfigText) & {
+export interface CwConfigStateId {
+    type: 'stateId';
+    /** i18n key for the field label */
+    label: string;
+}
+
+export type CwConfigItem = (
+    | CwConfigSelect
+    | CwConfigCheckbox
+    | CwConfigColor
+    | CwConfigInstanceSelect
+    | CwConfigCitySearch
+    | CwConfigText
+    | CwConfigStateId
+) & {
     /** Only show this item when the specified key has the specified value */
     visibleWhen?: Record<string, unknown>;
 };
@@ -82,6 +96,8 @@ export function getConfigDefault(item: CwConfigItem): unknown {
             return '';
         case 'text':
             return item.default ?? '';
+        case 'stateId':
+            return '';
     }
 }
 
@@ -210,6 +226,34 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 label: 'wm_Size',
                 options: SIZE_OPTIONS,
                 default: '2x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
+            },
+        },
+    },
+    wind: {
+        name: 'wm_Wind',
+        items: {
+            directionStateId: {
+                type: 'stateId',
+                label: 'wm_Wind direction',
+            },
+            speedStateId: {
+                type: 'stateId',
+                label: 'wm_Wind speed',
+            },
+            gustsStateId: {
+                type: 'stateId',
+                label: 'wm_Wind gusts',
+            },
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '1x1',
                 format: 'radio',
             },
             color: {

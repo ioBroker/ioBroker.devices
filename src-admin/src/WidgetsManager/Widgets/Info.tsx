@@ -346,6 +346,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         const accent = this.getAccentColor();
         const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
+        const chartClickable = this.hasChartAction() && !isDisabled;
 
         return (
             <Box
@@ -354,9 +355,11 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                 sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
+                    onClick={chartClickable ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
+                        cursor: chartClickable ? 'pointer' : 'default',
                         justifyContent: 'space-between',
                         alignItems: 'stretch',
                         width: '100%',

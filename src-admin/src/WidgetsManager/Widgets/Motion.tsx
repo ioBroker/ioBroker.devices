@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { DirectionsRun, LightMode } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -165,6 +165,21 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
 
         const { motion } = this.state;
         const accent = this.getAccentColor();
+        const customIcon = motion ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
+
+        if (customIcon) {
+            return (
+                <Icon
+                    src={customIcon}
+                    style={{
+                        width: '1em',
+                        height: '1em',
+                        color: motion ? accent || '#ed6c02' : 'grey',
+                        transition: 'color 0.25s ease',
+                    }}
+                />
+            );
+        }
 
         return (
             <DirectionsRun
@@ -196,7 +211,9 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                             transition: 'color 0.25s ease',
                         })}
                     >
-                        {motion ? I18n.t('wm_Motion') : I18n.t('wm_Clear')}
+                        {motion
+                            ? this.props.settings?.textActive || I18n.t('wm_Motion')
+                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography
@@ -241,7 +258,9 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                             color: motion ? accent || theme.palette.primary.main : theme.palette.text.secondary,
                         })}
                     >
-                        {motion ? I18n.t('wm_Motion') : I18n.t('wm_Clear')}
+                        {motion
+                            ? this.props.settings?.textActive || I18n.t('wm_Motion')
+                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography
