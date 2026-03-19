@@ -694,7 +694,6 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const showCoords = this.props.settings?.showCoordinates;
 
@@ -719,7 +718,6 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
                         ...(aspectRatio ? { aspectRatio } : { height: 80 }),
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         cursor: 'pointer',
                         ...getTileStyles(theme, isActive, accent, false),
                         padding: 0,

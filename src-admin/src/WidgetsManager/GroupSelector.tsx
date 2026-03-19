@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, ListItemIcon, ListItemText, MenuItem, Select, Typography } from '@mui/material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import type { WidgetGroup } from './groupUtils';
+import { GROUP_ORDER, type WidgetGroup } from './groupUtils';
 import { getGroupIcon } from './groupIcons';
 
 interface GroupSelectorProps {
@@ -13,6 +13,26 @@ interface GroupSelectorProps {
 
 export default function GroupSelector(props: GroupSelectorProps): React.JSX.Element {
     const { availableGroups, currentGroupId, onGroupChange } = props;
+
+    // Show all possible groups from GROUP_ORDER, so the user can move widgets to groups that don't exist yet
+    const allGroups = useMemo(() => {
+        const existingIds = new Set(availableGroups.map(g => g.id));
+        const merged: WidgetGroup[] = [];
+        for (const g of GROUP_ORDER) {
+            if (existingIds.has(g.id)) {
+                merged.push(availableGroups.find(ag => ag.id === g.id)!);
+            } else {
+                merged.push({ id: g.id, name: g.name, widgetIds: [] });
+            }
+        }
+        // Add any custom groups not in GROUP_ORDER
+        for (const g of availableGroups) {
+            if (!GROUP_ORDER.some(go => go.id === g.id)) {
+                merged.push(g);
+            }
+        }
+        return merged;
+    }, [availableGroups]);
 
     return (
         <Box sx={{ mb: 2 }}>
@@ -29,7 +49,7 @@ export default function GroupSelector(props: GroupSelectorProps): React.JSX.Elem
                 size="small"
                 fullWidth
                 renderValue={value => {
-                    const group = availableGroups.find(g => g.id === value);
+                    const group = allGroups.find(g => g.id === value);
                     if (!group) {
                         return '';
                     }
@@ -42,7 +62,7 @@ export default function GroupSelector(props: GroupSelectorProps): React.JSX.Elem
                     );
                 }}
             >
-                {availableGroups.map(g => {
+                {allGroups.map(g => {
                     const icon = getGroupIcon(g.id);
                     return (
                         <MenuItem

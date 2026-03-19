@@ -291,9 +291,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.settings?.enabled === false) {
-            return;
-        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
@@ -673,7 +670,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         const { name, brightness, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         // Circular progress parameters — fixed viewBox, sized by CSS percentage
@@ -705,8 +701,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: isDisabled ? 'default' : 'pointer',
-                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),

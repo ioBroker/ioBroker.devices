@@ -306,7 +306,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const fillColor = getFillColor(level, accent);
 
@@ -326,7 +325,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         position: 'relative',
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(16px, 10cqi)',
@@ -405,7 +403,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const fillColor = getFillColor(level, accent);
 
@@ -424,7 +421,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                     })}
                 >
@@ -470,7 +466,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const fillColor = getFillColor(level, accent);
 
@@ -497,7 +492,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         height: '100%',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         cursor: 'default',
                         ...getTileStyles(theme, isActive, accent),
                         '&:active': { transform: 'none' },

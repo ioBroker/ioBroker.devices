@@ -96,6 +96,7 @@ interface WidgetSettingsDialogProps {
     settings: WidgetSettings;
     onClose: () => void;
     onSave: (settings: WidgetSettings) => void;
+    onDelete?: () => void;
     showChart?: boolean;
     showBlindType?: boolean;
     showPin?: boolean;
@@ -145,6 +146,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         showRefreshInterval,
         objectName,
         objectColor,
+        onDelete,
     } = props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
     const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'iconInactive' | 'icon' | null>(null);
@@ -271,18 +273,6 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             </Box>
                         </Box>
                     </Box>
-
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={local.enabled}
-                                onChange={(_, checked) => setLocal({ ...local, enabled: checked })}
-                                color="primary"
-                            />
-                        }
-                        label={I18n.t('wm_Enabled')}
-                        sx={{ mb: 2 }}
-                    />
 
                     <Box>
                         <Typography
@@ -837,7 +827,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                     }
                                 }}
                                 size="small"
-                                sx={{ '& .MuiToggleButton-root': { flex: 1 } }}
+                                sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1 } }}
                             >
                                 <ToggleButton value={0}>{I18n.t('wm_Off')}</ToggleButton>
                                 <ToggleButton value={1}>1h</ToggleButton>
@@ -846,6 +836,31 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 <ToggleButton value={12}>12h</ToggleButton>
                                 <ToggleButton value={24}>24h</ToggleButton>
                             </ToggleButtonGroup>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={local.showTrendArrow}
+                                        onChange={e => setLocal({ ...local, showTrendArrow: e.target.checked })}
+                                        size="small"
+                                    />
+                                }
+                                label={I18n.t('wm_Trend arrow')}
+                                sx={{ mt: 1 }}
+                            />
+                            {local.showTrendArrow ? (
+                                <TextField
+                                    label={I18n.t('wm_Trend period (min)')}
+                                    type="number"
+                                    size="small"
+                                    value={local.trendMinutes || 30}
+                                    onChange={e => {
+                                        const val = Math.max(5, Math.min(1440, parseInt(e.target.value, 10) || 30));
+                                        setLocal({ ...local, trendMinutes: val });
+                                    }}
+                                    slotProps={{ htmlInput: { min: 5, max: 1440, step: 5 } }}
+                                    sx={{ mt: 1, width: 180 }}
+                                />
+                            ) : null}
                         </Box>
                     ) : null}
 
@@ -858,12 +873,27 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             />
                         </Box>
                     ) : null}
+
+                    {onDelete ? (
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<Delete />}
+                            onClick={() => {
+                                onDelete();
+                                onClose();
+                            }}
+                            fullWidth
+                            sx={{ mt: 3 }}
+                        >
+                            {I18n.t('wm_Delete')}
+                        </Button>
+                    ) : null}
                 </DialogContent>
                 <DialogActions>
                     <Button
                         variant="contained"
                         disabled={
-                            local.enabled === settings.enabled &&
                             local.size === settings.size &&
                             local.chartHours === settings.chartHours &&
                             local.name === (settings.name || objectName || widgetName) &&
@@ -885,7 +915,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             (local.colorInactive || '') === (settings.colorInactive || '') &&
                             (local.iconActive || '') === (settings.iconActive || '') &&
                             (local.iconInactive || '') === (settings.iconInactive || '') &&
-                            (local.icon || '') === (settings.icon || '')
+                            (local.icon || '') === (settings.icon || '') &&
+                            !!local.showTrendArrow === !!settings.showTrendArrow &&
+                            (local.trendMinutes || 30) === (settings.trendMinutes || 30)
                         }
                         startIcon={<Save />}
                         onClick={() => onSave(local)}
@@ -918,7 +950,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     onSelect={iconValue => {
                         setLocal({ ...local, [iconPickerField]: iconValue });
                         if (!iconValue) {
-                            // Keep dialog open when clearing
+                            // Keep the dialog open when clearing
                             return;
                         }
                         setIconPickerField(null);

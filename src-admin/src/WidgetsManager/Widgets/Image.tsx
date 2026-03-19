@@ -108,7 +108,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -127,7 +126,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         position: 'relative',
                         ...getTileStyles(theme, isActive, accent),
                         padding: 0,
@@ -205,7 +203,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -223,7 +220,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 0,
                     })}
@@ -283,7 +279,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -302,7 +297,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 0,
                     })}

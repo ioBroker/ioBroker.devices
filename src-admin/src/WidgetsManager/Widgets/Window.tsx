@@ -99,15 +99,13 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
     }
 
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = super.renderTileIcon();
-        if (baseIcon) {
-            return baseIcon;
-        }
-
         const { isOpen, openState } = this.state;
         const accent = this.getAccentColor();
-        const customIcon = isOpen ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
 
+        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        const customIcon = isOpen
+            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
+            : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
                 <Icon

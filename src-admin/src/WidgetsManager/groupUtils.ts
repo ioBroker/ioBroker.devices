@@ -49,7 +49,7 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.weatherForecast]: 'info',
 };
 
-const GROUP_ORDER: { id: string; name: string }[] = [
+export const GROUP_ORDER: { id: string; name: string }[] = [
     { id: 'lights', name: 'wm_group_Lights' },
     { id: 'climate', name: 'wm_group_Climate' },
     { id: 'blinds', name: 'wm_group_Blinds' },
@@ -95,16 +95,44 @@ export function flattenGroups(groups: WidgetGroup[]): string[] {
     return groups.flatMap(g => g.widgetIds);
 }
 
-/** Move a widget from its current group to a target group. Returns a new groups array. */
+/** Move a widget from its current group to a target group. Creates the group if it doesn't exist. Returns a new groups array. */
 export function moveWidgetToGroup(groups: WidgetGroup[], widgetId: string, targetGroupId: string): WidgetGroup[] {
-    return groups.map(g => {
+    const targetExists = groups.some(g => g.id === targetGroupId);
+
+    let result = groups.map(g => {
         const filtered = g.widgetIds.filter(id => id !== widgetId);
         if (g.id === targetGroupId) {
-            // Only add if not already present
             return { ...g, widgetIds: filtered.includes(widgetId) ? filtered : [...filtered, widgetId] };
         }
         return filtered.length !== g.widgetIds.length ? { ...g, widgetIds: filtered } : g;
     });
+
+    if (!targetExists) {
+        // Create the group — insert at the correct position according to GROUP_ORDER
+        const groupMeta = GROUP_ORDER.find(g => g.id === targetGroupId);
+        const newGroup: WidgetGroup = {
+            id: targetGroupId,
+            name: groupMeta?.name || targetGroupId,
+            widgetIds: [widgetId],
+        };
+        const orderIndex = GROUP_ORDER.findIndex(g => g.id === targetGroupId);
+        if (orderIndex >= 0) {
+            // Find the right insertion point
+            let insertAt = result.length;
+            for (let i = 0; i < result.length; i++) {
+                const existingOrder = GROUP_ORDER.findIndex(g => g.id === result[i].id);
+                if (existingOrder > orderIndex) {
+                    insertAt = i;
+                    break;
+                }
+            }
+            result = [...result.slice(0, insertAt), newGroup, ...result.slice(insertAt)];
+        } else {
+            result.push(newGroup);
+        }
+    }
+
+    return result;
 }
 
 /** Find which group a widget currently belongs to. */

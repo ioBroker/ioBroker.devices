@@ -1,3 +1,8 @@
+declare module '*.png' {
+    const src: string;
+    export default src;
+}
+
 import type React from 'react';
 import type { PatternControl } from '@iobroker/type-detector';
 

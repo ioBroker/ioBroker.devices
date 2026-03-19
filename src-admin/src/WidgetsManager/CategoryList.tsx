@@ -21,13 +21,10 @@ import Communication, { type CommunicationProps, type CommunicationState } from 
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
-import WidgetSettingsDialog from './WidgetSettingsDialog';
-import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
-import CustomWidgetDialog from './CustomWidgetDialog';
-import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
+import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import { autoGroupItems, flattenGroups, moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
-import SidePanelInstallDialog from './SidePanelInstallDialog';
+import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
+import CategoryListDialogs from './CategoryListDialogs';
 
 interface SpecialTile {
     type: 'clock';
@@ -186,7 +183,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     // --- Hash routing ---
 
-    private getCategoryName(category: CategoryInfo): string {
+    private getCategoryName = (category: CategoryInfo): string => {
         if (category.name && typeof category.name === 'string') {
             return category.name;
         }
@@ -199,7 +196,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return translated[this.language] || translated.en || String(category.id);
         }
         return String(category.id).split('.').pop() || '';
-    }
+    };
 
     /** Build a hash path like #Room/SubRoom by walking up the parent chain */
     private buildHashPath(category: CategoryInfo): string {
@@ -648,12 +645,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
         const settings: Record<string, any> = {};
         for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS)) {
-            if (key === 'enabled') {
-                // 'enabled' is stored as 'uiDisabled' to avoid conflict with the adapter's enabled flag
-                if (custom.uiDisabled) {
-                    settings.enabled = false;
-                }
-            } else if (key === 'name') {
+            if (key === 'name') {
                 // name is stored in common.name (widget.name), not in custom
             } else if (key === 'iconInactive' && ALARM_ICON_TYPES.has(widget.control?.type)) {
                 // For alarm types: iconInactive comes from widget.icon (common.icon)
@@ -709,15 +701,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const custom = { ...(common.custom[instanceId] || {}) };
 
             for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettings)[]) {
-                if (key === 'enabled') {
-                    // Store as 'uiDisabled' to avoid conflict with the adapter's enabled flag
-                    if (!settings.enabled) {
-                        custom.uiDisabled = true;
-                    } else {
-                        delete custom.uiDisabled;
-                    }
-                    continue;
-                }
                 if (key === 'name') {
                     // name → common.name
                     if (settings.name) {
@@ -761,6 +744,50 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private onCloseSettings = (): void => {
         this.setState({ settingsWidgetId: null });
+    };
+
+    /** Delete a widget by setting custom[instanceId] = null on its ioBroker object */
+    private onDeleteWidget = async (): Promise<void> => {
+        const widgetId = this.state.settingsWidgetId;
+        if (widgetId == null) {
+            return;
+        }
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = await this.props.socket.getObject(String(widgetId));
+            if (obj) {
+                const common = obj.common as Record<string, any>;
+                common.custom ||= {};
+                common.custom[instanceId] = null;
+                await this.props.socket.setObject(obj._id, obj);
+            }
+        } catch (err) {
+            console.error('Failed to delete widget custom data:', err);
+        }
+
+        // Remove from local state
+        const widgetSettings = { ...this.state.widgetSettings };
+        delete widgetSettings[String(widgetId)];
+        this.setState({ widgetSettings, settingsWidgetId: null });
+    };
+
+    /** Delete a widget by ID (used for unsupported widget types that have a direct delete button) */
+    private onDeleteWidgetById = async (widgetId: string | number): Promise<void> => {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = await this.props.socket.getObject(String(widgetId));
+            if (obj) {
+                const common = obj.common as Record<string, any>;
+                common.custom ||= {};
+                common.custom[instanceId] = null;
+                await this.props.socket.setObject(obj._id, obj);
+            }
+        } catch (err) {
+            console.error('Failed to delete widget custom data:', err);
+        }
+        const widgetSettings = { ...this.state.widgetSettings };
+        delete widgetSettings[String(widgetId)];
+        this.setState({ widgetSettings });
     };
 
     private extractCategorySettings(categories: CategoryInfo[]): void {
@@ -1115,12 +1142,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private async saveWidgetParentOverride(widgetId: string, targetCategoryId: string): Promise<void> {
         const instanceId = this.state.selectedInstance;
         try {
-            const obj = await this.props.socket.getObject(widgetId);
+            const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(widgetId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj) {
-                const common = obj.common || {};
-                (common as Record<string, any>).custom ||= {};
-                (common as Record<string, any>).custom[instanceId] = {
-                    ...(common as Record<string, any>).custom[instanceId],
+                const common = obj.common || ({} as ioBroker.StateCommon);
+                common.custom ||= {};
+                common.custom[instanceId] = {
+                    ...common.custom[instanceId],
                     parent: targetCategoryId,
                 };
                 await this.props.socket.setObject(obj._id, obj);
@@ -1293,6 +1323,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     render(): React.JSX.Element {
+        if (this.state.alive === false) {
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', opacity: 0.5 }}>
+                    {I18n.t('wm_Instance not active')}
+                </div>
+            );
+        }
+
         // find the root category
         const currentCategory = this.state.currentCategory || this.state.categories.find(c => c.id === ROOT_CATEGORY);
 
@@ -1341,202 +1379,42 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             defaultHistory={this.defaultHistory || undefined}
                             instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
+                            onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
                         />
-                        <WidgetSettingsDialog
-                            open={settingsWidget != null}
-                            widgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
-                            settings={
-                                settingsWidget
-                                    ? this.state.widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
-                                    : DEFAULT_WIDGET_SETTINGS
-                            }
-                            onClose={this.onCloseSettings}
-                            onSave={this.onSaveSettings}
-                            showChart={this.state.chartAvailable}
-                            showBlindType={settingsWidget?.control?.type === Types.blind}
-                            showPin={settingsWidget?.control?.type === Types.lock}
-                            showHideWhenOk={
-                                settingsWidget?.control?.type === Types.floodAlarm ||
-                                settingsWidget?.control?.type === Types.fireAlarm ||
-                                settingsWidget?.control?.type === Types.warning
-                            }
-                            showCoordinates={
-                                settingsWidget?.control?.type === Types.location ||
-                                settingsWidget?.control?.type === Types.locationOne
-                            }
-                            showMarkerIcon={
-                                settingsWidget?.control?.type === Types.location ||
-                                settingsWidget?.control?.type === Types.locationOne
-                            }
-                            showMapTheme={
-                                settingsWidget?.control?.type === Types.location ||
-                                settingsWidget?.control?.type === Types.locationOne
-                            }
-                            showSliderType={
-                                settingsWidget?.control?.type === Types.slider ||
-                                settingsWidget?.control?.type === Types.percentage
-                            }
-                            showWideSliderStyle={
-                                settingsWidget?.control?.type === Types.dimmer ||
-                                settingsWidget?.control?.type === Types.volume ||
-                                settingsWidget?.control?.type === Types.slider ||
-                                settingsWidget?.control?.type === Types.percentage
-                            }
-                            showAnimation={
-                                settingsWidget?.control?.type === Types.info &&
-                                !!settingsWidget?.control?.states.some(
-                                    s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
-                                )
-                            }
-                            showOnBrightness={
-                                settingsWidget != null &&
-                                [Types.rgbSingle, Types.rgbwSingle, Types.rgb, Types.hue, Types.cie, Types.ct].includes(
-                                    settingsWidget.control?.type,
-                                ) &&
-                                settingsWidget.control.states.some(
-                                    s =>
-                                        s.name === 'SET' ||
-                                        s.name === 'ACTUAL' ||
-                                        s.name === 'DIMMER' ||
-                                        s.name === 'BRIGHTNESS',
-                                ) &&
-                                !settingsWidget.control.states.some(s => s.name === 'ON_SET' || s.name === 'ON')
-                            }
-                            showAlarmTexts={
-                                settingsWidget?.control?.type === Types.floodAlarm
-                                    ? { activeDefault: I18n.t('wm_Flood'), inactiveDefault: I18n.t('wm_Dry') }
-                                    : settingsWidget?.control?.type === Types.fireAlarm
-                                      ? { activeDefault: I18n.t('wm_Fire'), inactiveDefault: I18n.t('wm_OK') }
-                                      : settingsWidget?.control?.type === Types.motion
-                                        ? { activeDefault: I18n.t('wm_Motion'), inactiveDefault: I18n.t('wm_Clear') }
-                                        : settingsWidget?.control?.type === Types.window
-                                          ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
-                                          : settingsWidget?.control?.type === Types.door
-                                            ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
-                                            : settingsWidget?.control?.type === Types.warning
-                                              ? {
-                                                    activeDefault: I18n.t('wm_Warning'),
-                                                    inactiveDefault: I18n.t('wm_OK'),
-                                                }
-                                              : undefined
-                            }
-                            showAlarmIcons={
-                                settingsWidget?.control?.type === Types.floodAlarm ||
-                                settingsWidget?.control?.type === Types.fireAlarm ||
-                                settingsWidget?.control?.type === Types.motion ||
-                                settingsWidget?.control?.type === Types.window ||
-                                settingsWidget?.control?.type === Types.door ||
-                                settingsWidget?.control?.type === Types.warning
-                            }
-                            showIcon={
-                                !!settingsWidget?.control?.type && !ALARM_ICON_TYPES.has(settingsWidget.control.type)
-                            }
-                            showRefreshInterval={settingsWidget?.control?.type === Types.image}
+                        <CategoryListDialogs
+                            settingsWidget={settingsWidget || null}
+                            settingsWidgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
+                            widgetSettings={this.state.widgetSettings}
+                            chartAvailable={this.state.chartAvailable}
+                            settingsObjectName={this.state.settingsObjectName}
+                            settingsObjectColor={this.state.settingsObjectColor}
+                            onCloseSettings={this.onCloseSettings}
+                            onSaveSettings={this.onSaveSettings}
+                            onDeleteWidget={this.onDeleteWidget}
+                            categorySettingsCategoryId={this.state.categorySettingsCategoryId}
+                            categories={this.state.categories}
+                            currentCategory={currentCategory}
+                            categorySettings={this.state.categorySettings}
+                            rootCategory={ROOT_CATEGORY}
+                            onCloseCategorySettings={this.onCloseCategorySettings}
+                            onSaveCategorySettings={this.onSaveCategorySettings}
+                            selectedInstance={this.state.selectedInstance}
+                            customWidgetDialogCategoryId={this.state.customWidgetDialogCategoryId}
+                            onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
+                            onAddCustomWidget={this.onAddCustomWidget}
+                            customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
+                            customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
+                            onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}
+                            onSaveCustomWidgetSettings={this.onSaveCustomWidgetSettings}
+                            onDeleteCustomWidgetFromSettings={this.onDeleteCustomWidgetFromSettings}
+                            sidePanelDialogOpen={this.state.sidePanelDialogOpen}
+                            onCloseSidePanel={() => this.setState({ sidePanelDialogOpen: false })}
+                            admin={this.props.admin}
                             socket={this.props.socket}
                             theme={this.props.theme}
-                            admin={this.props.admin}
-                            objectName={this.state.settingsObjectName}
-                            objectColor={this.state.settingsObjectColor}
-                            availableGroups={this.state.categorySettings[String(currentCategory.id)]?.widgetGroups}
-                            currentGroupId={
-                                this.state.settingsWidgetId != null &&
-                                this.state.categorySettings[String(currentCategory.id)]?.widgetGroups
-                                    ? findWidgetGroup(
-                                          this.state.categorySettings[String(currentCategory.id)].widgetGroups!,
-                                          String(this.state.settingsWidgetId),
-                                      )
-                                    : undefined
-                            }
-                            onGroupChange={
-                                this.state.settingsWidgetId != null
-                                    ? (groupId: string) =>
-                                          this.onWidgetGroupMove(
-                                              String(currentCategory.id),
-                                              String(this.state.settingsWidgetId),
-                                              groupId,
-                                          )
-                                    : undefined
-                            }
-                        />
-                        <CategorySettingsDialog
-                            open={this.state.categorySettingsCategoryId != null}
-                            categoryName={
-                                this.state.categorySettingsCategoryId === ROOT_CATEGORY
-                                    ? this.state.categorySettings[ROOT_CATEGORY]?.name || I18n.t('wm_Settings')
-                                    : this.state.categorySettingsCategoryId
-                                      ? this.getCategoryName(
-                                            this.state.categories.find(
-                                                c => String(c.id) === this.state.categorySettingsCategoryId,
-                                            ) || currentCategory,
-                                        )
-                                      : ''
-                            }
-                            categoryId={this.state.categorySettingsCategoryId || ''}
-                            settings={
-                                this.state.categorySettingsCategoryId
-                                    ? this.state.categorySettings[this.state.categorySettingsCategoryId] ||
-                                      DEFAULT_CATEGORY_SETTINGS
-                                    : DEFAULT_CATEGORY_SETTINGS
-                            }
-                            onClose={this.onCloseCategorySettings}
-                            onSave={this.onSaveCategorySettings}
-                            socket={this.props.socket}
-                            instance={this.state.selectedInstance}
-                            theme={this.props.theme}
-                            admin={this.props.admin}
-                        />
-                        <CustomWidgetDialog
-                            open={this.state.customWidgetDialogCategoryId != null}
-                            onClose={this.onCloseCustomWidgetDialog}
-                            onAdd={this.onAddCustomWidget}
-                        />
-                        <CustomWidgetSettingsDialog
-                            open={this.state.customWidgetSettingsCategoryId != null}
-                            widgetDef={
-                                this.state.customWidgetSettingsCategoryId && this.state.customWidgetSettingsWidgetId
-                                    ? this.state.categorySettings[
-                                          this.state.customWidgetSettingsCategoryId
-                                      ]?.customWidgets?.find(w => w.id === this.state.customWidgetSettingsWidgetId) ||
-                                      null
-                                    : null
-                            }
-                            onClose={this.onCloseCustomWidgetSettings}
-                            onSave={this.onSaveCustomWidgetSettings}
-                            onDelete={this.onDeleteCustomWidgetFromSettings}
-                            socket={this.props.socket}
-                            theme={this.props.theme}
-                            availableGroups={
-                                this.state.customWidgetSettingsCategoryId
-                                    ? this.state.categorySettings[this.state.customWidgetSettingsCategoryId]
-                                          ?.widgetGroups
-                                    : undefined
-                            }
-                            currentGroupId={
-                                this.state.customWidgetSettingsCategoryId &&
-                                this.state.customWidgetSettingsWidgetId &&
-                                this.state.categorySettings[this.state.customWidgetSettingsCategoryId]?.widgetGroups
-                                    ? findWidgetGroup(
-                                          this.state.categorySettings[this.state.customWidgetSettingsCategoryId]
-                                              .widgetGroups!,
-                                          this.state.customWidgetSettingsWidgetId,
-                                      )
-                                    : undefined
-                            }
-                            onGroupChange={
-                                this.state.customWidgetSettingsCategoryId && this.state.customWidgetSettingsWidgetId
-                                    ? (groupId: string) =>
-                                          this.onWidgetGroupMove(
-                                              this.state.customWidgetSettingsCategoryId!,
-                                              this.state.customWidgetSettingsWidgetId!,
-                                              groupId,
-                                          )
-                                    : undefined
-                            }
-                        />
-                        <SidePanelInstallDialog
-                            open={this.state.sidePanelDialogOpen}
-                            onClose={() => this.setState({ sidePanelDialogOpen: false })}
-                            admin={this.props.admin}
+                            settingsWidgetId={this.state.settingsWidgetId}
+                            onWidgetGroupMove={this.onWidgetGroupMove}
+                            getCategoryName={this.getCategoryName}
                         />
                     </div>
                 </ThemeProvider>

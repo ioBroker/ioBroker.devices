@@ -12,6 +12,27 @@ import {
 
 import { CategoryList } from '../../src-admin/src/WidgetsManager';
 
+import enLang from '../../src-admin/src/i18n/en.json';
+import deLang from '../../src-admin/src/i18n/de.json';
+import ruLang from '../../src-admin/src/i18n/ru.json';
+import ptLang from '../../src-admin/src/i18n/pt.json';
+import nlLang from '../../src-admin/src/i18n/nl.json';
+import frLang from '../../src-admin/src/i18n/fr.json';
+import itLang from '../../src-admin/src/i18n/it.json';
+import esLang from '../../src-admin/src/i18n/es.json';
+import plLang from '../../src-admin/src/i18n/pl.json';
+import ukLang from '../../src-admin/src/i18n/uk.json';
+import zhCnLang from '../../src-admin/src/i18n/zh-cn.json';
+
+// Android WebView does not support `prefers-color-scheme: dark` media query,
+// so the theme is always detected as "light". Allow overriding via URL parameter:
+// e.g. ?theme=dark or ?theme=light
+// This must run before GenericApp constructor calls createTheme().
+const urlTheme = new URLSearchParams(window.location.search).get('theme');
+if (urlTheme && ['dark', 'light'].includes(urlTheme)) {
+    window.localStorage.setItem('App.themeName', urlTheme);
+}
+
 interface AppState extends GenericAppState {
     systemConfig?: ioBroker.SystemConfigObject;
 }
@@ -24,6 +45,19 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
         extendedProps.Connection = AdminConnection;
         extendedProps.adapterName = 'devices';
         extendedProps.sentryDSN = window.sentryDSN;
+        extendedProps.translations = {
+            en: enLang,
+            de: deLang,
+            ru: ruLang,
+            pt: ptLang,
+            nl: nlLang,
+            fr: frLang,
+            it: itLang,
+            es: esLang,
+            pl: plLang,
+            uk: ukLang,
+            'zh-cn': zhCnLang,
+        };
         super(props, extendedProps);
 
         const theme = this.createTheme();
@@ -67,7 +101,8 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
                         isFloatComma={this.state.systemConfig.common.isFloatComma}
                         dateFormat={this.state.systemConfig.common.dateFormat}
                         communicationStateId
-                        admin
+                        admin={false}
+                        showSettingsButton
                     />
                     {this.renderError()}
                 </ThemeProvider>

@@ -71,6 +71,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const [fileDialogOpen, setFileDialogOpen] = useState(false);
     const [iconFileDialogOpen, setIconFileDialogOpen] = useState(false);
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
+    const [hideConfigWarning, setHideConfigWarning] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const iconInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -546,7 +547,13 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             control={
                                 <Checkbox
                                     checked={!!local.hideConfigButton}
-                                    onChange={(_e, v) => setLocal({ ...local, hideConfigButton: v })}
+                                    onChange={(_e, v) => {
+                                        if (v && !admin) {
+                                            setHideConfigWarning(true);
+                                        } else {
+                                            setLocal({ ...local, hideConfigButton: v });
+                                        }
+                                    }}
                                     size="small"
                                 />
                             }
@@ -710,6 +717,30 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     >
                         {I18n.t('wm_Cancel')}
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Warning: hiding config button from web */}
+            <Dialog
+                open={hideConfigWarning}
+                onClose={() => setHideConfigWarning(false)}
+                maxWidth="xs"
+            >
+                <DialogTitle>{I18n.t('wm_Warning')}</DialogTitle>
+                <DialogContent>
+                    <Typography>{I18n.t('wm_Hide config warning')}</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            setLocal(prev => ({ ...prev, hideConfigButton: true }));
+                            setHideConfigWarning(false);
+                        }}
+                        color="warning"
+                    >
+                        {I18n.t('wm_OK')}
+                    </Button>
+                    <Button onClick={() => setHideConfigWarning(false)}>{I18n.t('wm_Cancel')}</Button>
                 </DialogActions>
             </Dialog>
         </>

@@ -138,7 +138,6 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
         const { name, direction } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         const btnSx = (active: boolean) => (theme: IobTheme) => ({
@@ -166,7 +165,6 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 8cqi)',
                     })}
@@ -188,21 +186,18 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         }}
                     >
                         <ButtonBase
-                            disabled={isDisabled}
                             onClick={this.sendOpen}
                             sx={btnSx(direction === 1)}
                         >
                             <KeyboardArrowUp sx={{ fontSize: 'max(28px, 18cqi)' }} />
                         </ButtonBase>
                         <ButtonBase
-                            disabled={isDisabled}
                             onClick={this.sendStop}
                             sx={btnSx(false)}
                         >
                             <Stop sx={{ fontSize: 'max(24px, 16cqi)' }} />
                         </ButtonBase>
                         <ButtonBase
-                            disabled={isDisabled}
                             onClick={this.sendClose}
                             sx={btnSx(direction === 2)}
                         >

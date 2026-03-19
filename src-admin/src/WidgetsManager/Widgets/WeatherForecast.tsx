@@ -350,7 +350,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -369,7 +368,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 8cqi)',
                     })}
@@ -503,7 +501,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         // Show up to 5 forecast days
@@ -523,7 +520,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 4cqi)',
                     })}

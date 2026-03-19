@@ -458,9 +458,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.settings?.enabled === false) {
-            return;
-        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         this.dragStartPos = { x: e.clientX, y: e.clientY };
@@ -664,7 +661,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
         const { name, brightness, dragging, color } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         const vb = 100;
@@ -696,8 +692,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: isDisabled ? 'default' : 'pointer',
-                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),

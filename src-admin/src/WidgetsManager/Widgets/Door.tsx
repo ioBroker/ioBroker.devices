@@ -6,15 +6,13 @@ import { WidgetWindow } from './Window';
 
 export class WidgetDoor extends WidgetWindow {
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = this.renderBaseIcon();
-        if (baseIcon) {
-            return baseIcon;
-        }
-
         const { isOpen } = this.state;
         const accent = this.getAccentColor();
-        const customIcon = isOpen ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
 
+        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        const customIcon = isOpen
+            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
+            : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
                 <Icon
