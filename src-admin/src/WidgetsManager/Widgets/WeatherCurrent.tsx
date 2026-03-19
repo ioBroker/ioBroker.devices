@@ -276,7 +276,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -295,7 +294,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 8cqi)',
                     })}
@@ -373,7 +371,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         const details: { icon: React.JSX.Element; label: string }[] = [];
@@ -428,7 +425,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 4cqi)',
                     })}

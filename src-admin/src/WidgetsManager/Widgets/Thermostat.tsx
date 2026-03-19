@@ -899,7 +899,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const displayTemp = actualTemp ?? setTemp;
         const poweredOff = this.isPoweredOff();
@@ -921,9 +920,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             >
                 <ButtonBase
                     component="div"
-                    disabled={isDisabled}
-                    disableRipple={isDisabled}
-                    onClick={isDisabled ? undefined : () => this.onTileClick()}
+                    onClick={() => this.onTileClick()}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -933,10 +930,8 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
-                        cursor: isDisabled ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         ...getTileStyles(theme, isActive && !poweredOff, accent),
-                        ...(isDisabled && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 10cqi)',
                     })}
                 >
@@ -1055,7 +1050,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const poweredOff = this.isPoweredOff();
 
@@ -1069,9 +1063,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
-                    disabled={isDisabled}
-                    disableRipple={isDisabled}
-                    onClick={isDisabled ? undefined : () => this.onTileClick()}
+                    onClick={() => this.onTileClick()}
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,
@@ -1082,10 +1074,8 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         height: '100%',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
-                        cursor: isDisabled ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         ...getTileStyles(theme, isActive && !poweredOff, accent),
-                        ...(isDisabled && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 5cqi)',
                     })}
                 >

@@ -344,9 +344,8 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const chartClickable = this.hasChartAction() && !isDisabled;
+        const chartClickable = this.hasChartAction();
 
         return (
             <Box
@@ -366,7 +365,6 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(12px, 8cqi)',
                     })}

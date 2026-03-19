@@ -138,15 +138,13 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
     }
 
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = super.renderTileIcon();
-        if (baseIcon) {
-            return baseIcon;
-        }
-
         const { level } = this.state;
         const color = getLevelColor(level);
-        const customIcon = level > 0 ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
 
+        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        const customIcon = level > 0
+            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
+            : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
                 <Icon

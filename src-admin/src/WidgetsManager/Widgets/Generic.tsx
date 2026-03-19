@@ -15,6 +15,9 @@ import {
     LinkOff,
     Settings,
     Sync,
+    TrendingDown,
+    TrendingFlat,
+    TrendingUp,
     WifiOff,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
@@ -25,7 +28,6 @@ import type StateContext from '../StateContext';
 import ChartDialog from './ChartDialog';
 
 export interface WidgetSettings {
-    enabled: boolean;
     size: '1x1' | '2x0.5' | '2x1';
     chartHours: number;
     name: string;
@@ -61,12 +63,15 @@ export interface WidgetSettings {
     iconInactive: string;
     /** Custom widget icon URL/base64 (for non-alarm widgets, stored in common.icon) */
     icon: string;
+    /** Show trend arrow indicator based on recent history data */
+    showTrendArrow: boolean;
+    /** Trend calculation period in minutes (default 30) */
+    trendMinutes: number;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
-    enabled: true,
     size: '1x1',
-    chartHours: 0,
+    chartHours: 12,
     name: '',
     color: '',
     blindType: 'shutter',
@@ -87,6 +92,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     iconActive: '',
     iconInactive: '',
     icon: '',
+    showTrendArrow: false,
+    trendMinutes: 30,
 };
 
 export interface WidgetGenericProps {
@@ -136,6 +143,8 @@ export interface WidgetGenericState {
     extraInfo: ExtraInfoEntry[];
     infoDialogOpen: boolean;
     chartDialogOpen: boolean;
+    /** Trend direction based on recent history: 'up', 'down', 'stable', or null if unknown */
+    trend: 'up' | 'down' | 'stable' | null;
 }
 
 const INDICATOR_NAMES = [
@@ -216,6 +225,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private errorStatesMap: Record<string, string> | null = null;
     private historyInstance: string | null = null;
     private chartTimer: ReturnType<typeof setInterval> | null = null;
+    private trendTimer: ReturnType<typeof setInterval> | null = null;
     protected nameRef = React.createRef<HTMLSpanElement>();
 
     constructor(props: WidgetGenericProps) {
@@ -229,6 +239,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             extraInfo: [] as ExtraInfoEntry[],
             infoDialogOpen: false,
             chartDialogOpen: false,
+            trend: null,
         } as unknown as TState;
 
         // Collect indicator state IDs from control.states
@@ -319,6 +330,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
         // Start chart data loading if configured
         this.startChartRefresh();
+        this.startTrendRefresh();
         this.adjustNameFontSize();
     }
 
@@ -326,6 +338,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         if (this.chartTimer) {
             clearInterval(this.chartTimer);
             this.chartTimer = null;
+        }
+        if (this.trendTimer) {
+            clearInterval(this.trendTimer);
+            this.trendTimer = null;
         }
         for (const name of INDICATOR_NAMES) {
             const id = this.indicatorIds[name];
@@ -343,6 +359,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const newHours = this.props.settings?.chartHours ?? 12;
         if (prevHours !== newHours) {
             this.startChartRefresh();
+        }
+        if (
+            !!prevProps.settings?.showTrendArrow !== !!this.props.settings?.showTrendArrow ||
+            (prevProps.settings?.trendMinutes ?? 30) !== (this.props.settings?.trendMinutes ?? 30)
+        ) {
+            this.startTrendRefresh();
         }
 
         // Sync name/icon/color from widget props when they change
@@ -616,6 +638,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     {this.state.extraInfo.map(entry => (
                         <Box
                             key={entry.id}
+                            data-state-id={entry.id}
                             sx={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
@@ -626,12 +649,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                 '&:last-child': { borderBottom: 'none' },
                             }}
                         >
-                            <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                            >
-                                {entry.label}
-                            </Typography>
+                            <Box>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'text.secondary' }}
+                                >
+                                    {entry.label}
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ color: 'text.disabled', fontSize: '0.6rem', lineHeight: 1, display: 'block' }}
+                                >
+                                    {entry.id}
+                                </Typography>
+                            </Box>
                             <Typography
                                 variant="body2"
                                 sx={{ fontWeight: 600 }}
@@ -876,6 +907,38 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         );
     }
 
+    /** Renders a standalone trend arrow, bigger than indicators, intended for right-side vertical centering */
+    protected renderTrendArrow(): React.JSX.Element | null {
+        const { trend } = this.state;
+        if (!trend) {
+            return null;
+        }
+
+        const sz = 28;
+        let icon: React.JSX.Element;
+        if (trend === 'up') {
+            icon = <TrendingUp sx={{ fontSize: sz, color: 'success.main' }} />;
+        } else if (trend === 'down') {
+            icon = <TrendingDown sx={{ fontSize: sz, color: 'error.main' }} />;
+        } else {
+            icon = <TrendingFlat sx={{ fontSize: sz, color: 'text.secondary' }} />;
+        }
+
+        const minutes = this.props.settings?.trendMinutes || 30;
+        const label =
+            trend === 'up'
+                ? I18n.t('wm_Trend rising')
+                : trend === 'down'
+                    ? I18n.t('wm_Trend falling')
+                    : I18n.t('wm_Trend stable');
+
+        return (
+            <Tooltip title={`${label} (${minutes} min)`}>
+                {icon}
+            </Tooltip>
+        );
+    }
+
     // --- Chart ---
 
     /** Override in subclasses to provide state IDs for chart display */
@@ -1008,6 +1071,104 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         this.setState({ chartSeries: series } as Partial<TState> as TState);
     }
 
+    // --- Trend arrow ---
+
+    private startTrendRefresh(): void {
+        if (this.trendTimer) {
+            clearInterval(this.trendTimer);
+            this.trendTimer = null;
+        }
+        if (!this.props.settings?.showTrendArrow) {
+            if (this.state.trend != null) {
+                this.setState({ trend: null } as Partial<TState> as TState);
+            }
+            return;
+        }
+        const historyIds = this.getHistoryIds();
+        if (!historyIds.length) {
+            return;
+        }
+        void this.loadTrend(historyIds[0].id);
+        this.trendTimer = setInterval(() => void this.loadTrend(historyIds[0].id), 120_000);
+    }
+
+    /** Load recent history for the primary state and compute trend direction */
+    private async loadTrend(stateId: string): Promise<void> {
+        // Ensure history instance is resolved
+        if (this.historyInstance === null) {
+            if (this.props.defaultHistory) {
+                this.historyInstance = this.props.defaultHistory;
+            } else {
+                try {
+                    const sysConfig = await this.props.stateContext
+                        .getObject<ioBroker.SystemConfigObject>('system.config');
+                    this.historyInstance = sysConfig?.common?.defaultHistory || '';
+                } catch {
+                    this.historyInstance = '';
+                }
+            }
+        }
+        if (!this.historyInstance) {
+            return;
+        }
+
+        const historyId = await this.resolveHistoryId(stateId);
+        if (!historyId) {
+            return;
+        }
+
+        const end = Date.now();
+        const minutes = this.props.settings?.trendMinutes || 30;
+        const start = end - minutes * 60_000;
+        try {
+            const result = await this.props.stateContext.getSocket().getHistory(historyId, {
+                instance: this.historyInstance,
+                start,
+                end,
+                from: false,
+                ack: false,
+                q: false,
+                addId: false,
+                aggregate: 'none',
+                returnNewestEntries: true,
+            });
+            if (!Array.isArray(result) || result.length < 2) {
+                return;
+            }
+
+            // Use first and last valid points to determine trend
+            const points: { ts: number; val: number }[] = [];
+            for (const p of result) {
+                if (p.val != null && !isNaN(Number(p.val))) {
+                    points.push({ ts: p.ts, val: Number(p.val) });
+                }
+            }
+            if (points.length < 2) {
+                return;
+            }
+
+            const first = points[0];
+            const last = points[points.length - 1];
+            const range = Math.abs(last.val) > 0.0001 ? Math.abs(last.val) : 1;
+            const delta = (last.val - first.val) / range;
+
+            let trend: 'up' | 'down' | 'stable';
+            if (delta > 0.01) {
+                trend = 'up';
+            } else if (delta < -0.01) {
+                trend = 'down';
+            } else {
+                trend = 'stable';
+            }
+
+            if (trend !== this.state.trend) {
+                this.setState({ trend } as Partial<TState> as TState);
+            }
+        } catch {
+            // ignore
+        }
+    }
+
     protected renderChartDialog(): React.JSX.Element | null {
         if (!this.state.chartDialogOpen || !this.historyInstance) {
             return null;
@@ -1131,8 +1292,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             return null;
         }
 
-        const isEnabled = this.props.settings?.enabled !== false;
-
         return (
             <>
                 {hasSettings ? (
@@ -1161,7 +1320,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             justifyContent: 'center',
                             cursor: 'pointer',
                             zIndex: 1,
-                            color: isEnabled ? theme.palette.primary.main : theme.palette.text.disabled,
+                            color: theme.palette.primary.main,
                             opacity: 0.6,
                             transition: 'opacity 0.2s, background-color 0.2s',
                             '&:hover': {
@@ -1223,10 +1382,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const chartAction = this.hasChartAction() && !isDisabled;
-        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
+        const trendArrow = this.renderTrendArrow();
+        const chartAction = this.hasChartAction();
+        const clickable = this.hasTileAction() || chartAction;
 
         return (
             <Box
@@ -1255,7 +1414,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         cursor: clickable ? 'pointer' : 'default',
                         ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
@@ -1267,6 +1425,21 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
                         >
                             {indicators}
+                        </Box>
+                    ) : null}
+                    {trendArrow ? (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                right: 'max(8px, 5cqi)',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                zIndex: 1,
+                                opacity: 0.85,
+                                '& .MuiSvgIcon-root': { fontSize: 'max(24px, 16cqi) !important' },
+                            }}
+                        >
+                            {trendArrow}
                         </Box>
                     ) : null}
 
@@ -1312,10 +1485,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const chartAction = this.hasChartAction() && !isDisabled;
-        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
+        const trendArrow = this.renderTrendArrow();
+        const chartAction = this.hasChartAction();
+        const clickable = this.hasTileAction() || chartAction;
 
         return (
             <Box
@@ -1341,7 +1514,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         position: 'relative',
                         cursor: clickable ? 'pointer' : 'default',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
@@ -1375,6 +1547,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         {this.renderTileStatus()}
                     </Box>
 
+                    {trendArrow ? (
+                        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                            {trendArrow}
+                        </Box>
+                    ) : null}
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </Box>
@@ -1388,10 +1565,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
-        const chartAction = this.hasChartAction() && !isDisabled;
-        const clickable = (this.hasTileAction() && !isDisabled) || chartAction;
+        const trendArrow = this.renderTrendArrow();
+        const chartAction = this.hasChartAction();
+        const clickable = this.hasTileAction() || chartAction;
 
         return (
             <Box
@@ -1424,7 +1601,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         height: '100%',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         cursor: clickable ? 'pointer' : 'default',
                         ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
@@ -1468,6 +1644,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         {this.renderTileStatus()}
                     </Box>
 
+                    {trendArrow ? (
+                        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                            {trendArrow}
+                        </Box>
+                    ) : null}
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </ButtonBase>

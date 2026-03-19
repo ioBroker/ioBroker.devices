@@ -32,6 +32,14 @@
             script.onload = function () {
                 typeof window.socketLoadedHandler === 'function' && window.socketLoadedHandler();
             };
+            // Set background immediately to avoid white flash in dark mode (or vice versa)
+            var t = query.theme || window.localStorage.getItem('App.themeName');
+            if (t === 'dark') {
+                document.documentElement.style.background = '#121212';
+            } else if (t === 'light') {
+                document.documentElement.style.background = '#ffffff';
+            }
+
             script.src =
                 window.location.port === '3000'
                     ? `${window.location.protocol}//${query.host || window.location.hostname}:${query.port || 8081}/lib/js/socket.io.js`

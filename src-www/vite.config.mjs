@@ -19,8 +19,8 @@ export default defineConfig(() => {
         server: {
             port: 3000,
             proxy: {
-                '/adapter': {
-                    target: 'http://localhost:8081',
+                '/devices.0': {
+                    target: 'http://localhost:8082',
                     changeOrigin: true,
                     secure: false,
                     configure: (proxy, _options) => {

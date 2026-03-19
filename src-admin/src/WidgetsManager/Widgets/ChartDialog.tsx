@@ -96,10 +96,7 @@ function niceStep(range: number, ticks: number): number {
 }
 
 /** Apply sliding window average to time-series data */
-function smoothData(
-    data: { ts: number; val: number }[],
-    windowSec: number,
-): { ts: number; val: number }[] {
+function smoothData(data: { ts: number; val: number }[], windowSec: number): { ts: number; val: number }[] {
     if (windowSec <= 0 || data.length < 2) {
         return data;
     }
@@ -113,7 +110,7 @@ function smoothData(
 
     for (let i = 0; i < data.length; i++) {
         const center = data[i].ts;
-        // Expand right boundary
+        // Expand the right boundary
         while (right < data.length && data[right].ts <= center + halfWindow) {
             sum += data[right].val;
             right++;
@@ -130,10 +127,7 @@ function smoothData(
 }
 
 /** Build SVG path `d` attribute for the given points and line type */
-function buildLinePath(
-    points: { x: number; y: number }[],
-    chartType: ChartLineType,
-): string {
+function buildLinePath(points: { x: number; y: number }[], chartType: ChartLineType): string {
     if (points.length < 2) {
         return '';
     }
@@ -225,11 +219,14 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     }, [globalTsMin, globalTsMax]);
 
     // Cleanup settle timer on unmount
-    useEffect(() => () => {
-        if (settleTimerRef.current) {
-            clearTimeout(settleTimerRef.current);
-        }
-    }, []);
+    useEffect(
+        () => () => {
+            if (settleTimerRef.current) {
+                clearTimeout(settleTimerRef.current);
+            }
+        },
+        [],
+    );
 
     /** Schedule a debounced onViewSettle call */
     const scheduleSettle = useCallback(
@@ -661,10 +658,16 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     if (custom.chartType && ['line', 'step-start', 'step-end'].includes(custom.chartType)) {
                         setChartType(custom.chartType);
                     }
-                    if (typeof custom.chartSmoothing === 'number' && VALID_SMOOTHING_VALUES.has(custom.chartSmoothing)) {
+                    if (
+                        typeof custom.chartSmoothing === 'number' &&
+                        VALID_SMOOTHING_VALUES.has(custom.chartSmoothing)
+                    ) {
                         setSmoothing(custom.chartSmoothing as SmoothingWindow);
                     }
-                    if (typeof custom.chartRangeHours === 'number' && RANGE_OPTIONS.some(o => o.hours === custom.chartRangeHours)) {
+                    if (
+                        typeof custom.chartRangeHours === 'number' &&
+                        RANGE_OPTIONS.some(o => o.hours === custom.chartRangeHours)
+                    ) {
                         setRangeHours(custom.chartRangeHours);
                     }
                 }
@@ -949,7 +952,10 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                                 }}
                             >
                                 {SMOOTHING_OPTIONS.map(opt => (
-                                    <MenuItem key={opt.value} value={opt.value}>
+                                    <MenuItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
                                         {I18n.t(opt.label)}
                                     </MenuItem>
                                 ))}

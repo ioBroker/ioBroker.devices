@@ -1,4 +1,4 @@
-import React, { Component, useCallback, useMemo, useRef, useState } from 'react';
+import React, { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from '@mui/material';
 import {
@@ -9,8 +9,12 @@ import {
     LocalFireDepartment,
     ChevronRight,
     DirectionsRun,
+    Delete,
     DragIndicator,
+    ErrorOutline,
     ExpandMore,
+    Lightbulb,
+    LightbulbOutlined,
     MeetingRoom,
     PlayArrow,
     SensorDoor,
@@ -28,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { alpha } from '@mui/material/styles';
+import { detectBrowser } from './SidePanelInstallDialog';
 import { Types } from '@iobroker/type-detector';
 import {
     DndContext,
@@ -113,7 +118,7 @@ interface CategoryProps {
     configMode?: boolean;
     /** Toggle between config and play mode. If undefined, no toggle button is shown. */
     onToggleConfigMode?: () => void;
-    /** Open "Install as Side Panel" dialog */
+    /** Open the "Install as Side Panel" dialog */
     onInstallSidePanel?: () => void;
     /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
     defaultHistory?: string;
@@ -121,6 +126,8 @@ interface CategoryProps {
     instanceId?: string;
     /** Move a widget to a different category (drag & drop between groups) */
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
+    /** Delete a widget by ID (for unsupported widget types) */
+    onDeleteWidgetById?: (widgetId: string | number) => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -131,7 +138,7 @@ interface OpeningSensor {
     kind: 'window' | 'door';
     name: string;
     state: OpeningState;
-    /** Custom widget icon (from common.icon) */
+    /** Custom widget icon (from `common.icon`) */
     icon?: string;
     /** Widget ID to look up settings (color, text, etc.) */
     widgetId?: string;
@@ -155,7 +162,7 @@ interface CategoryState {
     icons: { [categoryId: string]: string };
     colors: { [categoryId: string]: string };
     categoryStatus: CategoryStatus;
-    /** Status summaries for each sub-category (keyed by category ID) */
+    /** Status summaries for each subcategory (keyed by category ID) */
     subCategoryStatuses: Record<string, CategoryStatus>;
 }
 
@@ -192,14 +199,15 @@ function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetS
     if (item.type === 'category') {
         return '1 / -1';
     }
-    let size = '1x1';
+    let size: '1x1' | '2x0.5' | '2x1';
     if (item.type === 'widget') {
         size = widgetSettings[item.id]?.size || '1x1';
     } else {
         const def = item.data as CustomWidgetDef;
         // Fall back to the config default when size wasn't persisted (older widgets)
         const configDefault = CUSTOM_WIDGET_CONFIGS[def.type]?.items.size;
-        size = def.size || (configDefault ? String(getConfigDefault(configDefault)) : '1x1');
+        size =
+            def.size || (configDefault ? (String(getConfigDefault(configDefault)) as '1x1' | '2x0.5' | '2x1') : '1x1');
     }
     if (size === '2x0.5' || size === '2x1') {
         return 'span 2';
@@ -261,7 +269,7 @@ function SortableItem(props: {
     );
 }
 
-/** Wrapper that makes a sub-category tile act as a drop target during widget drag */
+/** Wrapper that makes a subcategory tile act as a drop target during widget drag */
 function DroppableCategoryTile(props: { id: string; children: React.ReactNode }): React.JSX.Element {
     const { id, children } = props;
     const { setNodeRef, isOver } = useDroppable({ id: `drop-cat:${id}` });
@@ -297,7 +305,7 @@ function SortableGrid(props: {
     const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
     const [activeId, setActiveId] = useState<string | null>(null);
 
-    // Ref to always access latest liveOrder inside callbacks (avoids stale closures)
+    // Ref to always access the latest liveOrder inside callbacks (avoids stale closures)
     const liveOrderRef = useRef(liveOrder);
     liveOrderRef.current = liveOrder;
 
@@ -381,7 +389,7 @@ function SortableGrid(props: {
             setActiveId(null);
             const currentDrop = dropCategoryRef.current;
             setDropCategoryId(null);
-            // If dropped on a category, move widget there
+            // If dropped on a category, move the widget there
             if (currentDrop && onMoveWidgetToCategory) {
                 onMoveWidgetToCategory(String(event.active.id), currentDrop);
                 return;
@@ -578,7 +586,7 @@ function GroupSortableGrid(props: {
             setActiveId(null);
             const currentDrop = dropCategoryRef.current;
             setDropCategoryId(null);
-            // If dropped on a category, move widget there
+            // If dropped on a category, move the widget there
             if (currentDrop && onMoveWidgetToCategory) {
                 onMoveWidgetToCategory(String(event.active.id), currentDrop);
                 return;
@@ -701,6 +709,104 @@ function GroupSortableGrid(props: {
     );
 }
 
+// --- Lights group ON/OFF control ---
+
+function LightsGroupControl(props: {
+    widgetIds: string[];
+    widgets: WidgetInfo[];
+    stateContext: StateContext;
+}): React.JSX.Element | null {
+    const { widgetIds, widgets, stateContext } = props;
+
+    // Find controllable lights: resolve SET/ON_SET for control and ACTUAL/ON_ACTUAL for reading
+    const lightControls = useMemo(() => {
+        const controls: { widgetId: string; setId: string; listenId: string }[] = [];
+        for (const wId of widgetIds) {
+            const widget = widgets.find(w => String(w.id) === wId);
+            if (!widget?.control?.states) {
+                continue;
+            }
+            const states = widget.control.states;
+            const onSet = states.find(s => s.name === 'ON_SET');
+            const on = states.find(s => s.name === 'ON');
+            const set = states.find(s => s.name === 'SET');
+            const onActual = states.find(s => s.name === 'ON_ACTUAL');
+            const actual = states.find(s => s.name === 'ACTUAL');
+
+            const setId = onSet?.id ?? on?.id ?? set?.id;
+            const listenId = onActual?.id ?? onSet?.id ?? on?.id ?? actual?.id ?? setId;
+
+            if (setId && listenId) {
+                controls.push({ widgetId: wId, setId, listenId });
+            }
+        }
+        return controls;
+    }, [widgetIds, widgets]);
+
+    const [onCount, setOnCount] = useState(0);
+    const statesRef = useRef<Record<string, boolean>>({});
+
+    useEffect(() => {
+        if (!lightControls.length) {
+            return;
+        }
+
+        const handlers: { id: string; handler: (id: string, state: ioBroker.State) => void }[] = [];
+        statesRef.current = {};
+
+        for (const ctrl of lightControls) {
+            const handler = (_id: string, state: ioBroker.State): void => {
+                const isOn = !!state.val;
+                if (statesRef.current[ctrl.widgetId] !== isOn) {
+                    statesRef.current[ctrl.widgetId] = isOn;
+                    const count = Object.values(statesRef.current).filter(v => v).length;
+                    setOnCount(count);
+                }
+            };
+            stateContext.getState(ctrl.listenId, handler);
+            handlers.push({ id: ctrl.listenId, handler });
+        }
+
+        return () => {
+            for (const h of handlers) {
+                stateContext.removeState(h.id, h.handler);
+            }
+            statesRef.current = {};
+        };
+    }, [lightControls, stateContext]);
+
+    if (lightControls.length === 0) {
+        return null;
+    }
+
+    const someOn = onCount > 0;
+
+    const handleToggle = (e: React.MouseEvent): void => {
+        e.stopPropagation();
+        const newState = !someOn;
+        const socket = stateContext.getSocket();
+        for (const ctrl of lightControls) {
+            void socket.setState(ctrl.setId, newState);
+        }
+    };
+
+    return (
+        <Tooltip title={someOn ? I18n.t('wm_Turn all off') : I18n.t('wm_Turn all on')}>
+            <IconButton
+                onClick={handleToggle}
+                size="small"
+                sx={{ ml: 'auto', p: 0.5 }}
+            >
+                {someOn ? (
+                    <Lightbulb sx={{ fontSize: 20, color: 'warning.main' }} />
+                ) : (
+                    <LightbulbOutlined sx={{ fontSize: 20, color: 'text.disabled' }} />
+                )}
+            </IconButton>
+        </Tooltip>
+    );
+}
+
 // --- Grouped content: renders sub-categories + collapsible widget groups ---
 
 function GroupedContent(props: {
@@ -791,53 +897,62 @@ function GroupedContent(props: {
                         key={group.id}
                         sx={{
                             mb: 1.5,
-                            // At runtime, hide group when all widgets inside are hidden
-                            ...(!configMode && {
+                            // At runtime, hide a group when all widgets inside are hidden
+                            // but only when the group is not collapsed (collapsed groups have no widget children by design)
+                            ...(!configMode && !group.collapsed && {
                                 '&:not(:has([class^="widget-"]))': { display: 'none' },
                             }),
                         }}
                     >
-                        <ButtonBase
-                            onClick={() => handleToggleCollapse(group.id)}
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                width: '100%',
-                                justifyContent: 'flex-start',
-                                py: 0.5,
-                                px: 1,
-                                borderRadius: 1,
-                                mb: group.collapsed ? 0 : 0.5,
-                            }}
-                        >
-                            <ExpandMore
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: group.collapsed ? 0 : 0.5 }}>
+                            <ButtonBase
+                                onClick={() => handleToggleCollapse(group.id)}
                                 sx={{
-                                    fontSize: 18,
-                                    color: 'text.secondary',
-                                    transform: group.collapsed ? 'rotate(-90deg)' : 'rotate(0)',
-                                    transition: 'transform 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    flex: 1,
+                                    justifyContent: 'flex-start',
+                                    py: 0.5,
+                                    px: 1,
+                                    borderRadius: 1,
                                 }}
-                            />
-                            {(() => {
-                                const icon = getGroupIcon(group.id);
-                                return icon
-                                    ? React.cloneElement(icon, { sx: { fontSize: 18, color: 'text.secondary' } })
-                                    : null;
-                            })()}
-                            <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 600, color: 'text.secondary' }}
                             >
-                                {I18n.t(group.name)}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}
-                            >
-                                ({groupItems.length})
-                            </Typography>
-                        </ButtonBase>
+                                <ExpandMore
+                                    sx={{
+                                        fontSize: 18,
+                                        color: 'text.secondary',
+                                        transform: group.collapsed ? 'rotate(-90deg)' : 'rotate(0)',
+                                        transition: 'transform 0.2s',
+                                    }}
+                                />
+                                {(() => {
+                                    const icon = getGroupIcon(group.id);
+                                    return icon
+                                        ? React.cloneElement(icon, { sx: { fontSize: 18, color: 'text.secondary' } })
+                                        : null;
+                                })()}
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 600, color: 'text.secondary' }}
+                                >
+                                    {I18n.t(group.name)}
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}
+                                >
+                                    ({groupItems.length})
+                                </Typography>
+                            </ButtonBase>
+                            {group.id === 'lights' ? (
+                                <LightsGroupControl
+                                    widgetIds={group.widgetIds}
+                                    widgets={category.props.widgets}
+                                    stateContext={category.props.stateContext}
+                                />
+                            ) : null}
+                        </Box>
                         {!group.collapsed ? (
                             <GroupSortableGrid
                                 category={category}
@@ -934,7 +1049,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         } else if (typeof typeof category.name === 'string') {
             state.names[category.id] = category.name;
         }
-        state.names[category.id] ||= category.id.toString().split('.').pop() || '';
+        state.names[category.id] ||=
+            category.id === '__root__' ? 'ioBroker' : category.id.toString().split('.').pop() || '';
 
         if (category.icon && typeof category.icon === 'object') {
             if ((category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
@@ -1165,11 +1281,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     private recalcCategoryStatus(): void {
-        // Compute status for current category (subs without categoryId)
+        // Compute status for the current category (subs without categoryId)
         const currentSubs = this.statusSubs.filter(s => !s.categoryId);
         const categoryStatus = Category.computeStatus(currentSubs, this.statusValues);
 
-        // Compute status for each sub-category
+        // Compute status for each subcategory
         const subCategoryStatuses: Record<string, CategoryStatus> = {};
         const catIds = new Set(this.statusSubs.map(s => s.categoryId).filter(Boolean) as string[]);
         for (const catId of catIds) {
@@ -1418,10 +1534,54 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         }
 
         if (!Widget) {
+            const settings = this.props.widgetSettings[String(widget.id)];
+            const size = settings?.size || '1x1';
+            const typeName = widget.control?.type || '?';
+
             return (
-                <div key={widget.id}>
-                    {I18n.t('wm_Unknown type')}: {widget.control?.type || '?'}
-                </div>
+                <Box
+                    key={widget.id}
+                    id={String(widget.id)}
+                    sx={theme => ({
+                        position: 'relative',
+                        ...(size === '2x0.5'
+                            ? { gridColumn: 'span 2', height: 80 }
+                            : size === '2x1'
+                              ? { gridColumn: 'span 2', aspectRatio: '2' }
+                              : { aspectRatio: '1' }),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                        p: 2,
+                        borderRadius: 3,
+                        border: '2px dashed',
+                        borderColor: 'error.main',
+                        backgroundColor: alpha(theme.palette.error.main, 0.08),
+                        textAlign: 'center',
+                        overflow: 'hidden',
+                    })}
+                >
+                    <ErrorOutline sx={{ fontSize: 32, color: 'error.main', opacity: 0.7 }} />
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'error.main', fontWeight: 500, lineHeight: 1.3 }}
+                    >
+                        {I18n.t('wm_Widget type not supported').replace('%s', typeName)}
+                    </Typography>
+                    {this.props.onDeleteWidgetById ? (
+                        <Tooltip title={I18n.t('wm_Delete')}>
+                            <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => this.props.onDeleteWidgetById!(widget.id)}
+                            >
+                                <Delete fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    ) : null}
+                </Box>
             );
         }
         const settings = this.props.widgetSettings[String(widget.id)];
@@ -1538,7 +1698,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             return null;
         }
 
-        // Collect icons (max 8) — use custom icon or fall back to default type icon
+        // Collect icons (max 8) — use custom icon or fall back to the default type icon
         const icons: { id: string | number; src?: string; name: string; type: Types }[] = [];
         for (const w of catWidgets) {
             if (icons.length >= 8) {
@@ -1609,8 +1769,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             );
         }
 
-        const openWindows = status.openings.filter(o => o.kind === 'window' && o.state !== 0);
-        const openDoors = status.openings.filter(o => o.kind === 'door' && o.state !== 0);
+        const openSensors = status.openings.filter(o => o.state !== 0);
 
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.25 }}>
@@ -1641,35 +1800,48 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         <DirectionsRun sx={{ fontSize: 16, color: 'warning.main' }} />
                     </Tooltip>
                 ) : null}
-                {openWindows.length > 0 ? (
-                    <Tooltip title={openWindows.map(o => Category.getOpeningTooltip(o)).join(', ')}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <SensorWindow sx={{ fontSize: 16, color: 'warning.main' }} />
-                            {openWindows.length > 1 ? (
-                                <Typography
-                                    variant="caption"
-                                    sx={{ color: 'warning.main', fontWeight: 600 }}
+                {openSensors.length > 0 ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        {openSensors.map(sensor => {
+                            const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
+                            const customIcon = ws ? (ws.iconActive || ws.iconInactive || ws.icon) : undefined;
+                            const iconSrc = customIcon || sensor.icon;
+                            const customColor = ws?.color;
+                            const fallbackColor = Category.getOpeningColor(sensor);
+                            const color = customColor || fallbackColor;
+                            const customText = ws?.textActive;
+                            const tooltip = customText
+                                ? `${sensor.name}: ${customText}`
+                                : Category.getOpeningTooltip(sensor);
+
+                            return (
+                                <Tooltip
+                                    key={sensor.stateId}
+                                    title={tooltip}
                                 >
-                                    {openWindows.length}
-                                </Typography>
-                            ) : null}
-                        </Box>
-                    </Tooltip>
-                ) : null}
-                {openDoors.length > 0 ? (
-                    <Tooltip title={openDoors.map(o => Category.getOpeningTooltip(o)).join(', ')}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <SensorDoor sx={{ fontSize: 16, color: 'warning.main' }} />
-                            {openDoors.length > 1 ? (
-                                <Typography
-                                    variant="caption"
-                                    sx={{ color: 'warning.main', fontWeight: 600 }}
-                                >
-                                    {openDoors.length}
-                                </Typography>
-                            ) : null}
-                        </Box>
-                    </Tooltip>
+                                    {iconSrc ? (
+                                        <Box sx={{ display: 'flex' }}>
+                                            <Icon
+                                                src={iconSrc}
+                                                style={{ width: 16, height: 16, color }}
+                                            />
+                                        </Box>
+                                    ) : sensor.kind === 'door' ? (
+                                        <SensorDoor sx={{ fontSize: 16, color, transition: 'color 0.25s ease' }} />
+                                    ) : (
+                                        <SensorWindow
+                                            sx={{
+                                                fontSize: 16,
+                                                color,
+                                                transform: sensor.state === 2 ? 'rotate(15deg)' : undefined,
+                                                transition: 'color 0.25s ease',
+                                            }}
+                                        />
+                                    )}
+                                </Tooltip>
+                            );
+                        })}
+                    </Box>
                 ) : null}
                 {status.lowBatteryDevices.length > 0 ? (
                     <Tooltip
@@ -1897,7 +2069,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             const isActive = sensor.state !== 0;
                             const customIcon = ws
                                 ? isActive
-                                    ? ws.iconActive || ws.icon
+                                    ? ws.iconActive || ws.iconInactive || ws.icon
                                     : ws.iconInactive || ws.icon
                                 : undefined;
                             const iconSrc = customIcon || sensor.icon;
@@ -1966,6 +2138,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             : undefined;
 
         const isRoot = !this.props.category.parent;
+        const supportsSidePanel = isRoot && !!detectBrowser();
         const customWidgets = this.props.categorySettings[String(this.props.category.id)]?.customWidgets || [];
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0 || customWidgets.length > 0;
         const categoryId = String(this.props.category.id);
@@ -2021,7 +2194,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {/* Floating config toggle — only when no header is shown */}
                 {!hasHeader && this.props.onToggleConfigMode ? (
                     <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 0.5 }}>
-                        {this.props.configMode && this.props.onInstallSidePanel ? (
+                        {supportsSidePanel && this.props.configMode && this.props.onInstallSidePanel ? (
                             <Tooltip title={I18n.t('wm_Install as Side Panel')}>
                                 <IconButton
                                     size="small"
@@ -2056,7 +2229,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         </Tooltip>
                     </Box>
                 ) : null}
-                {/* Fixed header — hidden for root category (no parent, no name) */}
+                {/* Fixed header — hidden for the root category (no parent, no name) */}
                 {hasHeader ? (
                     <Box
                         sx={theme => ({
@@ -2148,7 +2321,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     </IconButton>
                                 </Tooltip>
                             ) : null}
-                            {this.props.configMode && this.props.onInstallSidePanel ? (
+                            {supportsSidePanel && this.props.configMode && this.props.onInstallSidePanel ? (
                                 <Tooltip title={I18n.t('wm_Install as Side Panel')}>
                                     <IconButton
                                         size="small"

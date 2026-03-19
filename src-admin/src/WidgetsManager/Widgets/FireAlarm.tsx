@@ -88,15 +88,13 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState> {
     }
 
     protected renderTileIcon(): React.JSX.Element {
-        const baseIcon = super.renderTileIcon();
-        if (baseIcon) {
-            return baseIcon;
-        }
-
         const { alarm } = this.state;
         const accent = this.getAccentColor();
-        const customIcon = alarm ? this.props.settings?.iconActive : this.props.settings?.iconInactive;
 
+        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        const customIcon = alarm
+            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
+            : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
                 <Icon

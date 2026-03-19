@@ -256,9 +256,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.settings?.enabled === false) {
-            return;
-        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         this.dragStartPos = { x: e.clientX, y: e.clientY };
@@ -542,7 +539,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const modeName = this.getCurrentModeName();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -553,7 +549,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
             >
                 <ButtonBase
                     component="div"
-                    disabled={isDisabled}
                     onClick={() => this.setState({ modeDialogOpen: true })}
                     sx={theme => ({
                         display: 'flex',
@@ -564,7 +559,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        opacity: isDisabled ? 0.4 : 1,
                         ...getTileStyles(theme, isActive, accent),
                         padding: 'max(16px, 10cqi)',
                     })}
@@ -743,7 +737,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const { name, level, rawValue, unit, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
         const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
         const accentOrDefault = accent || '#1976d2';
@@ -769,8 +762,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: isDisabled ? 'default' : 'pointer',
-                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
                         position: 'relative',
@@ -860,7 +852,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const { name, level, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         const vb = 100;
@@ -891,8 +882,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: isDisabled ? 'default' : 'pointer',
-                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),

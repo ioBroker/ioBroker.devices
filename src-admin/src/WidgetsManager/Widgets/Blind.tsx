@@ -441,9 +441,6 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
     // --- Vertical drag interaction ---
 
     private onPointerDown = (e: React.PointerEvent): void => {
-        if (this.props.settings?.enabled === false) {
-            return;
-        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         this.dragStartPos = { x: e.clientX, y: e.clientY };
@@ -646,7 +643,6 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         const { name, position, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const isDisabled = this.props.settings?.enabled === false;
         const indicators = this.renderIndicators();
 
         return (
@@ -670,12 +666,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: isDisabled
-                            ? 'default'
-                            : this.props.settings?.blindType === 'curtain'
-                              ? 'ew-resize'
-                              : 'ns-resize',
-                        opacity: isDisabled ? 0.4 : 1,
+                        cursor: this.props.settings?.blindType === 'curtain'
+                            ? 'ew-resize'
+                            : 'ns-resize',
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),

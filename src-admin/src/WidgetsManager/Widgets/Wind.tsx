@@ -203,7 +203,6 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         const speedColor = isDark ? '#ffffff' : '#1a1a1a';
         const unitColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
         const arrowColor = isDark ? '#ffffff' : '#1a1a1a';
-        const northColor = isDark ? '#888888' : '#999999';
 
         // Build tick marks — every 2 degrees
         const ticks: React.JSX.Element[] = [];
@@ -251,7 +250,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
 
         // Cardinal labels
         const labels = [
-            { label: I18n.t('wm_N'), angle: 0 },
+            { label: I18n.t('wm_N'), angle: 0, color: '#e53935' },
             { label: I18n.t('wm_E'), angle: 90 },
             { label: I18n.t('wm_S'), angle: 180 },
             { label: I18n.t('wm_W'), angle: 270 },
@@ -341,7 +340,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 {/* North triangle marker */}
                 <polygon
                     points={`${nTriTop.x},${nTriTop.y} ${nTriL.x},${nTriL.y} ${nTriR.x},${nTriR.y}`}
-                    fill={northColor}
+                    fill="#e53935"
                 />
                 {/* Cardinal labels */}
                 {labels.map(l => {
@@ -353,7 +352,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             y={p.y}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={labelColor}
+                            fill={l.color || labelColor}
                             fontSize={14}
                             fontWeight={700}
                             fontFamily="system-ui, sans-serif"
@@ -550,7 +549,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         );
     }
 
-    // --- Wide tall 2x1 layout: large compass ---
+    // --- Wide tall 2x1 layout: compass left, details right ---
     private renderWideTall(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
         const accent = this.props.color;
@@ -567,23 +566,22 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         position: 'absolute',
                         inset: 0,
                         display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
                         alignItems: 'center',
+                        gap: 1.5,
                         overflow: 'hidden',
+                        px: 0.5,
                         ...getTileStyles(theme, false, accent, false),
-                        p: 'max(4px, 1cqi)',
                     })}
                 >
                     <Box
                         sx={{
-                            flex: 1,
-                            minHeight: 0,
+                            flexShrink: 0,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: '100%',
-                            '& > svg': { width: 'auto', height: '100%', maxWidth: '100%' },
+                            height: '100%',
+                            py: 0.5,
+                            '& > svg': { width: 'auto', height: '100%' },
                         }}
                     >
                         {WidgetWind.renderCompass(
@@ -596,20 +594,47 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             true,
                         )}
                     </Box>
-                    {this.props.gustsStateId && gusts != null ? (
-                        <Typography
-                            variant="caption"
-                            sx={theme => ({
-                                color: theme.palette.text.secondary,
-                                fontSize: 'max(0.65rem, 3cqi)',
-                                whiteSpace: 'nowrap',
-                                lineHeight: 1,
-                                pb: 0.5,
-                            })}
-                        >
-                            {I18n.t('wm_Wind gusts')}: {WidgetWind.formatValue(gusts, gustsUnit)}
-                        </Typography>
-                    ) : null}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        {this.props.speedStateId ? (
+                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.5 }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                                >
+                                    {I18n.t('wm_Speed')}:
+                                </Typography>
+                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                    {WidgetWind.formatValue(speed, speedUnit)}
+                                </Typography>
+                            </Box>
+                        ) : null}
+                        {this.props.gustsStateId ? (
+                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.5 }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                                >
+                                    {I18n.t('wm_Wind gusts')}:
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.95rem' }}>
+                                    {WidgetWind.formatValue(gusts, gustsUnit)}
+                                </Typography>
+                            </Box>
+                        ) : null}
+                        {direction != null ? (
+                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                                >
+                                    {I18n.t('wm_Direction')}:
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.95rem' }}>
+                                    {Math.round(direction)}°
+                                </Typography>
+                            </Box>
+                        ) : null}
+                    </Box>
                 </Box>
                 {this.renderSettingsButton()}
             </Box>

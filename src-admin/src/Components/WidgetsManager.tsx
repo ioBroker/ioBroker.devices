@@ -11,11 +11,11 @@ interface WidgetsManagerComponentProps {
     themeName: ThemeName;
     themeType: ThemeType;
     theme: IobTheme;
-    /** If settings button is shown */
+    /** If the settings button is shown */
     showSettingsButton?: boolean;
-    /** Define state that will accept commands from backend */
+    /** Define a state that will accept commands from the backend */
     communicationStateId?: string | boolean;
-    /** If it runs in admin or in web */
+    /** If it runs in admin or in the web */
     admin: boolean;
 }
 
