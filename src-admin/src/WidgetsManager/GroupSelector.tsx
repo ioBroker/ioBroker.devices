@@ -24,6 +24,7 @@ export default function GroupSelector(props: GroupSelectorProps): React.JSX.Elem
             </Typography>
             <Select
                 value={currentGroupId || ''}
+                variant="filled"
                 onChange={e => onGroupChange(e.target.value)}
                 size="small"
                 fullWidth

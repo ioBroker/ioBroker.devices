@@ -186,7 +186,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                     })}
                 >
                     {url ? (
-                        this.renderIframe(url, false)
+                        WidgetIframe.renderIframe(url, false)
                     ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -223,7 +223,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                     })}
                 >
                     {url ? (
-                        this.renderIframe(url, false)
+                        WidgetIframe.renderIframe(url, false)
                     ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -280,7 +280,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                             <Close fontSize="small" />
                         </IconButton>
                     </Box>
-                    {url ? this.renderIframe(url, true) : null}
+                    {url ? WidgetIframe.renderIframe(url, true) : null}
                 </DialogContent>
             </Dialog>
         );

@@ -117,6 +117,8 @@ interface CategoryProps {
     onInstallSidePanel?: () => void;
     /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
     defaultHistory?: string;
+    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings */
+    instanceId?: string;
     /** Move a widget to a different category (drag & drop between groups) */
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
 }
@@ -1432,6 +1434,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 settings={settings}
                 onOpenSettings={this.props.onOpenSettings}
                 defaultHistory={this.props.defaultHistory}
+                instanceId={this.props.instanceId}
             />
         );
     }

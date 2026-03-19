@@ -259,5 +259,14 @@
     "wm_Wind speed": "Wind speed",
     "wm_Wind gusts": "Wind gusts",
     "wm_Wind_desc": "Wind compass with speed and gusts",
-    "wm_Downloaded": "Downloaded"
+    "wm_Downloaded": "Downloaded",
+    "wm_Chart type": "Chart type",
+    "wm_chart_line": "Line",
+    "wm_chart_step_start": "Step (start)",
+    "wm_chart_step_end": "Step (end)",
+    "wm_Smoothing": "Smoothing",
+    "wm_smooth_30s": "30 seconds",
+    "wm_smooth_1m": "1 minute",
+    "wm_smooth_5m": "5 minutes",
+    "wm_smooth_10m": "10 minutes"
 }

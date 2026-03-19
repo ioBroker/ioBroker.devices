@@ -98,6 +98,8 @@ export interface WidgetGenericProps {
     onOpenSettings?: (widgetId: string | number) => void;
     /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
     defaultHistory?: string;
+    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
+    instanceId?: string;
 }
 
 export interface IndicatorValues {
@@ -1023,6 +1025,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.getChartUnit()}
+                widgetId={String(this.props.widget.id)}
+                instanceId={this.props.instanceId}
             />
         );
     }

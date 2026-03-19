@@ -133,6 +133,7 @@ function renderSelect(
             </Typography>
             <Select
                 value={value}
+                variant="filled"
                 onChange={e => onChange(e.target.value)}
                 size="small"
                 fullWidth
@@ -211,6 +212,7 @@ function renderText(key: string, item: CwConfigText, value: string, onChange: (v
             </Typography>
             <TextField
                 value={value}
+                variant="filled"
                 onChange={e => onChange(item.inputType === 'number' ? e.target.value : e.target.value)}
                 placeholder={item.placeholder ? I18n.t(item.placeholder) : undefined}
                 helperText={item.helperText ? I18n.t(item.helperText) : undefined}
@@ -322,6 +324,7 @@ function InstanceSelect(props: {
             ) : (
                 <Select
                     value={value}
+                    variant="filled"
                     onChange={e => onChange(e.target.value)}
                     size="small"
                     fullWidth
@@ -429,6 +432,7 @@ function CitySearch(props: {
             </Typography>
             <TextField
                 value={query}
+                variant="filled"
                 onChange={e => {
                     setQuery(e.target.value);
                     doSearch(e.target.value);
@@ -523,6 +527,7 @@ function StateIdPicker(props: {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TextField
                     value={value || ''}
+                    variant="filled"
                     onChange={e => onChange(e.target.value)}
                     placeholder={I18n.t('wm_State ID')}
                     size="small"

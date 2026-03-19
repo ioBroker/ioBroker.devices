@@ -259,5 +259,14 @@
     "wm_Wind speed": "Velocidad del viento",
     "wm_Wind gusts": "Ráfagas de viento",
     "wm_Wind_desc": "Brújula de viento con velocidad y ráfagas",
-    "wm_Downloaded": "Descargado"
+    "wm_Downloaded": "Descargado",
+    "wm_Chart type": "Tipo de gráfico",
+    "wm_chart_line": "Línea",
+    "wm_chart_step_start": "Escalón (inicio)",
+    "wm_chart_step_end": "Escalón (fin)",
+    "wm_Smoothing": "Suavizado",
+    "wm_smooth_30s": "30 segundos",
+    "wm_smooth_1m": "1 minuto",
+    "wm_smooth_5m": "5 minutos",
+    "wm_smooth_10m": "10 minutos"
 }
