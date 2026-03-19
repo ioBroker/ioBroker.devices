@@ -903,9 +903,10 @@ function GroupedContent(props: {
                             mb: 1.5,
                             // At runtime, hide a group when all widgets inside are hidden
                             // but only when the group is not collapsed (collapsed groups have no widget children by design)
-                            ...(!configMode && !group.collapsed && {
-                                '&:not(:has([class^="widget-"]))': { display: 'none' },
-                            }),
+                            ...(!configMode &&
+                                !group.collapsed && {
+                                    '&:not(:has([class^="widget-"]))': { display: 'none' },
+                                }),
                         }}
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: group.collapsed ? 0 : 0.5 }}>
@@ -1709,11 +1710,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     private renderWidgetIconPreviews(category: CategoryInfo): React.JSX.Element | null {
         // Only show alarm/sensor types NOT already covered by the status system
         // (window, door, motion are rendered separately via openings/motionActive)
-        const ALARM_TYPES = new Set([
-            Types.floodAlarm,
-            Types.fireAlarm,
-            Types.warning,
-        ]);
+        const ALARM_TYPES = new Set([Types.floodAlarm, Types.fireAlarm, Types.warning]);
         const catWidgets = this.props.widgets.filter(
             w => w.parent === category.id && w.control?.type && ALARM_TYPES.has(w.control.type),
         );
@@ -1745,7 +1742,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     ? (w.name as ioBroker.Translated)[I18n.getLanguage()] || (w.name as ioBroker.Translated).en || ''
                     : String(w.name || '');
             const ws = this.props.widgetSettings[String(w.id)];
-            const iconSrc = ws?.iconActive || ws?.iconInactive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
+            const iconSrc =
+                ws?.iconActive || ws?.iconInactive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
             const color = ws?.color;
             icons.push({ id: w.id, src: iconSrc, name: wName, type: w.control.type, color });
         }
@@ -1841,7 +1839,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws ? (ws.iconActive || ws.iconInactive || ws.icon) : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);
@@ -2105,9 +2103,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws
-                                ? ws.iconActive || ws.iconInactive || ws.icon
-                                : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);

@@ -142,9 +142,10 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
         const color = getLevelColor(level);
 
         // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
-        const customIcon = level > 0
-            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
-            : this.props.settings?.iconInactive;
+        const customIcon =
+            level > 0
+                ? this.props.settings?.iconActive || this.props.settings?.iconInactive
+                : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
                 <Icon

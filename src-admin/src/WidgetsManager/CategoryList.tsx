@@ -1342,7 +1342,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     render(): React.JSX.Element {
         if (this.state.alive === false) {
             return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', opacity: 0.5 }}>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0.5,
+                    }}
+                >
                     {I18n.t('wm_Instance not active')}
                 </div>
             );

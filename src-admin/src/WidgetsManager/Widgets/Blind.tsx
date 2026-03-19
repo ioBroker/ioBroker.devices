@@ -666,9 +666,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: this.props.settings?.blindType === 'curtain'
-                            ? 'ew-resize'
-                            : 'ns-resize',
+                        cursor: this.props.settings?.blindType === 'curtain' ? 'ew-resize' : 'ns-resize',
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),

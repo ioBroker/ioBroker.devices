@@ -629,9 +629,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                 >
                                     {I18n.t('wm_Direction')}:
                                 </Typography>
-                                <Typography sx={{ fontSize: '0.95rem' }}>
-                                    {Math.round(direction)}°
-                                </Typography>
+                                <Typography sx={{ fontSize: '0.95rem' }}>{Math.round(direction)}°</Typography>
                             </Box>
                         ) : null}
                     </Box>
