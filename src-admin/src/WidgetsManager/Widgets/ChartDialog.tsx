@@ -126,6 +126,35 @@ function smoothData(data: { ts: number; val: number }[], windowSec: number): { t
     return result;
 }
 
+/** Interpolate value at a given timestamp from sorted time-series data.
+ *  Returns null if ts is outside the data range. */
+function interpolateAt(data: { ts: number; val: number }[], ts: number): number | null {
+    if (!data.length) {
+        return null;
+    }
+    if (ts <= data[0].ts) {
+        return data[0].val;
+    }
+    if (ts >= data[data.length - 1].ts) {
+        return data[data.length - 1].val;
+    }
+    // Binary search for the right bracket
+    let lo = 0;
+    let hi = data.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (data[mid].ts <= ts) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    const a = data[lo];
+    const b = data[hi];
+    const t = (ts - a.ts) / (b.ts - a.ts);
+    return a.val + t * (b.val - a.val);
+}
+
 /** Build SVG path `d` attribute for the given points and line type */
 function buildLinePath(points: { x: number; y: number }[], chartType: ChartLineType): string {
     if (points.length < 2) {
@@ -205,11 +234,8 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     const [viewEnd, setViewEnd] = useState(globalTsMax);
     const [tooltip, setTooltip] = useState<{
         x: number;
-        y: number;
         ts: number;
-        val: number;
-        color: string;
-        name?: string;
+        entries: { val: number; y: number; color: string; name?: string; unit?: string }[];
     } | null>(null);
 
     // Reset view when data changes
@@ -298,25 +324,28 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                     return;
                 }
                 const ts = xToTs(mx);
-                // Find the nearest point across all series
-                let best: { dist: number; ts: number; val: number; color: string; name?: string } | null = null;
+                // Find the nearest actual data point timestamp across all series
+                let bestTs = ts;
+                let bestDist = Infinity;
                 for (const s of series) {
                     for (const p of s.data) {
                         const dist = Math.abs(p.ts - ts);
-                        if (!best || dist < best.dist) {
-                            best = { dist, ts: p.ts, val: p.val, color: s.color, name: s.name };
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestTs = p.ts;
                         }
                     }
                 }
-                if (best) {
-                    setTooltip({
-                        x: tsToX(best.ts),
-                        y: valToY(best.val),
-                        ts: best.ts,
-                        val: best.val,
-                        color: best.color,
-                        name: best.name,
-                    });
+                // Build entries for all series at bestTs (interpolate if needed)
+                const entries: { val: number; y: number; color: string; name?: string; unit?: string }[] = [];
+                for (const s of series) {
+                    const val = interpolateAt(s.data, bestTs);
+                    if (val != null) {
+                        entries.push({ val, y: valToY(val), color: s.color, name: s.name, unit: s.unit });
+                    }
+                }
+                if (entries.length) {
+                    setTooltip({ x: tsToX(bestTs), ts: bestTs, entries });
                 }
             }
         },
@@ -519,20 +548,32 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 );
             })}
 
-            {/* Tooltip crosshair + dot + label */}
+            {/* Tooltip crosshair + dots + label */}
             {tooltip
                 ? (() => {
-                      const displayName = tooltip.name || (series.length === 1 ? chartTitle : undefined);
-                      const label = `${displayName ? `${displayName} – ` : ''}${formatValue(tooltip.val)}${unit ? ` ${unit}` : ''}`;
+                      const { entries } = tooltip;
                       const timeLabel = formatTime(tooltip.ts, viewEnd - viewStart);
                       const fontSize = 11;
+                      const lineHeight = fontSize + 3;
                       const padX = 6;
                       const padY = 3;
-                      const boxW = Math.max(label.length, timeLabel.length) * 6.5 + padX * 2;
-                      const boxH = fontSize * 2 + padY * 2 + 4;
-                      // Position: prefer above the dot, flip if too close to the top
-                      const above = tooltip.y - boxH - 12 > MARGIN.top;
-                      const boxY = above ? tooltip.y - boxH - 8 : tooltip.y + 12;
+
+                      // Build label lines for each series
+                      const labels = entries.map(e => {
+                          const displayName = e.name || (series.length === 1 ? chartTitle : undefined);
+                          const entryUnit = e.unit || unit;
+                          return `${displayName ? `${displayName}: ` : ''}${formatValue(e.val)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                      });
+
+                      const allLines = [...labels, timeLabel];
+                      const maxLen = Math.max(...allLines.map(l => l.length));
+                      const boxW = maxLen * 6.5 + padX * 2;
+                      const boxH = lineHeight * labels.length + (fontSize - 1) + padY * 2 + 4;
+
+                      // Position: prefer above the topmost dot, flip if too close to the top
+                      const topY = Math.min(...entries.map(e => e.y));
+                      const above = topY - boxH - 12 > MARGIN.top;
+                      const boxY = above ? topY - boxH - 8 : Math.max(...entries.map(e => e.y)) + 12;
                       // Clamp horizontally
                       let boxX = tooltip.x - boxW / 2;
                       if (boxX < MARGIN.left) {
@@ -553,14 +594,17 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                                   opacity={0.2}
                                   strokeDasharray="3,3"
                               />
-                              <circle
-                                  cx={tooltip.x}
-                                  cy={tooltip.y}
-                                  r={4}
-                                  fill={tooltip.color}
-                                  stroke="white"
-                                  strokeWidth={1.5}
-                              />
+                              {entries.map((e, i) => (
+                                  <circle
+                                      key={i}
+                                      cx={tooltip.x}
+                                      cy={e.y}
+                                      r={4}
+                                      fill={e.color}
+                                      stroke="white"
+                                      strokeWidth={1.5}
+                                  />
+                              ))}
                               {/* Tooltip box */}
                               <rect
                                   x={boxX}
@@ -573,19 +617,22 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                                   strokeOpacity={0.15}
                                   filter="drop-shadow(0 1px 3px rgba(0,0,0,0.2))"
                               />
+                              {labels.map((label, i) => (
+                                  <text
+                                      key={i}
+                                      x={boxX + padX}
+                                      y={boxY + padY + lineHeight * i + fontSize}
+                                      fontSize={fontSize}
+                                      fontWeight={600}
+                                      fill={entries[i].color}
+                                      fontFamily="system-ui, sans-serif"
+                                  >
+                                      {label}
+                                  </text>
+                              ))}
                               <text
                                   x={boxX + padX}
-                                  y={boxY + padY + fontSize}
-                                  fontSize={fontSize}
-                                  fontWeight={600}
-                                  fill="var(--mui-palette-text-primary, #000)"
-                                  fontFamily="system-ui, sans-serif"
-                              >
-                                  {label}
-                              </text>
-                              <text
-                                  x={boxX + padX}
-                                  y={boxY + padY + fontSize * 2 + 2}
+                                  y={boxY + padY + lineHeight * labels.length + (fontSize - 1)}
                                   fontSize={fontSize - 1}
                                   fill="var(--mui-palette-text-primary, #000)"
                                   opacity={0.5}
@@ -641,8 +688,8 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
     const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dims, setDims] = useState({ w: 600, h: 350 });
-    const [autoUnit, setAutoUnit] = useState('');
-    const unit = unitProp || autoUnit;
+    const [autoUnits, setAutoUnits] = useState<Record<string, string>>({});
+    const unit = unitProp || '';
     const settingsLoadedRef = useRef(false);
 
     // Load chart settings from custom['devices.0'] on the widget object
@@ -785,7 +832,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             }
                         }
                     }
-                    result.push({ data, color, name });
+                    result.push({ data, color, name, unit: autoUnits[id] });
                 } catch (e) {
                     console.warn(`ChartDialog: failed to load history for ${id}:`, e);
                 }
@@ -795,7 +842,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                 setLoading(false);
             }
         },
-        [historyIds, historyInstance, socket, resolveHistoryId],
+        [historyIds, historyInstance, socket, resolveHistoryId, autoUnits],
     );
 
     const loadData = useCallback(
@@ -822,20 +869,24 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         }
     }, [open, rangeHours, loadData]);
 
-    // Auto-detect unit from a first history state object
+    // Auto-detect units for each history state
     useEffect(() => {
         if (!open || unitProp || !historyIds.length) {
             return;
         }
         void (async () => {
-            try {
-                const obj = (await socket.getObject(historyIds[0].id)) as ioBroker.StateObject | null;
-                if (obj?.common?.unit) {
-                    setAutoUnit(obj.common.unit);
+            const units: Record<string, string> = {};
+            for (const { id } of historyIds) {
+                try {
+                    const obj = (await socket.getObject(id)) as ioBroker.StateObject | null;
+                    if (obj?.common?.unit) {
+                        units[id] = obj.common.unit;
+                    }
+                } catch {
+                    // ignore
                 }
-            } catch {
-                // ignore
             }
+            setAutoUnits(units);
         })();
     }, [open, unitProp, historyIds, socket]);
 

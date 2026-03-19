@@ -93,6 +93,9 @@ interface CategoryListState extends CommunicationState {
     configMode: boolean;
     /** Side Panel install dialog open */
     sidePanelDialogOpen: boolean;
+    /** Coordinates from system.config for sun calculations */
+    latitude: number | null;
+    longitude: number | null;
 }
 
 const ROOT_CATEGORY = '__root__';
@@ -176,6 +179,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             customWidgetSettingsWidgetId: null,
             configMode: !!this.props.showSettingsButton,
             sidePanelDialogOpen: false,
+            latitude: null,
+            longitude: null,
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -317,6 +322,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
         if (alive) {
             this.loadItemsList();
+        }
+
+        // Load coordinates from system.config for sun calculations
+        try {
+            const sysConfig = await this.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
+            const lat = sysConfig?.common?.latitude;
+            const lng = sysConfig?.common?.longitude;
+            if (lat != null && lng != null) {
+                this.setState({ latitude: lat, longitude: lng });
+            }
+        } catch {
+            // ignore
         }
     }
 
@@ -1380,6 +1397,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                             onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
+                            latitude={this.state.latitude}
+                            longitude={this.state.longitude}
                         />
                         <CategoryListDialogs
                             settingsWidget={settingsWidget || null}
