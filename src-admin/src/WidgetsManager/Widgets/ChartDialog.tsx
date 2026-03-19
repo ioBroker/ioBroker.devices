@@ -126,8 +126,10 @@ function smoothData(data: { ts: number; val: number }[], windowSec: number): { t
     return result;
 }
 
-/** Interpolate value at a given timestamp from sorted time-series data.
- *  Returns null if ts is outside the data range. */
+/**
+ * Interpolate value at a given timestamp from sorted time-series data.
+ *  Returns null if ts is outside the data range.
+ */
 function interpolateAt(data: { ts: number; val: number }[], ts: number): number | null {
     if (!data.length) {
         return null;

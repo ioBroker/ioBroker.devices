@@ -1,9 +1,28 @@
 import React, { Component } from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { Settings, WbSunny, NightsStay } from '@mui/icons-material';
+// @ts-expect-error no types
 import { getTimes } from 'suncalc2';
 
 import { getTileStyles } from './Generic';
+
+interface SunTimes {
+    sunrise: Date;
+    sunset: Date;
+    sunriseEnd: Date;
+    sunsetStart: Date;
+    dawn: Date;
+    dusk: Date;
+    nauticalDawn: Date;
+    nauticalDusk: Date;
+    nightEnd: Date;
+    night: Date;
+    goldenHourEnd: Date;
+    goldenHour: Date;
+    solarNoon: Date;
+    nadir: Date;
+}
+const getTimesTypes: (date: Date, latitude: number, longitude: number) => SunTimes = getTimes;
 
 const SUN_LABELS: Record<string, { rise: string; set: string }> = {
     en: { rise: 'Sunrise', set: 'Sunset' },
@@ -80,7 +99,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         let sunset = '';
         if (this.props.latitude != null && this.props.longitude != null) {
             try {
-                const times = getTimes(now, this.props.latitude, this.props.longitude);
+                const times = getTimesTypes(now, this.props.latitude, this.props.longitude);
                 sunrise = times.sunrise.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
                 sunset = times.sunset.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
             } catch {
@@ -390,7 +409,9 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                             </Typography>
                         ) : null}
                     </Box>
-                    <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: 1 }}>
+                    <Box
+                        sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: 1 }}
+                    >
                         {date ? (
                             <Typography
                                 variant="body2"
@@ -426,13 +447,19 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                     fontSize: fontSize || 'max(0.7rem, 3.5cqi)',
                 })}
             >
-                <Tooltip title={SUN_LABELS[this.props.language]?.rise || 'Sunrise'} arrow>
+                <Tooltip
+                    title={SUN_LABELS[this.props.language]?.rise || 'Sunrise'}
+                    arrow
+                >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <WbSunny sx={{ fontSize: '1.1em', color: '#ffa726' }} />
                         <span>{sunrise}</span>
                     </Box>
                 </Tooltip>
-                <Tooltip title={SUN_LABELS[this.props.language]?.set || 'Sunset'} arrow>
+                <Tooltip
+                    title={SUN_LABELS[this.props.language]?.set || 'Sunset'}
+                    arrow
+                >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <NightsStay sx={{ fontSize: '1.1em', color: '#5c6bc0' }} />
                         <span>{sunset}</span>
@@ -632,7 +659,9 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                             </Typography>
                         ) : null}
                     </Box>
-                    <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: 1 }}>
+                    <Box
+                        sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pr: 1 }}
+                    >
                         {this.renderSunInfo('0.7rem')}
                     </Box>
                 </Box>

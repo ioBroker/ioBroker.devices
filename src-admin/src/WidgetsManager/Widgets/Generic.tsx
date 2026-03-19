@@ -930,14 +930,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             trend === 'up'
                 ? I18n.t('wm_Trend rising')
                 : trend === 'down'
-                    ? I18n.t('wm_Trend falling')
-                    : I18n.t('wm_Trend stable');
+                  ? I18n.t('wm_Trend falling')
+                  : I18n.t('wm_Trend stable');
 
-        return (
-            <Tooltip title={`${label} (${minutes} min)`}>
-                {icon}
-            </Tooltip>
-        );
+        return <Tooltip title={`${label} (${minutes} min)`}>{icon}</Tooltip>;
     }
 
     // --- Chart ---
@@ -1101,8 +1097,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 this.historyInstance = this.props.defaultHistory;
             } else {
                 try {
-                    const sysConfig = await this.props.stateContext
-                        .getObject<ioBroker.SystemConfigObject>('system.config');
+                    const sysConfig =
+                        await this.props.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
                     this.historyInstance = sysConfig?.common?.defaultHistory || '';
                 } catch {
                     this.historyInstance = '';

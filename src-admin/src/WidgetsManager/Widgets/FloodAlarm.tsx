@@ -93,7 +93,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
 
         // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
         const customIcon = alarm
-            ? (this.props.settings?.iconActive || this.props.settings?.iconInactive)
+            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
             : this.props.settings?.iconInactive;
         if (customIcon) {
             return (
