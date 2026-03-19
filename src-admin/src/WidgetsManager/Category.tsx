@@ -128,6 +128,10 @@ interface CategoryProps {
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     /** Delete a widget by ID (for unsupported widget types) */
     onDeleteWidgetById?: (widgetId: string | number) => void;
+    /** Latitude from system.config for sun calculations */
+    latitude?: number | null;
+    /** Longitude from system.config for sun calculations */
+    longitude?: number | null;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -174,7 +178,7 @@ const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
     lowBatteryDevices: [],
 };
 
-type StatusRole = 'temperature' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery';
+type StatusRole = 'temperature' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery' | 'sensor';
 
 interface StatusSubscription {
     stateId: string;
@@ -1152,6 +1156,25 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         this.props.stateContext.getState(second.id, this.onStatusChange);
                     }
                 }
+            } else {
+                // Subscribe ACTUAL/SET state for all other alarm/sensor widget types
+                // so that renderWidgetIconPreviews can determine active state
+                const sensorState =
+                    w.control.states.find(s => s.name === 'ACTUAL') ||
+                    w.control.states.find(s => s.name === 'SET') ||
+                    w.control.states.find(s => s.name === 'ON');
+                if (
+                    sensorState?.id &&
+                    !this.statusSubs.some(s => s.stateId === sensorState.id && s.categoryId === categoryId)
+                ) {
+                    this.statusSubs.push({
+                        stateId: sensorState.id,
+                        role: 'sensor',
+                        widgetId: String(w.id),
+                        categoryId,
+                    });
+                    this.props.stateContext.getState(sensorState.id, this.onStatusChange);
+                }
             }
 
             // Subscribe to battery indicators for ALL widget types
@@ -1624,6 +1647,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         showSeconds={def.showSeconds}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
+                        latitude={this.props.latitude}
+                        longitude={this.props.longitude}
                     />
                 );
             case 'weather':
@@ -1680,15 +1705,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         }
     }
 
-    /** Render small alarm/sensor widget icon previews for a sub-category tile */
+    /** Render small alarm/sensor widget icon previews for a sub-category tile (only active ones) */
     private renderWidgetIconPreviews(category: CategoryInfo): React.JSX.Element | null {
-        // Only show alarm/sensor type widgets: window, door, fire, flood, warning, motion
+        // Only show alarm/sensor types NOT already covered by the status system
+        // (window, door, motion are rendered separately via openings/motionActive)
         const ALARM_TYPES = new Set([
             Types.floodAlarm,
             Types.fireAlarm,
-            Types.motion,
-            Types.window,
-            Types.door,
             Types.warning,
         ]);
         const catWidgets = this.props.widgets.filter(
@@ -1698,18 +1721,33 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             return null;
         }
 
-        // Collect icons (max 8) — use custom icon or fall back to the default type icon
-        const icons: { id: string | number; src?: string; name: string; type: Types }[] = [];
+        // Collect icons (max 8) — only active widgets, with widget colors
+        const icons: { id: string | number; src?: string; name: string; type: Types; color?: string }[] = [];
         for (const w of catWidgets) {
             if (icons.length >= 8) {
                 break;
+            }
+            // Check if widget is active via its primary state
+            const stateEntry =
+                w.control.states.find(s => s.name === 'ACTUAL') ||
+                w.control.states.find(s => s.name === 'SET') ||
+                w.control.states.find(s => s.name === 'ON');
+            if (stateEntry?.id) {
+                const val = this.statusValues[stateEntry.id];
+                if (!val) {
+                    continue; // inactive — skip
+                }
+            } else {
+                continue; // no trackable state — skip
             }
             const wName =
                 typeof w.name === 'object'
                     ? (w.name as ioBroker.Translated)[I18n.getLanguage()] || (w.name as ioBroker.Translated).en || ''
                     : String(w.name || '');
-            const iconSrc = typeof w.icon === 'string' ? w.icon : undefined;
-            icons.push({ id: w.id, src: iconSrc, name: wName, type: w.control.type });
+            const ws = this.props.widgetSettings[String(w.id)];
+            const iconSrc = ws?.iconActive || ws?.iconInactive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
+            const color = ws?.color;
+            icons.push({ id: w.id, src: iconSrc, name: wName, type: w.control.type, color });
         }
 
         if (!icons.length) {
@@ -1727,7 +1765,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             {ic.src ? (
                                 <Icon
                                     src={ic.src}
-                                    style={{ width: 16, height: 16, color: 'grey' }}
+                                    style={{ width: 16, height: 16, color: ic.color || undefined }}
                                 />
                             ) : (
                                 Category.renderDefaultTypeIcon(ic.type, 16)
@@ -1742,12 +1780,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     /** Render status summary for a sub-category tile (temperature, humidity, openings, motion) */
     private renderSubCategoryStatus(category: CategoryInfo, deviceCount: number): React.JSX.Element {
         const status = this.state.subCategoryStatuses[String(category.id)];
+        const activeOpenings = status ? status.openings.filter(o => o.state !== 0) : [];
         const hasStatus =
             status &&
             (status.temperature !== null ||
                 status.humidity !== null ||
                 status.motionActive ||
-                status.openings.some(o => o.state !== 0) ||
+                activeOpenings.length > 0 ||
                 status.lowBatteryDevices.length > 0);
 
         const widgetIcons = this.renderWidgetIconPreviews(category);
@@ -1768,8 +1807,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 ))
             );
         }
-
-        const openSensors = status.openings.filter(o => o.state !== 0);
 
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.25 }}>
@@ -1800,9 +1837,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         <DirectionsRun sx={{ fontSize: 16, color: 'warning.main' }} />
                     </Tooltip>
                 ) : null}
-                {openSensors.length > 0 ? (
+                {activeOpenings.length > 0 ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        {openSensors.map(sensor => {
+                        {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
                             const customIcon = ws ? (ws.iconActive || ws.iconInactive || ws.icon) : undefined;
                             const iconSrc = customIcon || sensor.icon;
@@ -2014,11 +2051,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     renderCategoryStatus(): React.JSX.Element | null {
         const { temperature, humidity, motionActive, openings, lowBatteryDevices } = this.state.categoryStatus;
+        // Only show active openings (state !== 0) in the category header
+        const activeOpenings = openings.filter(o => o.state !== 0);
         const hasAny =
             temperature !== null ||
             humidity !== null ||
             motionActive ||
-            openings.length > 0 ||
+            activeOpenings.length > 0 ||
             lowBatteryDevices.length > 0;
         if (!hasAny) {
             return null;
@@ -2062,21 +2101,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         <DirectionsRun sx={{ fontSize: 20, color: 'warning.main' }} />
                     </Tooltip>
                 ) : null}
-                {openings.length > 0 ? (
+                {activeOpenings.length > 0 ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {openings.map(sensor => {
+                        {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const isActive = sensor.state !== 0;
                             const customIcon = ws
-                                ? isActive
-                                    ? ws.iconActive || ws.iconInactive || ws.icon
-                                    : ws.iconInactive || ws.icon
+                                ? ws.iconActive || ws.iconInactive || ws.icon
                                 : undefined;
                             const iconSrc = customIcon || sensor.icon;
-                            const customColor = ws ? (isActive ? ws.color : ws.colorInactive) : undefined;
+                            const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);
                             const color = customColor || fallbackColor;
-                            const customText = ws ? (isActive ? ws.textActive : ws.textInactive) : undefined;
+                            const customText = ws?.textActive;
                             const tooltip = customText
                                 ? `${sensor.name}: ${customText}`
                                 : Category.getOpeningTooltip(sensor);

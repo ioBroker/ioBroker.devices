@@ -124,6 +124,7 @@ export interface ChartSeries {
     data: { ts: number; val: number }[];
     color: string;
     name?: string;
+    unit?: string;
 }
 
 export interface ExtraInfoEntry {

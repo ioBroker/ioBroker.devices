@@ -58,6 +58,11 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
             uk: ukLang,
             'zh-cn': zhCnLang,
         };
+        if (window.location.port === '3000') {
+            extendedProps.socket = {
+                host: '192.168.1.129',
+            };
+        }
         super(props, extendedProps);
 
         const theme = this.createTheme();
