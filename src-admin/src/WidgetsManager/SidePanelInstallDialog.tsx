@@ -276,6 +276,7 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                 </Typography>
                 <TextField
                     fullWidth
+                    variant="filled"
                     size="small"
                     value={serverUrl}
                     onChange={e => {

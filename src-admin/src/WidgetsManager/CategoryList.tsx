@@ -1339,6 +1339,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             }
                             admin={this.props.admin}
                             defaultHistory={this.defaultHistory || undefined}
+                            instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                         />
                         <WidgetSettingsDialog

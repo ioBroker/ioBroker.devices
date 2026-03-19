@@ -259,5 +259,14 @@
     "wm_Wind speed": "Швидкість вітру",
     "wm_Wind gusts": "Пориви вітру",
     "wm_Wind_desc": "Компас вітру зі швидкістю та поривами",
-    "wm_Downloaded": "Завантажено"
+    "wm_Downloaded": "Завантажено",
+    "wm_Chart type": "Тип графіка",
+    "wm_chart_line": "Лінія",
+    "wm_chart_step_start": "Сходинка (початок)",
+    "wm_chart_step_end": "Сходинка (кінець)",
+    "wm_Smoothing": "Згладжування",
+    "wm_smooth_30s": "30 секунд",
+    "wm_smooth_1m": "1 хвилина",
+    "wm_smooth_5m": "5 хвилин",
+    "wm_smooth_10m": "10 хвилин"
 }

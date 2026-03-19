@@ -259,5 +259,14 @@
     "wm_Wind speed": "Windgeschwindigkeit",
     "wm_Wind gusts": "Windböen",
     "wm_Wind_desc": "Windkompass mit Geschwindigkeit und Böen",
-    "wm_Downloaded": "Heruntergeladen"
+    "wm_Downloaded": "Heruntergeladen",
+    "wm_Chart type": "Diagrammtyp",
+    "wm_chart_line": "Linie",
+    "wm_chart_step_start": "Stufe (Start)",
+    "wm_chart_step_end": "Stufe (Ende)",
+    "wm_Smoothing": "Glättung",
+    "wm_smooth_30s": "30 Sekunden",
+    "wm_smooth_1m": "1 Minute",
+    "wm_smooth_5m": "5 Minuten",
+    "wm_smooth_10m": "10 Minuten"
 }

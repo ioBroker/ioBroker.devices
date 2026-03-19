@@ -259,5 +259,14 @@
     "wm_Wind speed": "Prędkość wiatru",
     "wm_Wind gusts": "Porywy wiatru",
     "wm_Wind_desc": "Kompas wiatrowy z prędkością i porywami",
-    "wm_Downloaded": "Pobrano"
+    "wm_Downloaded": "Pobrano",
+    "wm_Chart type": "Typ wykresu",
+    "wm_chart_line": "Linia",
+    "wm_chart_step_start": "Skok (początek)",
+    "wm_chart_step_end": "Skok (koniec)",
+    "wm_Smoothing": "Wygładzanie",
+    "wm_smooth_30s": "30 sekund",
+    "wm_smooth_1m": "1 minuta",
+    "wm_smooth_5m": "5 minut",
+    "wm_smooth_10m": "10 minut"
 }

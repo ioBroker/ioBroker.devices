@@ -259,5 +259,14 @@
     "wm_Wind speed": "风速",
     "wm_Wind gusts": "阵风",
     "wm_Wind_desc": "带速度和阵风的风向罗盘",
-    "wm_Downloaded": "已下载"
+    "wm_Downloaded": "已下载",
+    "wm_Chart type": "图表类型",
+    "wm_chart_line": "折线",
+    "wm_chart_step_start": "阶梯（起始）",
+    "wm_chart_step_end": "阶梯（结束）",
+    "wm_Smoothing": "平滑",
+    "wm_smooth_30s": "30秒",
+    "wm_smooth_1m": "1分钟",
+    "wm_smooth_5m": "5分钟",
+    "wm_smooth_10m": "10分钟"
 }

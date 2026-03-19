@@ -259,5 +259,14 @@
     "wm_Wind speed": "Windsnelheid",
     "wm_Wind gusts": "Windstoten",
     "wm_Wind_desc": "Windkompas met snelheid en windstoten",
-    "wm_Downloaded": "Gedownload"
+    "wm_Downloaded": "Gedownload",
+    "wm_Chart type": "Grafiektype",
+    "wm_chart_line": "Lijn",
+    "wm_chart_step_start": "Stap (start)",
+    "wm_chart_step_end": "Stap (einde)",
+    "wm_Smoothing": "Afvlakking",
+    "wm_smooth_30s": "30 seconden",
+    "wm_smooth_1m": "1 minuut",
+    "wm_smooth_5m": "5 minuten",
+    "wm_smooth_10m": "10 minuten"
 }
