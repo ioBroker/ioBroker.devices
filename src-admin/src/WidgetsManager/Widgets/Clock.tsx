@@ -486,20 +486,20 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         position: 'absolute',
                         inset: 0,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 'max(12px, 4cqi)',
                         overflow: 'hidden',
                         ...getTileStyles(theme, false, accent, false),
                     })}
                 >
-                    {/* Left: time */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                    {/* Time row */}
+                    <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
                         <Typography
                             sx={{
                                 fontWeight: 700,
                                 lineHeight: 1,
-                                fontSize: 'max(2rem, 11cqi)',
+                                fontSize: 'max(2.5rem, 14cqi)',
                                 whiteSpace: 'nowrap',
                             }}
                         >
@@ -507,33 +507,34 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         </Typography>
                         {this.showSeconds ? (
                             <Typography
+                                component="span"
                                 variant="caption"
                                 sx={theme => ({
                                     color: theme.palette.text.disabled,
-                                    fontSize: 'max(0.85rem, 4.5cqi)',
+                                    fontSize: 'max(1rem, 5cqi)',
                                     fontVariantNumeric: 'tabular-nums',
+                                    ml: 0.5,
                                 })}
                             >
                                 :{seconds}
                             </Typography>
                         ) : null}
                     </Box>
-                    {/* Right: date + sun */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
-                        {date ? (
-                            <Typography
-                                variant="body2"
-                                sx={theme => ({
-                                    color: theme.palette.text.secondary,
-                                    fontSize: 'max(1rem, 5.5cqi)',
-                                    whiteSpace: 'nowrap',
-                                })}
-                            >
-                                {date}
-                            </Typography>
-                        ) : null}
-                        {this.renderSunInfo('max(0.85rem, 4.5cqi)')}
-                    </Box>
+                    {/* Date + sun info below */}
+                    {date ? (
+                        <Typography
+                            variant="body2"
+                            sx={theme => ({
+                                color: theme.palette.text.secondary,
+                                fontSize: 'max(0.9rem, 5cqi)',
+                                whiteSpace: 'nowrap',
+                                mt: 0.5,
+                            })}
+                        >
+                            {date}
+                        </Typography>
+                    ) : null}
+                    {this.renderSunInfo('max(0.75rem, 4cqi)')}
                 </Box>
                 {this.renderSettingsButton()}
             </Box>

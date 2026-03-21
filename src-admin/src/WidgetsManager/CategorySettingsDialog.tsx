@@ -44,6 +44,8 @@ export interface CategorySettings {
     rootIcon?: string;
     /** Widget theme preset (root category only). Default: 'auto' (follows admin theme) */
     wmTheme?: WmThemeId;
+    /** Default category ID to show when page loads without hash (root only) */
+    defaultCategory?: string;
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
@@ -53,6 +55,12 @@ export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
     image: '',
     imageScope: 'header',
 };
+
+export interface CategoryOption {
+    id: string;
+    label: string;
+    icon?: string;
+}
 
 interface CategorySettingsDialogProps {
     open: boolean;
@@ -66,10 +74,12 @@ interface CategorySettingsDialogProps {
     theme: IobTheme;
     /** true if running in admin, false if in web */
     admin: boolean;
+    /** All available categories for the default-category picker (root only) */
+    categoryOptions?: CategoryOption[];
 }
 
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
-    const { open, categoryName, categoryId, settings, onClose, onSave, socket, instance, theme, admin } = props;
+    const { open, categoryName, categoryId, settings, onClose, onSave, socket, instance, theme, admin, categoryOptions } = props;
     // In admin, files are served under /files/, in web they are at root
     const filePrefix = admin ? 'files/' : '';
     const [local, setLocal] = useState<CategorySettings>(settings);
@@ -314,6 +324,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         local.imageScope !== (settings.imageScope || 'header') ||
         (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton) ||
         (isRoot && (local.wmTheme || 'auto') !== (settings.wmTheme || 'auto')) ||
+        (isRoot && (local.defaultCategory || '') !== (settings.defaultCategory || '')) ||
         (local.icon || '') !== (settings.icon || '') ||
         (local.rootIcon || '') !== (settings.rootIcon || '');
 
@@ -572,6 +583,37 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             <MenuItem value="light">{I18n.t('wm_theme_light')}</MenuItem>
                             <MenuItem value="orangeDark">{I18n.t('wm_theme_orangeDark')}</MenuItem>
                             <MenuItem value="blueDark">{I18n.t('wm_theme_blueDark')}</MenuItem>
+                        </TextField>
+                    ) : null}
+
+                    {isRoot && categoryOptions ? (
+                        <TextField
+                            select
+                            fullWidth
+                            variant="filled"
+                            size="small"
+                            label={I18n.t('wm_Default category')}
+                            value={local.defaultCategory || ''}
+                            onChange={e => setLocal({ ...local, defaultCategory: e.target.value || '' })}
+                            sx={{ mt: 2 }}
+                        >
+                            <MenuItem value="">{I18n.t('wm_None (root)')}</MenuItem>
+                            {categoryOptions.map(opt => (
+                                <MenuItem
+                                    key={opt.id}
+                                    value={opt.id}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {opt.icon ? (
+                                            <Icon
+                                                src={opt.icon}
+                                                style={{ width: 20, height: 20, flexShrink: 0 }}
+                                            />
+                                        ) : null}
+                                        <span>{opt.label}</span>
+                                    </Box>
+                                </MenuItem>
+                            ))}
                         </TextField>
                     ) : null}
 

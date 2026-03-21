@@ -293,5 +293,8 @@
     "wm_ff_step5": "La barre latérale s'ouvre — utilisez Affichage → Barre latérale pour la basculer",
     "wm_ff_hint": "Les extensions temporaires sont supprimées au redémarrage du navigateur. Pour une utilisation permanente, envisagez de signer l'extension via Mozilla.",
     "wm_Instance not active": "L'instance n'est pas active",
-    "wm_Hide config warning": "Si vous masquez le bouton de configuration, vous ne pourrez pas le réactiver depuis cette page web. Vous devrez aller dans Admin → Devices pour le réactiver."
+    "wm_Hide config warning": "Si vous masquez le bouton de configuration, vous ne pourrez pas le réactiver depuis cette page web. Vous devrez aller dans Admin → Devices pour le réactiver.",
+    "wm_Default category": "Catégorie par défaut",
+    "wm_None (root)": "Aucune (racine)",
+    "wm_Favorites": "Favoris"
 }

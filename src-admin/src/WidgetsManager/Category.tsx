@@ -25,6 +25,8 @@ import {
     UnfoldLess,
     UnfoldMore,
     ViewModule,
+    Star,
+    StarBorder,
     Warning,
     WaterDamage,
     WaterDrop,
@@ -128,6 +130,8 @@ interface CategoryProps {
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     /** Delete a widget by ID (for unsupported widget types) */
     onDeleteWidgetById?: (widgetId: string | number) => void;
+    /** Toggle favorite star on a widget */
+    onToggleFavorite?: (widgetId: string) => void;
     /** Latitude from system.config for sun calculations */
     latitude?: number | null;
     /** Longitude from system.config for sun calculations */
@@ -224,9 +228,11 @@ function SortableItem(props: {
     id: string;
     gridColumn?: string;
     isDragging: boolean;
+    favorite?: boolean;
+    onToggleFavorite?: (widgetId: string) => void;
     children: React.ReactNode;
 }): React.JSX.Element {
-    const { id, gridColumn, isDragging, children } = props;
+    const { id, gridColumn, isDragging, favorite, onToggleFavorite, children } = props;
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id });
 
     const style: React.CSSProperties = {
@@ -268,6 +274,43 @@ function SortableItem(props: {
             >
                 <DragIndicator sx={{ fontSize: 16 }} />
             </Box>
+            {onToggleFavorite ? (
+                <Box
+                    component="span"
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onToggleFavorite(id);
+                    }}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            onToggleFavorite(id);
+                        }
+                    }}
+                    sx={theme => ({
+                        position: 'absolute',
+                        top: 4,
+                        left: 24,
+                        p: '2px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        zIndex: 3,
+                        color: favorite ? '#ffc107' : theme.palette.text.secondary,
+                        opacity: favorite ? 0.9 : 0.4,
+                        transition: 'opacity 0.2s, color 0.2s',
+                        '&:hover': {
+                            opacity: 1,
+                        },
+                    })}
+                >
+                    {favorite ? <Star sx={{ fontSize: 16 }} /> : <StarBorder sx={{ fontSize: 16 }} />}
+                </Box>
+            ) : null}
             {children}
         </div>
     );
@@ -300,8 +343,9 @@ function SortableGrid(props: {
     onOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     widgetSettings: Record<string, WidgetSettings>;
+    onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings } = props;
+    const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings, onToggleFavorite } = props;
     const sourceItems = category.getOrderedItems();
     const sourceIds = useMemo(() => sourceItems.map(i => i.id), [sourceItems]);
 
@@ -495,6 +539,8 @@ function SortableGrid(props: {
                             id={item.id}
                             gridColumn={getGridColumn(item, widgetSettings)}
                             isDragging={item.id === activeId}
+                            favorite={item.type !== 'category' ? widgetSettings[item.id]?.favorite : undefined}
+                            onToggleFavorite={item.type !== 'category' ? onToggleFavorite : undefined}
                         >
                             {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
                         </SortableItem>
@@ -522,8 +568,9 @@ function GroupSortableGrid(props: {
     /** Sub-category items shown as droppable targets inside this group's DndContext */
     categoryItems?: OrderedItem[];
     widgetSettings: Record<string, WidgetSettings>;
+    onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, items, canDrag, groupId, onOrderChange, onMoveWidgetToCategory, categoryItems, widgetSettings } =
+    const { category, items, canDrag, groupId, onOrderChange, onMoveWidgetToCategory, categoryItems, widgetSettings, onToggleFavorite } =
         props;
     const sourceIds = useMemo(() => items.map(i => i.id), [items]);
 
@@ -698,6 +745,8 @@ function GroupSortableGrid(props: {
                             id={item.id}
                             gridColumn={getGridColumn(item, widgetSettings)}
                             isDragging={item.id === activeId}
+                            favorite={item.type !== 'category' ? widgetSettings[item.id]?.favorite : undefined}
+                            onToggleFavorite={item.type !== 'category' ? onToggleFavorite : undefined}
                         >
                             {renderContent(item)}
                         </SortableItem>
@@ -822,6 +871,7 @@ function GroupedContent(props: {
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     widgetSettings: Record<string, WidgetSettings>;
     configMode?: boolean;
+    onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
     const {
         category,
@@ -832,6 +882,7 @@ function GroupedContent(props: {
         onMoveWidgetToCategory,
         widgetSettings,
         configMode,
+        onToggleFavorite,
     } = props;
     const allItems = category.getOrderedItems();
     const itemMap = useMemo(() => {
@@ -968,6 +1019,7 @@ function GroupedContent(props: {
                                 onMoveWidgetToCategory={onMoveWidgetToCategory}
                                 categoryItems={categoryItems}
                                 widgetSettings={widgetSettings}
+                                onToggleFavorite={onToggleFavorite}
                             />
                         ) : null}
                     </Box>
@@ -991,6 +1043,7 @@ function GroupedContent(props: {
                         onMoveWidgetToCategory={onMoveWidgetToCategory}
                         categoryItems={categoryItems}
                         widgetSettings={widgetSettings}
+                        onToggleFavorite={onToggleFavorite}
                     />
                 </Box>
             ) : null}
@@ -1015,6 +1068,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     private statusValues: Record<string, ioBroker.StateValue> = {};
 
     private scrollRef = React.createRef<HTMLDivElement>();
+    private parallaxRef = React.createRef<HTMLDivElement>();
     private scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor(props: CategoryProps) {
@@ -1163,6 +1217,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             this.scrollSaveTimer = null;
             this.saveScrollPosition();
         }, 300);
+
+        // Parallax: shift background slower than content
+        if (this.parallaxRef.current && this.scrollRef.current) {
+            const scrollTop = this.scrollRef.current.scrollTop;
+            this.parallaxRef.current.style.transform = `translateY(${scrollTop * 0.25}px) scale(1.15)`;
+        }
     };
 
     private getWidgetName(w: WidgetInfo): string {
@@ -2273,21 +2333,35 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     height: '100%',
                     overflow: 'hidden',
                     ...(catBgColor ? { backgroundColor: catBgColor } : {}),
-                    ...(catImage && imageScope === 'page'
-                        ? {
-                              ...bgImageSx,
-                              '&::before': {
-                                  content: '""',
-                                  position: 'absolute',
-                                  inset: 0,
-                                  backgroundColor: alpha(catBgColor || theme.palette.background.default, 0.75),
-                                  zIndex: 0,
-                              },
-                          }
-                        : {}),
                     position: 'relative',
                 })}
             >
+                {/* Parallax background layer for page-scope images */}
+                {catImage && imageScope === 'page' ? (
+                    <>
+                        <Box
+                            ref={this.parallaxRef}
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundImage: `url(${catImage})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                transform: 'scale(1.15)',
+                                willChange: 'transform',
+                                zIndex: 0,
+                            }}
+                        />
+                        <Box
+                            sx={theme => ({
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundColor: alpha(catBgColor || theme.palette.background.default, 0.75),
+                                zIndex: 0,
+                            })}
+                        />
+                    </>
+                ) : null}
                 {/* Floating config toggle — only when no header is shown */}
                 {!hasHeader && this.props.onToggleConfigMode ? (
                     <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 0.5 }}>
@@ -2550,6 +2624,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 onMoveWidgetToCategory={this.props.onMoveWidgetToCategory}
                                 widgetSettings={this.props.widgetSettings}
                                 configMode={this.props.configMode}
+                                onToggleFavorite={this.props.onToggleFavorite}
                             />
                         ) : (
                             <SortableGrid
@@ -2559,6 +2634,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 onOrderChange={this.props.onWidgetOrderChange}
                                 onMoveWidgetToCategory={this.props.onMoveWidgetToCategory}
                                 widgetSettings={this.props.widgetSettings}
+                                onToggleFavorite={this.props.onToggleFavorite}
                             />
                         )}
                     </Box>

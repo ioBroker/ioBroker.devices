@@ -105,6 +105,22 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         getCategoryName,
     } = props;
 
+    // Build category options for default-category picker (root settings only)
+    const categoryOptions = React.useMemo(() => {
+        const opts: Array<{ id: string; label: string; icon?: string }> = [];
+        // Add Favorites option
+        opts.push({ id: '__favorites__', label: I18n.t('wm_Favorites'), icon: '⭐' });
+        // Add all non-root categories
+        for (const cat of categories) {
+            if (String(cat.id) === rootCategory) {
+                continue;
+            }
+            const icon = typeof cat.icon === 'string' ? cat.icon : undefined;
+            opts.push({ id: String(cat.id), label: getCategoryName(cat), icon });
+        }
+        return opts;
+    }, [categories, rootCategory, getCategoryName]);
+
     return (
         <>
             <WidgetSettingsDialog
@@ -235,6 +251,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 instance={selectedInstance}
                 theme={theme}
                 admin={admin}
+                categoryOptions={categoryOptions}
             />
             <CustomWidgetDialog
                 open={customWidgetDialogCategoryId != null}

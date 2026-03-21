@@ -47,6 +47,8 @@ interface GuiConfig {
         rootIcon?: string;
         /** Widget theme preset */
         wmTheme?: WmThemeId;
+        /** Default category ID to show when page is opened without hash */
+        defaultCategory?: string;
         customWidgets?: CustomWidgetDef[];
         widgetOrder?: string[];
         widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
@@ -103,6 +105,7 @@ interface CategoryListState extends CommunicationState {
 }
 
 const ROOT_CATEGORY = '__root__';
+const FAVORITES_CATEGORY = '__favorites__';
 
 /** Widget types where iconInactive is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([
@@ -211,6 +214,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private rootSettingsStateId = '';
 
+    /** Cached guiConfig — available immediately, unlike this.state.guiConfig which is async */
+    private guiConfigCache: GuiConfig | undefined;
+
     constructor(props: CategoryListProps) {
         super(props);
 
@@ -288,8 +294,40 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return segments.join('/');
     }
 
+    /** Build the virtual Favorites CategoryInfo (or null if no favorites exist) */
+    private buildFavoritesCategory(widgetSettings?: Record<string, WidgetSettings>): CategoryInfo | null {
+        const ws = widgetSettings || this.state.widgetSettings;
+        const hasFavorites = Object.values(ws).some(s => s.favorite);
+        if (!hasFavorites) {
+            return null;
+        }
+        return {
+            id: FAVORITES_CATEGORY,
+            type: 'category',
+            parent: ROOT_CATEGORY,
+            name: {
+                en: 'Favorites',
+                de: 'Favoriten',
+                ru: 'Избранное',
+                pt: 'Favoritos',
+                nl: 'Favorieten',
+                fr: 'Favoris',
+                it: 'Preferiti',
+                es: 'Favoritos',
+                pl: 'Ulubione',
+                uk: 'Обрані',
+                'zh-cn': '收藏夹',
+            } as ioBroker.Translated,
+            icon: '⭐',
+        };
+    }
+
     /** Resolve a hash like #Room/SubRoom back to a CategoryInfo from the given list */
-    private resolveCategoryFromHash(hash: string, categories: CategoryInfo[]): CategoryInfo | undefined {
+    private resolveCategoryFromHash(
+        hash: string,
+        categories: CategoryInfo[],
+        widgetSettings?: Record<string, WidgetSettings>,
+    ): CategoryInfo | undefined {
         const raw = hash.startsWith('#') ? hash.substring(1) : hash;
         if (!raw) {
             return categories.find(c => String(c.id) === ROOT_CATEGORY);
@@ -302,7 +340,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         for (const segment of segments) {
             found = categories.find(c => String(c.parent) === String(parentId) && this.getCategoryName(c) === segment);
             if (!found) {
-                return undefined;
+                // Check if this segment matches the virtual Favorites category
+                if (parentId === ROOT_CATEGORY) {
+                    const favCat = this.buildFavoritesCategory(widgetSettings);
+                    if (favCat && this.getCategoryName(favCat) === segment) {
+                        found = favCat;
+                    }
+                }
+                if (!found) {
+                    return undefined;
+                }
             }
             parentId = String(found.id);
         }
@@ -332,6 +379,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const guiConfigState = await this.props.socket.getObject(this.rootSettingsStateId);
         if (guiConfigState) {
             const guiConfig = guiConfigState.native as GuiConfig;
+            this.guiConfigCache = guiConfig;
             this.setState({ guiConfig });
             // Apply PWA icon on initial load
             if (guiConfig?.root?.icon) {
@@ -439,6 +487,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     onConfigChanged = (id: string, obj: ioBroker.ChannelObject | null | undefined): void => {
         if (id === this.rootSettingsStateId && obj?.native) {
             const guiConfig = obj.native as GuiConfig;
+            this.guiConfigCache = guiConfig;
             if (JSON.stringify(this.state.guiConfig) !== JSON.stringify(guiConfig)) {
                 this.setState(prev => {
                     const categorySettings = { ...prev.categorySettings };
@@ -452,6 +501,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             icon: guiConfig.root.icon || '',
                             rootIcon: guiConfig.root.rootIcon || '',
                             wmTheme: guiConfig.root.wmTheme,
+                            defaultCategory: guiConfig.root.defaultCategory || '',
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
                             widgetGroups: guiConfig.root.widgetGroups,
@@ -524,14 +574,39 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.setState({ loading: !!alive, alive });
                 if (alive) {
                     await this.loadItems(result => {
-                        // Try to restore the category from URL hash, fall back to root
-                        const currentCategory =
-                            this.resolveCategoryFromHash(window.location.hash, result.categories) ||
-                            result.categories.find(c => c.id === ROOT_CATEGORY) ||
-                            result.categories[0];
-
-                        // Build widget settings from widget.custom (stored in ioBroker objects)
+                        // Build widget settings first so Favorites can be resolved
                         const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
+
+                        // Try to restore the category from URL hash, fall back to default category, then root
+                        const hasHash = !!window.location.hash && window.location.hash !== '#';
+                        let currentCategory: CategoryInfo | undefined;
+
+                        if (hasHash) {
+                            currentCategory = this.resolveCategoryFromHash(
+                                window.location.hash,
+                                result.categories,
+                                widgetSettings,
+                            );
+                        }
+
+                        if (!currentCategory) {
+                            const defaultCatId = this.guiConfigCache?.root?.defaultCategory;
+                            if (!hasHash && defaultCatId) {
+                                if (defaultCatId === FAVORITES_CATEGORY) {
+                                    currentCategory =
+                                        this.buildFavoritesCategory(widgetSettings) || undefined;
+                                } else {
+                                    currentCategory = result.categories.find(
+                                        c => String(c.id) === defaultCatId,
+                                    );
+                                }
+                            }
+                        }
+
+                        if (!currentCategory) {
+                            currentCategory =
+                                result.categories.find(c => c.id === ROOT_CATEGORY) || result.categories[0];
+                        }
 
                         this.setState({
                             categories: result.categories,
@@ -540,6 +615,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             currentCategory,
                             widgetSettings,
                         });
+                        // Update hash to reflect the resolved category
+                        this.updateHash(currentCategory);
                         console.log(
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
                         );
@@ -724,6 +801,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
+    private onToggleFavorite = (widgetId: string): void => {
+        const current = this.state.widgetSettings[widgetId] || { ...DEFAULT_WIDGET_SETTINGS };
+        const updated: WidgetSettings = { ...current, favorite: !current.favorite };
+        const widgetSettings = { ...this.state.widgetSettings, [widgetId]: updated };
+        this.setState({ widgetSettings });
+        void this.saveWidgetSettingsToObject(widgetId, updated);
+    };
+
     /**
      * Extract WidgetSettings from a single widget's custom data.
      * Returns a full WidgetSettings if any non-default values exist, otherwise null.
@@ -895,6 +980,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 icon: rootConfig.icon || '',
                 rootIcon: rootConfig.rootIcon || '',
                 wmTheme: rootConfig.wmTheme,
+                defaultCategory: rootConfig.defaultCategory || '',
                 customWidgets: rootConfig.customWidgets,
                 widgetOrder: rootConfig.widgetOrder,
                 widgetGroups: rootConfig.widgetGroups,
@@ -955,6 +1041,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         icon: settings.icon || '',
                         rootIcon: settings.rootIcon || '',
                         wmTheme: settings.wmTheme || undefined,
+                        defaultCategory: settings.defaultCategory || undefined,
                     },
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
@@ -1472,6 +1559,26 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const editing = !!this.props.showSettingsButton && this.state.configMode;
         const hideConfigButton = this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton;
 
+        // Build virtual favorites category with widgets that have favorite=true
+        const favoriteWidgetIds = Object.entries(this.state.widgetSettings)
+            .filter(([, s]) => s.favorite)
+            .map(([id]) => id);
+        const hasFavorites = favoriteWidgetIds.length > 0;
+
+        // Create a virtual favorites category as a child of root
+        const favoritesCategory: CategoryInfo | null = this.buildFavoritesCategory();
+
+        // Virtual widget copies: set parent to favorites category so Category.widgets getter picks them up
+        const favoriteWidgets: WidgetInfo[] = hasFavorites
+            ? this.state.widgets
+                  .filter(w => favoriteWidgetIds.includes(String(w.id)))
+                  .map(w => ({ ...w, parent: FAVORITES_CATEGORY }))
+            : [];
+
+        // Merge into categories and widgets lists
+        const categories = favoritesCategory ? [...this.state.categories, favoritesCategory] : this.state.categories;
+        const widgets = favoriteWidgets.length ? [...this.state.widgets, ...favoriteWidgets] : this.state.widgets;
+
         if (currentCategory) {
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
@@ -1479,8 +1586,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         <Category
                             key={currentCategory.id}
                             category={currentCategory}
-                            categories={this.state.categories}
-                            widgets={this.state.widgets}
+                            categories={categories}
+                            widgets={widgets}
                             stateContext={this.stateContext}
                             language={this.language}
                             onNavigate={(category: CategoryInfo) => {
@@ -1501,15 +1608,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             configMode={this.state.configMode}
                             onToggleConfigMode={
                                 this.props.showSettingsButton && !hideConfigButton
-                                    ? () => this.setState(prev => {
-                                        const next = !prev.configMode;
-                                        try {
-                                            localStorage.setItem('wm_configMode', JSON.stringify(next));
-                                        } catch {
-                                            // ignore
-                                        }
-                                        return { configMode: next };
-                                    })
+                                    ? () =>
+                                          this.setState(prev => {
+                                              const next = !prev.configMode;
+                                              try {
+                                                  localStorage.setItem('wm_configMode', JSON.stringify(next));
+                                              } catch {
+                                                  // ignore
+                                              }
+                                              return { configMode: next };
+                                          })
                                     : undefined
                             }
                             admin={this.props.admin}
@@ -1517,6 +1625,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                             onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
+                            onToggleFavorite={editing ? this.onToggleFavorite : undefined}
                             latitude={this.state.latitude}
                             longitude={this.state.longitude}
                         />

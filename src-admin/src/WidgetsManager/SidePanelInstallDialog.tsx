@@ -16,6 +16,26 @@ import { I18n, type Connection } from '@iobroker/adapter-react-v5';
 
 import ioBrokerLogo from './assets/ioBrokerLogo.png';
 
+/** Copy text to clipboard with fallback for non-secure contexts (HTTP) */
+function copyText(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+        return navigator.clipboard.writeText(text).catch(() => copyTextFallback(text));
+    }
+    return copyTextFallback(text);
+}
+
+function copyTextFallback(text: string): Promise<void> {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return Promise.resolve();
+}
+
 // ---- Minimal ZIP builder (no external lib needed for a handful of text files) ----
 
 function crc32(buf: Uint8Array): number {
@@ -347,12 +367,11 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                 });
         } else {
             // Non-admin: use the current URL directly
-            setServerUrl(`${window.location.origin}${window.location.pathname.replace(/\/+$/, '')}`);
+            setServerUrl(`${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`);
         }
     }, [open, admin, socket]);
 
     const pageUrl = admin ? `${serverUrl}/devices/` : serverUrl;
-
     const browser = detectBrowser();
 
     const handleDownload = useCallback(async () => {
@@ -514,8 +533,7 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                                     cursor: 'pointer',
                                 }}
                                 onClick={() => {
-                                    void navigator.clipboard
-                                        .writeText('about:debugging#/runtime/this-firefox')
+                                    void copyText('about:debugging#/runtime/this-firefox')
                                         .then(() => {
                                             setCopied(true);
                                             setTimeout(() => setCopied(false), 2000);
@@ -561,7 +579,7 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                                     cursor: 'pointer',
                                 }}
                                 onClick={() => {
-                                    void navigator.clipboard.writeText('chrome://extensions').then(() => {
+                                    void copyText('chrome://extensions').then(() => {
                                         setCopied(true);
                                         setTimeout(() => setCopied(false), 2000);
                                     });
