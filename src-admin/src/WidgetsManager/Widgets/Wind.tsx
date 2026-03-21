@@ -594,43 +594,81 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             true,
                         )}
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         {this.props.speedStateId ? (
-                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.5 }}>
-                                <Typography
-                                    variant="caption"
-                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                            <Typography
+                                noWrap
+                                style={{
+                                    display: 'flex',
+                                    marginBottom: 2.6,
+                                    fontSize: '0.85rem',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Box
+                                    component="span"
+                                    sx={theme => ({ color: theme.palette.text.secondary })}
                                 >
                                     {I18n.t('wm_Speed')}:
-                                </Typography>
-                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                </Box>{' '}
+                                <Box
+                                    component="span"
+                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                >
                                     {WidgetWind.formatValue(speed, speedUnit)}
-                                </Typography>
-                            </Box>
+                                </Box>
+                            </Typography>
                         ) : null}
                         {this.props.gustsStateId ? (
-                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.5 }}>
-                                <Typography
-                                    variant="caption"
-                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                            <Typography
+                                noWrap
+                                style={{
+                                    display: 'flex',
+                                    marginBottom: 2.6,
+                                    fontSize: '0.85rem',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Box
+                                    component="span"
+                                    sx={theme => ({ color: theme.palette.text.secondary })}
                                 >
                                     {I18n.t('wm_Wind gusts')}:
-                                </Typography>
-                                <Typography sx={{ fontSize: '0.95rem' }}>
+                                </Box>{' '}
+                                <Box
+                                    component="span"
+                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                >
                                     {WidgetWind.formatValue(gusts, gustsUnit)}
-                                </Typography>
-                            </Box>
+                                </Box>
+                            </Typography>
                         ) : null}
                         {direction != null ? (
-                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                                <Typography
-                                    variant="caption"
-                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.75rem' })}
+                            <Typography
+                                noWrap
+                                style={{
+                                    display: 'flex',
+                                    marginBottom: 2.6,
+                                    fontSize: '0.85rem',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Box
+                                    component="span"
+                                    sx={theme => ({ color: theme.palette.text.secondary })}
                                 >
                                     {I18n.t('wm_Direction')}:
-                                </Typography>
-                                <Typography sx={{ fontSize: '0.95rem' }}>{Math.round(direction)}°</Typography>
-                            </Box>
+                                </Box>{' '}
+                                <Box
+                                    component="span"
+                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                >
+                                    {Math.round(direction)}°
+                                </Box>
+                            </Typography>
                         ) : null}
                     </Box>
                 </Box>

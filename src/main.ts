@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { Adapter, type AdapterOptions } from '@iobroker/adapter-core';
 import DevicesDeviceManagement from './lib/WidgetsManagement';
 
@@ -27,6 +28,16 @@ export default class DevicesAdapter extends Adapter {
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');
+
+        // Upload one picture to devices.0, so it will be available in the File selector
+        try {
+            if (!(await this.fileExistsAsync(this.namespace, 'ioBrokerLogo.png'))) {
+                const image = readFileSync(`${__dirname}/../img/ioBrokerLogo.png`);
+                await this.writeFileAsync(this.namespace, 'ioBrokerLogo.png', image);
+            }
+        } catch (error) {
+            this.log.error(`Unable to upload default image: ${error}`);
+        }
     }
 }
 

@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Design",
+    "wm_theme_auto": "Automatisch (Systemdesign)",
+    "wm_theme_dark": "Dunkel",
+    "wm_theme_light": "Hell",
+    "wm_theme_orangeDark": "Orange Dunkel",
+    "wm_theme_blueDark": "Blau Dunkel",
+    "wm_App icon tooltip": "Wird als Favicon im Browser verwendet",
+    "wm_Root icon": "Kopfzeilen-Icon",
     "wm_On": "An",
     "wm_Off": "Aus",
     "wm_Unknown type": "Unbekannter Typ",

@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Тема",
+    "wm_theme_auto": "Авто (системная тема)",
+    "wm_theme_dark": "Тёмная",
+    "wm_theme_light": "Светлая",
+    "wm_theme_orangeDark": "Оранжевая тёмная",
+    "wm_theme_blueDark": "Синяя тёмная",
+    "wm_App icon tooltip": "Используется как favicon в браузере",
+    "wm_Root icon": "Иконка заголовка",
     "wm_On": "Вкл",
     "wm_Off": "Выкл",
     "wm_Unknown type": "Неизвестный тип",

@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Theme",
+    "wm_theme_auto": "Auto (follow system)",
+    "wm_theme_dark": "Dark",
+    "wm_theme_light": "Light",
+    "wm_theme_orangeDark": "Orange Dark",
+    "wm_theme_blueDark": "Blue Dark",
+    "wm_App icon tooltip": "Used as favicon in the browser",
+    "wm_Root icon": "Header icon",
     "wm_On": "On",
     "wm_Off": "Off",
     "wm_Unknown type": "Unknown type",

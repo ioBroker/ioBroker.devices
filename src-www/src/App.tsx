@@ -8,6 +8,7 @@ import {
     GenericApp,
     type GenericAppProps,
     type GenericAppState,
+    extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
 
 import { CategoryList } from '../../src-admin/src/WidgetsManager';
@@ -64,6 +65,8 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
             };
         }
         super(props, extendedProps);
+
+        extendDeviceTypeTranslation();
 
         const theme = this.createTheme();
         this.state = {

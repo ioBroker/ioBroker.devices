@@ -1014,6 +1014,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     /** Raw values keyed by stateId for recalculation */
     private statusValues: Record<string, ioBroker.StateValue> = {};
 
+    private scrollRef = React.createRef<HTMLDivElement>();
+    private scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
     constructor(props: CategoryProps) {
         super(props);
         this.state = {
@@ -1092,13 +1095,75 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
         // Subscribe to room-status sensors
         this.subscribeCategoryStatus();
+
+        // Restore scroll position (next frame so DOM is ready)
+        requestAnimationFrame(() => this.restoreScrollPosition());
     }
 
     componentWillUnmount(): void {
+        // Save scroll position before leaving
+        this.saveScrollPosition();
+        if (this.scrollSaveTimer) {
+            clearTimeout(this.scrollSaveTimer);
+        }
         for (const sub of this.statusSubs) {
             this.props.stateContext.removeState(sub.stateId, this.onStatusChange);
         }
     }
+
+    private get scrollStorageKey(): string {
+        return `wm_scroll_${String(this.props.category.id)}`;
+    }
+
+    private static getOrientation(): 'portrait' | 'landscape' {
+        return window.innerHeight >= window.innerWidth ? 'portrait' : 'landscape';
+    }
+
+    private saveScrollPosition(): void {
+        const el = this.scrollRef.current;
+        if (!el) {
+            return;
+        }
+        try {
+            localStorage.setItem(
+                this.scrollStorageKey,
+                JSON.stringify({
+                    top: el.scrollTop,
+                    orientation: Category.getOrientation(),
+                }),
+            );
+        } catch {
+            // ignore
+        }
+    }
+
+    private restoreScrollPosition(): void {
+        const el = this.scrollRef.current;
+        if (!el) {
+            return;
+        }
+        try {
+            const raw = localStorage.getItem(this.scrollStorageKey);
+            if (raw) {
+                const { top, orientation } = JSON.parse(raw);
+                if (orientation === Category.getOrientation() && typeof top === 'number') {
+                    el.scrollTop = top;
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private onScroll = (): void => {
+        if (this.scrollSaveTimer) {
+            clearTimeout(this.scrollSaveTimer);
+        }
+        this.scrollSaveTimer = setTimeout(() => {
+            this.scrollSaveTimer = null;
+            this.saveScrollPosition();
+        }, 300);
+    };
 
     private getWidgetName(w: WidgetInfo): string {
         if (typeof w.name === 'string') {
@@ -2290,30 +2355,66 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5, position: 'relative' }}
                         >
                             {parentCategory ? (
-                                <IconButton
-                                    size="small"
+                                <Box
                                     onClick={() => this.props.onNavigate(parentCategory)}
-                                    sx={{ ml: -1 }}
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        flex: 1,
+                                        minWidth: 0,
+                                        cursor: 'pointer',
+                                        ml: -0.5,
+                                    }}
                                 >
-                                    <ArrowBack />
-                                </IconButton>
-                            ) : null}
-                            {this.state.icons[this.props.category.id] ? (
-                                <Icon
-                                    src={this.state.icons[this.props.category.id]}
-                                    style={{ width: 28, height: 28, color: catColor || undefined }}
-                                />
-                            ) : null}
-                            <Typography
-                                variant="h5"
-                                sx={{
-                                    fontWeight: 700,
-                                    flex: 1,
-                                    color: catColor || undefined,
-                                }}
-                            >
-                                {displayName}
-                            </Typography>
+                                    <ArrowBack sx={{ color: catColor || undefined, fontSize: 24 }} />
+                                    {(() => {
+                                        const headerIcon = this.state.icons[this.props.category.id];
+                                        return headerIcon ? (
+                                            <Icon
+                                                src={headerIcon}
+                                                style={{ width: 28, height: 28, color: catColor || undefined }}
+                                            />
+                                        ) : null;
+                                    })()}
+                                    <Typography
+                                        variant="h5"
+                                        sx={{
+                                            fontWeight: 700,
+                                            flex: 1,
+                                            color: catColor || undefined,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {displayName}
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <>
+                                    {(() => {
+                                        const rootIcon = categorySettings?.rootIcon;
+                                        const headerIcon = rootIcon || this.state.icons[this.props.category.id];
+                                        return headerIcon ? (
+                                            <Icon
+                                                src={headerIcon}
+                                                style={{ width: 28, height: 28, color: catColor || undefined }}
+                                            />
+                                        ) : null;
+                                    })()}
+                                    <Typography
+                                        variant="h5"
+                                        sx={{
+                                            fontWeight: 700,
+                                            flex: 1,
+                                            color: catColor || undefined,
+                                        }}
+                                    >
+                                        {displayName}
+                                    </Typography>
+                                </>
+                            )}
                             {this.props.onAddCustomWidget ? (
                                 <Tooltip title={I18n.t('wm_Add widget')}>
                                     <IconButton
@@ -2428,6 +2529,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {/* Scrollable widgets */}
                 {hasItems ? (
                     <Box
+                        ref={this.scrollRef}
+                        onScroll={this.onScroll}
                         sx={{
                             flex: 1,
                             overflow: 'auto',

@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Тема",
+    "wm_theme_auto": "Авто (системна тема)",
+    "wm_theme_dark": "Темна",
+    "wm_theme_light": "Світла",
+    "wm_theme_orangeDark": "Помаранчева темна",
+    "wm_theme_blueDark": "Синя темна",
+    "wm_App icon tooltip": "Використовується як favicon у браузері",
+    "wm_Root icon": "Іконка заголовка",
     "wm_On": "Увімк",
     "wm_Off": "Вимк",
     "wm_Unknown type": "Невідомий тип",

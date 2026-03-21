@@ -494,12 +494,12 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                     })}
                 >
                     {/* Left: time */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <Typography
                             sx={{
                                 fontWeight: 700,
                                 lineHeight: 1,
-                                fontSize: 'max(2.5rem, 16cqi)',
+                                fontSize: 'max(2rem, 11cqi)',
                                 whiteSpace: 'nowrap',
                             }}
                         >
@@ -510,7 +510,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                                 variant="caption"
                                 sx={theme => ({
                                     color: theme.palette.text.disabled,
-                                    fontSize: 'max(1rem, 6cqi)',
+                                    fontSize: 'max(0.85rem, 4.5cqi)',
                                     fontVariantNumeric: 'tabular-nums',
                                 })}
                             >
@@ -519,7 +519,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         ) : null}
                     </Box>
                     {/* Right: date + sun */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
                         {date ? (
                             <Typography
                                 variant="body2"
