@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Thema",
+    "wm_theme_auto": "Auto (systeemthema)",
+    "wm_theme_dark": "Donker",
+    "wm_theme_light": "Licht",
+    "wm_theme_orangeDark": "Oranje donker",
+    "wm_theme_blueDark": "Blauw donker",
+    "wm_App icon tooltip": "Gebruikt als favicon in de browser",
+    "wm_Root icon": "Koptekst icoon",
     "wm_On": "Aan",
     "wm_Off": "Uit",
     "wm_Unknown type": "Onbekend type",

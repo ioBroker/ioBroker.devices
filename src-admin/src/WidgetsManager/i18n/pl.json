@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Motyw",
+    "wm_theme_auto": "Auto (motyw systemowy)",
+    "wm_theme_dark": "Ciemny",
+    "wm_theme_light": "Jasny",
+    "wm_theme_orangeDark": "Pomarańczowy ciemny",
+    "wm_theme_blueDark": "Niebieski ciemny",
+    "wm_App icon tooltip": "Używany jako favicon w przeglądarce",
+    "wm_Root icon": "Ikona nagłówka",
     "wm_On": "Włączony",
     "wm_Off": "Wyłączony",
     "wm_Unknown type": "Nieznany typ",

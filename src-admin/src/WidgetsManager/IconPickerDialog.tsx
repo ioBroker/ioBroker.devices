@@ -272,6 +272,14 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
+                    allowNonRestricted
+                    allowUpload
+                    allowDownload
+                    allowCreateFolder
+                    allowDelete
+                    allowView
+                    showToolbar
+                    restrictToFolder={`${this.adapterName}.${this.instance}`}
                 />
             ) : null}
         </>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
+
 import { I18n } from '@iobroker/adapter-react-v5';
+import { Types } from '@iobroker/type-detector';
 
 import de from './i18n/de.json';
 import en from './i18n/en.json';
@@ -14,14 +16,12 @@ import pl from './i18n/pl.json';
 import uk from './i18n/uk.json';
 import zhCn from './i18n/zh-cn.json';
 
-import { Types } from '@iobroker/type-detector';
-
 import type { CategoryInfo, CustomWidgetType, ItemInfo, WidgetInfo, CustomWidgetDef } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
-import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
+import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings, type WmThemeId } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
@@ -43,6 +43,10 @@ interface GuiConfig {
         imageScope?: 'header' | 'page';
         /** PWA / Chrome extension icon path */
         icon?: string;
+        /** Icon shown before root name */
+        rootIcon?: string;
+        /** Widget theme preset */
+        wmTheme?: WmThemeId;
         customWidgets?: CustomWidgetDef[];
         widgetOrder?: string[];
         widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
@@ -115,10 +119,77 @@ const ALARM_ICON_TYPES = new Set([
  */
 const WM_FONT_FAMILY = '"Inter", "Roboto", "Helvetica Neue", Arial, sans-serif';
 
+interface WmThemePreset {
+    mode: 'dark' | 'light';
+    primary: string;
+    secondary: string;
+    bgDefault: string;
+    bgPaper: string;
+    textPrimary: string;
+    textSecondary: string;
+    textDisabled: string;
+}
+
+const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
+    dark: {
+        mode: 'dark',
+        primary: '#90caf9',
+        secondary: '#ce93d8',
+        bgDefault: '#121212',
+        bgPaper: '#1e1e1e',
+        textPrimary: '#ffffff',
+        textSecondary: 'rgba(255,255,255,0.7)',
+        textDisabled: 'rgba(255,255,255,0.5)',
+    },
+    light: {
+        mode: 'light',
+        primary: '#1976d2',
+        secondary: '#9c27b0',
+        bgDefault: '#f5f5f5',
+        bgPaper: '#ffffff',
+        textPrimary: 'rgba(0,0,0,0.87)',
+        textSecondary: 'rgba(0,0,0,0.6)',
+        textDisabled: 'rgba(0,0,0,0.38)',
+    },
+    orangeDark: {
+        mode: 'dark',
+        primary: '#f5a623',
+        secondary: '#ff7043',
+        bgDefault: '#1a1a1a',
+        bgPaper: '#2c2c2e',
+        textPrimary: '#f5f5f5',
+        textSecondary: 'rgba(245,245,245,0.65)',
+        textDisabled: 'rgba(245,245,245,0.4)',
+    },
+    blueDark: {
+        mode: 'dark',
+        primary: '#5eb8ff',
+        secondary: '#82b1ff',
+        bgDefault: '#0d1b2a',
+        bgPaper: '#1b2838',
+        textPrimary: '#e0e6ed',
+        textSecondary: 'rgba(224,230,237,0.65)',
+        textDisabled: 'rgba(224,230,237,0.4)',
+    },
+};
+
 export class CategoryList extends Communication<CategoryListProps, CategoryListState> {
     static i18nInitialized = false;
 
     static fontLoaded = false;
+
+    private static loadConfigMode(admin: boolean): boolean {
+        try {
+            const stored = localStorage.getItem('wm_configMode');
+            if (stored !== null) {
+                return JSON.parse(stored) === true;
+            }
+        } catch {
+            // ignore
+        }
+        // Default: true in admin, false in web
+        return !!admin;
+    }
 
     private stateContext: StateContext = new StateContext(this.props.socket);
 
@@ -177,7 +248,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             customWidgetDialogCategoryId: null,
             customWidgetSettingsCategoryId: null,
             customWidgetSettingsWidgetId: null,
-            configMode: !!this.props.showSettingsButton,
+            configMode: !!this.props.showSettingsButton && CategoryList.loadConfigMode(this.props.admin),
             sidePanelDialogOpen: false,
             latitude: null,
             longitude: null,
@@ -379,6 +450,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             image: guiConfig.root.image || '',
                             imageScope: guiConfig.root.imageScope || 'header',
                             icon: guiConfig.root.icon || '',
+                            rootIcon: guiConfig.root.rootIcon || '',
+                            wmTheme: guiConfig.root.wmTheme,
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
                             widgetGroups: guiConfig.root.widgetGroups,
@@ -820,6 +893,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 image: rootConfig.image || '',
                 imageScope: rootConfig.imageScope || 'header',
                 icon: rootConfig.icon || '',
+                rootIcon: rootConfig.rootIcon || '',
+                wmTheme: rootConfig.wmTheme,
                 customWidgets: rootConfig.customWidgets,
                 widgetOrder: rootConfig.widgetOrder,
                 widgetGroups: rootConfig.widgetGroups,
@@ -878,6 +953,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         image: settings.image || '',
                         imageScope: settings.imageScope || 'header',
                         icon: settings.icon || '',
+                        rootIcon: settings.rootIcon || '',
+                        wmTheme: settings.wmTheme || undefined,
                     },
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
@@ -1327,13 +1404,39 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return String(widget.id);
     }
 
+    private cachedWmThemeId: WmThemeId | undefined;
+
     private getWidgetTheme(): Theme {
-        if (!this.widgetTheme || this.widgetThemeType !== this.props.themeType) {
-            this.widgetThemeType = this.props.themeType;
-            this.widgetTheme = createTheme(this.props.theme, {
-                typography: {
-                    fontFamily: WM_FONT_FAMILY,
+        const wmThemeId: WmThemeId = this.state.categorySettings[ROOT_CATEGORY]?.wmTheme || 'auto';
+
+        if (this.widgetTheme && this.widgetThemeType === this.props.themeType && this.cachedWmThemeId === wmThemeId) {
+            return this.widgetTheme;
+        }
+        this.widgetThemeType = this.props.themeType;
+        this.cachedWmThemeId = wmThemeId;
+
+        const preset = WM_THEME_PRESETS[wmThemeId === 'auto' ? this.props.themeType : wmThemeId];
+        if (preset) {
+            this.widgetTheme = createTheme({
+                palette: {
+                    mode: preset.mode,
+                    primary: { main: preset.primary },
+                    secondary: { main: preset.secondary },
+                    background: {
+                        default: preset.bgDefault,
+                        paper: preset.bgPaper,
+                    },
+                    text: {
+                        primary: preset.textPrimary,
+                        secondary: preset.textSecondary,
+                        disabled: preset.textDisabled,
+                    },
                 },
+                typography: { fontFamily: WM_FONT_FAMILY },
+            });
+        } else {
+            this.widgetTheme = createTheme(this.props.theme, {
+                typography: { fontFamily: WM_FONT_FAMILY },
             });
         }
         return this.widgetTheme;
@@ -1398,7 +1501,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             configMode={this.state.configMode}
                             onToggleConfigMode={
                                 this.props.showSettingsButton && !hideConfigButton
-                                    ? () => this.setState(prev => ({ configMode: !prev.configMode }))
+                                    ? () => this.setState(prev => {
+                                        const next = !prev.configMode;
+                                        try {
+                                            localStorage.setItem('wm_configMode', JSON.stringify(next));
+                                        } catch {
+                                            // ignore
+                                        }
+                                        return { configMode: next };
+                                    })
                                     : undefined
                             }
                             admin={this.props.admin}

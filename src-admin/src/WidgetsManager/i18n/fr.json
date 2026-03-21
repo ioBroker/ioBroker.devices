@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Thème",
+    "wm_theme_auto": "Auto (thème système)",
+    "wm_theme_dark": "Sombre",
+    "wm_theme_light": "Clair",
+    "wm_theme_orangeDark": "Orange sombre",
+    "wm_theme_blueDark": "Bleu sombre",
+    "wm_App icon tooltip": "Utilisé comme favicon dans le navigateur",
+    "wm_Root icon": "Icône d'en-tête",
     "wm_On": "Allumé",
     "wm_Off": "Éteint",
     "wm_Unknown type": "Type inconnu",

@@ -9,6 +9,7 @@ import {
     DialogTitle,
     FormControlLabel,
     IconButton,
+    MenuItem,
     TextField,
     ToggleButton,
     ToggleButtonGroup,
@@ -22,6 +23,9 @@ import type { CustomWidgetDef } from '../../../src/widget-utils';
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
 
+/** Available theme presets */
+export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark';
+
 export interface CategorySettings {
     name: string;
     color: string;
@@ -34,8 +38,12 @@ export interface CategorySettings {
     widgetGroups?: WidgetGroup[];
     /** Hide the config/play toggle button (root category only) */
     hideConfigButton?: boolean;
-    /** PWA / Chrome extension icon path (root only) */
+    /** PWA / Chrome extension icon path — used as favicon in browser (root only) */
     icon?: string;
+    /** Icon shown in front of the root category name (root only) */
+    rootIcon?: string;
+    /** Widget theme preset (root category only). Default: 'auto' (follows admin theme) */
+    wmTheme?: WmThemeId;
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
@@ -67,10 +75,12 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
     const [iconPreview, setIconPreview] = useState<string>('');
+    const [rootIconPreview, setRootIconPreview] = useState<string>('');
     const [cameraOpen, setCameraOpen] = useState(false);
     const [fileDialogOpen, setFileDialogOpen] = useState(false);
     const [iconFileDialogOpen, setIconFileDialogOpen] = useState(false);
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
+    const [rootIconPickerOpen, setRootIconPickerOpen] = useState(false);
     const [hideConfigWarning, setHideConfigWarning] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const iconInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +98,8 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             setPreview(img ? `/${filePrefix}${img.replace(/^\//, '')}` : '');
             const ico = settings.icon || '';
             setIconPreview(ico ? `/${filePrefix}${ico.replace(/^\//, '')}` : '');
+            const rIco = settings.rootIcon || '';
+            setRootIconPreview(rIco ? `/${filePrefix}${rIco.replace(/^\//, '')}` : '');
         }
     }, [settings, open, categoryName, filePrefix]);
 
@@ -301,7 +313,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         local.image !== (settings.image || '') ||
         local.imageScope !== (settings.imageScope || 'header') ||
         (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton) ||
-        (local.icon || '') !== (settings.icon || '');
+        (isRoot && (local.wmTheme || 'auto') !== (settings.wmTheme || 'auto')) ||
+        (local.icon || '') !== (settings.icon || '') ||
+        (local.rootIcon || '') !== (settings.rootIcon || '');
 
     return (
         <>
@@ -543,6 +557,25 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     ) : null}
 
                     {isRoot ? (
+                        <TextField
+                            select
+                            fullWidth
+                            variant="filled"
+                            size="small"
+                            label={I18n.t('wm_Theme')}
+                            value={local.wmTheme || 'auto'}
+                            onChange={e => setLocal({ ...local, wmTheme: e.target.value as WmThemeId })}
+                            sx={{ mt: 2 }}
+                        >
+                            <MenuItem value="auto">{I18n.t('wm_theme_auto')}</MenuItem>
+                            <MenuItem value="dark">{I18n.t('wm_theme_dark')}</MenuItem>
+                            <MenuItem value="light">{I18n.t('wm_theme_light')}</MenuItem>
+                            <MenuItem value="orangeDark">{I18n.t('wm_theme_orangeDark')}</MenuItem>
+                            <MenuItem value="blueDark">{I18n.t('wm_theme_blueDark')}</MenuItem>
+                        </TextField>
+                    ) : null}
+
+                    {isRoot ? (
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -564,12 +597,14 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
                     {isRoot ? (
                         <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_App icon')}
-                            </Typography>
+                            <Tooltip title={I18n.t('wm_App icon tooltip')}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ mb: 1, fontWeight: 500 }}
+                                >
+                                    {I18n.t('wm_App icon')}
+                                </Typography>
+                            </Tooltip>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {iconPreview ? (
                                     <Box
@@ -621,6 +656,48 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             </Box>
                         </Box>
                     ) : null}
+
+                    {isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Root icon')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {rootIconPreview ? (
+                                    <Icon
+                                        src={rootIconPreview}
+                                        style={{
+                                            width: 36,
+                                            height: 36,
+                                        }}
+                                    />
+                                ) : null}
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<FolderOpen />}
+                                    onClick={() => setRootIconPickerOpen(true)}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    {I18n.t('wm_Browse')}
+                                </Button>
+                                {rootIconPreview ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            setRootIconPreview('');
+                                            setLocal(prev => ({ ...prev, rootIcon: '' }));
+                                        }}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                        </Box>
+                    ) : null}
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -650,6 +727,14 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
+                    allowNonRestricted
+                    allowUpload
+                    allowDownload
+                    allowCreateFolder
+                    allowDelete
+                    allowView
+                    showToolbar
+                    restrictToFolder={`${this.adapterName}.${this.instance}`}
                 />
             ) : null}
 
@@ -664,6 +749,27 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                         setLocal(prev => ({ ...prev, icon: iconValue }));
                         if (iconValue) {
                             setIconPickerOpen(false);
+                        }
+                    }}
+                    socket={socket}
+                    theme={theme}
+                    admin={admin}
+                />
+            ) : null}
+
+            {/* Root icon picker dialog */}
+            {rootIconPickerOpen ? (
+                <IconPickerDialog
+                    open
+                    title={I18n.t('wm_Root icon')}
+                    value={local.rootIcon || ''}
+                    onClose={() => setRootIconPickerOpen(false)}
+                    onSelect={iconValue => {
+                        setLocal(prev => ({ ...prev, rootIcon: iconValue }));
+                        const displayPath = iconValue ? `/${filePrefix}${iconValue.replace(/^\//, '')}` : '';
+                        setRootIconPreview(displayPath);
+                        if (iconValue) {
+                            setRootIconPickerOpen(false);
                         }
                     }}
                     socket={socket}

@@ -1133,7 +1133,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 return;
             }
 
-            // Use first and last valid points to determine trend
+            // Collect valid numeric points
             const points: { ts: number; val: number }[] = [];
             for (const p of result) {
                 if (p.val != null && !isNaN(Number(p.val))) {
@@ -1144,16 +1144,42 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 return;
             }
 
-            const first = points[0];
-            const last = points[points.length - 1];
-            const range = Math.abs(last.val) > 0.0001 ? Math.abs(last.val) : 1;
-            const delta = (last.val - first.val) / range;
+            // Least-squares linear regression for robust trend detection
+            const n = points.length;
+            const t0 = points[0].ts;
+            let sumX = 0;
+            let sumY = 0;
+            let sumXY = 0;
+            let sumX2 = 0;
+            for (const p of points) {
+                const x = (p.ts - t0) / 60_000; // minutes
+                sumX += x;
+                sumY += p.val;
+                sumXY += x * p.val;
+                sumX2 += x * x;
+            }
+            const det = n * sumX2 - sumX * sumX;
+            if (Math.abs(det) < 1e-12) {
+                return;
+            }
+            const slope = (n * sumXY - sumY * sumX) / det; // value per minute
+            const intercept = (sumY - slope * sumX) / n;
+            const timeSpan = (points[n - 1].ts - t0) / 60_000;
+            const totalChange = slope * timeSpan;
 
+            // Standard deviation of residuals (noise level)
+            let ssRes = 0;
+            for (const p of points) {
+                const x = (p.ts - t0) / 60_000;
+                const res = p.val - (slope * x + intercept);
+                ssRes += res * res;
+            }
+            const noiseStd = Math.sqrt(ssRes / Math.max(n - 2, 1));
+
+            // Trend is significant if |totalChange| exceeds 2× noise and a minimum absolute threshold
             let trend: 'up' | 'down' | 'stable';
-            if (delta > 0.01) {
-                trend = 'up';
-            } else if (delta < -0.01) {
-                trend = 'down';
+            if (Math.abs(totalChange) > Math.max(noiseStd * 2, 0.01)) {
+                trend = totalChange > 0 ? 'up' : 'down';
             } else {
                 trend = 'stable';
             }

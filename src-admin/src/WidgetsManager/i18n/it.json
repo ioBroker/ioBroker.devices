@@ -1,4 +1,12 @@
 {
+    "wm_Theme": "Tema",
+    "wm_theme_auto": "Auto (tema di sistema)",
+    "wm_theme_dark": "Scuro",
+    "wm_theme_light": "Chiaro",
+    "wm_theme_orangeDark": "Arancione scuro",
+    "wm_theme_blueDark": "Blu scuro",
+    "wm_App icon tooltip": "Usato come favicon nel browser",
+    "wm_Root icon": "Icona intestazione",
     "wm_On": "Acceso",
     "wm_Off": "Spento",
     "wm_Unknown type": "Tipo sconosciuto",
