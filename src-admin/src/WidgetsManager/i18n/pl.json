@@ -293,5 +293,8 @@
     "wm_ff_step5": "Panel boczny się otworzy — przełączaj przez Widok → Panel boczny",
     "wm_ff_hint": "Tymczasowe rozszerzenia są usuwane po ponownym uruchomieniu przeglądarki. Do stałego użytku rozszerzenie musi być podpisane przez Mozillę.",
     "wm_Instance not active": "Instancja nie jest aktywna",
-    "wm_Hide config warning": "Jeśli ukryjesz przycisk konfiguracji, nie będziesz mógł go ponownie aktywować z tej strony. Musisz przejść do Admin → Devices, aby go ponownie włączyć."
+    "wm_Hide config warning": "Jeśli ukryjesz przycisk konfiguracji, nie będziesz mógł go ponownie aktywować z tej strony. Musisz przejść do Admin → Devices, aby go ponownie włączyć.",
+    "wm_Default category": "Domyślna kategoria",
+    "wm_None (root)": "Brak (główna)",
+    "wm_Favorites": "Ulubione"
 }

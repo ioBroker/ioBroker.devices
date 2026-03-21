@@ -67,6 +67,8 @@ export interface WidgetSettings {
     showTrendArrow: boolean;
     /** Trend calculation period in minutes (default 30) */
     trendMinutes: number;
+    /** Mark widget as favorite — shown in auto-generated Favorites category */
+    favorite: boolean;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -94,6 +96,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     icon: '',
     showTrendArrow: false,
     trendMinutes: 30,
+    favorite: false,
 };
 
 export interface WidgetGenericProps {

@@ -293,5 +293,8 @@
     "wm_ff_step5": "侧边栏将打开 — 通过 查看 → 侧边栏 切换",
     "wm_ff_hint": "临时扩展会在浏览器重启后被移除。如需永久使用，请考虑通过 Mozilla 签名扩展。",
     "wm_Instance not active": "实例未激活",
-    "wm_Hide config warning": "如果隐藏配置按钮，您将无法从此网页重新激活它。您需要进入 Admin → Devices 重新启用。"
+    "wm_Hide config warning": "如果隐藏配置按钮，您将无法从此网页重新激活它。您需要进入 Admin → Devices 重新启用。",
+    "wm_Default category": "默认分类",
+    "wm_None (root)": "无（根目录）",
+    "wm_Favorites": "收藏夹"
 }

@@ -293,5 +293,8 @@
     "wm_ff_step5": "Die Sidebar öffnet sich — über Ansicht → Sidebar umschalten",
     "wm_ff_hint": "Temporäre Erweiterungen werden nach Browser-Neustart entfernt. Für dauerhafte Nutzung muss die Erweiterung über Mozilla signiert werden.",
     "wm_Instance not active": "Instanz ist nicht aktiv",
-    "wm_Hide config warning": "Wenn Sie den Konfig-Button ausblenden, können Sie ihn von dieser Webseite nicht wieder aktivieren. Sie müssen in Admin → Devices gehen, um ihn wieder einzublenden."
+    "wm_Hide config warning": "Wenn Sie den Konfig-Button ausblenden, können Sie ihn von dieser Webseite nicht wieder aktivieren. Sie müssen in Admin → Devices gehen, um ihn wieder einzublenden.",
+    "wm_Default category": "Standardkategorie",
+    "wm_None (root)": "Keine (Hauptseite)",
+    "wm_Favorites": "Favoriten"
 }

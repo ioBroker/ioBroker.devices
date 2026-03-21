@@ -6,11 +6,21 @@ export default defineConfig(() => {
     return {
         build: {
             outDir: 'build',
+            minify: false,
+            sourcemap: true,
         },
         plugins: [react()],
         base: './',
         resolve: {
-            dedupe: ['react', 'react-dom', '@mui/material', '@mui/system', '@emotion/react', '@emotion/styled'],
+            dedupe: [
+                'react',
+                'react-dom',
+                '@mui/material',
+                '@mui/system',
+                '@emotion/react',
+                '@emotion/styled',
+                '@iobroker/adapter-react-v5',
+            ],
             alias: {
                 react: path.resolve(__dirname, 'node_modules/react'),
                 'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
