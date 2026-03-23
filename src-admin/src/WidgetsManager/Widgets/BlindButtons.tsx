@@ -3,7 +3,12 @@ import { Box, ButtonBase, IconButton, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 interface WidgetBlindButtonsState extends WidgetGenericState {
     /** Direction: 0 = none, 1 = up/open, 2 = down/close */

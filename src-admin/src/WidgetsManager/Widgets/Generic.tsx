@@ -197,9 +197,7 @@ export function getTileStyles(
             boxSizing: 'border-box',
             padding: theme.spacing(2),
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            backgroundColor: isActive
-                ? alpha(accent, 0.08)
-                : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
+            backgroundColor: isActive ? alpha(accent, 0.08) : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
             background: isActive
                 ? `linear-gradient(145deg, ${alpha(accent, 0.1)}, ${alpha(accent, 0.04)})`
                 : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',

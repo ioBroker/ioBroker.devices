@@ -5,7 +5,12 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 interface WidgetLocationState extends WidgetGenericState {
     latitude: number | null;

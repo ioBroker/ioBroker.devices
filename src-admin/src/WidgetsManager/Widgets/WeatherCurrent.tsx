@@ -2,7 +2,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Air, Opacity, Speed, Thermostat, WaterDrop, WbSunny, WbCloudy } from '@mui/icons-material';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 import { translateWeather } from './weatherTranslations';
 
 interface WidgetWeatherCurrentState extends WidgetGenericState {

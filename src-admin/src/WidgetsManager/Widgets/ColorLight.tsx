@@ -4,7 +4,12 @@ import { LightbulbOutlined } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
 

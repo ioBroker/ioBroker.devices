@@ -21,7 +21,12 @@ import {
     type SvgIconComponent,
 } from '@mui/icons-material';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 /** Map ioBroker roles / units to icons */
 const ROLE_ICON_MAP: [RegExp, SvgIconComponent][] = [

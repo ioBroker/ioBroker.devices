@@ -79,7 +79,19 @@ interface CategorySettingsDialogProps {
 }
 
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
-    const { open, categoryName, categoryId, settings, onClose, onSave, socket, instance, theme, admin, categoryOptions } = props;
+    const {
+        open,
+        categoryName,
+        categoryId,
+        settings,
+        onClose,
+        onSave,
+        socket,
+        instance,
+        theme,
+        admin,
+        categoryOptions,
+    } = props;
     // In admin, files are served under /files/, in web they are at root
     const filePrefix = admin ? 'files/' : '';
     const [local, setLocal] = useState<CategorySettings>(settings);

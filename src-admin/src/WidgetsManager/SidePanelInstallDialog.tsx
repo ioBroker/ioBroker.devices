@@ -533,11 +533,10 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                                     cursor: 'pointer',
                                 }}
                                 onClick={() => {
-                                    void copyText('about:debugging#/runtime/this-firefox')
-                                        .then(() => {
-                                            setCopied(true);
-                                            setTimeout(() => setCopied(false), 2000);
-                                        });
+                                    void copyText('about:debugging#/runtime/this-firefox').then(() => {
+                                        setCopied(true);
+                                        setTimeout(() => setCopied(false), 2000);
+                                    });
                                 }}
                             >
                                 about:debugging#/runtime/this-firefox

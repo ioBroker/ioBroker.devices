@@ -4,7 +4,12 @@ import type { Theme } from '@mui/material/styles';
 import { VolumeUp, VolumeDown, VolumeMute, VolumeOff } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 interface WidgetVolumeState extends WidgetGenericState {
     volume: number;

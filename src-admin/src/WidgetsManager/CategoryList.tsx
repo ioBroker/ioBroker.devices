@@ -603,12 +603,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             const defaultCatId = this.guiConfigCache?.root?.defaultCategory;
                             if (!hasHash && defaultCatId) {
                                 if (defaultCatId === FAVORITES_CATEGORY) {
-                                    currentCategory =
-                                        this.buildFavoritesCategory(widgetSettings) || undefined;
+                                    currentCategory = this.buildFavoritesCategory(widgetSettings) || undefined;
                                 } else {
-                                    currentCategory = result.categories.find(
-                                        c => String(c.id) === defaultCatId,
-                                    );
+                                    currentCategory = result.categories.find(c => String(c.id) === defaultCatId);
                                 }
                             }
                         }
@@ -1540,8 +1537,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                           borderRadius: '28px',
                                           background: 'linear-gradient(145deg, #222224, #1a1a1c)',
                                           border: '1px solid rgba(255,255,255,0.04)',
-                                          boxShadow:
-                                              '0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
+                                          boxShadow: '0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
                                       },
                                   },
                               },

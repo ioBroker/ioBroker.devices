@@ -3,7 +3,12 @@ import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 interface WidgetBlindState extends WidgetGenericState {
     position: number;

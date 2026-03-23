@@ -14,7 +14,12 @@ import { Speed, Tune } from '@mui/icons-material';
 import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {

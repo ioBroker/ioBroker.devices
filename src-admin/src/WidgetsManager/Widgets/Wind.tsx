@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import { getTileStyles, isNeumorphicTheme } from './Generic';
+import { getTileStyles } from './Generic';
 
 interface WidgetWindProps {
     id: string;

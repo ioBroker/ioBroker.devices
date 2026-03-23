@@ -13,7 +13,12 @@ import {
 import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
@@ -779,11 +784,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                                 cy={vb / 2}
                                 r={r}
                                 fill="none"
-                                stroke={
-                                    isActive
-                                        ? `url(#dimGrad_${this.props.widget.id})`
-                                        : 'transparent'
-                                }
+                                stroke={isActive ? `url(#dimGrad_${this.props.widget.id})` : 'transparent'}
                                 strokeWidth={sw}
                                 strokeDasharray={`${progress} ${circumference}`}
                                 strokeLinecap="round"

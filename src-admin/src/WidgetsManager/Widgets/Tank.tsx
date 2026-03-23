@@ -2,7 +2,12 @@ import React from 'react';
 import { Box, ButtonBase, Typography } from '@mui/material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, {
+    getTileStyles,
+    isNeumorphicTheme,
+    type WidgetGenericProps,
+    type WidgetGenericState,
+} from './Generic';
 
 /** Color based on fill level */
 function getFillColor(percent: number, accent: string | undefined): string {

@@ -345,7 +345,8 @@ function SortableGrid(props: {
     widgetSettings: Record<string, WidgetSettings>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings, onToggleFavorite } = props;
+    const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings, onToggleFavorite } =
+        props;
     const sourceItems = category.getOrderedItems();
     const sourceIds = useMemo(() => sourceItems.map(i => i.id), [sourceItems]);
 
@@ -570,8 +571,17 @@ function GroupSortableGrid(props: {
     widgetSettings: Record<string, WidgetSettings>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, items, canDrag, groupId, onOrderChange, onMoveWidgetToCategory, categoryItems, widgetSettings, onToggleFavorite } =
-        props;
+    const {
+        category,
+        items,
+        canDrag,
+        groupId,
+        onOrderChange,
+        onMoveWidgetToCategory,
+        categoryItems,
+        widgetSettings,
+        onToggleFavorite,
+    } = props;
     const sourceIds = useMemo(() => items.map(i => i.id), [items]);
 
     const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
@@ -2327,14 +2337,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             <Box
                 id={String(this.props.category.id)}
                 key={this.props.category.id}
-                sx={theme => ({
+                sx={{
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
                     ...(catBgColor ? { backgroundColor: catBgColor } : {}),
                     position: 'relative',
-                })}
+                }}
             >
                 {/* Parallax background layer for page-scope images */}
                 {catImage && imageScope === 'page' ? (
