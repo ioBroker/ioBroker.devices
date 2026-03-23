@@ -28,9 +28,9 @@
         "noImplicitAny": true,
         "skipLibCheck": true,
         "verbatimModuleSyntax": true,
-        "lib": ["es2018", "DOM"],
+        "lib": ["es2019", "DOM"],
         "jsx": "react",
-        "types": ["@iobroker/types"]
+        "types": ["@iobroker/types", "node"]
     },
     "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./src/**/*.tsx", "./src/**/*.json", "./src/**/*.css"],
     "exclude": ["**/node_modules", "**/dist"]

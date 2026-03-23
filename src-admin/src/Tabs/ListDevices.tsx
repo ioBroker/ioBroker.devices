@@ -1766,7 +1766,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 const deleteFolderAndDevice: { id: string; device?: false } | { index: number; device: true } =
                     JSON.parse(JSON.stringify(this.state.deleteFolderAndDevice));
                 this.deleteTimeout ||= setTimeout(
-                    _deleteFolderAndDevice => {
+                    (
+                        _deleteFolderAndDevice: { id: string; device?: false } | { index: number; device: true },
+                    ): void => {
                         this.deleteTimeout = null;
                         const newState: Partial<ListDevicesState> = { deleteFolderAndDevice: null };
                         if (
