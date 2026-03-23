@@ -294,6 +294,9 @@
     "wm_ff_hint": "Temporary extensions are removed after browser restart. For permanent use, consider signing the extension via Mozilla.",
     "wm_Instance not active": "Instance is not active",
     "wm_Hide config warning": "If you hide the config button, you will not be able to activate it again from this web page. You will need to go to Admin → Devices to re-enable it.",
+    "wm_chart_h": "h",
+    "wm_chart_d": "d",
+    "wm_theme_styling-grey": "Styling Grey",
     "wm_Default category": "Default category",
     "wm_None (root)": "None (root)",
     "wm_Favorites": "Favorites"

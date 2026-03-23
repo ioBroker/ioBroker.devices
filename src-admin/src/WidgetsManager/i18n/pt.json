@@ -294,6 +294,9 @@
     "wm_ff_hint": "Extensões temporárias são removidas ao reiniciar o navegador. Para uso permanente, considere assinar a extensão pela Mozilla.",
     "wm_Instance not active": "A instância não está ativa",
     "wm_Hide config warning": "Se ocultar o botão de configuração, não poderá ativá-lo novamente a partir desta página web. Terá de ir a Admin → Devices para reativá-lo.",
+    "wm_chart_h": "h",
+    "wm_chart_d": "d",
+    "wm_theme_styling-grey": "Estilo cinza",
     "wm_Default category": "Categoria padrão",
     "wm_None (root)": "Nenhuma (raiz)",
     "wm_Favorites": "Favoritos"

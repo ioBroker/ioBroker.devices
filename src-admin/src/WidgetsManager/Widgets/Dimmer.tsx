@@ -13,7 +13,7 @@ import {
 import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
@@ -684,7 +684,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative' }}
+                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
             >
                 <Box
                     ref={this.arcRef}
@@ -705,10 +705,20 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),
+                        ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
+                        <Box
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                zIndex: 1,
+                            })}
+                        >
+                            {indicators}
+                        </Box>
                     ) : null}
                     <Box
                         sx={{
@@ -723,6 +733,36 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                             viewBox={`0 0 ${vb} ${vb}`}
                             style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
                         >
+                            <defs>
+                                <linearGradient
+                                    id={`dimGrad_${this.props.widget.id}`}
+                                    x1="0%"
+                                    y1="0%"
+                                    x2="100%"
+                                    y2="100%"
+                                >
+                                    <stop
+                                        offset="0%"
+                                        stopColor={accent || '#ffc107'}
+                                        stopOpacity="1"
+                                    />
+                                    <stop
+                                        offset="100%"
+                                        stopColor={accent || '#ffc107'}
+                                        stopOpacity="0.5"
+                                    />
+                                </linearGradient>
+                                <filter id={`dimGlow_${this.props.widget.id}`}>
+                                    <feGaussianBlur
+                                        stdDeviation="2.5"
+                                        result="blur"
+                                    />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
                             <circle
                                 cx={vb / 2}
                                 cy={vb / 2}
@@ -739,10 +779,15 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                                 cy={vb / 2}
                                 r={r}
                                 fill="none"
-                                stroke={isActive ? accent || 'var(--mui-palette-primary-main, #1976d2)' : 'transparent'}
+                                stroke={
+                                    isActive
+                                        ? `url(#dimGrad_${this.props.widget.id})`
+                                        : 'transparent'
+                                }
                                 strokeWidth={sw}
                                 strokeDasharray={`${progress} ${circumference}`}
                                 strokeLinecap="round"
+                                filter={isActive ? `url(#dimGlow_${this.props.widget.id})` : undefined}
                                 style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
                             />
                         </svg>
@@ -750,8 +795,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                             sx={{
                                 position: 'absolute',
                                 display: 'flex',
+                                flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                zIndex: 1,
                             }}
                         >
                             {this.renderTileIcon()}
@@ -762,12 +809,19 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {name ?? '...'}
                         </Typography>

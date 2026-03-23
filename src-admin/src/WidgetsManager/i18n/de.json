@@ -294,6 +294,9 @@
     "wm_ff_hint": "Temporäre Erweiterungen werden nach Browser-Neustart entfernt. Für dauerhafte Nutzung muss die Erweiterung über Mozilla signiert werden.",
     "wm_Instance not active": "Instanz ist nicht aktiv",
     "wm_Hide config warning": "Wenn Sie den Konfig-Button ausblenden, können Sie ihn von dieser Webseite nicht wieder aktivieren. Sie müssen in Admin → Devices gehen, um ihn wieder einzublenden.",
+    "wm_chart_h": "S",
+    "wm_chart_d": "T",
+    "wm_theme_styling-grey": "Styling Grau",
     "wm_Default category": "Standardkategorie",
     "wm_None (root)": "Keine (Hauptseite)",
     "wm_Favorites": "Favoriten"

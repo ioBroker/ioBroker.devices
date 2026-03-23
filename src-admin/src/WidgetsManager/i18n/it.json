@@ -294,6 +294,9 @@
     "wm_ff_hint": "Le estensioni temporanee vengono rimosse al riavvio del browser. Per un uso permanente, considera la firma dell'estensione tramite Mozilla.",
     "wm_Instance not active": "L'istanza non è attiva",
     "wm_Hide config warning": "Se nascondi il pulsante di configurazione, non potrai riattivarlo da questa pagina web. Dovrai andare in Admin → Devices per riabilitarlo.",
+    "wm_chart_h": "h",
+    "wm_chart_d": "g",
+    "wm_theme_styling-grey": "Stile grigio",
     "wm_Default category": "Categoria predefinita",
     "wm_None (root)": "Nessuna (radice)",
     "wm_Favorites": "Preferiti"

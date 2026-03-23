@@ -294,6 +294,9 @@
     "wm_ff_hint": "Tijdelijke extensies worden verwijderd na herstart van de browser. Voor permanent gebruik moet de extensie worden ondertekend via Mozilla.",
     "wm_Instance not active": "Instantie is niet actief",
     "wm_Hide config warning": "Als u de configuratieknop verbergt, kunt u deze niet opnieuw activeren vanaf deze webpagina. U moet naar Admin → Devices gaan om deze opnieuw in te schakelen.",
+    "wm_chart_h": "u",
+    "wm_chart_d": "d",
+    "wm_theme_styling-grey": "Stijl grijs",
     "wm_Default category": "Standaardcategorie",
     "wm_None (root)": "Geen (hoofdpagina)",
     "wm_Favorites": "Favorieten"

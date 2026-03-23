@@ -68,14 +68,50 @@ class WidgetsManagement {
         this.log.debug(`DeviceManagement received: ${JSON.stringify(msg)}`);
         switch (msg.command) {
             case 'dm:loadItems': {
-                await this.loadItems();
-                this.sendReply({
+                const [, adapterWidgets] = await Promise.all([this.loadItems(), this.loadCustomWidgets()]);
+                const response = {
                     categories: [...this.categories.values()],
                     widgets: [...this.widgets.values()],
-                }, msg);
+                };
+                if (Object.keys(adapterWidgets).length) {
+                    response.adapterWidgets = adapterWidgets;
+                }
+                this.sendReply(response, msg);
                 return;
             }
         }
+    }
+    /**
+     * Read all adapter instances that have `common.deviceWidgets` and return them
+     * as `{ adapterName: { widget1: any, widget2: any } }`.
+     */
+    async loadCustomWidgets() {
+        const result = {};
+        try {
+            const instances = await this.adapter.getObjectViewAsync('system', 'instance', {
+                startkey: 'system.adapter.',
+                endkey: 'system.adapter.\u9999',
+            });
+            if (instances?.rows) {
+                for (const row of instances.rows) {
+                    const common = row.value?.common;
+                    // @ts-expect-error will be fixed in js-controller
+                    if (common?.deviceWidgets && typeof common.deviceWidgets === 'object') {
+                        // Extract adapter name from "system.adapter.adapterName.0"
+                        const parts = row.id.split('.');
+                        const adapterName = parts[2];
+                        if (adapterName) {
+                            // @ts-expect-error will be fixed in js-controller
+                            result[adapterName] = common.deviceWidgets;
+                        }
+                    }
+                }
+            }
+        }
+        catch (e) {
+            this.log.error(`Cannot load custom widgets from instances: ${e}`);
+        }
+        return result;
     }
     sendReply(reply, msg) {
         this.adapter.sendTo(msg.from, msg.command, reply, msg.callback);

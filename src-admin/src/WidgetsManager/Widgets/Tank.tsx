@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, ButtonBase, Typography } from '@mui/material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 /** Color based on fill level */
 function getFillColor(percent: number, accent: string | undefined): string {
@@ -327,14 +327,19 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         overflow: 'hidden',
                         position: 'relative',
                         ...getTileStyles(theme, isActive, accent),
-                        padding: 'max(16px, 10cqi)',
+                        padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
                     {this.renderFillBackground(fillColor)}
 
                     {indicators ? (
                         <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                zIndex: 1,
+                            })}
                         >
                             {indicators}
                         </Box>
@@ -379,13 +384,20 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 9cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

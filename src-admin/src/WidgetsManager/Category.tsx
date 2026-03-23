@@ -1221,7 +1221,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         // Parallax: shift background slower than content
         if (this.parallaxRef.current && this.scrollRef.current) {
             const scrollTop = this.scrollRef.current.scrollTop;
-            this.parallaxRef.current.style.transform = `translateY(${scrollTop * 0.25}px) scale(1.15)`;
+            this.parallaxRef.current.style.transform = `translateY(${scrollTop * -0.25}px) scale(1.15)`;
         }
     };
 

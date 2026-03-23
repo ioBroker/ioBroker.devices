@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetLocationState extends WidgetGenericState {
     latitude: number | null;
@@ -767,14 +767,21 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
                     >
                         <Typography
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
                                 ...(isWide ? {} : { fontSize: 'max(0.875rem, 9cqi)' }),
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

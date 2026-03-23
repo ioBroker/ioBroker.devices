@@ -4,7 +4,7 @@ import { LightbulbOutlined } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
 
@@ -696,10 +696,20 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),
+                        ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
+                        <Box
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                zIndex: 1,
+                            })}
+                        >
+                            {indicators}
+                        </Box>
                     ) : null}
 
                     <Box
@@ -756,12 +766,19 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

@@ -4,7 +4,7 @@ import type { Theme } from '@mui/material/styles';
 import { VolumeUp, VolumeDown, VolumeMute, VolumeOff } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetVolumeState extends WidgetGenericState {
     volume: number;
@@ -371,10 +371,20 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),
+                        ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
+                        <Box
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                zIndex: 1,
+                            })}
+                        >
+                            {indicators}
+                        </Box>
                     ) : null}
 
                     <Box
@@ -431,12 +441,19 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

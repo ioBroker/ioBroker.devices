@@ -174,6 +174,16 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(224,230,237,0.65)',
         textDisabled: 'rgba(224,230,237,0.4)',
     },
+    'styling-grey': {
+        mode: 'dark',
+        primary: '#a0a0a0',
+        secondary: '#78909c',
+        bgDefault: '#111113',
+        bgPaper: '#1c1c1e',
+        textPrimary: '#e8e8e8',
+        textSecondary: 'rgba(232,232,232,0.55)',
+        textDisabled: 'rgba(232,232,232,0.35)',
+    },
 };
 
 export class CategoryList extends Communication<CategoryListProps, CategoryListState> {
@@ -1502,7 +1512,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.widgetThemeType = this.props.themeType;
         this.cachedWmThemeId = wmThemeId;
 
-        const preset = WM_THEME_PRESETS[wmThemeId === 'auto' ? this.props.themeType : wmThemeId];
+        const resolvedThemeId = wmThemeId === 'auto' ? this.props.themeType : wmThemeId;
+        const preset = WM_THEME_PRESETS[resolvedThemeId];
         if (preset) {
             this.widgetTheme = createTheme({
                 palette: {
@@ -1520,7 +1531,82 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     },
                 },
                 typography: { fontFamily: WM_FONT_FAMILY },
+                ...(resolvedThemeId === 'styling-grey'
+                    ? {
+                          components: {
+                              MuiDialog: {
+                                  styleOverrides: {
+                                      paper: {
+                                          borderRadius: '28px',
+                                          background: 'linear-gradient(145deg, #222224, #1a1a1c)',
+                                          border: '1px solid rgba(255,255,255,0.04)',
+                                          boxShadow:
+                                              '0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
+                                      },
+                                  },
+                              },
+                              MuiDialogTitle: {
+                                  styleOverrides: {
+                                      root: {
+                                          fontSize: '1rem',
+                                          fontWeight: 600,
+                                      },
+                                  },
+                              },
+                              MuiDialogContent: {
+                                  styleOverrides: {
+                                      root: {
+                                          '&::-webkit-scrollbar': { width: 6 },
+                                          '&::-webkit-scrollbar-thumb': {
+                                              background: 'rgba(255,255,255,0.1)',
+                                              borderRadius: 3,
+                                          },
+                                      },
+                                  },
+                              },
+                              MuiButton: {
+                                  styleOverrides: {
+                                      outlined: {
+                                          borderColor: 'rgba(255,255,255,0.1)',
+                                          borderRadius: '14px',
+                                          '&:hover': {
+                                              borderColor: 'rgba(255,255,255,0.2)',
+                                              background: 'rgba(255,255,255,0.04)',
+                                          },
+                                      },
+                                      contained: {
+                                          borderRadius: '14px',
+                                          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                      },
+                                  },
+                              },
+                              MuiIconButton: {
+                                  styleOverrides: {
+                                      root: {
+                                          '&:hover': {
+                                              background: 'rgba(255,255,255,0.06)',
+                                          },
+                                      },
+                                  },
+                              },
+                              MuiSlider: {
+                                  styleOverrides: {
+                                      root: {
+                                          '& .MuiSlider-track': {
+                                              boxShadow: '0 0 8px currentColor',
+                                          },
+                                          '& .MuiSlider-thumb': {
+                                              boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      }
+                    : {}),
             });
+            // Store preset ID on theme so widgets can detect styling variants
+            (this.widgetTheme as Theme & { wmPreset?: string }).wmPreset = resolvedThemeId;
         } else {
             this.widgetTheme = createTheme(this.props.theme, {
                 typography: { fontFamily: WM_FONT_FAMILY },

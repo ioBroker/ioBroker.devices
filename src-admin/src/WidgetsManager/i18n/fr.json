@@ -294,6 +294,9 @@
     "wm_ff_hint": "Les extensions temporaires sont supprimées au redémarrage du navigateur. Pour une utilisation permanente, envisagez de signer l'extension via Mozilla.",
     "wm_Instance not active": "L'instance n'est pas active",
     "wm_Hide config warning": "Si vous masquez le bouton de configuration, vous ne pourrez pas le réactiver depuis cette page web. Vous devrez aller dans Admin → Devices pour le réactiver.",
+    "wm_chart_h": "h",
+    "wm_chart_d": "j",
+    "wm_theme_styling-grey": "Style gris",
     "wm_Default category": "Catégorie par défaut",
     "wm_None (root)": "Aucune (racine)",
     "wm_Favorites": "Favoris"
