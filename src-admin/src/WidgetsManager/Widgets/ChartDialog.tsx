@@ -22,14 +22,19 @@ import type { ChartSeries } from './Generic';
 
 const MARGIN = { top: 10, right: 12, bottom: 32, left: 52 };
 const RANGE_OPTIONS = [
-    { label: '1h', hours: 1 },
-    { label: '6h', hours: 6 },
-    { label: '12h', hours: 12 },
-    { label: '24h', hours: 24 },
-    { label: '3d', hours: 72 },
-    { label: '7d', hours: 168 },
-    { label: '30d', hours: 720 },
+    { value: 1, unit: 'h', hours: 1 },
+    { value: 6, unit: 'h', hours: 6 },
+    { value: 12, unit: 'h', hours: 12 },
+    { value: 24, unit: 'h', hours: 24 },
+    { value: 3, unit: 'd', hours: 72 },
+    { value: 7, unit: 'd', hours: 168 },
+    { value: 30, unit: 'd', hours: 720 },
 ];
+
+function rangeLabel(opt: (typeof RANGE_OPTIONS)[number]): string {
+    const unitKey = opt.unit === 'h' ? 'wm_chart_h' : 'wm_chart_d';
+    return `${opt.value}${I18n.t(unitKey)}`;
+}
 
 export type ChartLineType = 'line' | 'step-start' | 'step-end';
 
@@ -956,7 +961,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                                     saveSetting('chartRangeHours', opt.hours);
                                 }}
                             >
-                                {opt.label}
+                                {rangeLabel(opt)}
                             </Button>
                         ))}
                     </ButtonGroup>

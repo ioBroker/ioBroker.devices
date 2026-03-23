@@ -4,7 +4,11 @@ import type { CategoryInfo, WidgetInfo } from './api';
 
 export type CommandName = `dm:${string}`;
 
-export type LoadItemsCallback = (result: { categories: CategoryInfo[]; widgets: WidgetInfo[] }) => RetVal<void>;
+export type LoadItemsCallback = (result: {
+    categories: CategoryInfo[];
+    widgets: WidgetInfo[];
+    customWidgets?: Record<string, Record<string, any>>;
+}) => RetVal<void>;
 
 export class WmProtocol {
     constructor(
@@ -13,7 +17,11 @@ export class WmProtocol {
     ) {}
 
     public async loadItems(callback: LoadItemsCallback): Promise<void> {
-        const response = await this.send<{ categories: CategoryInfo[]; widgets: WidgetInfo[] }>('dm:loadItems');
+        const response = await this.send<{
+            categories: CategoryInfo[];
+            widgets: WidgetInfo[];
+            customWidgets?: Record<string, Record<string, any>>;
+        }>('dm:loadItems');
         try {
             void callback(response);
         } catch (error) {

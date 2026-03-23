@@ -5,7 +5,7 @@ import { Close, OpenInNew, Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import type { Theme } from '@mui/material/styles';
 
-import { getTileStyles } from './Generic';
+import { getTileStyles, isNeumorphicTheme } from './Generic';
 
 interface WidgetIframeProps {
     id: string;

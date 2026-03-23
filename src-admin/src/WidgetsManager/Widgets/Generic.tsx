@@ -175,6 +175,11 @@ const EXTRA_INFO_LABELS: Record<string, string> = {
     FREQUENCY: 'wm_Frequency',
 };
 
+/** Check if the current theme is the neumorphic "styling-grey" preset */
+export function isNeumorphicTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'styling-grey';
+}
+
 export function getTileStyles(
     theme: Theme,
     isActive: boolean,
@@ -184,6 +189,27 @@ export function getTileStyles(
 ): Record<string, unknown> {
     const accent = accentColor || theme.palette.primary.main;
     const isDark = theme.palette.mode === 'dark';
+
+    // Neumorphic styling for styling-grey theme
+    if (isNeumorphicTheme(theme)) {
+        return {
+            borderRadius: '24px',
+            boxSizing: 'border-box',
+            padding: theme.spacing(2),
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            backgroundColor: isActive
+                ? alpha(accent, 0.08)
+                : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
+            background: isActive
+                ? `linear-gradient(145deg, ${alpha(accent, 0.1)}, ${alpha(accent, 0.04)})`
+                : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
+            border: `1px solid ${alpha(theme.palette.common.white, 0.04)}`,
+            boxShadow: isActive
+                ? `6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025), inset 0 0 0 1px ${alpha(accent, 0.1)}`
+                : '6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025)',
+            ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+        };
+    }
 
     let bgInactive: string;
     let borderInactive: string;
@@ -1293,7 +1319,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     bottom: 0,
                     height: '40%',
                     overflow: 'hidden',
-                    borderRadius: '0 0 14px 14px',
                     pointerEvents: 'none',
                 }}
             >
@@ -1431,24 +1456,31 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                       : this.onTileClick()
                             : undefined
                     }
-                    sx={theme => ({
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'stretch',
-                        width: '100%',
-                        aspectRatio: '1',
-                        textAlign: 'left',
-                        overflow: 'hidden',
-                        cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
-                        ...(!clickable && { '&:active': { transform: 'none' } }),
-                        padding: 'max(16px, 10cqi)',
-                    })}
+                    sx={theme => {
+                        const neu = isNeumorphicTheme(theme);
+                        const pad = neu ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)';
+                        return {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            alignItems: 'stretch',
+                            width: '100%',
+                            aspectRatio: '1',
+                            textAlign: 'left',
+                            overflow: 'hidden',
+                            cursor: clickable ? 'pointer' : 'default',
+                            ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                            ...(!clickable && { '&:active': { transform: 'none' } }),
+                            padding: pad,
+                        };
+                    }}
                 >
                     {indicators ? (
                         <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                            sx={theme => {
+                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)';
+                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
+                            }}
                         >
                             {indicators}
                         </Box>
@@ -1487,13 +1519,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 9cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.7rem, 7cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
@@ -1560,11 +1599,18 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             <Typography
                                 ref={this.nameRef}
                                 variant="body2"
-                                sx={{
+                                sx={theme => ({
                                     fontWeight: 600,
                                     overflow: 'hidden',
                                     whiteSpace: 'nowrap',
-                                }}
+                                    ...(isNeumorphicTheme(theme)
+                                        ? {
+                                              textTransform: 'uppercase' as const,
+                                              letterSpacing: '0.08em',
+                                              fontSize: '0.75rem',
+                                          }
+                                        : {}),
+                                })}
                             >
                                 {this.props.settings?.name || name || '...'}
                             </Typography>
@@ -1630,11 +1676,16 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         cursor: clickable ? 'pointer' : 'default',
                         ...getTileStyles(theme, isActive, accent, true, inactiveColor),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
-                        padding: 'max(16px, 5cqi)',
+                        padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
+                        <Box
+                            sx={theme => {
+                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)';
+                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
+                            }}
+                        >
                             {indicators}
                         </Box>
                     ) : null}
@@ -1657,13 +1708,20 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 4.5cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.7rem, 3.5cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

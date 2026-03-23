@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { translateWeather } from './weatherTranslations';
 
 interface ForecastDay {
@@ -406,14 +406,21 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                     {/* Name */}
                     <Typography
                         variant="body2"
-                        sx={{
+                        sx={theme => ({
                             fontWeight: 600,
                             lineHeight: 1.3,
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
                             fontSize: 'max(0.875rem, 9cqi)',
                             textOverflow: 'ellipsis',
-                        }}
+                            ...(isNeumorphicTheme(theme)
+                                ? {
+                                      textTransform: 'uppercase' as const,
+                                      letterSpacing: '0.08em',
+                                      fontSize: 'max(0.6rem, 6cqi)',
+                                  }
+                                : {}),
+                        })}
                     >
                         {this.props.settings?.name || name || '...'}
                     </Typography>

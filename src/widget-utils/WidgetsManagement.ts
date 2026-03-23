@@ -4,7 +4,14 @@
  */
 
 import type { AdapterInstance } from '@iobroker/adapter-core';
-import type { WidgetInfo, CategoryInfo, DeviceStatus, RetVal, BackendToGuiCommand } from './types';
+import type {
+    WidgetInfo,
+    CategoryInfo,
+    DeviceStatus,
+    RetVal,
+    BackendToGuiCommand,
+    InstanceWidgetDescription,
+} from './types';
 import type { WmResponseItems } from './types/api';
 
 export abstract class WidgetsManagement<TAdapter extends AdapterInstance = AdapterInstance> {
@@ -77,17 +84,50 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
         this.log.debug(`DeviceManagement received: ${JSON.stringify(msg)}`);
         switch (msg.command) {
             case 'dm:loadItems': {
-                await this.loadItems();
-                this.sendReply<WmResponseItems>(
-                    {
-                        categories: [...this.categories!.values()],
-                        widgets: [...this.widgets!.values()],
-                    },
-                    msg,
-                );
+                const [, adapterWidgets] = await Promise.all([this.loadItems(), this.loadCustomWidgets()]);
+                const response: WmResponseItems = {
+                    categories: [...this.categories!.values()],
+                    widgets: [...this.widgets!.values()],
+                };
+                if (Object.keys(adapterWidgets).length) {
+                    response.adapterWidgets = adapterWidgets;
+                }
+                this.sendReply<WmResponseItems>(response, msg);
                 return;
             }
         }
+    }
+
+    /**
+     * Read all adapter instances that have `common.deviceWidgets` and return them
+     * as `{ adapterName: { widget1: any, widget2: any } }`.
+     */
+    private async loadCustomWidgets(): Promise<Record<string, InstanceWidgetDescription>> {
+        const result: Record<string, InstanceWidgetDescription> = {};
+        try {
+            const instances = await this.adapter.getObjectViewAsync('system', 'instance', {
+                startkey: 'system.adapter.',
+                endkey: 'system.adapter.\u9999',
+            });
+            if (instances?.rows) {
+                for (const row of instances.rows) {
+                    const common = row.value?.common;
+                    // @ts-expect-error will be fixed in js-controller
+                    if (common?.deviceWidgets && typeof common.deviceWidgets === 'object') {
+                        // Extract adapter name from "system.adapter.adapterName.0"
+                        const parts = row.id.split('.');
+                        const adapterName = parts[2];
+                        if (adapterName) {
+                            // @ts-expect-error will be fixed in js-controller
+                            result[adapterName] = common.deviceWidgets as InstanceWidgetDescription;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            this.log.error(`Cannot load custom widgets from instances: ${e}`);
+        }
+        return result;
     }
 
     private sendReply<T>(reply: T, msg: ioBroker.Message): void {

@@ -21,3 +21,8 @@ export type DeviceStatus =
           rssi?: ValueOrState<number>; // in dBm
           warning?: ValueOrState<ioBroker.StringOrTranslated | boolean>; // warning text or just boolean true (means warning)
       };
+
+export interface InstanceWidgetDescription {
+    url: string;
+    components: string[];
+}

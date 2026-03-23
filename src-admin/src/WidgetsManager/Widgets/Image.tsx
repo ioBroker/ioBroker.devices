@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { BrokenImage } from '@mui/icons-material';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetImageState extends WidgetGenericState {
     url: string | null;
@@ -177,7 +177,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
@@ -185,7 +185,14 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                                 fontSize: 'max(0.875rem, 9cqi)',
                                 color: '#fff',
                                 textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

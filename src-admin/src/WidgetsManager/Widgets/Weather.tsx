@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import { getTileStyles } from './Generic';
+import { getTileStyles, isNeumorphicTheme } from './Generic';
 import type StateContext from '../StateContext';
 
 /** WMO weather code → i18n key */
@@ -941,14 +941,21 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             ) : null}
                             <Typography
                                 variant="body2"
-                                sx={{
+                                sx={theme => ({
                                     fontWeight: 600,
                                     lineHeight: 1.3,
                                     overflow: 'hidden',
                                     whiteSpace: 'nowrap',
                                     fontSize: 'max(0.875rem, 9cqi)',
                                     textOverflow: 'ellipsis',
-                                }}
+                                    ...(isNeumorphicTheme(theme)
+                                        ? {
+                                              textTransform: 'uppercase' as const,
+                                              letterSpacing: '0.08em',
+                                              fontSize: 'max(0.6rem, 6cqi)',
+                                          }
+                                        : {}),
+                                })}
                             >
                                 {this.props.cityName || I18n.t('wm_Weather')}
                             </Typography>

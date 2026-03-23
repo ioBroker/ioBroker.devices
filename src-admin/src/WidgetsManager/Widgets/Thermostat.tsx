@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetThermostatState extends WidgetGenericState {
     setTemp: number | null;
@@ -911,6 +911,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const arcLength = circumference * 0.75;
         const range = setMax - setMin;
         const progress = setTemp != null && range > 0 ? ((setTemp - setMin) / range) * arcLength : 0;
+        const tempColor = WidgetThermostat.getTempColor(displayTemp);
 
         return (
             <Box
@@ -921,41 +922,97 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                 <ButtonBase
                     component="div"
                     onClick={() => this.onTileClick()}
-                    sx={theme => ({
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'stretch',
-                        width: '100%',
-                        aspectRatio: '1',
-                        textAlign: 'left',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        ...getTileStyles(theme, isActive && !poweredOff, accent),
-                        padding: 'max(16px, 10cqi)',
-                    })}
+                    sx={theme => {
+                        const neumorphic = isNeumorphicTheme(theme);
+                        return {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            alignItems: 'stretch',
+                            width: '100%',
+                            aspectRatio: '1',
+                            textAlign: 'left',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            ...getTileStyles(theme, isActive && !poweredOff, accent),
+                            padding: neumorphic ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                        };
+                    }}
                 >
                     {indicators ? (
                         <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                zIndex: 1,
+                            })}
                         >
                             {indicators}
                         </Box>
                     ) : null}
 
                     <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            position: 'relative',
-                            flex: 1,
+                        sx={theme => {
+                            const neumorphic = isNeumorphicTheme(theme);
+                            return {
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative',
+                                flex: 1,
+                                ...(neumorphic
+                                    ? {
+                                          // Dark inner circle behind the arc for depth
+                                          '&::before': {
+                                              content: '""',
+                                              position: 'absolute',
+                                              width: '55%',
+                                              height: '55%',
+                                              borderRadius: '50%',
+                                              background: 'radial-gradient(circle, #151517 0%, #1a1a1c 100%)',
+                                              boxShadow:
+                                                  'inset 3px 3px 8px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(255,255,255,0.03)',
+                                          },
+                                      }
+                                    : {}),
+                            };
                         }}
                     >
                         <svg
                             viewBox={`0 0 ${vb} ${vb}`}
                             style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
                         >
+                            <defs>
+                                <linearGradient
+                                    id={`arcGrad_${this.props.widget.id}`}
+                                    x1="0%"
+                                    y1="0%"
+                                    x2="100%"
+                                    y2="100%"
+                                >
+                                    <stop
+                                        offset="0%"
+                                        stopColor={tempColor}
+                                        stopOpacity="1"
+                                    />
+                                    <stop
+                                        offset="100%"
+                                        stopColor={tempColor}
+                                        stopOpacity="0.6"
+                                    />
+                                </linearGradient>
+                                <filter id={`arcGlow_${this.props.widget.id}`}>
+                                    <feGaussianBlur
+                                        stdDeviation="2.5"
+                                        result="blur"
+                                    />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
                             <circle
                                 cx={vb / 2}
                                 cy={vb / 2}
@@ -972,10 +1029,11 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 cy={vb / 2}
                                 r={r}
                                 fill="none"
-                                stroke={isActive ? WidgetThermostat.getTempColor(displayTemp) : 'transparent'}
+                                stroke={isActive ? `url(#arcGrad_${this.props.widget.id})` : 'transparent'}
                                 strokeWidth={sw}
                                 strokeDasharray={`${progress} ${circumference}`}
                                 strokeLinecap="round"
+                                filter={isActive ? `url(#arcGlow_${this.props.widget.id})` : undefined}
                                 style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
                             />
                         </svg>
@@ -985,6 +1043,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
+                                zIndex: 1,
                             }}
                         >
                             {this.renderTileIcon()}
@@ -992,7 +1051,16 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 <Tooltip title={I18n.t('wm_Set temperature')}>
                                     <Typography
                                         variant="caption"
-                                        sx={{ fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 }}
+                                        sx={theme => ({
+                                            fontWeight: 700,
+                                            fontSize: isNeumorphicTheme(theme)
+                                                ? 'max(0.9rem, 9cqi)'
+                                                : 'max(0.75rem, 7cqi)',
+                                            lineHeight: 1,
+                                            ...(isNeumorphicTheme(theme)
+                                                ? { color: tempColor, textShadow: `0 0 12px ${tempColor}40` }
+                                                : {}),
+                                        })}
                                     >
                                         {WidgetThermostat.formatTemp(setTemp)}
                                     </Typography>
@@ -1006,13 +1074,20 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.75rem, 8cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>

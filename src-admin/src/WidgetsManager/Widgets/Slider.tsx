@@ -14,7 +14,7 @@ import { Speed, Tune } from '@mui/icons-material';
 import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
@@ -560,12 +560,17 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         ...getTileStyles(theme, isActive, accent),
-                        padding: 'max(16px, 10cqi)',
+                        padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
                     {indicators ? (
                         <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                zIndex: 1,
+                            })}
                         >
                             {indicators}
                         </Box>
@@ -588,13 +593,20 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 9cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
@@ -767,7 +779,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         userSelect: 'none',
                         position: 'relative',
                         ...getTileStyles(theme, isActive, accent),
-                        padding: 'max(16px, 10cqi)',
+                        padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
                     {/* Vertical fill from bottom */}
@@ -787,7 +799,12 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
 
                     {indicators ? (
                         <Box
-                            sx={{ position: 'absolute', top: 'max(16px, 10cqi)', right: 'max(16px, 10cqi)', zIndex: 1 }}
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                                zIndex: 1,
+                            })}
                         >
                             {indicators}
                         </Box>
@@ -827,13 +844,20 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 fontSize: 'max(0.875rem, 9cqi)',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
@@ -886,10 +910,20 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         touchAction: 'none',
                         userSelect: 'none',
                         ...getTileStyles(theme, isActive, accent),
+                        ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
                     {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
+                        <Box
+                            sx={theme => ({
+                                position: 'absolute',
+                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
+                                zIndex: 1,
+                            })}
+                        >
+                            {indicators}
+                        </Box>
                     ) : null}
 
                     <Box
@@ -946,12 +980,19 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         <Typography
                             ref={this.nameRef}
                             variant="body2"
-                            sx={{
+                            sx={theme => ({
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
-                            }}
+                                ...(isNeumorphicTheme(theme)
+                                    ? {
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.08em',
+                                          fontSize: 'max(0.6rem, 6cqi)',
+                                      }
+                                    : {}),
+                            })}
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
