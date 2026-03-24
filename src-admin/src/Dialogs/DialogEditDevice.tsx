@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2025 bluefox <dogafox@gmail.com>
+ * Copyright 2019-2026 bluefox <dogafox@gmail.com>
  *
  * MIT License
  *
@@ -51,7 +51,7 @@ import {
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
-import type { Types, DetectorState, ExternalPatternControl } from '@iobroker/type-detector';
+import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
@@ -757,6 +757,95 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         }
     }
 
+    /**
+     * When a required state is selected, run the type-detector on the parent
+     * (limited to the current device type) to auto-fill other empty states.
+     */
+    private autoDetectSiblingStates(
+        selectedId: string,
+        _selectedStateName: string,
+        ids: Record<string, string | { read: string; write: string }>,
+    ): void {
+        const parentId = selectedId.substring(0, selectedId.lastIndexOf('.'));
+        if (!parentId) {
+            return;
+        }
+
+        const detector = new ChannelDetector();
+        const deviceType = this.state.channelInfo.type;
+        const detected = detector.detect({
+            id: parentId,
+            objects: this.props.objects,
+            allowedTypes: [deviceType],
+            ignoreCache: true,
+        });
+
+        if (!detected?.length) {
+            return;
+        }
+
+        // Use the first detection result matching our device type
+        const match = detected.find(d => d.type === deviceType);
+        if (!match?.states) {
+            return;
+        }
+
+        // Fill empty states from the detection result
+        for (const detectedState of match.states) {
+            if (!detectedState.id || !detectedState.name) {
+                continue;
+            }
+            // Skip already assigned states
+            const currentVal = ids[detectedState.name];
+            if (currentVal) {
+                if (typeof currentVal === 'string' && currentVal) {
+                    continue;
+                }
+                if (typeof currentVal === 'object' && (currentVal.read || currentVal.write)) {
+                    continue;
+                }
+            }
+            // Verify this state name exists in our device pattern
+            if (!this.state.channelInfo.states.find(s => s.name === detectedState.name)) {
+                continue;
+            }
+
+            ids[detectedState.name] = detectedState.id;
+            this.fx[detectedState.name] ||= { read: '', write: '' };
+        }
+    }
+
+    /**
+     * If BATTERY is assigned to a number (percentage) state and LOWBAT is empty,
+     * auto-fill LOWBAT with the same ID and a read function "val < 30".
+     */
+    private deriveLowBatFromBattery(ids: Record<string, string | { read: string; write: string }>): void {
+        const batteryId = typeof ids.BATTERY === 'string' ? ids.BATTERY : '';
+        if (!batteryId) {
+            return;
+        }
+
+        // Check if LOWBAT is already assigned
+        const lowbatVal = ids.LOWBAT;
+        if (lowbatVal && (typeof lowbatVal === 'string' ? lowbatVal : lowbatVal.read || lowbatVal.write)) {
+            return;
+        }
+
+        // Check LOWBAT exists in the device pattern
+        if (!this.state.channelInfo.states.find(s => s.name === 'LOWBAT')) {
+            return;
+        }
+
+        // Check the BATTERY source is a number (percentage)
+        const batteryObj = this.props.objects[batteryId];
+        if (!batteryObj || (batteryObj.common as ioBroker.StateCommon)?.type !== 'number') {
+            return;
+        }
+
+        ids.LOWBAT = batteryId;
+        this.fx.LOWBAT = { read: 'val < 30' };
+    }
+
     renderSelectDialog(): React.JSX.Element | null {
         if (!this.state.selectIdFor && !this.state.newState) {
             return null;
@@ -798,6 +887,13 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             ] = id;
                         } else {
                             ids[this.state.selectIdFor] = id;
+                            // Auto-detect sibling states when a required state is selected
+                            const selectedState = this.state.channelInfo.states.find(
+                                s => s.name === this.state.selectIdFor,
+                            );
+                            if (selectedState?.required) {
+                                this.autoDetectSiblingStates(id, this.state.selectIdFor, ids);
+                            }
                         }
                     } else {
                         const isAlias = id.startsWith('alias.') || id.startsWith('linkeddevices.');
@@ -827,6 +923,9 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         //    ids[newObject.common.name] = newObject?.common?.alias?.id;
                         //}
                     }
+                    // Derive LOWBAT from BATTERY percentage if applicable
+                    this.deriveLowBatFromBattery(ids);
+
                     this.setState({ selectIdPrefix: '', selectIdFor: '', ids });
                 }}
                 onClose={() => this.setState({ selectIdFor: '', selectIdPrefix: '', newState: false })}
