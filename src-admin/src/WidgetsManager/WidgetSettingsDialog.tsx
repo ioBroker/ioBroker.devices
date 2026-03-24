@@ -118,6 +118,7 @@ interface WidgetSettingsDialogProps {
     socket: Connection;
     theme: IobTheme;
     admin: boolean;
+    instance: string;
     objectName?: string;
     objectColor?: string;
     availableGroups?: WidgetGroup[];
@@ -955,6 +956,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         }
                         setIconPickerField(null);
                     }}
+                    instance={props.instance}
                     socket={props.socket}
                     theme={props.theme}
                     admin={props.admin}

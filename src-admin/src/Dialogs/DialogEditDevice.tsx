@@ -351,6 +351,7 @@ interface DialogEditDeviceProps {
     enumIDs: string[];
     iotNoCommon: boolean;
     iotInstance: string;
+    instance: string; // adapterName.X
     channelId: string;
     type: Types;
     channelInfo: PatternControlEx;
@@ -952,6 +953,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 }}
                 socket={this.props.socket}
                 theme={this.props.theme}
+                instance={this.props.instance}
                 admin
             />
         );

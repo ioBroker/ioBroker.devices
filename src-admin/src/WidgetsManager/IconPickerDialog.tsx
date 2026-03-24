@@ -29,6 +29,7 @@ interface IconPickerDialogProps {
     socket: Connection;
     theme: IobTheme;
     admin: boolean;
+    instance: string; // adapterName.X
 }
 
 /** Inline SVG icon rendered from a path string – used for the predefined grid */
@@ -71,8 +72,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
         if (filePath) {
             const clean = filePath.startsWith('/') ? filePath.substring(1) : filePath;
             // Store as URL path (not base64) for ioBroker files
-            const prefix = admin ? './files/' : '../';
-            onSelect(`${prefix}${clean}`);
+            onSelect(clean);
         }
     };
 
@@ -268,7 +268,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                 <DialogSelectFile
                     socket={socket}
                     theme={theme}
-                    imagePrefix={admin ? './files/' : '../'}
+                    imagePrefix={admin ? '../../files/' : '../'}
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
@@ -279,7 +279,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                     allowDelete
                     allowView
                     showToolbar
-                    restrictToFolder={`${this.adapterName}.${this.instance}`}
+                    restrictToFolder={props.instance}
                 />
             ) : null}
         </>

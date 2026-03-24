@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### 2.0.2 (2026-03-23)
+### **WORK IN PROGRESS**
 * (@GermanBluefox) Added widgets' visualisation. Now it is possible to create a GUI within the adapter
 
 ### 1.2.14 (2026-02-06)

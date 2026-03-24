@@ -2045,7 +2045,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
         const tileStoredImage = tileCatSettings?.image;
         const tileImage = tileStoredImage
-            ? `/${this.props.admin ? 'files/' : ''}${tileStoredImage.replace(/^\//, '')}`
+            ? `/${this.props.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
             : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
 
@@ -2319,7 +2319,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
         const storedImage = categorySettings?.image;
         // Stored path has no prefix; add files/ prefix for admin
-        const catImage = storedImage ? `/${this.props.admin ? 'files/' : ''}${storedImage.replace(/^\//, '')}` : '';
+        const catImage = storedImage
+            ? `${this.props.admin ? '../../files/' : '../'}${storedImage.replace(/^\//, '')}`
+            : '';
         const imageScope = categorySettings?.imageScope || 'header';
         const catColor = categorySettings?.color;
         const catBgColor = categorySettings?.backgroundColor;
@@ -2478,7 +2480,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             ) : (
                                 <>
                                     {(() => {
-                                        const rootIcon = categorySettings?.rootIcon;
+                                        const rootIconRaw = categorySettings?.rootIcon;
+                                        const rootIcon = rootIconRaw
+                                            ? `${this.props.admin ? '../../files/' : '../'}${rootIconRaw.replace(/^\//, '')}`
+                                            : '';
                                         const headerIcon = rootIcon || this.state.icons[this.props.category.id];
                                         return headerIcon ? (
                                             <Icon

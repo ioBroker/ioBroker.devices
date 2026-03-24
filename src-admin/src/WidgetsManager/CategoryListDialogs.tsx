@@ -131,6 +131,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         ? widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
                         : DEFAULT_WIDGET_SETTINGS
                 }
+                instance={props.selectedInstance}
                 onClose={onCloseSettings}
                 onSave={onSaveSettings}
                 onDelete={onDeleteWidget}

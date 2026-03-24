@@ -1137,7 +1137,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
      * Chrome extension / PWA uses the user-chosen icon.
      */
     static applyPwaIcon(iconPath: string, admin: boolean): void {
-        const filePrefix = admin ? '/files/' : '/';
+        const filePrefix = admin ? '../../files/' : '../';
         const iconUrl = `${filePrefix}${iconPath.replace(/^\//, '')}`;
 
         // Update favicon

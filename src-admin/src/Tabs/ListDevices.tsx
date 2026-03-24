@@ -2672,16 +2672,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
                         common.role = state.defaultRole || 'state';
 
-                        if (state.read !== undefined) {
-                            common.read = state.read;
-                        } else if (common.read !== undefined) {
-                            common.read = true;
-                        }
-                        if (state.write !== undefined) {
-                            common.write = state.write;
-                        } else if (common.write !== undefined) {
-                            common.write = true;
-                        }
+                        common.read = state.read ?? common.read ?? true;
+                        common.write = state.write ?? common.write ?? false;
 
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
@@ -2801,16 +2793,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         common.name ||= state.name;
                         common.role = state.defaultRole || 'state';
 
-                        if (state.read !== undefined) {
-                            common.read = state.read;
-                        } else if (common.read !== undefined) {
-                            common.read = true;
-                        }
-                        if (state.write !== undefined) {
-                            common.write = state.write;
-                        } else if (common.write !== undefined) {
-                            common.write = true;
-                        }
+                        common.read = state.read ?? common.read ?? true;
+                        common.write = state.write ?? common.write ?? false;
 
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
@@ -2972,6 +2956,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 iotInstance={this.state.iotInstance}
                 iotNoCommon={this.state.iotNoCommon}
                 socket={this.props.socket}
+                instance={`${this.props.adapterName}.${this.props.instance}`}
                 onCopyDevice={async (id, newId) => {
                     await this.onCopyDevice(id, newId);
                     const copiedDevice = this.state.devices.find(device => device.channelId === id);

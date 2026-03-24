@@ -93,7 +93,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         categoryOptions,
     } = props;
     // In admin, files are served under /files/, in web they are at root
-    const filePrefix = admin ? 'files/' : '';
+    const filePrefix = admin ? '../../files/' : '../';
     const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
     const [iconPreview, setIconPreview] = useState<string>('');
@@ -778,7 +778,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 <DialogSelectFile
                     socket={socket}
                     theme={theme}
-                    imagePrefix={admin ? './files/' : '../'}
+                    imagePrefix={admin ? '../../files/' : '../'}
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
@@ -789,7 +789,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     allowDelete
                     allowView
                     showToolbar
-                    restrictToFolder={`${this.adapterName}.${this.instance}`}
+                    restrictToFolder={instance}
                 />
             ) : null}
 
@@ -809,6 +809,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     socket={socket}
                     theme={theme}
                     admin={admin}
+                    instance={instance}
                 />
             ) : null}
 
@@ -828,6 +829,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                         }
                     }}
                     socket={socket}
+                    instance={instance}
                     theme={theme}
                     admin={admin}
                 />
@@ -838,10 +840,18 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 <DialogSelectFile
                     socket={socket}
                     theme={theme}
-                    imagePrefix={admin ? './files/' : '../'}
+                    imagePrefix={admin ? '../../files/' : '../'}
                     filterByType="images"
                     onClose={() => setIconFileDialogOpen(false)}
                     onOk={handleIconFileSelected}
+                    allowNonRestricted
+                    allowUpload
+                    allowDownload
+                    allowCreateFolder
+                    allowDelete
+                    allowView
+                    showToolbar
+                    restrictToFolder={instance}
                 />
             ) : null}
 
