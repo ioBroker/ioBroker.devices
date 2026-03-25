@@ -9,6 +9,8 @@
     "wm_Root icon": "Koptekst icoon",
     "wm_On": "Aan",
     "wm_Off": "Uit",
+    "wm_Playing": "Afspelen",
+    "wm_Now playing": "Nu aan het afspelen",
     "wm_Unknown type": "Onbekend type",
     "wm_one_device": "1 apparaat",
     "wm_n_devices": "%s apparaten",

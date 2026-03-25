@@ -1,5 +1,5 @@
 import React from 'react';
-import { Blinds, Info, Lightbulb, MoreHoriz, Security, SensorWindow, Thermostat, Widgets } from '@mui/icons-material';
+import { Blinds, Info, Lightbulb, MusicNote, MoreHoriz, Security, SensorWindow, Thermostat, Widgets } from '@mui/icons-material';
 
 const GROUP_ICONS: Record<string, React.ReactElement> = {
     lights: <Lightbulb sx={{ fontSize: 18 }} />,
@@ -7,6 +7,7 @@ const GROUP_ICONS: Record<string, React.ReactElement> = {
     blinds: <Blinds sx={{ fontSize: 18 }} />,
     openings: <SensorWindow sx={{ fontSize: 18 }} />,
     security: <Security sx={{ fontSize: 18 }} />,
+    media: <MusicNote sx={{ fontSize: 18 }} />,
     info: <Info sx={{ fontSize: 18 }} />,
     widgets: <Widgets sx={{ fontSize: 18 }} />,
     other: <MoreHoriz sx={{ fontSize: 18 }} />,

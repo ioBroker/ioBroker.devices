@@ -9,6 +9,8 @@
     "wm_Root icon": "Иконка заголовка",
     "wm_On": "Вкл",
     "wm_Off": "Выкл",
+    "wm_Playing": "Воспроизведение",
+    "wm_Now playing": "Сейчас играет",
     "wm_Unknown type": "Неизвестный тип",
     "wm_one_device": "1 устройство",
     "wm_n_devices": "%s устройств",

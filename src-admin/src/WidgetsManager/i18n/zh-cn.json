@@ -9,6 +9,8 @@
     "wm_Root icon": "标题图标",
     "wm_On": "开",
     "wm_Off": "关",
+    "wm_Playing": "正在播放",
+    "wm_Now playing": "正在播放",
     "wm_Unknown type": "未知类型",
     "wm_one_device": "1 个设备",
     "wm_n_devices": "%s 个设备",

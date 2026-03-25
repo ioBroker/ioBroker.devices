@@ -9,6 +9,8 @@
     "wm_Root icon": "Header icon",
     "wm_On": "On",
     "wm_Off": "Off",
+    "wm_Playing": "Playing",
+    "wm_Now playing": "Now playing",
     "wm_Unknown type": "Unknown type",
     "wm_one_device": "1 device",
     "wm_n_devices": "%s devices",

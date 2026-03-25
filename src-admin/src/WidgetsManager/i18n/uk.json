@@ -9,6 +9,8 @@
     "wm_Root icon": "Іконка заголовка",
     "wm_On": "Увімк",
     "wm_Off": "Вимк",
+    "wm_Playing": "Відтворення",
+    "wm_Now playing": "Зараз грає",
     "wm_Unknown type": "Невідомий тип",
     "wm_one_device": "1 пристрій",
     "wm_n_devices": "%s пристроїв",

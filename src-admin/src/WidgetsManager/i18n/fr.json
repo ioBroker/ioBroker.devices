@@ -9,6 +9,8 @@
     "wm_Root icon": "Icône d'en-tête",
     "wm_On": "Allumé",
     "wm_Off": "Éteint",
+    "wm_Playing": "Lecture",
+    "wm_Now playing": "En cours de lecture",
     "wm_Unknown type": "Type inconnu",
     "wm_one_device": "1 appareil",
     "wm_n_devices": "%s appareils",

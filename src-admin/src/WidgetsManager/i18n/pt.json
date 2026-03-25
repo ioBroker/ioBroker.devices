@@ -9,6 +9,8 @@
     "wm_Root icon": "Ícone do cabeçalho",
     "wm_On": "Ligado",
     "wm_Off": "Desligado",
+    "wm_Playing": "Reproduzindo",
+    "wm_Now playing": "Reproduzindo agora",
     "wm_Unknown type": "Tipo desconhecido",
     "wm_one_device": "1 dispositivo",
     "wm_n_devices": "%s dispositivos",

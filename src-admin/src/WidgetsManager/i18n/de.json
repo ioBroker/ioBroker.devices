@@ -9,6 +9,8 @@
     "wm_Root icon": "Kopfzeilen-Icon",
     "wm_On": "An",
     "wm_Off": "Aus",
+    "wm_Playing": "Wiedergabe",
+    "wm_Now playing": "Aktuelle Wiedergabe",
     "wm_Unknown type": "Unbekannter Typ",
     "wm_one_device": "1 Gerät",
     "wm_n_devices": "%s Geräte",

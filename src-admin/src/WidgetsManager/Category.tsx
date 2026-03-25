@@ -76,6 +76,7 @@ import {
     WidgetClock,
     WidgetWeather,
     WidgetVolume,
+    WidgetMediaPlayer,
     WidgetColorLight,
     WidgetInfo as WidgetInfoWidget,
     WidgetLocation,
@@ -254,15 +255,16 @@ function SortableItem(props: {
                 {...listeners}
                 sx={theme => ({
                     position: 'absolute',
-                    top: 4,
-                    left: 4,
-                    p: '2px',
+                    top: 2,
+                    left: 2,
+                    p: '4px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'grab',
                     zIndex: 3,
+                    touchAction: 'none',
                     color: theme.palette.text.secondary,
                     opacity: 0.5,
                     transition: 'opacity 0.2s, background-color 0.2s',
@@ -272,7 +274,7 @@ function SortableItem(props: {
                     },
                 })}
             >
-                <DragIndicator sx={{ fontSize: 16 }} />
+                <DragIndicator sx={{ fontSize: 20 }} />
             </Box>
             {onToggleFavorite ? (
                 <Box
@@ -291,9 +293,9 @@ function SortableItem(props: {
                     }}
                     sx={theme => ({
                         position: 'absolute',
-                        top: 4,
-                        left: 24,
-                        p: '2px',
+                        top: 2,
+                        left: 28,
+                        p: '4px',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
@@ -1655,6 +1657,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)
         ) {
             Widget = WidgetVolume;
+        } else if (widget.control && widget.control.type === Types.media) {
+            Widget = WidgetMediaPlayer;
         } else if (
             widget.control &&
             (widget.control.type === Types.slider || widget.control.type === Types.percentage)

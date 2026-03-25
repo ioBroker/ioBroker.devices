@@ -17,6 +17,7 @@ export { WidgetIlluminance } from './Illuminance';
 export { WidgetThermostat } from './Thermostat';
 export { WidgetClock } from './Clock';
 export { WidgetVolume } from './Volume';
+export { WidgetMediaPlayer } from './MediaPlayer';
 export { WidgetColorLight } from './ColorLight';
 export { WidgetInfo } from './Info';
 export { WidgetLocation } from './Location';
