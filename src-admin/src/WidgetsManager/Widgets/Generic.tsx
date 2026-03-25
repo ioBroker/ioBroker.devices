@@ -25,7 +25,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { WidgetInfo } from '../../../../src/widget-utils';
 import type StateContext from '../StateContext';
-import ChartDialog from './ChartDialog';
+import ChartDialog, { type ChartLineType } from './ChartDialog';
 
 export interface WidgetSettings {
     size: '1x1' | '2x0.5' | '2x1';
@@ -136,6 +136,8 @@ export interface ExtraInfoEntry {
     label: string;
     unit: string;
     value: number | string | null;
+    /** Resolved history ID if history is available, null otherwise */
+    historyId: string | null;
 }
 
 export interface WidgetGenericState {
@@ -149,6 +151,10 @@ export interface WidgetGenericState {
     chartDialogOpen: boolean;
     /** Trend direction based on recent history: 'up', 'down', 'stable', or null if unknown */
     trend: 'up' | 'down' | 'stable' | null;
+    /** Chart line type synced from chart dialog settings */
+    chartType: ChartLineType;
+    /** Extra info entry whose chart dialog is currently open */
+    infoChartEntry: ExtraInfoEntry | null;
 }
 
 const INDICATOR_NAMES = [
@@ -268,6 +274,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             infoDialogOpen: false,
             chartDialogOpen: false,
             trend: null,
+            chartType: 'line',
+            infoChartEntry: null,
         } as unknown as TState;
 
         // Collect indicator state IDs from control.states
@@ -360,6 +368,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         this.startChartRefresh();
         this.startTrendRefresh();
         this.adjustNameFontSize();
+        this.loadChartType();
     }
 
     componentWillUnmount(): void {
@@ -590,6 +599,21 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     // --- Extra info (ELECTRIC_POWER, CURRENT, VOLTAGE, etc.) ---
 
     private async loadExtraInfoMetadata(): Promise<void> {
+        // Ensure history instance is resolved before checking history availability
+        if (this.historyInstance === null) {
+            if (this.props.defaultHistory) {
+                this.historyInstance = this.props.defaultHistory;
+            } else {
+                try {
+                    const cfg = await this.props.stateContext.getSocket().getObject('system.config');
+                    this.historyInstance =
+                        ((cfg?.common as unknown as Record<string, unknown>)?.defaultHistory as string) || '';
+                } catch {
+                    this.historyInstance = '';
+                }
+            }
+        }
+
         const entries: ExtraInfoEntry[] = [];
         for (const { id, stateName } of this.extraInfoIds) {
             const label = I18n.t(EXTRA_INFO_LABELS[stateName] || stateName);
@@ -605,7 +629,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             } catch {
                 // ignore
             }
-            entries.push({ id, stateName, label, unit, value: null });
+            let historyId: string | null = null;
+            if (this.historyInstance) {
+                historyId = await this.resolveHistoryId(id);
+            }
+            entries.push({ id, stateName, label, unit, value: null, historyId });
             this.props.stateContext.getState(id, this.onExtraInfoChange);
         }
         if (entries.length > 0) {
@@ -642,65 +670,227 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
     }
 
-    protected renderInfoDialog(): React.JSX.Element | null {
-        if (!this.state.infoDialogOpen || !this.state.extraInfo.length) {
+    protected hasIndicatorStates(): boolean {
+        return Object.keys(this.indicatorIds).length > 0;
+    }
+
+    private renderIndicatorRows(): React.JSX.Element[] {
+        const { indicators } = this.state;
+        const ids = this.indicatorIds;
+        const rows: React.JSX.Element[] = [];
+
+        const row = (key: string, label: string, value: string, color?: string): void => {
+            rows.push(
+                <Box
+                    key={key}
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        py: 0.75,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                    >
+                        {label}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, color: color || undefined }}
+                    >
+                        {value}
+                    </Typography>
+                </Box>,
+            );
+        };
+
+        if (ids.CONNECTED != null) {
+            const ok = indicators.connected !== false;
+            row(
+                'connected',
+                I18n.t('wm_Connected'),
+                ok ? I18n.t('wm_Yes') : I18n.t('wm_No'),
+                ok ? 'success.main' : 'error.main',
+            );
+        }
+
+        if (ids.UNREACH != null) {
+            row(
+                'unreach',
+                I18n.t('wm_Unreachable'),
+                indicators.unreach ? I18n.t('wm_Yes') : I18n.t('wm_No'),
+                indicators.unreach ? 'error.main' : 'success.main',
+            );
+        }
+
+        if (ids.ERROR != null) {
+            row(
+                'error',
+                I18n.t('wm_Error'),
+                indicators.error || I18n.t('wm_No'),
+                indicators.error ? 'error.main' : 'success.main',
+            );
+        }
+
+        if (ids.BATTERY != null && indicators.battery != null) {
+            const pct = Math.round(indicators.battery);
+            const color = pct <= 10 ? 'error.main' : pct <= 30 ? 'warning.main' : 'success.main';
+            row('battery', I18n.t('wm_Battery'), `${pct}%`, color);
+        }
+
+        if (ids.LOWBAT != null) {
+            row(
+                'lowbat',
+                I18n.t('wm_Low battery'),
+                indicators.lowbat ? I18n.t('wm_Yes') : I18n.t('wm_No'),
+                indicators.lowbat ? 'warning.main' : 'success.main',
+            );
+        }
+
+        if (ids.MAINTAIN != null) {
+            row(
+                'maintain',
+                I18n.t('wm_Maintenance'),
+                indicators.maintain ? I18n.t('wm_Yes') : I18n.t('wm_No'),
+                indicators.maintain ? 'warning.main' : 'success.main',
+            );
+        }
+
+        if (ids.WORKING != null) {
+            row(
+                'working',
+                I18n.t('wm_Working'),
+                indicators.working ? I18n.t('wm_Yes') : I18n.t('wm_No'),
+                indicators.working ? 'info.main' : undefined,
+            );
+        }
+
+        return rows;
+    }
+
+    private renderInfoChartDialog(): React.JSX.Element | null {
+        const entry = this.state.infoChartEntry;
+        if (!entry?.historyId || !this.historyInstance) {
             return null;
         }
         return (
-            <Dialog
+            <ChartDialog
                 open
-                onClose={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
-                maxWidth="xs"
-                fullWidth
-            >
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-                    {this.props.settings?.name || this.state.name || '...'}
-                    <IconButton
-                        size="small"
-                        onClick={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
-                    >
-                        <Close />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent>
-                    {this.state.extraInfo.map(entry => (
-                        <Box
-                            key={entry.id}
-                            data-state-id={entry.id}
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                py: 0.75,
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                                '&:last-child': { borderBottom: 'none' },
-                            }}
+                onClose={() => {
+                    this.setState({ infoChartEntry: null } as Partial<TState> as TState);
+                    this.loadChartType();
+                }}
+                title={entry.label}
+                historyIds={[{ id: entry.historyId, color: this.getAccentColor() || '#2196f3', name: entry.label }]}
+                historyInstance={this.historyInstance}
+                socket={this.props.stateContext.getSocket()}
+                unit={entry.unit}
+                widgetId={String(this.props.widget.id)}
+                instanceId={this.props.instanceId}
+            />
+        );
+    }
+
+    protected renderInfoDialog(): React.JSX.Element | null {
+        const hasExtra = this.state.extraInfo.length > 0;
+        const hasIndicators = this.hasIndicatorStates();
+        if (!this.state.infoDialogOpen || (!hasExtra && !hasIndicators)) {
+            return this.renderInfoChartDialog();
+        }
+        const indicatorRows = this.renderIndicatorRows();
+
+        return (
+            <>
+                <Dialog
+                    open
+                    onClose={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+                        {this.props.settings?.name || this.state.name || '...'}
+                        <IconButton
+                            size="small"
+                            onClick={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
                         >
-                            <Box>
-                                <Typography
-                                    variant="body2"
-                                    sx={{ color: 'text.secondary' }}
+                            <Close />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent>
+                        {this.state.extraInfo.map(entry => {
+                            const hasHistory = !!entry.historyId;
+                            return (
+                                <Box
+                                    key={entry.id}
+                                    data-state-id={entry.id}
+                                    onClick={
+                                        hasHistory
+                                            ? () =>
+                                                  this.setState({ infoChartEntry: entry } as Partial<TState> as TState)
+                                            : undefined
+                                    }
+                                    sx={theme => ({
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        py: 0.75,
+                                        px: 1,
+                                        mx: -1,
+                                        borderBottom: '1px solid',
+                                        borderColor: 'divider',
+                                        ...(hasHistory
+                                            ? {
+                                                  cursor: 'pointer',
+                                                  borderRadius: '8px',
+                                                  transition: 'background-color 0.15s',
+                                                  '&:hover': {
+                                                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                                                  },
+                                              }
+                                            : {}),
+                                    })}
                                 >
-                                    {entry.label}
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{ color: 'text.disabled', fontSize: '0.6rem', lineHeight: 1, display: 'block' }}
-                                >
-                                    {entry.id}
-                                </Typography>
-                            </Box>
-                            <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                            >
-                                {this.formatExtraInfoValue(entry)}
-                            </Typography>
-                        </Box>
-                    ))}
-                </DialogContent>
-            </Dialog>
+                                    <Box>
+                                        <Typography
+                                            variant="body2"
+                                            sx={theme => ({
+                                                color: hasHistory ? theme.palette.primary.main : 'text.secondary',
+                                                fontWeight: hasHistory ? 600 : 400,
+                                            })}
+                                        >
+                                            {entry.label}
+                                            {hasHistory ? ' ›' : ''}
+                                        </Typography>
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                color: 'text.disabled',
+                                                fontSize: '0.6rem',
+                                                lineHeight: 1,
+                                                display: 'block',
+                                            }}
+                                        >
+                                            {entry.id}
+                                        </Typography>
+                                    </Box>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {this.formatExtraInfoValue(entry)}
+                                    </Typography>
+                                </Box>
+                            );
+                        })}
+                        {indicatorRows}
+                    </DialogContent>
+                </Dialog>
+                {this.renderInfoChartDialog()}
+            </>
         );
     }
 
@@ -792,7 +982,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="unreach"
-                    title="Unreachable"
+                    title={I18n.t('wm_Unreachable')}
                 >
                     <WifiOff sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -804,7 +994,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="connected"
-                    title="Disconnected"
+                    title={I18n.t('wm_Disconnected')}
                 >
                     <LinkOff sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -828,7 +1018,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="lowbat"
-                    title="Low battery"
+                    title={I18n.t('wm_Low battery')}
                 >
                     <BatteryAlert sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
@@ -853,7 +1043,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="battery"
-                    title={`${pct}%`}
+                    title={`${I18n.t('wm_Battery')}: ${pct}%`}
                 >
                     {batteryIcon}
                 </Tooltip>,
@@ -865,7 +1055,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="maintain"
-                    title="Maintenance required"
+                    title={I18n.t('wm_Maintenance')}
                 >
                     <Build sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
@@ -879,7 +1069,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="direction"
-                    title="Up / Open"
+                    title={I18n.t('wm_Up / Open')}
                 >
                     <ArrowUpward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
@@ -888,7 +1078,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="direction"
-                    title="Down / Close"
+                    title={I18n.t('wm_Down / Close')}
                 >
                     <ArrowDownward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
@@ -900,7 +1090,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             items.push(
                 <Tooltip
                     key="working"
-                    title="Working"
+                    title={I18n.t('wm_Working')}
                 >
                     <Sync
                         sx={{
@@ -975,6 +1165,29 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     // eslint-disable-next-line class-methods-use-this
     protected getChartUnit(): string | undefined {
         return undefined;
+    }
+
+    private loadChartType(): void {
+        const widgetId = String(this.props.widget.id);
+        const instanceId = this.props.instanceId;
+        if (!widgetId || !instanceId) {
+            return;
+        }
+        void this.props.stateContext
+            .getSocket()
+            .getObject(widgetId)
+            .then(obj => {
+                const custom = (obj?.common as Record<string, unknown>)?.custom as
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
+                const ct = custom?.[instanceId]?.chartType;
+                if (ct && ['line', 'step-start', 'step-end'].includes(ct as string)) {
+                    this.setState({ chartType: ct as ChartLineType } as Partial<TState> as TState);
+                }
+            })
+            .catch(() => {
+                // ignore
+            });
     }
 
     private startChartRefresh(): void {
@@ -1230,7 +1443,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <ChartDialog
                 open
-                onClose={() => this.setState({ chartDialogOpen: false } as Partial<TState> as TState)}
+                onClose={() => {
+                    this.setState({ chartDialogOpen: false } as Partial<TState> as TState);
+                    this.loadChartType();
+                }}
                 title={this.props.settings?.name || (this.state.name ?? '') || String(this.props.widget.id)}
                 historyIds={historyIds}
                 historyInstance={this.historyInstance}
@@ -1282,7 +1498,21 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 y: H - ((p.val - padMin) / padRange) * H,
             }));
 
-            const line = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+            const ct = this.state.chartType;
+            let line: string;
+            if (ct === 'step-start') {
+                line = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+                for (let j = 1; j < pts.length; j++) {
+                    line += `V${pts[j].y.toFixed(1)}H${pts[j].x.toFixed(1)}`;
+                }
+            } else if (ct === 'step-end') {
+                line = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+                for (let j = 1; j < pts.length; j++) {
+                    line += `H${pts[j].x.toFixed(1)}V${pts[j].y.toFixed(1)}`;
+                }
+            } else {
+                line = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('');
+            }
             const lastX = pts[pts.length - 1].x.toFixed(1);
             const firstX = pts[0].x.toFixed(1);
 
@@ -1335,7 +1565,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     protected renderSettingsButton(): React.JSX.Element | null {
         const hasSettings = !!this.props.onOpenSettings;
-        const hasInfo = this.state.extraInfo.length > 0;
+        const hasInfo = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
 
         if (!hasSettings && !hasInfo) {
             return null;
@@ -1360,7 +1590,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         }}
                         sx={theme => ({
                             position: 'absolute',
-                            top: 6,
+                            bottom: 6,
                             right: 6,
                             p: '3px',
                             borderRadius: '50%',
@@ -1368,7 +1598,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
-                            zIndex: 1,
+                            zIndex: 2,
                             color: theme.palette.primary.main,
                             opacity: 0.6,
                             transition: 'opacity 0.2s, background-color 0.2s',
@@ -1399,7 +1629,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         sx={theme => ({
                             position: 'absolute',
                             top: 6,
-                            right: hasSettings ? 30 : 6,
+                            right: 6,
                             p: '3px',
                             borderRadius: '50%',
                             display: 'flex',
@@ -1431,7 +1661,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const indicators = this.renderIndicators();
+        // Skip tile indicators when info button is shown — they overlap in the same corner
+        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
+        const indicators = hasInfoButton ? null : this.renderIndicators();
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1440,7 +1672,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => ({
+                    position: 'relative',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+                })}
             >
                 <ButtonBase
                     component="div"
@@ -1548,7 +1785,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const indicators = this.renderIndicators();
+        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
+        const indicators = hasInfoButton ? null : this.renderIndicators();
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1557,7 +1795,13 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => ({
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+                })}
             >
                 <Box
                     onClick={
@@ -1635,7 +1879,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const indicators = this.renderIndicators();
+        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
+        const indicators = hasInfoButton ? null : this.renderIndicators();
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1644,7 +1889,13 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => ({
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+                })}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />

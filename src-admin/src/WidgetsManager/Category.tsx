@@ -173,6 +173,8 @@ interface CategoryState {
     categoryStatus: CategoryStatus;
     /** Status summaries for each subcategory (keyed by category ID) */
     subCategoryStatuses: Record<string, CategoryStatus>;
+    /** Widget grid min-size scale (percent, from localStorage) */
+    widgetScale: number;
 }
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
@@ -495,7 +497,7 @@ function SortableGrid(props: {
             <Box
                 sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                    gridTemplateColumns: category.gridColumns,
                     gap: 1.5,
                 }}
             >
@@ -532,7 +534,7 @@ function SortableGrid(props: {
                 <Box
                     sx={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                        gridTemplateColumns: category.gridColumns,
                         gap: 1.5,
                     }}
                 >
@@ -694,7 +696,7 @@ function GroupSortableGrid(props: {
             <Box
                 sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                    gridTemplateColumns: category.gridColumns,
                     gap: 1.5,
                 }}
             >
@@ -747,7 +749,7 @@ function GroupSortableGrid(props: {
                 <Box
                     sx={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                        gridTemplateColumns: category.gridColumns,
                         gap: 1.5,
                     }}
                 >
@@ -935,7 +937,7 @@ function GroupedContent(props: {
                 <Box
                     sx={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                        gridTemplateColumns: category.gridColumns,
                         gap: 1.5,
                         mb: 2,
                     }}
@@ -1091,6 +1093,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             colors: {},
             categoryStatus: { ...DEFAULT_CATEGORY_STATUS },
             subCategoryStatuses: {},
+            widgetScale: Number(localStorage.getItem('wm_widgetScale')) || 100,
         };
     }
 
@@ -1164,6 +1167,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
         // Restore scroll position (next frame so DOM is ready)
         requestAnimationFrame(() => this.restoreScrollPosition());
+
+        // Listen for widget scale changes from settings dialog
+        window.addEventListener('wm_widgetScaleChanged', this.onWidgetScaleChanged);
     }
 
     componentWillUnmount(): void {
@@ -1175,6 +1181,20 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         for (const sub of this.statusSubs) {
             this.props.stateContext.removeState(sub.stateId, this.onStatusChange);
         }
+        window.removeEventListener('wm_widgetScaleChanged', this.onWidgetScaleChanged);
+    }
+
+    private onWidgetScaleChanged = (): void => {
+        const scale = Number(localStorage.getItem('wm_widgetScale')) || 100;
+        if (scale !== this.state.widgetScale) {
+            this.setState({ widgetScale: scale });
+        }
+    };
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    get gridColumns(): string {
+        const minPx = Math.round(135 * (this.state.widgetScale / 100));
+        return `repeat(auto-fill, minmax(${minPx}px, 1fr))`;
     }
 
     private get scrollStorageKey(): string {

@@ -308,6 +308,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     }
 
     // No action buttons on tile — controls are in the dialog
+    // eslint-disable-next-line class-methods-use-this
     protected renderTileAction(): React.JSX.Element {
         return <Box />;
     }
@@ -356,13 +357,13 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         />
                     ) : (
                         <Box
-                            sx={theme => ({
+                            sx={{
                                 position: 'absolute',
                                 inset: 0,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                            })}
+                            }}
                         >
                             <MusicNote
                                 sx={theme => ({
@@ -405,8 +406,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         <Box
                             sx={{
                                 position: 'absolute',
-                                top: 8,
-                                right: indicators ? 28 : 8,
+                                bottom: 'calc(50% + 4px)',
+                                left: 8,
                                 zIndex: 2,
                                 backgroundColor: 'rgba(0,0,0,0.5)',
                                 borderRadius: '6px',
@@ -417,9 +418,11 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 justifyContent: 'center',
                             }}
                         >
-                            {playing
-                                ? <Pause sx={{ fontSize: 18, color: '#fff' }} />
-                                : <PlayArrow sx={{ fontSize: 18, color: '#fff' }} />}
+                            {playing ? (
+                                <Pause sx={{ fontSize: 18, color: '#fff' }} />
+                            ) : (
+                                <PlayArrow sx={{ fontSize: 18, color: '#fff' }} />
+                            )}
                         </Box>
                     ) : null}
 
@@ -475,9 +478,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 >
                                     {WidgetMediaPlayer.formatTime(elapsed)}
                                 </Typography>
-                                <Box sx={{ flex: 1 }}>
-                                    {this.renderProgressBar(accent || '#1db954', 3)}
-                                </Box>
+                                <Box sx={{ flex: 1 }}>{this.renderProgressBar(accent || '#1db954', 3)}</Box>
                                 <Typography
                                     variant="caption"
                                     sx={{
@@ -501,7 +502,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     // ── Wide 2x0.5: cover background + thumbnail + text + progress ──
 
     renderWide(): React.JSX.Element {
-        const { name, playing, title, artist, cover, elapsed, duration } = this.state;
+        const { name, title, artist, cover, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const indicators = this.renderIndicators();
@@ -576,7 +577,17 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
 
                     {/* Text + progress */}
-                    <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25, position: 'relative', zIndex: 1 }}>
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 0.25,
+                            position: 'relative',
+                            zIndex: 1,
+                        }}
+                    >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Typography
                                 ref={this.nameRef}
@@ -613,11 +624,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                     {artist}
                                 </Typography>
                             ) : null}
-                            {indicators ? (
-                                <Box sx={{ position: 'relative', zIndex: 1 }}>
-                                    {indicators}
-                                </Box>
-                            ) : null}
+                            {indicators ? <Box sx={{ position: 'relative', zIndex: 1 }}>{indicators}</Box> : null}
                         </Box>
                         {duration ? this.renderProgressBar(accent || '#1db954', 4) : null}
                     </Box>
@@ -714,15 +721,15 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 backdropFilter: 'blur(4px)',
                             }}
                         >
-                            {playing
-                                ? <Pause sx={{ fontSize: 22, color: '#fff' }} />
-                                : <PlayArrow sx={{ fontSize: 22, color: '#fff' }} />}
+                            {playing ? (
+                                <Pause sx={{ fontSize: 22, color: '#fff' }} />
+                            ) : (
+                                <PlayArrow sx={{ fontSize: 22, color: '#fff' }} />
+                            )}
                         </Box>
 
                         {indicators ? (
-                            <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>
-                                {indicators}
-                            </Box>
+                            <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>{indicators}</Box>
                         ) : null}
                     </Box>
 
@@ -777,9 +784,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 >
                                     {WidgetMediaPlayer.formatTime(elapsed)}
                                 </Typography>
-                                <Box sx={{ flex: 1 }}>
-                                    {this.renderProgressBar(accent || '#1db954', 4)}
-                                </Box>
+                                <Box sx={{ flex: 1 }}>{this.renderProgressBar(accent || '#1db954', 4)}</Box>
                                 <Typography
                                     variant="caption"
                                     sx={theme => ({
@@ -820,9 +825,10 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     paper: {
                         sx: theme => ({
                             borderRadius: '24px',
-                            background: theme.palette.mode === 'dark'
-                                ? 'linear-gradient(180deg, #1a1a2e 0%, #0d0d14 100%)'
-                                : 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)',
+                            background:
+                                theme.palette.mode === 'dark'
+                                    ? 'linear-gradient(180deg, #1a1a2e 0%, #0d0d14 100%)'
+                                    : 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)',
                             overflow: 'hidden',
                             maxHeight: '90vh',
                         }),
@@ -832,7 +838,11 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                 <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* Header with close button */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <IconButton onClick={this.closeDialog} size="small" sx={theme => ({ color: theme.palette.text.secondary })}>
+                        <IconButton
+                            onClick={this.closeDialog}
+                            size="small"
+                            sx={theme => ({ color: theme.palette.text.secondary })}
+                        >
                             <KeyboardArrowDown fontSize="medium" />
                         </IconButton>
                         <Typography
@@ -930,10 +940,16 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 }}
                             />
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: -0.5 }}>
-                                <Typography variant="caption" sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.7rem' })}>
+                                <Typography
+                                    variant="caption"
+                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.7rem' })}
+                                >
                                     {WidgetMediaPlayer.formatTime(elapsed)}
                                 </Typography>
-                                <Typography variant="caption" sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.7rem' })}>
+                                <Typography
+                                    variant="caption"
+                                    sx={theme => ({ color: theme.palette.text.secondary, fontSize: '0.7rem' })}
+                                >
                                     {WidgetMediaPlayer.formatTime(duration)}
                                 </Typography>
                             </Box>
@@ -969,17 +985,14 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 width: 64,
                                 height: 64,
                                 '&:hover': {
-                                    backgroundColor: theme.palette.mode === 'dark'
-                                        ? 'rgba(255,255,255,0.85)'
-                                        : 'rgba(0,0,0,0.85)',
+                                    backgroundColor:
+                                        theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
                                     transform: 'scale(1.05)',
                                 },
                                 transition: 'transform 0.15s ease',
                             })}
                         >
-                            {playing
-                                ? <Pause sx={{ fontSize: 36 }} />
-                                : <PlayArrow sx={{ fontSize: 36 }} />}
+                            {playing ? <Pause sx={{ fontSize: 36 }} /> : <PlayArrow sx={{ fontSize: 36 }} />}
                         </IconButton>
 
                         {this.nextId ? (
@@ -1015,9 +1028,11 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 onClick={() => this.send(this.volumeId, volume > 0 ? 0 : 50)}
                                 sx={theme => ({ color: theme.palette.text.secondary, p: 0.5 })}
                             >
-                                {volume === 0
-                                    ? <VolumeOff sx={{ fontSize: 20 }} />
-                                    : <VolumeDown sx={{ fontSize: 20 }} />}
+                                {volume === 0 ? (
+                                    <VolumeOff sx={{ fontSize: 20 }} />
+                                ) : (
+                                    <VolumeDown sx={{ fontSize: 20 }} />
+                                )}
                             </IconButton>
                             <Slider
                                 value={volume}

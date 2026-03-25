@@ -10,6 +10,7 @@ import {
     FormControlLabel,
     IconButton,
     MenuItem,
+    Slider,
     TextField,
     ToggleButton,
     ToggleButtonGroup,
@@ -104,6 +105,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const [rootIconPickerOpen, setRootIconPickerOpen] = useState(false);
     const [hideConfigWarning, setHideConfigWarning] = useState(false);
+    const [widgetScale, setWidgetScale] = useState(() => {
+        const stored = localStorage.getItem('wm_widgetScale');
+        return stored ? Number(stored) : 100;
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const iconInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -597,6 +602,39 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             <MenuItem value="blueDark">{I18n.t('wm_theme_blueDark')}</MenuItem>
                             <MenuItem value="styling-grey">{I18n.t('wm_theme_styling-grey')}</MenuItem>
                         </TextField>
+                    ) : null}
+
+                    {isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', mb: 0.5 }}
+                            >
+                                {I18n.t('wm_Widget size')}
+                                {': '}
+                                {widgetScale}%
+                            </Typography>
+                            <Slider
+                                value={widgetScale}
+                                min={80}
+                                max={200}
+                                step={5}
+                                onChange={(_e, val) => {
+                                    const v = val as number;
+                                    setWidgetScale(v);
+                                    localStorage.setItem('wm_widgetScale', String(v));
+                                    window.dispatchEvent(new Event('wm_widgetScaleChanged'));
+                                }}
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={v => `${v}%`}
+                                marks={[
+                                    { value: 80, label: '80%' },
+                                    { value: 100, label: '100%' },
+                                    { value: 150, label: '150%' },
+                                    { value: 200, label: '200%' },
+                                ]}
+                            />
+                        </Box>
                     ) : null}
 
                     {isRoot && categoryOptions ? (
