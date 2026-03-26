@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.3",
+    "version": "2.0.4",
     "news": {
+      "2.0.4": {
+        "en": "Added many new widgets.",
+        "de": "Viele neue Widgets hinzugefügt.",
+        "ru": "Добавлено много новых виджетов.",
+        "pt": "Adicionado muitos widgets novos.",
+        "nl": "Veel nieuwe widgets toegevoegd.",
+        "fr": "Ajout de nombreux nouveaux widgets.",
+        "it": "Aggiunto molti nuovi widget.",
+        "es": "Agregó muchos nuevos widgets.",
+        "pl": "Dodano wiele nowych widżetów.",
+        "uk": "Додайте багато нових віджетів.",
+        "zh-cn": "添加了许多新部件 ."
+      },
       "2.0.3": {
         "en": "Added widgets' visualisation. Now it is possible to create a GUI within the adapter",
         "de": "Die Visualisierung von Widgets wurde hinzugefügt. Jetzt ist es möglich, eine GUI innerhalb des Adapters zu erstellen",
@@ -80,19 +93,6 @@
         "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
         "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
         "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
-      },
-      "1.2.6": {
-        "en": "Type-detector updated\nExecute the conversion formula on current value\nBetter categories selector\nCorrected device importer",
-        "de": "Typ-Detektor aktualisiert\nDie Konversionsformel auf den aktuellen Wert anwenden\nAuswahl besserer Kategorien\nKorrigierter Geräteimporteur",
-        "ru": "Обновленный детектор\nВыполнить формулу преобразования по текущей стоимости\nЛучший выбор категорий\nИсправленный импортер устройств",
-        "pt": "Tipo de detetor atualizado\nExecutar a fórmula de conversão no valor atual\nMelhor seleção de categorias\nImportador de dispositivo correto",
-        "nl": "Type-detector bijgewerkt\nVoer de conversieformule uit op de huidige waarde\nBetere categorieënkiezer\nGecorrigeerde importeur van hulpmiddelen",
-        "fr": "Détecteur de type mis à jour\nExécuter la formule de conversion sur la valeur courante\nSélecteur de catégories meilleures\nImportateur de matériel corrigé",
-        "it": "Tipo di rilevamento aggiornato\nEseguire la formula di conversione sul valore attuale\nSelezione categorie migliori\nImportatore corretto del dispositivo",
-        "es": "Tipo-detector actualizado\nEjecutar la fórmula de conversión en valor actual\nMejor selección de categorías\nImportador de dispositivo corregido",
-        "pl": "Aktualizacja czujnika typu\nWykonaj wzór konwersji na wartość bieżącą\nWybór lepszych kategorii\nPoprawiony importer wyrobów",
-        "uk": "Type-detector оновлений\nВиконувати формулу перетворення на поточну вартість\nКращий вибір категорій\nВиправлений пристрій імпортера",
-        "zh-cn": "类型检测器更新\n执行当前值的转换公式\n更好的类别选择器\n修正设备导入器"
       }
     },
     "titleLang": {
