@@ -511,7 +511,13 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={{
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                }}
             >
                 <Box
                     onClick={this.openDialog}
@@ -647,7 +653,13 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={{
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                }}
             >
                 {/* Sizer to match 1x1 height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
@@ -835,7 +847,16 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     },
                 }}
             >
-                <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', maxHeight: '85vh' }}>
+                <Box
+                    sx={{
+                        p: 3,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                        overflowY: 'auto',
+                        maxHeight: '85vh',
+                    }}
+                >
                     {/* Header with close button */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                         <IconButton

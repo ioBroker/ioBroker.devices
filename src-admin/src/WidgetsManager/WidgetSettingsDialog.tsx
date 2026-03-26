@@ -168,10 +168,14 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
             });
             // Load history enabled state
             if (props.primaryStateId && props.defaultHistory && props.socket) {
-                void props.socket.getObject(props.primaryStateId).then(obj => {
-                    const enabled = !!(obj as ioBroker.StateObject)?.common?.custom?.[props.defaultHistory!]?.enabled;
-                    setHistoryEnabled(enabled);
-                }).catch(() => setHistoryEnabled(false));
+                void props.socket
+                    .getObject(props.primaryStateId)
+                    .then(obj => {
+                        const enabled = !!(obj as ioBroker.StateObject)?.common?.custom?.[props.defaultHistory!]
+                            ?.enabled;
+                        setHistoryEnabled(enabled);
+                    })
+                    .catch(() => setHistoryEnabled(false));
             }
         }
     }, [settings, open, widgetName, objectName, objectColor, props.primaryStateId, props.defaultHistory, props.socket]);
@@ -845,7 +849,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                                 } else if (common.custom[props.defaultHistory!]) {
                                                     common.custom[props.defaultHistory!].enabled = false;
                                                 }
-                                                await props.socket.setObject(obj._id, obj as ioBroker.Object);
+                                                await props.socket.setObject(obj._id, obj);
                                                 setHistoryEnabled(checked);
                                             }
                                         } catch (err) {

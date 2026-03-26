@@ -65,7 +65,6 @@ import {
 import { HiLink } from 'react-icons/hi';
 
 import {
-    ArrowBack,
     FileCopy as CopyIcon,
     CreateNewFolder as CreateNewFolderIcon,
     VerticalSplit as VerticalSplitIcon,

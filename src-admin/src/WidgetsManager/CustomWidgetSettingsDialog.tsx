@@ -521,23 +521,30 @@ function StateIdPicker(props: {
                 return;
             }
             // Fetch object metadata and auto-fill fields
-            void socket.getObject(selectedId).then(obj => {
-                const common = (obj as ioBroker.StateObject | null)?.common;
-                const updates: Record<string, unknown> = { [configKey]: selectedId };
-                if (common && item.autoFill) {
-                    for (const [targetKey, commonProp] of Object.entries(item.autoFill)) {
-                        const val = (common as unknown as Record<string, unknown>)[commonProp];
-                        if (val != null) {
-                            updates[targetKey] = commonProp === 'name'
-                                ? (typeof val === 'object' ? (val as Record<string, string>).en || Object.values(val as Record<string, string>)[0] : String(val))
-                                : val;
+            void socket
+                .getObject(selectedId)
+                .then(obj => {
+                    const common = (obj as ioBroker.StateObject | null)?.common;
+                    const updates: Record<string, unknown> = { [configKey]: selectedId };
+                    if (common && item.autoFill) {
+                        for (const [targetKey, commonProp] of Object.entries(item.autoFill)) {
+                            const val = (common as unknown as Record<string, unknown>)[commonProp];
+                            if (val != null) {
+                                updates[targetKey] =
+                                    commonProp === 'name'
+                                        ? typeof val === 'object'
+                                            ? (val as Record<string, string>).en ||
+                                              Object.values(val as Record<string, string>)[0]
+                                            : (val as string | number).toString()
+                                        : val;
+                            }
                         }
                     }
-                }
-                updateMulti(updates);
-            }).catch(() => {
-                onChange(selectedId);
-            });
+                    updateMulti(updates);
+                })
+                .catch(() => {
+                    onChange(selectedId);
+                });
         },
         [configKey, item.autoFill, onChange, socket, updateMulti],
     );
@@ -696,12 +703,21 @@ function renderConfigItem(
         case 'colorLevels': {
             const levels = (Array.isArray(value) ? value : []) as { value: number; color: string }[];
             return (
-                <Box key={key} sx={{ mt: 1 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                <Box
+                    key={key}
+                    sx={{ mt: 1 }}
+                >
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', mb: 0.5 }}
+                    >
                         {I18n.t(item.label)}
                     </Typography>
                     {levels.map((lvl, i) => (
-                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box
+                            key={i}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
+                        >
                             <TextField
                                 size="small"
                                 type="number"

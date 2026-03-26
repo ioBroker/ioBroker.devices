@@ -1433,9 +1433,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
         // Build the new folder object ID under the current category
         // Root category → alias.0.{name}, sub-category → {parentId}.{name}
-        const parentId = customWidgetDialogCategoryId === ROOT_CATEGORY
-            ? `alias.0`
-            : String(customWidgetDialogCategoryId);
+        const parentId =
+            customWidgetDialogCategoryId === ROOT_CATEGORY ? `alias.0` : String(customWidgetDialogCategoryId);
         // Sanitize name for object ID (replace spaces/special chars)
         const safeName = name.replace(/[.\s/\\]+/g, '_').replace(/[^a-zA-Z0-9_äöüÄÖÜß-]/g, '');
         const newId = `${parentId}.${safeName}`;
@@ -1453,15 +1452,20 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             native: {},
         };
 
-        void this.props.socket.setObject(newId, obj as ioBroker.Object).then(() => {
-            // Reload categories
-            this.setState({ customWidgetDialogCategoryId: null });
-            this.setState(prev => ({ triggerLoad: (prev as unknown as { triggerLoad?: number }).triggerLoad || 0 }));
-            // Trigger a full reload
-            this.loadItemsList();
-        }).catch(err => {
-            console.error('Failed to create category:', err);
-        });
+        void this.props.socket
+            .setObject(newId, obj as ioBroker.Object)
+            .then(() => {
+                // Reload categories
+                this.setState({ customWidgetDialogCategoryId: null });
+                this.setState(prev => ({
+                    triggerLoad: (prev as unknown as { triggerLoad?: number }).triggerLoad || 0,
+                }));
+                // Trigger a full reload
+                this.loadItemsList();
+            })
+            .catch(err => {
+                console.error('Failed to create category:', err);
+            });
     };
 
     private onAddCustomWidget = (type: CustomWidgetType): void => {
@@ -1789,18 +1793,19 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const widgets = favoriteWidgets.length ? [...this.state.widgets, ...favoriteWidgets] : this.state.widgets;
 
         // Add favorited custom widgets to the favorites category settings
-        const categorySettings = favoriteCustomWidgets.length && favoritesCategory
-            ? {
-                  ...this.state.categorySettings,
-                  [FAVORITES_CATEGORY]: {
-                      ...this.state.categorySettings[FAVORITES_CATEGORY],
-                      customWidgets: [
-                          ...(this.state.categorySettings[FAVORITES_CATEGORY]?.customWidgets || []),
-                          ...favoriteCustomWidgets,
-                      ],
-                  },
-              }
-            : this.state.categorySettings;
+        const categorySettings =
+            favoriteCustomWidgets.length && favoritesCategory
+                ? {
+                      ...this.state.categorySettings,
+                      [FAVORITES_CATEGORY]: {
+                          ...this.state.categorySettings[FAVORITES_CATEGORY],
+                          customWidgets: [
+                              ...(this.state.categorySettings[FAVORITES_CATEGORY]?.customWidgets || []),
+                              ...favoriteCustomWidgets,
+                          ],
+                      },
+                  }
+                : this.state.categorySettings;
 
         if (currentCategory) {
             return (

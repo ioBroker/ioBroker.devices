@@ -3,19 +3,6 @@
     "name": "devices",
     "version": "2.0.4",
     "news": {
-      "2.0.4": {
-        "en": "Added many new widgets.",
-        "de": "Viele neue Widgets hinzugefügt.",
-        "ru": "Добавлено много новых виджетов.",
-        "pt": "Adicionado muitos widgets novos.",
-        "nl": "Veel nieuwe widgets toegevoegd.",
-        "fr": "Ajout de nombreux nouveaux widgets.",
-        "it": "Aggiunto molti nuovi widget.",
-        "es": "Agregó muchos nuevos widgets.",
-        "pl": "Dodano wiele nowych widżetów.",
-        "uk": "Додайте багато нових віджетів.",
-        "zh-cn": "添加了许多新部件 ."
-      },
       "2.0.3": {
         "en": "Added widgets' visualisation. Now it is possible to create a GUI within the adapter",
         "de": "Die Visualisierung von Widgets wurde hinzugefügt. Jetzt ist es möglich, eine GUI innerhalb des Adapters zu erstellen",

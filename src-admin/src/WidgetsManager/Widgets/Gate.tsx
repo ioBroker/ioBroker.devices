@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton, Typography, type Theme } from '@mui/material';
 import { Garage, KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
@@ -181,7 +181,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
 
     protected renderTileAction(): React.JSX.Element {
         const accent = this.getAccentColor();
-        const btnSx = (theme: import('@mui/material/styles').Theme): Record<string, unknown> => ({
+        const btnSx = (theme: Theme): Record<string, unknown> => ({
             color: this.isTileActive() ? accent || theme.palette.warning.main : theme.palette.text.secondary,
             p: 0.5,
         });
@@ -190,7 +190,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                 <IconButton
                     size="small"
-                    onClick={e => { e.stopPropagation(); this.open(); }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        this.open();
+                    }}
                     sx={btnSx}
                 >
                     <KeyboardArrowUp fontSize="small" />
@@ -198,7 +201,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                 {this.stopId ? (
                     <IconButton
                         size="small"
-                        onClick={e => { e.stopPropagation(); this.stop(); }}
+                        onClick={e => {
+                            e.stopPropagation();
+                            this.stop();
+                        }}
                         sx={btnSx}
                     >
                         <Stop fontSize="small" />
@@ -206,7 +212,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                 ) : null}
                 <IconButton
                     size="small"
-                    onClick={e => { e.stopPropagation(); this.close(); }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        this.close();
+                    }}
                     sx={btnSx}
                 >
                     <KeyboardArrowDown fontSize="small" />
@@ -260,7 +269,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                             position: 'relative',
                         }}
                     >
-                        {this.renderGateSvg(position, accent)}
+                        {WidgetGate.renderGateSvg(position, accent)}
                     </Box>
 
                     {/* Controls */}
@@ -274,7 +283,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                     >
                         <IconButton
                             size="small"
-                            onClick={e => { e.stopPropagation(); this.open(); }}
+                            onClick={e => {
+                                e.stopPropagation();
+                                this.open();
+                            }}
                             sx={theme => ({ color: theme.palette.text.primary, p: 0.25 })}
                         >
                             <KeyboardArrowUp sx={{ fontSize: 'max(1rem, 10cqi)' }} />
@@ -282,7 +294,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                         {this.stopId ? (
                             <IconButton
                                 size="small"
-                                onClick={e => { e.stopPropagation(); this.stop(); }}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.stop();
+                                }}
                                 sx={theme => ({ color: theme.palette.text.primary, p: 0.25 })}
                             >
                                 <Stop sx={{ fontSize: 'max(1rem, 10cqi)' }} />
@@ -290,7 +305,10 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                         ) : null}
                         <IconButton
                             size="small"
-                            onClick={e => { e.stopPropagation(); this.close(); }}
+                            onClick={e => {
+                                e.stopPropagation();
+                                this.close();
+                            }}
                             sx={theme => ({ color: theme.palette.text.primary, p: 0.25 })}
                         >
                             <KeyboardArrowDown sx={{ fontSize: 'max(1rem, 10cqi)' }} />
@@ -331,7 +349,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
 
     // ── Gate SVG visualization ────────────────────────────────────────
 
-    private renderGateSvg(position: number, accent?: string): React.JSX.Element {
+    static renderGateSvg(position: number, accent?: string): React.JSX.Element {
         const vw = 60;
         const vh = 50;
         const doorH = vh * 0.8;

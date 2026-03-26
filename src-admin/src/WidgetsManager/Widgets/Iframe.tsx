@@ -172,7 +172,15 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         const { color } = this.props;
 
         return (
-            <Box sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}>
+            <Box
+                sx={{
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                }}
+            >
                 <Box
                     onClick={this.handleClick}
                     sx={(theme: Theme) => ({
@@ -208,7 +216,15 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         const { color } = this.props;
 
         return (
-            <Box sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}>
+            <Box
+                sx={{
+                    position: 'relative',
+                    gridColumn: 'span 2',
+                    containerType: 'inline-size',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                }}
+            >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
                     onClick={this.handleClick}

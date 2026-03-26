@@ -539,7 +539,7 @@ function SortableGrid(props: {
             {/* Parent category drop target */}
             {showParentDrop ? (
                 <Box sx={{ mb: 1 }}>
-                    <DroppableCategoryTile id={parentCatId!}>
+                    <DroppableCategoryTile id={parentCatId}>
                         <Box
                             sx={theme => ({
                                 display: 'flex',
@@ -547,12 +547,16 @@ function SortableGrid(props: {
                                 gap: 1,
                                 p: 1.5,
                                 borderRadius: '16px',
-                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                                backgroundColor:
+                                    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                                 borderLeft: `3px solid ${theme.palette.info.main}`,
                             })}
                         >
                             <ArrowBack sx={{ fontSize: 20, color: 'info.main' }} />
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, color: 'info.main' }}
+                            >
                                 {I18n.t('wm_Move to parent')}
                             </Typography>
                         </Box>
@@ -572,16 +576,18 @@ function SortableGrid(props: {
                 >
                     {orderedItems.map(item => {
                         const isCw = item.type === 'custom';
-                        const fav = item.type === 'category'
-                            ? undefined
-                            : isCw
-                                ? (item.data as CustomWidgetDef).favorite
-                                : widgetSettings[item.id]?.favorite;
-                        const toggleFav = item.type === 'category'
-                            ? undefined
-                            : isCw
-                                ? category.props.onToggleCustomWidgetFavorite
-                                : onToggleFavorite;
+                        const fav =
+                            item.type === 'category'
+                                ? undefined
+                                : isCw
+                                  ? (item.data as CustomWidgetDef).favorite
+                                  : widgetSettings[item.id]?.favorite;
+                        const toggleFav =
+                            item.type === 'category'
+                                ? undefined
+                                : isCw
+                                  ? category.props.onToggleCustomWidgetFavorite
+                                  : onToggleFavorite;
                         return (
                             <SortableItem
                                 key={item.id}
@@ -642,16 +648,18 @@ function GroupSortableGrid(props: {
             >
                 {items.map(item => {
                     const isCw = item.type === 'custom';
-                    const fav = item.type === 'category'
-                        ? undefined
-                        : isCw
-                            ? (item.data as CustomWidgetDef).favorite
-                            : widgetSettings[item.id]?.favorite;
-                    const toggleFav = item.type === 'category'
-                        ? undefined
-                        : isCw
-                            ? category.props.onToggleCustomWidgetFavorite
-                            : onToggleFavorite;
+                    const fav =
+                        item.type === 'category'
+                            ? undefined
+                            : isCw
+                              ? (item.data as CustomWidgetDef).favorite
+                              : widgetSettings[item.id]?.favorite;
+                    const toggleFav =
+                        item.type === 'category'
+                            ? undefined
+                            : isCw
+                              ? category.props.onToggleCustomWidgetFavorite
+                              : onToggleFavorite;
                     return (
                         <SortableItem
                             key={item.id}
@@ -943,7 +951,10 @@ function GroupedContent(props: {
                     }}
                 >
                     {categoryItems.map(item => (
-                        <div key={item.id} style={{ gridColumn: '1 / -1' }}>
+                        <div
+                            key={item.id}
+                            style={{ gridColumn: '1 / -1' }}
+                        >
                             {category.renderCategoryTile(item.data as CategoryInfo)}
                         </div>
                     ))}
@@ -955,7 +966,10 @@ function GroupedContent(props: {
                 <Box sx={{ mb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {/* Parent category as drop target */}
                     {parentCategoryId ? (
-                        <DroppableCategoryTile key="drop-parent" id={parentCategoryId}>
+                        <DroppableCategoryTile
+                            key="drop-parent"
+                            id={parentCategoryId}
+                        >
                             <Box
                                 sx={theme => ({
                                     display: 'flex',
@@ -963,19 +977,26 @@ function GroupedContent(props: {
                                     gap: 1,
                                     p: 1.5,
                                     borderRadius: '16px',
-                                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                                    backgroundColor:
+                                        theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                                     borderLeft: `3px solid ${theme.palette.info.main}`,
                                 })}
                             >
                                 <ArrowBack sx={{ fontSize: 20, color: 'info.main' }} />
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600, color: 'info.main' }}
+                                >
                                     {I18n.t('wm_Move to parent')}
                                 </Typography>
                             </Box>
                         </DroppableCategoryTile>
                     ) : null}
                     {categoryItems.map(item => (
-                        <DroppableCategoryTile key={`drop-${item.id}`} id={item.id}>
+                        <DroppableCategoryTile
+                            key={`drop-${item.id}`}
+                            id={item.id}
+                        >
                             {category.renderCategoryTile(item.data as CategoryInfo)}
                         </DroppableCategoryTile>
                     ))}
@@ -1028,10 +1049,16 @@ function GroupedContent(props: {
                                         ? React.cloneElement(icon, { sx: { fontSize: 18, color: 'text.secondary' } })
                                         : null;
                                 })()}
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 600, color: 'text.secondary' }}
+                                >
                                     {I18n.t(group.name)}
                                 </Typography>
-                                <Typography variant="caption" sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}
+                                >
                                     ({groupItems.length})
                                 </Typography>
                             </ButtonBase>

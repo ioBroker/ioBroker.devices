@@ -55,7 +55,15 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     constructor(props: WidgetGaugeProps) {
         super(props);
-        this.state = { value: null, unit: '', value2: null, unit2: '', chartOpen: false, historyId: null, historyInstance: '' };
+        this.state = {
+            value: null,
+            unit: '',
+            value2: null,
+            unit2: '',
+            chartOpen: false,
+            historyId: null,
+            historyInstance: '',
+        };
     }
 
     componentDidMount(): void {
@@ -158,7 +166,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
             if (!instance) {
                 try {
                     const cfg = await socket.getObject('system.config');
-                    instance = (cfg?.common as unknown as Record<string, unknown>)?.defaultHistory as string || '';
+                    instance = ((cfg?.common as unknown as Record<string, unknown>)?.defaultHistory as string) || '';
                 } catch {
                     // ignore
                 }
@@ -177,7 +185,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                 // Follow alias
                 const aliasId = (obj as ioBroker.StateObject)?.common?.alias?.id;
                 if (aliasId) {
-                    const targetId = typeof aliasId === 'object' ? (aliasId as { read?: string }).read : aliasId as string;
+                    const targetId = typeof aliasId === 'object' ? (aliasId as { read?: string }).read : aliasId;
                     if (targetId && targetId !== gaugeStateId) {
                         const targetObj = await socket.getObject(targetId);
                         if ((targetObj as ioBroker.StateObject)?.common?.custom?.[instance]?.enabled) {
@@ -241,7 +249,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return levels[levels.length - 1]?.color || '#2196f3';
     }
 
-    private formatValue(raw: number): string {
+    static formatValue(raw: number): string {
         if (Math.abs(raw) >= 100) {
             return raw.toFixed(0);
         }
@@ -280,7 +288,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
         const raw = value ?? this.min;
         const frac = this.toFraction(raw);
-        const color = value != null ? this.getColor(raw) : (accent || '#2196f3');
+        const color = value != null ? this.getColor(raw) : accent || '#2196f3';
 
         // Indicator dot position
         const dot = value != null ? WidgetGauge.arcPoint(cx, cy, r, frac) : null;
@@ -349,7 +357,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                                 mb: 0.25,
                             }}
                         >
-                            {this.formatValue(this.state.value2)}
+                            {WidgetGauge.formatValue(this.state.value2)}
                             {this.state.unit2 ? ` ${this.state.unit2}` : ''}
                         </Typography>
                     ) : null}
@@ -361,7 +369,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             color: value != null ? color : 'text.disabled',
                         }}
                     >
-                        {value != null ? this.formatValue(raw) : '—'}
+                        {value != null ? WidgetGauge.formatValue(raw) : '—'}
                     </Typography>
                     {this.displayUnit ? (
                         <Typography
@@ -619,9 +627,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             variant="h6"
                             sx={{ fontWeight: 700, color, lineHeight: 1.2 }}
                         >
-                            {value != null
-                                ? `${this.formatValue(raw)} ${this.displayUnit}`
-                                : '—'}
+                            {value != null ? `${WidgetGauge.formatValue(raw)} ${this.displayUnit}` : '—'}
                         </Typography>
                     </Box>
                 </Box>
@@ -713,7 +719,10 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                                 flexShrink: 0,
                             }}
                         />
-                        <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary', lineHeight: 1.2 }}
+                        >
                             {usePercentage ? `${lvl.value}%` : `${lvl.value} ${this.displayUnit}`}
                         </Typography>
                     </Box>

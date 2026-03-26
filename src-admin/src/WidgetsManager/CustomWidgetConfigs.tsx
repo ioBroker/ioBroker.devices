@@ -59,8 +59,10 @@ export interface CwConfigStateId {
     type: 'stateId';
     /** i18n key for the field label */
     label: string;
-    /** Auto-populate other fields from the selected object's common properties.
-     *  Maps config key → common property name, e.g. { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit' } */
+    /**
+     * Auto-populate other fields from the selected object's common properties.
+     *  Maps config key → common property name, e.g. { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit' }
+     */
     autoFill?: Record<string, string>;
 }
 
@@ -110,11 +112,13 @@ export function getConfigDefault(item: CwConfigItem): unknown {
         case 'stateId':
             return '';
         case 'colorLevels':
-            return item.default ?? [
-                { value: 30, color: '#4caf50' },
-                { value: 70, color: '#ff9800' },
-                { value: 100, color: '#f44336' },
-            ];
+            return (
+                item.default ?? [
+                    { value: 30, color: '#4caf50' },
+                    { value: 70, color: '#ff9800' },
+                    { value: 100, color: '#f44336' },
+                ]
+            );
     }
 }
 

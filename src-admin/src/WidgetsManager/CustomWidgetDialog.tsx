@@ -132,7 +132,9 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                 </Box>
                             ) : (
                                 <ListItemButton onClick={() => setShowNameInput(true)}>
-                                    <ListItemIcon><CreateNewFolder /></ListItemIcon>
+                                    <ListItemIcon>
+                                        <CreateNewFolder />
+                                    </ListItemIcon>
                                     <ListItemText
                                         primary={I18n.t('wm_Category')}
                                         secondary={I18n.t('wm_Category_desc')}

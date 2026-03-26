@@ -213,9 +213,9 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 showRefreshInterval={settingsWidget?.control?.type === Types.image}
                 primaryStateId={
                     settingsWidget?.control?.states
-                        ? (settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
-                           settingsWidget.control.states.find(s => s.name === 'SET')?.id ||
-                           settingsWidget.control.states[0]?.id)
+                        ? settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
+                          settingsWidget.control.states.find(s => s.name === 'SET')?.id ||
+                          settingsWidget.control.states[0]?.id
                         : undefined
                 }
                 defaultHistory={props.defaultHistory}
