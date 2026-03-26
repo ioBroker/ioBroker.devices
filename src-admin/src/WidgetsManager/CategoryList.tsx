@@ -74,6 +74,8 @@ interface CategoryListProps extends CommunicationProps {
     admin: boolean;
     /** Define an object that will store root settings of the GUI */
     rootSettingsStateId?: string | boolean;
+    /** Callback to go back to device list (shown in header when in admin split-screen narrow mode) */
+    onBackToDevices?: () => void;
 }
 
 interface CategoryListState extends CommunicationState {
@@ -307,8 +309,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     /** Build the virtual Favorites CategoryInfo (or null if no favorites exist) */
     private buildFavoritesCategory(widgetSettings?: Record<string, WidgetSettings>): CategoryInfo | null {
         const ws = widgetSettings || this.state.widgetSettings;
-        const hasFavorites = Object.values(ws).some(s => s.favorite);
-        if (!hasFavorites) {
+        const hasWidgetFavorites = Object.values(ws).some(s => s.favorite);
+        const hasCustomFavorites = Object.values(this.state.categorySettings).some(cs =>
+            cs.customWidgets?.some(cw => cw.favorite),
+        );
+        if (!hasWidgetFavorites && !hasCustomFavorites) {
             return null;
         }
         return {
@@ -1391,14 +1396,24 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             }
         }
         const def: CustomWidgetDef = { id, type, ...defaults } as CustomWidgetDef;
-        const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+
+        // Widgets created in Favorites are stored in root and auto-marked as favorite
+        const targetCategoryId = customWidgetDialogCategoryId === FAVORITES_CATEGORY
+            ? ROOT_CATEGORY
+            : customWidgetDialogCategoryId;
+        if (customWidgetDialogCategoryId === FAVORITES_CATEGORY) {
+            def.favorite = true;
+            def.favoritesOnly = true;
+        }
+
+        const settings = this.state.categorySettings[targetCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
         const customWidgets = [...(settings.customWidgets || []), def];
         const categorySettings = {
             ...this.state.categorySettings,
-            [customWidgetDialogCategoryId]: { ...settings, customWidgets },
+            [targetCategoryId]: { ...settings, customWidgets },
         };
         this.setState({ categorySettings, customWidgetDialogCategoryId: null });
-        this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
+        this.persistCustomWidgets(targetCategoryId, customWidgets);
     };
 
     private onRemoveCustomWidget = (categoryId: string, widgetId: string): void => {
@@ -1413,6 +1428,33 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         };
         this.setState({ categorySettings });
         this.persistCustomWidgets(categoryId, customWidgets);
+    };
+
+    private onToggleCustomWidgetFavorite = (widgetId: string): void => {
+        // Find which category owns this custom widget (skip virtual favorites)
+        for (const [catId, cs] of Object.entries(this.state.categorySettings)) {
+            if (catId === FAVORITES_CATEGORY) {
+                continue;
+            }
+            const idx = cs.customWidgets?.findIndex(w => w.id === widgetId) ?? -1;
+            if (idx >= 0 && cs.customWidgets) {
+                const customWidgets = cs.customWidgets.map((w, i) => {
+                    if (i !== idx) {
+                        return w;
+                    }
+                    const newFav = !w.favorite;
+                    // If de-favoriting a favoritesOnly widget, clear the flag so it appears in its owning category
+                    return { ...w, favorite: newFav, favoritesOnly: newFav ? w.favoritesOnly : false };
+                });
+                const categorySettings = {
+                    ...this.state.categorySettings,
+                    [catId]: { ...cs, customWidgets },
+                };
+                this.setState({ categorySettings });
+                this.persistCustomWidgets(catId, customWidgets);
+                return;
+            }
+        }
     };
 
     private onOpenCustomWidgetSettings = (categoryId: string, widgetId: string): void => {
@@ -1645,13 +1687,26 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const favoriteWidgetIds = Object.entries(this.state.widgetSettings)
             .filter(([, s]) => s.favorite)
             .map(([id]) => id);
-        const hasFavorites = favoriteWidgetIds.length > 0;
+
+        // Collect favorited custom widgets from all categories
+        const favoriteCustomWidgets: CustomWidgetDef[] = [];
+        for (const cs of Object.values(this.state.categorySettings)) {
+            if (cs.customWidgets) {
+                for (const cw of cs.customWidgets) {
+                    if (cw.favorite) {
+                        favoriteCustomWidgets.push(cw);
+                    }
+                }
+            }
+        }
+
+        const hasFavorites = favoriteWidgetIds.length > 0 || favoriteCustomWidgets.length > 0;
 
         // Create a virtual favorites category as a child of root
-        const favoritesCategory: CategoryInfo | null = this.buildFavoritesCategory();
+        const favoritesCategory: CategoryInfo | null = hasFavorites ? this.buildFavoritesCategory() : null;
 
         // Virtual widget copies: set parent to favorites category so Category.widgets getter picks them up
-        const favoriteWidgets: WidgetInfo[] = hasFavorites
+        const favoriteWidgets: WidgetInfo[] = favoriteWidgetIds.length
             ? this.state.widgets
                   .filter(w => favoriteWidgetIds.includes(String(w.id)))
                   .map(w => ({ ...w, parent: FAVORITES_CATEGORY }))
@@ -1660,6 +1715,20 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         // Merge into categories and widgets lists
         const categories = favoritesCategory ? [...this.state.categories, favoritesCategory] : this.state.categories;
         const widgets = favoriteWidgets.length ? [...this.state.widgets, ...favoriteWidgets] : this.state.widgets;
+
+        // Add favorited custom widgets to the favorites category settings
+        const categorySettings = favoriteCustomWidgets.length && favoritesCategory
+            ? {
+                  ...this.state.categorySettings,
+                  [FAVORITES_CATEGORY]: {
+                      ...this.state.categorySettings[FAVORITES_CATEGORY],
+                      customWidgets: [
+                          ...(this.state.categorySettings[FAVORITES_CATEGORY]?.customWidgets || []),
+                          ...favoriteCustomWidgets,
+                      ],
+                  },
+              }
+            : this.state.categorySettings;
 
         if (currentCategory) {
             return (
@@ -1678,7 +1747,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             }}
                             widgetSettings={this.state.widgetSettings}
                             onOpenSettings={editing ? this.onOpenSettings : undefined}
-                            categorySettings={this.state.categorySettings}
+                            categorySettings={categorySettings}
                             onOpenCategorySettings={editing ? this.onOpenCategorySettings : undefined}
                             onAddCustomWidget={editing ? this.onOpenCustomWidgetDialog : undefined}
                             onRemoveCustomWidget={editing ? this.onRemoveCustomWidget : undefined}
@@ -1703,11 +1772,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                     : undefined
                             }
                             admin={this.props.admin}
+                            onBackToDevices={this.props.onBackToDevices}
                             defaultHistory={this.defaultHistory || undefined}
                             instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                             onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
                             onToggleFavorite={editing ? this.onToggleFavorite : undefined}
+                            onToggleCustomWidgetFavorite={this.onToggleCustomWidgetFavorite}
                             latitude={this.state.latitude}
                             longitude={this.state.longitude}
                         />

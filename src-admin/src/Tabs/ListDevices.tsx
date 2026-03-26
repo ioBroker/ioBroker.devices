@@ -65,6 +65,7 @@ import {
 import { HiLink } from 'react-icons/hi';
 
 import {
+    ArrowBack,
     FileCopy as CopyIcon,
     CreateNewFolder as CreateNewFolderIcon,
     VerticalSplit as VerticalSplitIcon,
@@ -3488,7 +3489,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         );
     }
 
-    renderWidgetsManager(): React.JSX.Element {
+    renderWidgetsManager(extra?: { onBackToDevices?: () => void }): React.JSX.Element {
         return (
             <WidgetsManager
                 socket={this.props.socket}
@@ -3499,6 +3500,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 theme={this.props.theme}
                 showSettingsButton
                 admin
+                onBackToDevices={extra?.onBackToDevices}
             />
         );
     }
@@ -3516,20 +3518,26 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 {this.renderEditFolder()}
                 {this.renderDeleteDialog()}
 
-                {this.renderToolbar()}
+                {/* Hide toolbar when only widgets are visible (split + narrow) */}
+                {!(this.state.splitScreen && narrow) && this.renderToolbar()}
 
                 {this.state.splitScreen ? (
                     narrow ? (
                         <div
                             style={{
-                                height: 'calc(100% - 57px)',
+                                height: '100%',
                                 overflow: 'auto',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                             }}
                         >
-                            {this.renderWidgetsManager()}
+                            {this.renderWidgetsManager({
+                                onBackToDevices: () => {
+                                    window.localStorage.setItem('Devices.splitScreen', 'false');
+                                    this.setState({ splitScreen: false });
+                                },
+                            })}
                         </div>
                     ) : (
                         <div

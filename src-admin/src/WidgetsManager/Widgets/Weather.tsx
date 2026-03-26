@@ -866,7 +866,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
         if (!this.isConfigured()) {
             return (
-                <Box sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}>
+                <Box sx={theme => ({ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px' })}>
                     <Box
                         sx={theme => ({
                             display: 'flex',
@@ -890,7 +890,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
 
         return (
-            <Box sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}>
+            <Box sx={theme => ({ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px' })}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -972,7 +972,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         const { color } = this.props;
 
         return (
-            <Box sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}>
+            <Box sx={theme => ({ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px' })}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -1082,7 +1082,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             .slice(0, 1);
 
         return (
-            <Box sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}>
+            <Box sx={theme => ({ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px' })}>
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box

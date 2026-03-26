@@ -46,7 +46,7 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge';
 
 export interface CustomWidgetDef {
     id: string;
@@ -85,6 +85,24 @@ export interface CustomWidgetDef {
     speedStateId?: string;
     /** Wind gusts state ID */
     gustsStateId?: string;
+    /** Gauge: state ID to read value from */
+    gaugeStateId?: string;
+    /** Gauge: display name / label */
+    gaugeName?: string;
+    /** Gauge: minimum value */
+    minValue?: number;
+    /** Gauge: maximum value */
+    maxValue?: number;
+    /** Gauge: display unit */
+    gaugeUnit?: string;
+    /** Gauge: color level breakpoints — each entry paints the arc up to that value */
+    colorLevels?: { value: number; color: string }[];
+    /** Gauge: interpret colorLevels values as percentage (0-100) instead of absolute */
+    usePercentage?: boolean;
+    /** Whether the custom widget is marked as favorite */
+    favorite?: boolean;
+    /** Widget was created in Favorites — show only there, not in the owning category */
+    favoritesOnly?: boolean;
 }
 
 export interface CategoryInfo extends ItemInfo {

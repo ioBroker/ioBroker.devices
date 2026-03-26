@@ -59,6 +59,16 @@ export interface CwConfigStateId {
     type: 'stateId';
     /** i18n key for the field label */
     label: string;
+    /** Auto-populate other fields from the selected object's common properties.
+     *  Maps config key → common property name, e.g. { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit' } */
+    autoFill?: Record<string, string>;
+}
+
+export interface CwConfigColorLevels {
+    type: 'colorLevels';
+    /** i18n key for the field label */
+    label: string;
+    default?: { value: number; color: string }[];
 }
 
 export type CwConfigItem = (
@@ -69,6 +79,7 @@ export type CwConfigItem = (
     | CwConfigCitySearch
     | CwConfigText
     | CwConfigStateId
+    | CwConfigColorLevels
 ) & {
     /** Only show this item when the specified key has the specified value */
     visibleWhen?: Record<string, unknown>;
@@ -98,6 +109,12 @@ export function getConfigDefault(item: CwConfigItem): unknown {
             return item.default ?? '';
         case 'stateId':
             return '';
+        case 'colorLevels':
+            return item.default ?? [
+                { value: 30, color: '#4caf50' },
+                { value: 70, color: '#ff9800' },
+                { value: 100, color: '#f44336' },
+            ];
     }
 }
 
@@ -226,6 +243,63 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 label: 'wm_Size',
                 options: SIZE_OPTIONS,
                 default: '2x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
+            },
+        },
+    },
+    gauge: {
+        name: 'wm_Gauge',
+        items: {
+            gaugeStateId: {
+                type: 'stateId',
+                label: 'wm_State ID',
+                autoFill: { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit', gaugeName: 'name' },
+            },
+            gaugeName: {
+                type: 'text',
+                label: 'wm_Name',
+                default: '',
+            },
+            minValue: {
+                type: 'text',
+                label: 'wm_Min value',
+                default: '0',
+                inputType: 'number',
+            },
+            maxValue: {
+                type: 'text',
+                label: 'wm_Max value',
+                default: '100',
+                inputType: 'number',
+            },
+            gaugeUnit: {
+                type: 'text',
+                label: 'wm_Unit',
+                default: '',
+            },
+            usePercentage: {
+                type: 'checkbox',
+                label: 'wm_Color levels as percent',
+                default: true,
+            },
+            colorLevels: {
+                type: 'colorLevels',
+                label: 'wm_Color levels',
+                default: [
+                    { value: 30, color: '#4caf50' },
+                    { value: 70, color: '#ff9800' },
+                    { value: 100, color: '#f44336' },
+                ],
+            },
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '1x1',
                 format: 'radio',
             },
             color: {

@@ -9,7 +9,7 @@ import {
     ListItemIcon,
     ListItemText,
 } from '@mui/material';
-import { AccessTime, Air, Close, Language, WbCloudy } from '@mui/icons-material';
+import { AccessTime, Air, Close, Language, Speed, WbCloudy } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType } from '../../../src/widget-utils';
@@ -45,6 +45,12 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <Air />,
         i18nKey: 'wm_Wind',
         descriptionKey: 'wm_Wind_desc',
+    },
+    {
+        type: 'gauge',
+        icon: <Speed />,
+        i18nKey: 'wm_Gauge',
+        descriptionKey: 'wm_Gauge_desc',
     },
 ];
 

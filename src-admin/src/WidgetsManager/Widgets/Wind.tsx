@@ -431,7 +431,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             <Box
                 id={this.props.id}
                 className="widget-wind"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box
                     sx={theme => ({
@@ -558,7 +558,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             <Box
                 id={this.props.id}
                 className="widget-wind"
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box

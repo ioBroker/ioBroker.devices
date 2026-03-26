@@ -306,7 +306,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box
                     sx={theme => ({
@@ -478,7 +478,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -551,7 +551,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box
                     sx={theme => ({
@@ -679,7 +679,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box

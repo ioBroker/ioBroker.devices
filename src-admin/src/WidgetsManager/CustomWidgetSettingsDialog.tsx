@@ -20,7 +20,7 @@ import {
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
-import { Close, Delete, MyLocation, Save } from '@mui/icons-material';
+import { Add, Close, Delete, MyLocation, Remove, Save } from '@mui/icons-material';
 import { DialogSelectID, I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
@@ -509,9 +509,38 @@ function StateIdPicker(props: {
     onChange: (v: unknown) => void;
     socket?: Connection;
     theme?: IobTheme;
+    updateMulti?: (updates: Record<string, unknown>) => void;
 }): React.JSX.Element {
-    const { configKey, item, value, onChange, socket, theme } = props;
+    const { configKey, item, value, onChange, socket, theme, updateMulti } = props;
     const [selectOpen, setSelectOpen] = useState(false);
+
+    const onSelect = useCallback(
+        (selectedId: string) => {
+            if (!selectedId || !socket || !item.autoFill || !updateMulti) {
+                onChange(selectedId);
+                return;
+            }
+            // Fetch object metadata and auto-fill fields
+            void socket.getObject(selectedId).then(obj => {
+                const common = (obj as ioBroker.StateObject | null)?.common;
+                const updates: Record<string, unknown> = { [configKey]: selectedId };
+                if (common && item.autoFill) {
+                    for (const [targetKey, commonProp] of Object.entries(item.autoFill)) {
+                        const val = (common as unknown as Record<string, unknown>)[commonProp];
+                        if (val != null) {
+                            updates[targetKey] = commonProp === 'name'
+                                ? (typeof val === 'object' ? (val as Record<string, string>).en || Object.values(val as Record<string, string>)[0] : String(val))
+                                : val;
+                        }
+                    }
+                }
+                updateMulti(updates);
+            }).catch(() => {
+                onChange(selectedId);
+            });
+        },
+        [configKey, item.autoFill, onChange, socket, updateMulti],
+    );
 
     return (
         <Box
@@ -560,7 +589,7 @@ function StateIdPicker(props: {
                     onOk={id => {
                         const selectedId = Array.isArray(id) ? id[0] : id;
                         if (selectedId) {
-                            onChange(selectedId);
+                            onSelect(selectedId);
                         }
                         setSelectOpen(false);
                     }}
@@ -661,8 +690,73 @@ function renderConfigItem(
                     onChange={onChange}
                     socket={socket}
                     theme={theme}
+                    updateMulti={updateMulti}
                 />
             );
+        case 'colorLevels': {
+            const levels = (Array.isArray(value) ? value : []) as { value: number; color: string }[];
+            return (
+                <Box key={key} sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                        {I18n.t(item.label)}
+                    </Typography>
+                    {levels.map((lvl, i) => (
+                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <TextField
+                                size="small"
+                                type="number"
+                                value={lvl.value}
+                                onChange={e => {
+                                    const next = [...levels];
+                                    next[i] = { ...next[i], value: Number(e.target.value) };
+                                    onChange(next);
+                                }}
+                                sx={{ width: 90 }}
+                                label={I18n.t('wm_Value')}
+                            />
+                            <input
+                                type="color"
+                                value={lvl.color}
+                                onChange={e => {
+                                    const next = [...levels];
+                                    next[i] = { ...next[i], color: e.target.value };
+                                    onChange(next);
+                                }}
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    background: 'none',
+                                }}
+                            />
+                            <IconButton
+                                size="small"
+                                onClick={() => {
+                                    const next = levels.filter((_, j) => j !== i);
+                                    onChange(next);
+                                }}
+                                disabled={levels.length <= 1}
+                            >
+                                <Remove fontSize="small" />
+                            </IconButton>
+                        </Box>
+                    ))}
+                    <Button
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => {
+                            const lastVal = levels.length ? levels[levels.length - 1].value + 10 : 50;
+                            onChange([...levels, { value: lastVal, color: '#2196f3' }]);
+                        }}
+                    >
+                        {I18n.t('wm_Add level')}
+                    </Button>
+                </Box>
+            );
+        }
     }
 }
 
@@ -720,6 +814,13 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
 
     const handleSave = (): void => {
         const newDef: Record<string, unknown> = { id: widgetDef.id, type: widgetDef.type };
+        // Preserve flags not managed by config items
+        if (widgetDef.favorite) {
+            newDef.favorite = true;
+        }
+        if (widgetDef.favoritesOnly) {
+            newDef.favoritesOnly = true;
+        }
         for (const [key, item] of Object.entries(config.items)) {
             const value = values[key];
             const defaultVal = getConfigDefault(item);

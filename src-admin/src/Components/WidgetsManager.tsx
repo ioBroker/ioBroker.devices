@@ -17,6 +17,8 @@ interface WidgetsManagerComponentProps {
     communicationStateId?: string | boolean;
     /** If it runs in admin or in the web */
     admin: boolean;
+    /** Callback to go back to device list (shown in header when in split-screen narrow mode) */
+    onBackToDevices?: () => void;
 }
 
 interface WidgetsManagerComponentState {
@@ -65,6 +67,7 @@ export default class WidgetsManagerComponent extends Component<
                     showSettingsButton={this.props.showSettingsButton}
                     communicationStateId
                     admin={this.props.admin}
+                    onBackToDevices={this.props.onBackToDevices}
                 />
             </div>
         );

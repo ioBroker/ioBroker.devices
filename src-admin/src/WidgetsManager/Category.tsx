@@ -87,6 +87,7 @@ import {
     WidgetWeatherForecast,
     WidgetIframe,
     WidgetWind,
+    WidgetGauge,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -133,10 +134,14 @@ interface CategoryProps {
     onDeleteWidgetById?: (widgetId: string | number) => void;
     /** Toggle favorite star on a widget */
     onToggleFavorite?: (widgetId: string) => void;
+    /** Toggle favorite on a custom widget */
+    onToggleCustomWidgetFavorite?: (widgetId: string) => void;
     /** Latitude from system.config for sun calculations */
     latitude?: number | null;
     /** Longitude from system.config for sun calculations */
     longitude?: number | null;
+    /** Callback to go back to device list (admin split-screen narrow mode) */
+    onBackToDevices?: () => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -538,18 +543,32 @@ function SortableGrid(props: {
                         gap: 1.5,
                     }}
                 >
-                    {orderedItems.map(item => (
-                        <SortableItem
-                            key={item.id}
-                            id={item.id}
-                            gridColumn={getGridColumn(item, widgetSettings)}
-                            isDragging={item.id === activeId}
-                            favorite={item.type !== 'category' ? widgetSettings[item.id]?.favorite : undefined}
-                            onToggleFavorite={item.type !== 'category' ? onToggleFavorite : undefined}
-                        >
-                            {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
-                        </SortableItem>
-                    ))}
+                    {orderedItems.map(item => {
+                        const isCw = item.type === 'custom';
+                        const fav = item.type === 'category'
+                            ? undefined
+                            : isCw
+                                ? (item.data as CustomWidgetDef).favorite
+                                : widgetSettings[item.id]?.favorite;
+                        const cwDef = isCw ? item.data as CustomWidgetDef : null;
+                        const toggleFav = item.type === 'category'
+                            ? undefined
+                            : isCw
+                                ? (cwDef?.favoritesOnly ? undefined : category.props.onToggleCustomWidgetFavorite)
+                                : onToggleFavorite;
+                        return (
+                            <SortableItem
+                                key={item.id}
+                                id={item.id}
+                                gridColumn={getGridColumn(item, widgetSettings)}
+                                isDragging={item.id === activeId}
+                                favorite={fav}
+                                onToggleFavorite={toggleFav}
+                            >
+                                {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
+                            </SortableItem>
+                        );
+                    })}
                 </Box>
             </SortableContext>
             <DragOverlay dropAnimation={null}>
@@ -753,18 +772,32 @@ function GroupSortableGrid(props: {
                         gap: 1.5,
                     }}
                 >
-                    {orderedItems.map(item => (
-                        <SortableItem
-                            key={item.id}
-                            id={item.id}
-                            gridColumn={getGridColumn(item, widgetSettings)}
-                            isDragging={item.id === activeId}
-                            favorite={item.type !== 'category' ? widgetSettings[item.id]?.favorite : undefined}
-                            onToggleFavorite={item.type !== 'category' ? onToggleFavorite : undefined}
-                        >
-                            {renderContent(item)}
-                        </SortableItem>
-                    ))}
+                    {orderedItems.map(item => {
+                        const isCw = item.type === 'custom';
+                        const fav = item.type === 'category'
+                            ? undefined
+                            : isCw
+                                ? (item.data as CustomWidgetDef).favorite
+                                : widgetSettings[item.id]?.favorite;
+                        const cwDef2 = isCw ? item.data as CustomWidgetDef : null;
+                        const toggleFav = item.type === 'category'
+                            ? undefined
+                            : isCw
+                                ? (cwDef2?.favoritesOnly ? undefined : category.props.onToggleCustomWidgetFavorite)
+                                : onToggleFavorite;
+                        return (
+                            <SortableItem
+                                key={item.id}
+                                id={item.id}
+                                gridColumn={getGridColumn(item, widgetSettings)}
+                                isDragging={item.id === activeId}
+                                favorite={fav}
+                                onToggleFavorite={toggleFav}
+                            >
+                                {renderContent(item)}
+                            </SortableItem>
+                        );
+                    })}
                 </Box>
             </SortableContext>
             <DragOverlay dropAnimation={null}>
@@ -1604,7 +1637,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }> {
         const categoryId = String(this.props.category.id);
         const catSettings = this.props.categorySettings[categoryId];
-        const customWidgets = catSettings?.customWidgets || [];
+        // Hide favoritesOnly widgets outside of the Favorites view
+        const isFavorites = categoryId === '__favorites__';
+        const customWidgets = (catSettings?.customWidgets || []).filter(
+            cw => isFavorites || !cw.favoritesOnly,
+        );
         const order = catSettings?.widgetOrder;
 
         const items: Array<{
@@ -1782,14 +1819,27 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
+    /** Find the actual category that owns a custom widget (skip virtual __favorites__) */
+    private findCustomWidgetCategory(widgetId: string): string {
+        for (const [catId, cs] of Object.entries(this.props.categorySettings)) {
+            if (catId === '__favorites__') {
+                continue;
+            }
+            if (cs.customWidgets?.some(w => w.id === widgetId)) {
+                return catId;
+            }
+        }
+        return String(this.props.category.id);
+    }
+
     // eslint-disable-next-line react/no-unused-class-component-methods
     renderCustomWidget(def: CustomWidgetDef): React.JSX.Element | null {
-        const categoryId = String(this.props.category.id);
+        const ownerCategoryId = this.findCustomWidgetCategory(def.id);
         const settingsCb = this.props.onOpenCustomWidgetSettings
-            ? () => this.props.onOpenCustomWidgetSettings!(categoryId, def.id)
+            ? () => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
             : undefined;
         const removeCb = this.props.onRemoveCustomWidget
-            ? () => this.props.onRemoveCustomWidget!(categoryId, def.id)
+            ? () => this.props.onRemoveCustomWidget!(ownerCategoryId, def.id)
             : undefined;
 
         switch (def.type) {
@@ -1856,6 +1906,28 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         size={def.size}
                         color={def.color}
                         stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
+            case 'gauge':
+                return (
+                    <WidgetGauge
+                        key={def.id}
+                        id={def.id}
+                        language={this.props.language}
+                        gaugeStateId={def.gaugeStateId}
+                        gaugeName={def.gaugeName}
+                        minValue={def.minValue}
+                        maxValue={def.maxValue}
+                        gaugeUnit={def.gaugeUnit}
+                        colorLevels={def.colorLevels}
+                        usePercentage={def.usePercentage}
+                        size={def.size}
+                        color={def.color}
+                        stateContext={this.props.stateContext}
+                        defaultHistory={this.props.defaultHistory}
+                        instanceId={this.props.instanceId}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
@@ -2072,6 +2144,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             ? `/${this.props.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
             : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
+        const scale = this.state.widgetScale / 100;
 
         return (
             <ButtonBase
@@ -2088,7 +2161,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     textAlign: 'left',
                     overflow: 'hidden',
                     borderRadius: '16px',
-                    p: 2,
+                    p: `${Math.round(16 * scale)}px`,
                     position: 'relative',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
@@ -2123,8 +2196,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Icon
                         src={icon}
                         style={{
-                            width: 28,
-                            height: 28,
+                            width: Math.round(28 * scale),
+                            height: Math.round(28 * scale),
                             flexShrink: 0,
                             color: tileColor || undefined,
                             position: 'relative',
@@ -2134,7 +2207,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 ) : (
                     <MeetingRoom
                         sx={theme => ({
-                            fontSize: 28,
+                            fontSize: Math.round(28 * scale),
                             color: tileColor || theme.palette.primary.main,
                             flexShrink: 0,
                             position: 'relative',
@@ -2152,6 +2225,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             color: tileColor || undefined,
+                            fontSize: `${scale}rem`,
                         }}
                     >
                         {name}
@@ -2599,6 +2673,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                                 sx={{ fontSize: 18 }}
                                             />
                                         )}
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                            {this.props.onBackToDevices ? (
+                                <Tooltip title={I18n.t('wm_Back to devices')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={this.props.onBackToDevices}
+                                        sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
+                                    >
+                                        <ArrowBack fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
                             ) : null}
