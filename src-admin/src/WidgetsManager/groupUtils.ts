@@ -25,6 +25,7 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
 
     [Types.blind]: 'blinds',
     [Types.blindButtons]: 'blinds',
+    [Types.gate]: 'blinds',
 
     [Types.window]: 'openings',
     [Types.door]: 'openings',

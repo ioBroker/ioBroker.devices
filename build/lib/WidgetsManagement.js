@@ -144,7 +144,19 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
             }
         }
         this.categories = new Map();
-        const categories = Object.keys(structure).filter(key => structure[key].length);
+        const categories = Object.keys(structure).filter(key => {
+            if (structure[key].length) {
+                return true;
+            }
+            // Include empty folders marked with showEmpty
+            if (key !== ROOT_CATEGORY && this.objects[key]) {
+                const custom = this.objects[key].common?.custom;
+                if (custom && Object.values(custom).some(c => c?.showEmpty)) {
+                    return true;
+                }
+            }
+            return false;
+        });
         for (const category of categories) {
             const parentId = category === ROOT_CATEGORY ? '' : getParentId(category);
             this.categories.set(category, {
@@ -617,7 +629,13 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                     }
                 });
                 if (empty) {
-                    this.categories?.delete(id);
+                    // Keep categories marked with showEmpty in custom settings
+                    const obj = this.objects[id];
+                    const custom = obj?.common?.custom;
+                    const hasShowEmpty = custom && Object.values(custom).some(c => c?.showEmpty);
+                    if (!hasShowEmpty) {
+                        this.categories?.delete(id);
+                    }
                 }
             });
         } while (someDeleted);

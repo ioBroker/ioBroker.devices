@@ -88,12 +88,13 @@ import {
     WidgetIframe,
     WidgetWind,
     WidgetGauge,
+    WidgetGate,
 } from './Widgets';
 
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import type { WidgetGroup } from './groupUtils';
+import { moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
 import { getGroupIcon } from './groupIcons';
 
 interface CategoryProps {
@@ -523,6 +524,9 @@ function SortableGrid(props: {
         );
     }
 
+    const parentCatId = category.props.category.parent ? String(category.props.category.parent) : null;
+    const showParentDrop = !!activeId && !!onMoveWidgetToCategory && !!parentCatId;
+
     return (
         <DndContext
             sensors={sensors}
@@ -532,6 +536,29 @@ function SortableGrid(props: {
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
         >
+            {/* Parent category drop target */}
+            {showParentDrop ? (
+                <Box sx={{ mb: 1 }}>
+                    <DroppableCategoryTile id={parentCatId!}>
+                        <Box
+                            sx={theme => ({
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                p: 1.5,
+                                borderRadius: '16px',
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                                borderLeft: `3px solid ${theme.palette.info.main}`,
+                            })}
+                        >
+                            <ArrowBack sx={{ fontSize: 20, color: 'info.main' }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                {I18n.t('wm_Move to parent')}
+                            </Typography>
+                        </Box>
+                    </DroppableCategoryTile>
+                </Box>
+            ) : null}
             <SortableContext
                 items={liveOrder}
                 strategy={rectSortingStrategy}
@@ -550,11 +577,10 @@ function SortableGrid(props: {
                             : isCw
                                 ? (item.data as CustomWidgetDef).favorite
                                 : widgetSettings[item.id]?.favorite;
-                        const cwDef = isCw ? item.data as CustomWidgetDef : null;
                         const toggleFav = item.type === 'category'
                             ? undefined
                             : isCw
-                                ? (cwDef?.favoritesOnly ? undefined : category.props.onToggleCustomWidgetFavorite)
+                                ? category.props.onToggleCustomWidgetFavorite
                                 : onToggleFavorite;
                         return (
                             <SortableItem
@@ -582,123 +608,15 @@ function SortableGrid(props: {
 
 // --- Per-group sortable grid (scoped items, no category.getOrderedItems) ---
 
+/** Simple grid for a single group's items — DndContext is owned by GroupedContent */
 function GroupSortableGrid(props: {
     category: Category;
     items: OrderedItem[];
-    canDrag: boolean;
-    groupId: string;
-    onOrderChange?: (groupId: string, widgetIds: string[]) => void;
-    onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
-    /** Sub-category items shown as droppable targets inside this group's DndContext */
-    categoryItems?: OrderedItem[];
+    activeId: string | null;
     widgetSettings: Record<string, WidgetSettings>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const {
-        category,
-        items,
-        canDrag,
-        groupId,
-        onOrderChange,
-        onMoveWidgetToCategory,
-        categoryItems,
-        widgetSettings,
-        onToggleFavorite,
-    } = props;
-    const sourceIds = useMemo(() => items.map(i => i.id), [items]);
-
-    const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
-    const [activeId, setActiveId] = useState<string | null>(null);
-    const [dropCategoryId, setDropCategoryId] = useState<string | null>(null);
-    const dropCategoryRef = useRef<string | null>(null);
-    dropCategoryRef.current = dropCategoryId;
-
-    const liveOrderRef = useRef(liveOrder);
-    liveOrderRef.current = liveOrder;
-
-    const prevSourceRef = useRef(sourceIds);
-    if (prevSourceRef.current !== sourceIds) {
-        prevSourceRef.current = sourceIds;
-        const liveSet = new Set(liveOrder);
-        const sourceSet = new Set(sourceIds);
-        if (
-            liveOrder.length !== sourceIds.length ||
-            sourceIds.some(id => !liveSet.has(id)) ||
-            liveOrder.some(id => !sourceSet.has(id))
-        ) {
-            setLiveOrder(sourceIds);
-        }
-    }
-
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-    );
-
-    const handleDragStart = useCallback((event: DragStartEvent) => {
-        setActiveId(String(event.active.id));
-        setDropCategoryId(null);
-    }, []);
-
-    const handleDragOver = useCallback(
-        (event: DragOverEvent) => {
-            const { active, over } = event;
-            if (!over || active.id === over.id) {
-                return;
-            }
-            const overId = String(over.id);
-            // Check if hovering over a droppable category tile
-            if (overId.startsWith('drop-cat:') && onMoveWidgetToCategory) {
-                setDropCategoryId(overId.replace('drop-cat:', ''));
-                return;
-            }
-            setDropCategoryId(null);
-            setLiveOrder(prev => {
-                const oldIdx = prev.indexOf(String(active.id));
-                const newIdx = prev.indexOf(overId);
-                if (oldIdx < 0 || newIdx < 0) {
-                    return prev;
-                }
-                return arrayMove(prev, oldIdx, newIdx);
-            });
-        },
-        [onMoveWidgetToCategory],
-    );
-
-    const handleDragEnd = useCallback(
-        (event: DragEndEvent) => {
-            setActiveId(null);
-            const currentDrop = dropCategoryRef.current;
-            setDropCategoryId(null);
-            // If dropped on a category, move the widget there
-            if (currentDrop && onMoveWidgetToCategory) {
-                onMoveWidgetToCategory(String(event.active.id), currentDrop);
-                return;
-            }
-            const currentOrder = liveOrderRef.current;
-            if (currentOrder.some((id, idx) => id !== prevSourceRef.current[idx])) {
-                onOrderChange?.(groupId, currentOrder);
-            }
-        },
-        [groupId, onOrderChange, onMoveWidgetToCategory],
-    );
-
-    const handleDragCancel = useCallback(() => {
-        setActiveId(null);
-        setDropCategoryId(null);
-        setLiveOrder(sourceIds);
-    }, [sourceIds]);
-
-    const itemMap = useMemo(() => {
-        const map = new Map<string, OrderedItem>();
-        for (const item of items) {
-            map.set(item.id, item);
-        }
-        return map;
-    }, [items]);
-
-    const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
-    const activeItem = activeId ? itemMap.get(activeId) : null;
+    const { category, items, activeId, widgetSettings, onToggleFavorite } = props;
 
     const renderContent = (item: OrderedItem): React.ReactNode => {
         if (item.type === 'category') {
@@ -710,8 +628,11 @@ function GroupSortableGrid(props: {
         return category.renderCustomWidget(item.data as CustomWidgetDef);
     };
 
-    if (!canDrag) {
-        return (
+    return (
+        <SortableContext
+            items={items.map(i => i.id)}
+            strategy={rectSortingStrategy}
+        >
             <Box
                 sx={{
                     display: 'grid',
@@ -719,93 +640,33 @@ function GroupSortableGrid(props: {
                     gap: 1.5,
                 }}
             >
-                {orderedItems.map(item => {
-                    const gridColumn = getGridColumn(item, widgetSettings);
-                    return gridColumn ? (
-                        <div
+                {items.map(item => {
+                    const isCw = item.type === 'custom';
+                    const fav = item.type === 'category'
+                        ? undefined
+                        : isCw
+                            ? (item.data as CustomWidgetDef).favorite
+                            : widgetSettings[item.id]?.favorite;
+                    const toggleFav = item.type === 'category'
+                        ? undefined
+                        : isCw
+                            ? category.props.onToggleCustomWidgetFavorite
+                            : onToggleFavorite;
+                    return (
+                        <SortableItem
                             key={item.id}
-                            style={{ gridColumn }}
+                            id={item.id}
+                            gridColumn={getGridColumn(item, widgetSettings)}
+                            isDragging={item.id === activeId}
+                            favorite={fav}
+                            onToggleFavorite={toggleFav}
                         >
                             {renderContent(item)}
-                        </div>
-                    ) : (
-                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
+                        </SortableItem>
                     );
                 })}
             </Box>
-        );
-    }
-
-    // Droppable category tiles shown inside this DndContext when drag is active
-    const showCatDropTargets = !!activeId && !!onMoveWidgetToCategory && !!categoryItems?.length;
-
-    return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-        >
-            {/* Show droppable subcategory tiles when dragging */}
-            {showCatDropTargets ? (
-                <Box sx={{ mb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {categoryItems.map(item => (
-                        <DroppableCategoryTile
-                            key={`drop-${item.id}`}
-                            id={item.id}
-                        >
-                            {category.renderCategoryTile(item.data as CategoryInfo)}
-                        </DroppableCategoryTile>
-                    ))}
-                </Box>
-            ) : null}
-            <SortableContext
-                items={liveOrder}
-                strategy={rectSortingStrategy}
-            >
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: category.gridColumns,
-                        gap: 1.5,
-                    }}
-                >
-                    {orderedItems.map(item => {
-                        const isCw = item.type === 'custom';
-                        const fav = item.type === 'category'
-                            ? undefined
-                            : isCw
-                                ? (item.data as CustomWidgetDef).favorite
-                                : widgetSettings[item.id]?.favorite;
-                        const cwDef2 = isCw ? item.data as CustomWidgetDef : null;
-                        const toggleFav = item.type === 'category'
-                            ? undefined
-                            : isCw
-                                ? (cwDef2?.favoritesOnly ? undefined : category.props.onToggleCustomWidgetFavorite)
-                                : onToggleFavorite;
-                        return (
-                            <SortableItem
-                                key={item.id}
-                                id={item.id}
-                                gridColumn={getGridColumn(item, widgetSettings)}
-                                isDragging={item.id === activeId}
-                                favorite={fav}
-                                onToggleFavorite={toggleFav}
-                            >
-                                {renderContent(item)}
-                            </SortableItem>
-                        );
-                    })}
-                </Box>
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>
-                {activeItem ? (
-                    <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>{renderContent(activeItem)}</Box>
-                ) : null}
-            </DragOverlay>
-        </DndContext>
+        </SortableContext>
     );
 }
 
@@ -908,6 +769,7 @@ function LightsGroupControl(props: {
 }
 
 // --- Grouped content: renders sub-categories + collapsible widget groups ---
+// Uses a single DndContext so widgets can be dragged between groups.
 
 function GroupedContent(props: {
     category: Category;
@@ -940,8 +802,27 @@ function GroupedContent(props: {
         return map;
     }, [allItems]);
 
-    // Subcategories always at top, ungrouped
     const categoryItems = allItems.filter(i => i.type === 'category');
+
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [dropCategoryId, setDropCategoryId] = useState<string | null>(null);
+    const dropCategoryRef = useRef<string | null>(null);
+    dropCategoryRef.current = dropCategoryId;
+
+    // Keep a live copy of groups for cross-group moves during drag
+    const [liveGroups, setLiveGroups] = useState(groups);
+    const prevGroupsRef = useRef(groups);
+    if (prevGroupsRef.current !== groups) {
+        prevGroupsRef.current = groups;
+        setLiveGroups(groups);
+    }
+    const liveGroupsRef = useRef(liveGroups);
+    liveGroupsRef.current = liveGroups;
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    );
 
     const handleToggleCollapse = (groupId: string): void => {
         if (!onGroupsChange) {
@@ -951,19 +832,105 @@ function GroupedContent(props: {
         onGroupsChange(categoryId, updated);
     };
 
-    const handleGroupOrderChange = (groupId: string, newOrder: string[]): void => {
-        if (!onGroupsChange) {
-            return;
-        }
-        const updated = groups.map(g => (g.id === groupId ? { ...g, widgetIds: newOrder } : g));
-        onGroupsChange(categoryId, updated);
-    };
-
-    // Collect any widgets not in any group (new widgets added after grouping)
-    const groupedIds = new Set(groups.flatMap(g => g.widgetIds));
+    // Collect any widgets not in any group
+    const groupedIds = new Set(liveGroups.flatMap(g => g.widgetIds));
     const ungrouped = allItems.filter(i => i.type !== 'category' && !groupedIds.has(i.id));
 
-    return (
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        setActiveId(String(event.active.id));
+        setDropCategoryId(null);
+    }, []);
+
+    const handleDragOver = useCallback(
+        (event: DragOverEvent) => {
+            const { active, over } = event;
+            if (!over || active.id === over.id) {
+                return;
+            }
+            const overId = String(over.id);
+            const activeIdStr = String(active.id);
+
+            // Check if hovering over a droppable category tile
+            if (overId.startsWith('drop-cat:') && onMoveWidgetToCategory) {
+                setDropCategoryId(overId.replace('drop-cat:', ''));
+                return;
+            }
+            setDropCategoryId(null);
+
+            // Find which groups the active and over items belong to
+            const currentGroups = liveGroupsRef.current;
+            const activeGroup = findWidgetGroup(currentGroups, activeIdStr);
+            const overGroup = findWidgetGroup(currentGroups, overId);
+
+            if (activeGroup && overGroup && activeGroup !== overGroup) {
+                // Cross-group move: move widget to target group
+                const moved = moveWidgetToGroup(currentGroups, activeIdStr, overGroup);
+                // Insert at the position of the over item
+                const targetGroup = moved.find(g => g.id === overGroup);
+                if (targetGroup) {
+                    const overIdx = targetGroup.widgetIds.indexOf(overId);
+                    const activeIdx = targetGroup.widgetIds.indexOf(activeIdStr);
+                    if (overIdx >= 0 && activeIdx >= 0 && overIdx !== activeIdx) {
+                        targetGroup.widgetIds = arrayMove(targetGroup.widgetIds, activeIdx, overIdx);
+                    }
+                }
+                setLiveGroups(moved);
+            } else if (activeGroup && activeGroup === overGroup) {
+                // Within same group: reorder
+                setLiveGroups(prev =>
+                    prev.map(g => {
+                        if (g.id !== activeGroup) {
+                            return g;
+                        }
+                        const oldIdx = g.widgetIds.indexOf(activeIdStr);
+                        const newIdx = g.widgetIds.indexOf(overId);
+                        if (oldIdx < 0 || newIdx < 0) {
+                            return g;
+                        }
+                        return { ...g, widgetIds: arrayMove(g.widgetIds, oldIdx, newIdx) };
+                    }),
+                );
+            }
+        },
+        [onMoveWidgetToCategory],
+    );
+
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            setActiveId(null);
+            const currentDrop = dropCategoryRef.current;
+            setDropCategoryId(null);
+            if (currentDrop && onMoveWidgetToCategory) {
+                onMoveWidgetToCategory(String(event.active.id), currentDrop);
+                return;
+            }
+            // Persist the updated groups
+            if (onGroupsChange) {
+                onGroupsChange(categoryId, liveGroupsRef.current);
+            }
+        },
+        [categoryId, onGroupsChange, onMoveWidgetToCategory],
+    );
+
+    const handleDragCancel = useCallback(() => {
+        setActiveId(null);
+        setDropCategoryId(null);
+        setLiveGroups(prevGroupsRef.current);
+    }, []);
+
+    // Render active item overlay
+    const activeItem = activeId ? itemMap.get(activeId) : null;
+    const renderOverlayContent = (item: OrderedItem): React.ReactNode => {
+        if (item.type === 'widget') {
+            return category.renderWidget(item.data as WidgetInfo);
+        }
+        return category.renderCustomWidget(item.data as CustomWidgetDef);
+    };
+
+    const showCatDropTargets = !!activeId && !!onMoveWidgetToCategory;
+    const parentCategoryId = category.props.category.parent ? String(category.props.category.parent) : null;
+
+    const groupContent = (
         <>
             {/* Sub-categories */}
             {categoryItems.length > 0 ? (
@@ -976,20 +943,48 @@ function GroupedContent(props: {
                     }}
                 >
                     {categoryItems.map(item => (
-                        <div
-                            key={item.id}
-                            style={{ gridColumn: '1 / -1' }}
-                        >
+                        <div key={item.id} style={{ gridColumn: '1 / -1' }}>
                             {category.renderCategoryTile(item.data as CategoryInfo)}
                         </div>
                     ))}
                 </Box>
             ) : null}
 
-            {/* Groups */}
-            {groups.map(group => {
-                const groupItems = group.widgetIds.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
+            {/* Droppable category tiles when dragging */}
+            {showCatDropTargets ? (
+                <Box sx={{ mb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {/* Parent category as drop target */}
+                    {parentCategoryId ? (
+                        <DroppableCategoryTile key="drop-parent" id={parentCategoryId}>
+                            <Box
+                                sx={theme => ({
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    p: 1.5,
+                                    borderRadius: '16px',
+                                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                                    borderLeft: `3px solid ${theme.palette.info.main}`,
+                                })}
+                            >
+                                <ArrowBack sx={{ fontSize: 20, color: 'info.main' }} />
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                    {I18n.t('wm_Move to parent')}
+                                </Typography>
+                            </Box>
+                        </DroppableCategoryTile>
+                    ) : null}
+                    {categoryItems.map(item => (
+                        <DroppableCategoryTile key={`drop-${item.id}`} id={item.id}>
+                            {category.renderCategoryTile(item.data as CategoryInfo)}
+                        </DroppableCategoryTile>
+                    ))}
+                </Box>
+            ) : null}
 
+            {/* Groups */}
+            {liveGroups.map(group => {
+                const groupItems = group.widgetIds.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
                 if (groupItems.length === 0) {
                     return null;
                 }
@@ -999,8 +994,6 @@ function GroupedContent(props: {
                         key={group.id}
                         sx={{
                             mb: 1.5,
-                            // At runtime, hide a group when all widgets inside are hidden
-                            // but only when the group is not collapsed (collapsed groups have no widget children by design)
                             ...(!configMode &&
                                 !group.collapsed && {
                                     '&:not(:has([class^="widget-"]))': { display: 'none' },
@@ -1035,16 +1028,10 @@ function GroupedContent(props: {
                                         ? React.cloneElement(icon, { sx: { fontSize: 18, color: 'text.secondary' } })
                                         : null;
                                 })()}
-                                <Typography
-                                    variant="subtitle2"
-                                    sx={{ fontWeight: 600, color: 'text.secondary' }}
-                                >
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                                     {I18n.t(group.name)}
                                 </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}
-                                >
+                                <Typography variant="caption" sx={{ ml: 0.5, opacity: 0.5, color: 'text.secondary' }}>
                                     ({groupItems.length})
                                 </Typography>
                             </ButtonBase>
@@ -1060,11 +1047,7 @@ function GroupedContent(props: {
                             <GroupSortableGrid
                                 category={category}
                                 items={groupItems}
-                                canDrag={canDrag}
-                                groupId={group.id}
-                                onOrderChange={onGroupsChange ? handleGroupOrderChange : undefined}
-                                onMoveWidgetToCategory={onMoveWidgetToCategory}
-                                categoryItems={categoryItems}
+                                activeId={activeId}
                                 widgetSettings={widgetSettings}
                                 onToggleFavorite={onToggleFavorite}
                             />
@@ -1073,7 +1056,7 @@ function GroupedContent(props: {
                 );
             })}
 
-            {/* Ungrouped widgets (added after grouping was enabled) */}
+            {/* Ungrouped widgets */}
             {ungrouped.length > 0 ? (
                 <Box sx={{ mb: 1.5 }}>
                     <Typography
@@ -1085,16 +1068,35 @@ function GroupedContent(props: {
                     <GroupSortableGrid
                         category={category}
                         items={ungrouped}
-                        canDrag={canDrag}
-                        groupId="__ungrouped__"
-                        onMoveWidgetToCategory={onMoveWidgetToCategory}
-                        categoryItems={categoryItems}
+                        activeId={activeId}
                         widgetSettings={widgetSettings}
                         onToggleFavorite={onToggleFavorite}
                     />
                 </Box>
             ) : null}
         </>
+    );
+
+    if (!canDrag) {
+        return groupContent;
+    }
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+        >
+            {groupContent}
+            <DragOverlay dropAnimation={null}>
+                {activeItem ? (
+                    <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>{renderOverlayContent(activeItem)}</Box>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
     );
 }
 
@@ -1637,11 +1639,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }> {
         const categoryId = String(this.props.category.id);
         const catSettings = this.props.categorySettings[categoryId];
-        // Hide favoritesOnly widgets outside of the Favorites view
-        const isFavorites = categoryId === '__favorites__';
-        const customWidgets = (catSettings?.customWidgets || []).filter(
-            cw => isFavorites || !cw.favoritesOnly,
-        );
+        const customWidgets = catSettings?.customWidgets || [];
         const order = catSettings?.widgetOrder;
 
         const items: Array<{
@@ -1687,6 +1685,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetMotion;
         } else if (widget.control && widget.control.type === Types.window) {
             Widget = WidgetWindow;
+        } else if (widget.control && widget.control.type === Types.gate) {
+            Widget = WidgetGate;
         } else if (widget.control && widget.control.type === Types.blind) {
             Widget = WidgetBlind;
         } else if (widget.control && widget.control.type === Types.blindButtons) {
@@ -1917,6 +1917,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         id={def.id}
                         language={this.props.language}
                         gaugeStateId={def.gaugeStateId}
+                        gaugeStateId2={def.gaugeStateId2}
                         gaugeName={def.gaugeName}
                         minValue={def.minValue}
                         maxValue={def.maxValue}
@@ -2602,7 +2603,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     </Typography>
                                 </>
                             )}
-                            {this.props.onAddCustomWidget ? (
+                            {this.props.onAddCustomWidget && categoryId !== '__favorites__' ? (
                                 <Tooltip title={I18n.t('wm_Add widget')}>
                                     <IconButton
                                         size="small"

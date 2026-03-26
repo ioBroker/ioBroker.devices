@@ -87,6 +87,8 @@ export interface CustomWidgetDef {
     gustsStateId?: string;
     /** Gauge: state ID to read value from */
     gaugeStateId?: string;
+    /** Gauge: optional second state ID shown as secondary value */
+    gaugeStateId2?: string;
     /** Gauge: display name / label */
     gaugeName?: string;
     /** Gauge: minimum value */
@@ -101,8 +103,6 @@ export interface CustomWidgetDef {
     usePercentage?: boolean;
     /** Whether the custom widget is marked as favorite */
     favorite?: boolean;
-    /** Widget was created in Favorites — show only there, not in the owning category */
-    favoritesOnly?: boolean;
 }
 
 export interface CategoryInfo extends ItemInfo {

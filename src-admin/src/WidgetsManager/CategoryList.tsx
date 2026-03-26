@@ -1322,7 +1322,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     };
 
     private onMoveWidgetToCategory = (widgetId: string, targetCategoryId: string): void => {
-        // Update widget parent in the local state
+        // Check if this is a custom widget (id starts with "custom_")
+        if (widgetId.startsWith('custom_')) {
+            this.moveCustomWidgetToCategory(widgetId, targetCategoryId);
+            return;
+        }
+
+        // Regular widget: update parent in local state
         const widgets = this.state.widgets.map(w =>
             String(w.id) === widgetId ? { ...w, parent: targetCategoryId } : w,
         );
@@ -1331,6 +1337,45 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         // Persist: save parent override into common.custom[instance].parent
         void this.saveWidgetParentOverride(widgetId, targetCategoryId);
     };
+
+    private moveCustomWidgetToCategory(widgetId: string, targetCategoryId: string): void {
+        // Find the source category (skip virtual __favorites__)
+        let sourceCatId: string | null = null;
+        let widgetDef: CustomWidgetDef | null = null;
+        for (const [catId, cs] of Object.entries(this.state.categorySettings)) {
+            if (catId === FAVORITES_CATEGORY) {
+                continue;
+            }
+            const found = cs.customWidgets?.find(w => w.id === widgetId);
+            if (found) {
+                sourceCatId = catId;
+                widgetDef = found;
+                break;
+            }
+        }
+        if (!sourceCatId || !widgetDef) {
+            return;
+        }
+
+        // Remove from source
+        const sourceSettings = this.state.categorySettings[sourceCatId];
+        const sourceWidgets = (sourceSettings?.customWidgets || []).filter(w => w.id !== widgetId);
+
+        // Add to target
+        const targetSettings = this.state.categorySettings[targetCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const targetWidgets = [...(targetSettings.customWidgets || []), widgetDef];
+
+        const categorySettings = {
+            ...this.state.categorySettings,
+            [sourceCatId]: { ...sourceSettings, customWidgets: sourceWidgets },
+            [targetCategoryId]: { ...targetSettings, customWidgets: targetWidgets },
+        };
+        this.setState({ categorySettings });
+
+        // Persist both
+        this.persistCustomWidgets(sourceCatId, sourceWidgets);
+        this.persistCustomWidgets(targetCategoryId, targetWidgets);
+    }
 
     private async saveWidgetParentOverride(widgetId: string, targetCategoryId: string): Promise<void> {
         const instanceId = this.state.selectedInstance;
@@ -1381,6 +1426,44 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ customWidgetDialogCategoryId: null });
     };
 
+    private onCreateCategory = (name: string): void => {
+        const { customWidgetDialogCategoryId } = this.state;
+        if (!customWidgetDialogCategoryId) {
+            return;
+        }
+        // Build the new folder object ID under the current category
+        // Root category → alias.0.{name}, sub-category → {parentId}.{name}
+        const parentId = customWidgetDialogCategoryId === ROOT_CATEGORY
+            ? `alias.0`
+            : String(customWidgetDialogCategoryId);
+        // Sanitize name for object ID (replace spaces/special chars)
+        const safeName = name.replace(/[.\s/\\]+/g, '_').replace(/[^a-zA-Z0-9_äöüÄÖÜß-]/g, '');
+        const newId = `${parentId}.${safeName}`;
+
+        const instanceId = this.state.selectedInstance;
+        const obj: ioBroker.SettableObject = {
+            _id: newId,
+            type: 'folder',
+            common: {
+                name,
+                custom: {
+                    [instanceId]: { showEmpty: true },
+                },
+            } as ioBroker.ObjectCommon,
+            native: {},
+        };
+
+        void this.props.socket.setObject(newId, obj as ioBroker.Object).then(() => {
+            // Reload categories
+            this.setState({ customWidgetDialogCategoryId: null });
+            this.setState(prev => ({ triggerLoad: (prev as unknown as { triggerLoad?: number }).triggerLoad || 0 }));
+            // Trigger a full reload
+            this.loadItemsList();
+        }).catch(err => {
+            console.error('Failed to create category:', err);
+        });
+    };
+
     private onAddCustomWidget = (type: CustomWidgetType): void => {
         const { customWidgetDialogCategoryId } = this.state;
         if (!customWidgetDialogCategoryId) {
@@ -1397,23 +1480,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
         const def: CustomWidgetDef = { id, type, ...defaults } as CustomWidgetDef;
 
-        // Widgets created in Favorites are stored in root and auto-marked as favorite
-        const targetCategoryId = customWidgetDialogCategoryId === FAVORITES_CATEGORY
-            ? ROOT_CATEGORY
-            : customWidgetDialogCategoryId;
-        if (customWidgetDialogCategoryId === FAVORITES_CATEGORY) {
-            def.favorite = true;
-            def.favoritesOnly = true;
-        }
-
-        const settings = this.state.categorySettings[targetCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
         const customWidgets = [...(settings.customWidgets || []), def];
         const categorySettings = {
             ...this.state.categorySettings,
-            [targetCategoryId]: { ...settings, customWidgets },
+            [customWidgetDialogCategoryId]: { ...settings, customWidgets },
         };
         this.setState({ categorySettings, customWidgetDialogCategoryId: null });
-        this.persistCustomWidgets(targetCategoryId, customWidgets);
+        this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
     };
 
     private onRemoveCustomWidget = (categoryId: string, widgetId: string): void => {
@@ -1442,9 +1516,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     if (i !== idx) {
                         return w;
                     }
-                    const newFav = !w.favorite;
-                    // If de-favoriting a favoritesOnly widget, clear the flag so it appears in its owning category
-                    return { ...w, favorite: newFav, favoritesOnly: newFav ? w.favoritesOnly : false };
+                    return { ...w, favorite: !w.favorite };
                 });
                 const categorySettings = {
                     ...this.state.categorySettings,
@@ -1792,6 +1864,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onCloseSettings={this.onCloseSettings}
                             onSaveSettings={this.onSaveSettings}
                             onDeleteWidget={this.onDeleteWidget}
+                            defaultHistory={this.defaultHistory || undefined}
                             categorySettingsCategoryId={this.state.categorySettingsCategoryId}
                             categories={this.state.categories}
                             currentCategory={currentCategory}
@@ -1803,6 +1876,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             customWidgetDialogCategoryId={this.state.customWidgetDialogCategoryId}
                             onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
                             onAddCustomWidget={this.onAddCustomWidget}
+                            onCreateCategory={this.onCreateCategory}
                             customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
                             customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
                             onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}

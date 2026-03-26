@@ -259,6 +259,10 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 label: 'wm_State ID',
                 autoFill: { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit', gaugeName: 'name' },
             },
+            gaugeStateId2: {
+                type: 'stateId',
+                label: 'wm_Secondary value',
+            },
             gaugeName: {
                 type: 'text',
                 label: 'wm_Name',

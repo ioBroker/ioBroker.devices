@@ -32,6 +32,8 @@ export interface CategoryListDialogsProps {
     onCloseSettings: () => void;
     onSaveSettings: (settings: WidgetSettings) => void;
     onDeleteWidget: () => void;
+    /** Default history adapter instance (e.g. "history.0") */
+    defaultHistory?: string;
 
     // --- Category settings dialog ---
     categorySettingsCategoryId: string | null;
@@ -47,6 +49,7 @@ export interface CategoryListDialogsProps {
     customWidgetDialogCategoryId: string | null;
     onCloseCustomWidgetDialog: () => void;
     onAddCustomWidget: (type: CustomWidgetType) => void;
+    onCreateCategory?: (name: string) => void;
 
     // --- Custom widget settings dialog ---
     customWidgetSettingsCategoryId: string | null;
@@ -208,6 +211,14 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 }
                 showIcon={!!settingsWidget?.control?.type && !ALARM_ICON_TYPES.has(settingsWidget.control.type)}
                 showRefreshInterval={settingsWidget?.control?.type === Types.image}
+                primaryStateId={
+                    settingsWidget?.control?.states
+                        ? (settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
+                           settingsWidget.control.states.find(s => s.name === 'SET')?.id ||
+                           settingsWidget.control.states[0]?.id)
+                        : undefined
+                }
+                defaultHistory={props.defaultHistory}
                 socket={socket}
                 theme={theme}
                 admin={admin}
@@ -258,6 +269,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 open={customWidgetDialogCategoryId != null}
                 onClose={onCloseCustomWidgetDialog}
                 onAdd={onAddCustomWidget}
+                onCreateCategory={props.onCreateCategory}
             />
             <CustomWidgetSettingsDialog
                 open={customWidgetSettingsCategoryId != null}

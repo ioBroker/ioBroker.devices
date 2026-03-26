@@ -1,7 +1,6 @@
-import ChannelDetector, { type PatternControl } from '@iobroker/type-detector';
+import ChannelDetector, { type PatternControl, type DetectorState, type Types } from '@iobroker/type-detector';
 import type DevicesAdapter from '../main';
 import { WidgetsManagement } from '../widget-utils';
-import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
 
 const ROOT_CATEGORY = '__root__';
 const ALIAS = 'alias.';
@@ -174,7 +173,21 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
         this.categories = new Map();
 
-        const categories = Object.keys(structure).filter(key => structure[key].length);
+        const categories = Object.keys(structure).filter(key => {
+            if (structure[key].length) {
+                return true;
+            }
+            // Include empty folders marked with showEmpty
+            if (key !== ROOT_CATEGORY && this.objects[key]) {
+                const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
+                if (custom && Object.values(custom).some(c => c?.showEmpty)) {
+                    return true;
+                }
+            }
+            return false;
+        });
         for (const category of categories) {
             const parentId = category === ROOT_CATEGORY ? '' : getParentId(category);
             this.categories.set(category, {
@@ -699,7 +712,15 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     }
                 });
                 if (empty) {
-                    this.categories?.delete(id);
+                    // Keep categories marked with showEmpty in custom settings
+                    const obj = this.objects[id];
+                    const custom = (obj?.common as Record<string, unknown>)?.custom as
+                        | Record<string, Record<string, unknown>>
+                        | undefined;
+                    const hasShowEmpty = custom && Object.values(custom).some(c => c?.showEmpty);
+                    if (!hasShowEmpty) {
+                        this.categories?.delete(id);
+                    }
                 }
             });
         } while (someDeleted);

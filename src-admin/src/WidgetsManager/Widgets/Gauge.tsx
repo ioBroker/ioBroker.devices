@@ -29,6 +29,7 @@ interface WidgetGaugeProps {
     maxValue?: number;
     gaugeUnit?: string;
     gaugeName?: string;
+    gaugeStateId2?: string;
     colorLevels?: ColorLevel[];
     usePercentage?: boolean;
     stateContext?: StateContext;
@@ -41,6 +42,8 @@ interface WidgetGaugeProps {
 interface WidgetGaugeState {
     value: number | null;
     unit: string;
+    value2: number | null;
+    unit2: string;
     chartOpen: boolean;
     historyId: string | null;
     historyInstance: string;
@@ -48,14 +51,16 @@ interface WidgetGaugeState {
 
 export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     private handler: StateChangeListener | null = null;
+    private handler2: StateChangeListener | null = null;
 
     constructor(props: WidgetGaugeProps) {
         super(props);
-        this.state = { value: null, unit: '', chartOpen: false, historyId: null, historyInstance: '' };
+        this.state = { value: null, unit: '', value2: null, unit2: '', chartOpen: false, historyId: null, historyInstance: '' };
     }
 
     componentDidMount(): void {
         this.subscribe();
+        this.subscribe2();
         this.resolveHistory();
     }
 
@@ -65,10 +70,15 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
             this.subscribe();
             this.resolveHistory();
         }
+        if (prevProps.gaugeStateId2 !== this.props.gaugeStateId2) {
+            this.unsubscribe2();
+            this.subscribe2();
+        }
     }
 
     componentWillUnmount(): void {
         this.unsubscribe();
+        this.unsubscribe2();
     }
 
     private subscribe(): void {
@@ -84,7 +94,6 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         };
         stateContext.getState(gaugeStateId, this.handler);
 
-        // Load unit from object metadata
         void stateContext
             .getSocket()
             .getObject(gaugeStateId)
@@ -97,10 +106,42 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
             .catch(() => {});
     }
 
+    private subscribe2(): void {
+        const { gaugeStateId2, stateContext } = this.props;
+        if (!gaugeStateId2 || !stateContext) {
+            return;
+        }
+        this.handler2 = (_id: string, state: ioBroker.State) => {
+            const val = Number(state.val);
+            if (!Number.isNaN(val) && val !== this.state.value2) {
+                this.setState({ value2: val });
+            }
+        };
+        stateContext.getState(gaugeStateId2, this.handler2);
+
+        void stateContext
+            .getSocket()
+            .getObject(gaugeStateId2)
+            .then(obj => {
+                const u = (obj as ioBroker.StateObject | null)?.common?.unit || '';
+                if (u !== this.state.unit2) {
+                    this.setState({ unit2: u });
+                }
+            })
+            .catch(() => {});
+    }
+
     private unsubscribe(): void {
         if (this.handler && this.props.gaugeStateId && this.props.stateContext) {
             this.props.stateContext.removeState(this.props.gaugeStateId, this.handler);
             this.handler = null;
+        }
+    }
+
+    private unsubscribe2(): void {
+        if (this.handler2 && this.props.gaugeStateId2 && this.props.stateContext) {
+            this.props.stateContext.removeState(this.props.gaugeStateId2, this.handler2);
+            this.handler2 = null;
         }
     }
 
@@ -218,19 +259,31 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     // ── Rendering ────────────────────────────────────────────────────
 
+    /** Convert a fraction (0..1) to a point on the arc circle */
+    private static arcPoint(cx: number, cy: number, r: number, frac: number): { x: number; y: number } {
+        // Arc spans 270° starting at 135° rotation. Fraction 0 = start, 1 = end.
+        const angleDeg = frac * 270;
+        const rad = (angleDeg * Math.PI) / 180;
+        return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
+    }
+
     private renderArc(size: number): React.JSX.Element {
         const { value } = this.state;
         const accent = this.props.color;
         const vb = 100;
         const sw = 10;
         const r = (vb - sw) / 2;
+        const cx = vb / 2;
+        const cy = vb / 2;
         const circumference = 2 * Math.PI * r;
         const arcLength = circumference * 0.75;
 
         const raw = value ?? this.min;
         const frac = this.toFraction(raw);
-        const progress = frac * arcLength;
         const color = value != null ? this.getColor(raw) : (accent || '#2196f3');
+
+        // Indicator dot position
+        const dot = value != null ? WidgetGauge.arcPoint(cx, cy, r, frac) : null;
 
         return (
             <Box
@@ -247,9 +300,10 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                     viewBox={`0 0 ${vb} ${vb}`}
                     style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}
                 >
+                    {/* Full background arc (grey) */}
                     <circle
-                        cx={vb / 2}
-                        cy={vb / 2}
+                        cx={cx}
+                        cy={cy}
                         r={r}
                         fill="none"
                         stroke="currentColor"
@@ -258,19 +312,19 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         strokeLinecap="round"
                         opacity={0.12}
                     />
-                    {this.renderColoredSegments(vb, r, sw, circumference, arcLength)}
-                    <circle
-                        cx={vb / 2}
-                        cy={vb / 2}
-                        r={r}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth={sw}
-                        strokeDasharray={`${progress} ${circumference}`}
-                        strokeLinecap="round"
-                        opacity={0.3}
-                        style={{ filter: 'brightness(1.3)' }}
-                    />
+                    {/* Colored segments clipped to current value */}
+                    {this.renderColoredSegments(vb, r, sw, circumference, arcLength, frac)}
+                    {/* Indicator dot at current position */}
+                    {dot ? (
+                        <circle
+                            cx={dot.x}
+                            cy={dot.y}
+                            r={sw / 2 + 1}
+                            fill={color}
+                            stroke="rgba(0,0,0,0.3)"
+                            strokeWidth={1}
+                        />
+                    ) : null}
                 </svg>
 
                 <Box
@@ -284,10 +338,25 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         transform: 'translateY(-4%)',
                     }}
                 >
+                    {/* Secondary value (smaller, above main) */}
+                    {this.state.value2 != null ? (
+                        <Typography
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: size * 0.12,
+                                lineHeight: 1,
+                                color: 'text.secondary',
+                                mb: 0.25,
+                            }}
+                        >
+                            {this.formatValue(this.state.value2)}
+                            {this.state.unit2 ? ` ${this.state.unit2}` : ''}
+                        </Typography>
+                    ) : null}
                     <Typography
                         sx={{
                             fontWeight: 700,
-                            fontSize: size * 0.22,
+                            fontSize: size * (this.state.value2 != null ? 0.19 : 0.22),
                             lineHeight: 1.1,
                             color: value != null ? color : 'text.disabled',
                         }}
@@ -310,12 +379,14 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         );
     }
 
+    /** Render colored arc segments, clipped to the current value fraction */
     private renderColoredSegments(
         vb: number,
         r: number,
         sw: number,
         circumference: number,
         arcLength: number,
+        valueFrac: number,
     ): React.JSX.Element[] {
         const levels = this.levels;
         const { usePercentage } = this.props;
@@ -324,14 +395,18 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
         for (let i = 0; i < levels.length; i++) {
             const lvl = levels[i];
-            let frac: number;
+            let levelFrac: number;
             if (usePercentage) {
-                frac = Math.max(0, Math.min(1, lvl.value / 100));
+                levelFrac = Math.max(0, Math.min(1, lvl.value / 100));
             } else {
-                frac = this.toFraction(lvl.value);
+                levelFrac = this.toFraction(lvl.value);
             }
+
+            // Clip segment end to current value
+            const clippedEnd = Math.min(levelFrac, valueFrac);
             const segStart = prevFrac * arcLength;
-            const segLen = Math.max(0, (frac - prevFrac) * arcLength);
+            const segLen = Math.max(0, (clippedEnd - prevFrac) * arcLength);
+
             if (segLen > 0) {
                 segments.push(
                     <circle
@@ -344,12 +419,17 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         strokeWidth={sw}
                         strokeDasharray={`${segLen} ${circumference}`}
                         strokeDashoffset={-segStart}
-                        strokeLinecap={i === levels.length - 1 ? 'round' : 'butt'}
-                        opacity={0.5}
+                        strokeLinecap={i === 0 || clippedEnd >= valueFrac ? 'round' : 'butt'}
+                        opacity={0.85}
                     />,
                 );
             }
-            prevFrac = frac;
+
+            prevFrac = levelFrac;
+            // No more segments needed past the value
+            if (levelFrac >= valueFrac) {
+                break;
+            }
         }
 
         return segments;

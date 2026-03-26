@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    Box,
+    Button,
     Dialog,
     DialogContent,
     DialogTitle,
+    Divider,
     IconButton,
     List,
     ListItemButton,
     ListItemIcon,
     ListItemText,
+    TextField,
 } from '@mui/material';
-import { AccessTime, Air, Close, Language, Speed, WbCloudy } from '@mui/icons-material';
+import { AccessTime, Air, Close, CreateNewFolder, Language, Speed, WbCloudy } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType } from '../../../src/widget-utils';
@@ -58,15 +62,32 @@ interface CustomWidgetDialogProps {
     open: boolean;
     onClose: () => void;
     onAdd: (type: CustomWidgetType) => void;
+    onCreateCategory?: (name: string) => void;
 }
 
 export default function CustomWidgetDialog(props: CustomWidgetDialogProps): React.JSX.Element {
-    const { open, onClose, onAdd } = props;
+    const { open, onClose, onAdd, onCreateCategory } = props;
+    const [showNameInput, setShowNameInput] = useState(false);
+    const [categoryName, setCategoryName] = useState('');
+
+    const handleClose = (): void => {
+        setShowNameInput(false);
+        setCategoryName('');
+        onClose();
+    };
+
+    const handleCreateCategory = (): void => {
+        const name = categoryName.trim();
+        if (name && onCreateCategory) {
+            onCreateCategory(name);
+            handleClose();
+        }
+    };
 
     return (
         <Dialog
             open={open}
-            onClose={onClose}
+            onClose={handleClose}
             maxWidth="xs"
             fullWidth
             slotProps={{ paper: { sx: { borderRadius: '16px' } } }}
@@ -75,7 +96,7 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                 {I18n.t('wm_Add widget')}
                 <IconButton
                     size="small"
-                    onClick={onClose}
+                    onClick={handleClose}
                     sx={{ position: 'absolute', top: 8, right: 8 }}
                 >
                     <Close fontSize="small" />
@@ -83,12 +104,50 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
             </DialogTitle>
             <DialogContent sx={{ p: 0 }}>
                 <List>
+                    {onCreateCategory ? (
+                        <>
+                            {showNameInput ? (
+                                <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <TextField
+                                        autoFocus
+                                        size="small"
+                                        fullWidth
+                                        placeholder={I18n.t('wm_Category name')}
+                                        value={categoryName}
+                                        onChange={e => setCategoryName(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                handleCreateCategory();
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        disabled={!categoryName.trim()}
+                                        onClick={handleCreateCategory}
+                                    >
+                                        {I18n.t('wm_Create')}
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <ListItemButton onClick={() => setShowNameInput(true)}>
+                                    <ListItemIcon><CreateNewFolder /></ListItemIcon>
+                                    <ListItemText
+                                        primary={I18n.t('wm_Category')}
+                                        secondary={I18n.t('wm_Category_desc')}
+                                    />
+                                </ListItemButton>
+                            )}
+                            <Divider />
+                        </>
+                    ) : null}
                     {CUSTOM_WIDGETS.map(w => (
                         <ListItemButton
                             key={w.type}
                             onClick={() => {
                                 onAdd(w.type);
-                                onClose();
+                                handleClose();
                             }}
                         >
                             <ListItemIcon>{w.icon}</ListItemIcon>

@@ -818,9 +818,6 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         if (widgetDef.favorite) {
             newDef.favorite = true;
         }
-        if (widgetDef.favoritesOnly) {
-            newDef.favoritesOnly = true;
-        }
         for (const [key, item] of Object.entries(config.items)) {
             const value = values[key];
             const defaultVal = getConfigDefault(item);

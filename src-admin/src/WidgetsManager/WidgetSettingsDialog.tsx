@@ -124,6 +124,10 @@ interface WidgetSettingsDialogProps {
     availableGroups?: WidgetGroup[];
     currentGroupId?: string;
     onGroupChange?: (groupId: string) => void;
+    /** Primary state ID for history toggle */
+    primaryStateId?: string;
+    /** Default history adapter instance (e.g. "history.0") */
+    defaultHistory?: string;
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
@@ -151,6 +155,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     } = props;
     const [local, setLocal] = useState<WidgetSettings>(settings);
     const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'iconInactive' | 'icon' | null>(null);
+    const [historyEnabled, setHistoryEnabled] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -160,8 +166,15 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                 name: settings.name || objectName || widgetName,
                 color: settings.color || objectColor || '',
             });
+            // Load history enabled state
+            if (props.primaryStateId && props.defaultHistory && props.socket) {
+                void props.socket.getObject(props.primaryStateId).then(obj => {
+                    const enabled = !!(obj as ioBroker.StateObject)?.common?.custom?.[props.defaultHistory!]?.enabled;
+                    setHistoryEnabled(enabled);
+                }).catch(() => setHistoryEnabled(false));
+            }
         }
-    }, [settings, open, widgetName, objectName, objectColor]);
+    }, [settings, open, widgetName, objectName, objectColor, props.primaryStateId, props.defaultHistory, props.socket]);
 
     const isCustomIcon = local.markerIcon?.startsWith('data:');
 
@@ -809,6 +822,43 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 <ToggleButton value="satellite">{I18n.t('wm_map_satellite')}</ToggleButton>
                             </ToggleButtonGroup>
                         </Box>
+                    ) : null}
+
+                    {props.primaryStateId && props.defaultHistory ? (
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={historyEnabled}
+                                    disabled={historyLoading}
+                                    onChange={async (_e, checked) => {
+                                        setHistoryLoading(true);
+                                        try {
+                                            const obj = await props.socket.getObject(props.primaryStateId!);
+                                            if (obj) {
+                                                const common = (obj as ioBroker.StateObject).common;
+                                                common.custom ||= {};
+                                                if (checked) {
+                                                    common.custom[props.defaultHistory!] = {
+                                                        ...common.custom[props.defaultHistory!],
+                                                        enabled: true,
+                                                    };
+                                                } else if (common.custom[props.defaultHistory!]) {
+                                                    common.custom[props.defaultHistory!].enabled = false;
+                                                }
+                                                await props.socket.setObject(obj._id, obj as ioBroker.Object);
+                                                setHistoryEnabled(checked);
+                                            }
+                                        } catch (err) {
+                                            console.error('Failed to toggle history:', err);
+                                        }
+                                        setHistoryLoading(false);
+                                    }}
+                                    size="small"
+                                />
+                            }
+                            label={I18n.t('wm_Record history')}
+                            sx={{ mt: 1 }}
+                        />
                     ) : null}
 
                     {showChart ? (
