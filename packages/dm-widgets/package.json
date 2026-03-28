@@ -4,6 +4,9 @@
     "description": "Types and base class for ioBroker Device Manager widget plugins",
     "main": "build/index.js",
     "types": "build/index.d.ts",
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "build": "tsc",
         "prepublishOnly": "npm run build"
