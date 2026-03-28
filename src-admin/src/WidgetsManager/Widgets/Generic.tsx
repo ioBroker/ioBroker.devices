@@ -1,5 +1,15 @@
 import React, { Component } from 'react';
-import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
+import {
+    Box,
+    ButtonBase,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    type SxProps,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import {
     ArrowDownward,
     ArrowUpward,
@@ -1588,25 +1598,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                                 this.props.onOpenSettings!(this.props.widget.id);
                             }
                         }}
-                        sx={theme => ({
-                            position: 'absolute',
-                            bottom: 6,
-                            right: 6,
-                            p: '3px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            zIndex: 2,
-                            color: theme.palette.primary.main,
-                            opacity: 0.6,
-                            transition: 'opacity 0.2s, background-color 0.2s',
-                            '&:hover': {
-                                opacity: 1,
-                                backgroundColor: theme.palette.action.hover,
-                            },
-                        })}
+                        sx={WidgetGeneric.getSettingButtonStyle()}
                     >
                         <Settings sx={{ fontSize: 16 }} />
                     </Box>
@@ -1673,6 +1665,27 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return WidgetGeneric.getStyleWide(theme);
     }
 
+    static getSettingButtonStyle(): SxProps<Theme> {
+        return (theme: Theme) => ({
+            position: 'absolute',
+            bottom: 6,
+            right: 6,
+            p: '3px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+            color: theme.palette.primary.main,
+            opacity: 0.6,
+            transition: 'opacity 0.2s, background-color 0.2s',
+            '&:hover': {
+                opacity: 1,
+                backgroundColor: theme.palette.action.hover,
+            },
+        });
+    }
     // --- Frame rendering ---
 
     renderCompact(): React.JSX.Element {

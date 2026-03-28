@@ -1,0 +1,88 @@
+/**
+ * Core type definitions for the Widget Manager.
+ * These mirror the types from src/widget-utils/types/base.ts
+ */
+import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
+
+export type Color = 'primary' | 'secondary' | (string & {});
+export type ValueOrObject<T> = T | { objectId: string; property: string };
+export type ValueOrState<T> = T | { stateId: string; mapping?: Record<string | number, string> };
+
+export type DeviceStatus =
+    | 'connected'
+    | 'disconnected'
+    | {
+          battery?: ValueOrState<number | boolean | 'charging' | (string & {})>;
+          connection?: ValueOrState<'connected' | 'disconnected'>;
+          rssi?: ValueOrState<number>;
+          warning?: ValueOrState<ioBroker.StringOrTranslated | boolean>;
+      };
+
+export interface ItemInfo {
+    type: 'widget' | 'category';
+    id: string | number;
+    name: ValueOrObject<ioBroker.StringOrTranslated>;
+    icon?: ValueOrState<string>;
+    color?: ValueOrState<Color>;
+    backgroundColor?: ValueOrState<Color>;
+    status?: DeviceStatus | DeviceStatus[];
+    enabled?: ValueOrState<boolean>;
+    parent?: string;
+}
+
+export interface DevicesDetectorState extends DetectorState {
+    id: string;
+    stateRole?: string;
+}
+
+export interface DevicesPatternControl {
+    states: DevicesDetectorState[];
+    type: Types;
+    storeId: string;
+    parentId: string;
+    deviceId: string;
+    channelId: string;
+}
+
+export interface WidgetInfo extends ItemInfo {
+    type: 'widget';
+    control: DevicesPatternControl;
+    custom?: {
+        enabled: true;
+        image?: string;
+        parent?: string;
+        uiDisabled?: boolean;
+        [key: string]: any;
+    };
+}
+
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
+
+export interface CustomWidgetDef {
+    id: string;
+    type: CustomWidgetType;
+    size?: '1x1' | '2x0.5' | '2x1';
+    color?: string;
+    [key: string]: any;
+}
+
+export interface CategoryInfo extends ItemInfo {
+    type: 'category';
+    custom?: {
+        image?: string;
+        imageScope?: 'header' | 'page';
+        backgroundColor?: string;
+        noStatus?: boolean;
+        noHumidity?: boolean;
+        noTemperature?: boolean;
+        noWindows?: boolean;
+        customWidgets?: CustomWidgetDef[];
+        widgetOrder?: string[];
+        widgetGroups?: Array<{
+            id: string;
+            name: string;
+            collapsed?: boolean;
+            widgetIds: string[];
+        }>;
+    };
+}

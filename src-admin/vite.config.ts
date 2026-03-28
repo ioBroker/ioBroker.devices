@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import commonjs from 'vite-plugin-commonjs';
 import viteTsConfigPaths from 'vite-tsconfig-paths';
 import { federation } from '@module-federation/vite';
-import { moduleFederationShared } from './modulefederation.devices.config';
+import { moduleFederationShared } from '../packages/dm-widgets/modulefederation.devices.config';
 
 // Make all shared modules eager for the host application,
 // so they are available in the shared scope for remote modules
