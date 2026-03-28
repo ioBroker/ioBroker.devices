@@ -1654,6 +1654,25 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         );
     }
 
+    static getStyleCompact(theme: Theme): React.CSSProperties {
+        return {
+            position: 'relative',
+            containerType: 'inline-size',
+            overflow: 'hidden',
+            borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+        };
+    }
+
+    static getStyleWide(theme: Theme): React.CSSProperties {
+        const style = WidgetGeneric.getStyleCompact(theme);
+        style.gridColumn = 'span 2';
+        return style;
+    }
+
+    static getStyleWideTall(theme: Theme): React.CSSProperties {
+        return WidgetGeneric.getStyleWide(theme);
+    }
+
     // --- Frame rendering ---
 
     renderCompact(): React.JSX.Element {
@@ -1671,13 +1690,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <ButtonBase
                     component="div"
@@ -1794,14 +1808,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     onClick={
@@ -1888,14 +1896,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />

@@ -89,6 +89,7 @@ import {
     WidgetWind,
     WidgetGauge,
     WidgetGate,
+    PluginWidget,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -619,10 +620,11 @@ function GroupSortableGrid(props: {
     category: Category;
     items: OrderedItem[];
     activeId: string | null;
+    canDrag: boolean;
     widgetSettings: Record<string, WidgetSettings>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, items, activeId, widgetSettings, onToggleFavorite } = props;
+    const { category, items, activeId, canDrag, widgetSettings, onToggleFavorite } = props;
 
     const renderContent = (item: OrderedItem): React.ReactNode => {
         if (item.type === 'category') {
@@ -633,6 +635,32 @@ function GroupSortableGrid(props: {
         }
         return category.renderCustomWidget(item.data as CustomWidgetDef);
     };
+
+    if (!canDrag) {
+        return (
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: category.gridColumns,
+                    gap: 1.5,
+                }}
+            >
+                {items.map(item => {
+                    const gridColumn = getGridColumn(item, widgetSettings);
+                    return gridColumn ? (
+                        <div
+                            key={item.id}
+                            style={{ gridColumn }}
+                        >
+                            {renderContent(item)}
+                        </div>
+                    ) : (
+                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
+                    );
+                })}
+            </Box>
+        );
+    }
 
     return (
         <SortableContext
@@ -724,8 +752,8 @@ function LightsGroupControl(props: {
         statesRef.current = {};
 
         for (const ctrl of lightControls) {
-            const handler = (_id: string, state: ioBroker.State): void => {
-                const isOn = !!state.val;
+            const handler = (_id: string, state: ioBroker.State | null | undefined): void => {
+                const isOn = !!state?.val;
                 if (statesRef.current[ctrl.widgetId] !== isOn) {
                     statesRef.current[ctrl.widgetId] = isOn;
                     const count = Object.values(statesRef.current).filter(v => v).length;
@@ -1075,6 +1103,7 @@ function GroupedContent(props: {
                                 category={category}
                                 items={groupItems}
                                 activeId={activeId}
+                                canDrag={canDrag}
                                 widgetSettings={widgetSettings}
                                 onToggleFavorite={onToggleFavorite}
                             />
@@ -1096,6 +1125,7 @@ function GroupedContent(props: {
                         category={category}
                         items={ungrouped}
                         activeId={activeId}
+                        canDrag={canDrag}
                         widgetSettings={widgetSettings}
                         onToggleFavorite={onToggleFavorite}
                     />
@@ -1960,6 +1990,22 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+            case 'plugin':
+                return def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
+                    <PluginWidget
+                        key={def.id}
+                        id={def.id}
+                        language={this.props.language}
+                        size={def.size}
+                        color={def.color}
+                        pluginAdapter={def.pluginAdapter}
+                        pluginComponent={def.pluginComponent}
+                        pluginUrl={def.pluginUrl}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                ) : null;
             default:
                 return null;
         }

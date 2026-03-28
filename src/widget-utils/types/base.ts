@@ -46,7 +46,7 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
 
 export interface CustomWidgetDef {
     id: string;
@@ -103,6 +103,12 @@ export interface CustomWidgetDef {
     usePercentage?: boolean;
     /** Whether the custom widget is marked as favorite */
     favorite?: boolean;
+    /** Plugin: adapter name that provides the widget */
+    pluginAdapter?: string;
+    /** Plugin: component name exported by the adapter */
+    pluginComponent?: string;
+    /** Plugin: URL to load the widget bundle (federation remote entry) */
+    pluginUrl?: string;
 }
 
 export interface CategoryInfo extends ItemInfo {

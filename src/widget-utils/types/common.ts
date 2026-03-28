@@ -24,5 +24,14 @@ export type DeviceStatus =
 
 export interface InstanceWidgetDescription {
     url: string;
-    components: string[];
+    components: {
+        /** Name of the class */
+        name: string;
+        /** Title */
+        label: ioBroker.StringOrTranslated;
+        /** Description */
+        description: ioBroker.StringOrTranslated;
+        /** Icon as a link to picture imageName.png relative to the admin folder or base64 */
+        icon: string;
+    }[];
 }

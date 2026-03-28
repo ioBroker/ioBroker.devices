@@ -654,7 +654,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.tileRef}

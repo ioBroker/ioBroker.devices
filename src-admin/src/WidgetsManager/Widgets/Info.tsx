@@ -356,7 +356,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     onClick={chartClickable ? () => this.setState({ chartDialogOpen: true } as any) : undefined}

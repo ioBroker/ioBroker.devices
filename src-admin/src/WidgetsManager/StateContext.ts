@@ -33,7 +33,9 @@ export default class StateContext {
     private onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.subscribedStates[id]) {
             this.states[id] = state || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State);
-            this.subscribedStates[id].forEach(cb => cb(id, this.states[id]));
+            this.subscribedStates[id].forEach(cb =>
+                cb(id, this.states[id] || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State)),
+            );
         }
     };
 

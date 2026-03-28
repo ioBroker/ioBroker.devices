@@ -344,4 +344,20 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
             },
         },
     },
+    plugin: {
+        name: 'wm_Plugin',
+        items: {
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '1x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
+            },
+        },
+    },
 };
