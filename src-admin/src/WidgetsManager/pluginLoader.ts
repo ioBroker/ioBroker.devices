@@ -9,10 +9,13 @@ import { registerRemotes, loadRemote, init } from '@module-federation/runtime';
 import React from 'react';
 import * as IconsMaterial from '@mui/icons-material';
 import * as AdapterReact from '@iobroker/adapter-react-v5';
+import * as DmWidgets from './Widgets/Generic';
+import StateContext from './StateContext';
 
 type WidgetComponent = React.ComponentType<Record<string, unknown>>;
 
-// Initialize Module Federation runtime with shared dependencies
+// Initialize Module Federation runtime with shared dependencies.
+// Plugin widgets receive these from the host — they must NOT bundle them.
 init({
     name: 'iobroker_devices',
     shared: {
@@ -26,6 +29,10 @@ init({
         },
         '@mui/icons-material': {
             lib: () => IconsMaterial,
+            version: '*',
+        },
+        '@iobroker/dm-widgets': {
+            lib: () => ({ ...DmWidgets, StateContext }),
             version: '*',
         },
     },

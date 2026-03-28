@@ -17,3 +17,4 @@ admin/i18n/*/flat.txt
 #ignore .commitinfo created by ioBroker release script
 .commitinfo
 /.claude/settings.local.json
+/packages/dm-widgets/build/
