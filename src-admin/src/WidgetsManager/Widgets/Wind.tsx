@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import { getTileStyles } from './Generic';
+import WidgetGeneric, { getTileStyles } from './Generic';
 
 interface WidgetWindProps {
     id: string;
@@ -431,7 +431,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             <Box
                 id={this.props.id}
                 className="widget-wind"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -490,7 +490,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             <Box
                 id={this.props.id}
                 className="widget-wind"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -558,13 +558,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             <Box
                 id={this.props.id}
                 className="widget-wind"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box

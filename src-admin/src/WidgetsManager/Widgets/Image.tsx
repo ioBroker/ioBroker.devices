@@ -119,7 +119,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -221,7 +221,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -297,7 +297,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />

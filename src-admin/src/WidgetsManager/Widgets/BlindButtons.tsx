@@ -158,7 +158,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({

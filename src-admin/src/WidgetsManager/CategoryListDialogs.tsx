@@ -2,7 +2,13 @@ import React from 'react';
 import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import type { CategoryInfo, CustomWidgetDef, CustomWidgetType, WidgetInfo } from '../../../src/widget-utils';
+import type {
+    CategoryInfo,
+    CustomWidgetDef,
+    CustomWidgetType,
+    InstanceWidgetDescription,
+    WidgetInfo,
+} from '../../../src/widget-utils';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
 import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
@@ -50,6 +56,8 @@ export interface CategoryListDialogsProps {
     onCloseCustomWidgetDialog: () => void;
     onAddCustomWidget: (type: CustomWidgetType) => void;
     onCreateCategory?: (name: string) => void;
+    adapterWidgets?: Record<string, InstanceWidgetDescription>;
+    onAddPluginWidget?: (adapter: string, component: string, url: string, label: string) => void;
 
     // --- Custom widget settings dialog ---
     customWidgetSettingsCategoryId: string | null;
@@ -270,6 +278,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onClose={onCloseCustomWidgetDialog}
                 onAdd={onAddCustomWidget}
                 onCreateCategory={props.onCreateCategory}
+                adapterWidgets={props.adapterWidgets}
+                onAddPlugin={props.onAddPluginWidget}
             />
             <CustomWidgetSettingsDialog
                 open={customWidgetSettingsCategoryId != null}

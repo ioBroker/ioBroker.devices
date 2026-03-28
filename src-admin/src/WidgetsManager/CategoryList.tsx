@@ -16,7 +16,14 @@ import pl from './i18n/pl.json';
 import uk from './i18n/uk.json';
 import zhCn from './i18n/zh-cn.json';
 
-import type { CategoryInfo, CustomWidgetType, ItemInfo, WidgetInfo, CustomWidgetDef } from '../../../src/widget-utils';
+import type {
+    CategoryInfo,
+    CustomWidgetType,
+    InstanceWidgetDescription,
+    ItemInfo,
+    WidgetInfo,
+    CustomWidgetDef,
+} from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
@@ -104,6 +111,8 @@ interface CategoryListState extends CommunicationState {
     /** Coordinates from system.config for sun calculations */
     latitude: number | null;
     longitude: number | null;
+    /** Plugin widgets available from adapter instances */
+    adapterWidgets: Record<string, InstanceWidgetDescription>;
 }
 
 const ROOT_CATEGORY = '__root__';
@@ -270,6 +279,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             sidePanelDialogOpen: false,
             latitude: null,
             longitude: null,
+            adapterWidgets: {},
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -344,7 +354,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         widgetSettings?: Record<string, WidgetSettings>,
     ): CategoryInfo | undefined {
         const raw = hash.startsWith('#') ? hash.substring(1) : hash;
-        if (!raw) {
+        if (!raw || raw === 'root') {
             return categories.find(c => String(c.id) === ROOT_CATEGORY);
         }
         const segments = raw.split('/').map(s => decodeURIComponent(s));
@@ -373,7 +383,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private updateHash(category: CategoryInfo): void {
         const path = this.buildHashPath(category);
-        const newHash = path ? `#${path}` : '';
+        // Use '#root' for root so a bare '#' (which browsers report as '') is never written
+        const newHash = path ? `#${path}` : '#root';
         if (window.location.hash !== newHash) {
             window.location.hash = newHash;
         }
@@ -592,20 +603,22 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         // Build widget settings first so Favorites can be resolved
                         const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
 
-                        // Try to restore the category from URL hash, fall back to default category, then root
-                        const hasHash = !!window.location.hash && window.location.hash !== '#';
+                        // In admin mode, always start at root (ignore hash and favorites).
+                        // In web mode, restore from hash or fall back to default category.
                         let currentCategory: CategoryInfo | undefined;
 
+                        const hash = window.location.hash;
+                        // '' = no hash at all → fall back to default/favorites
+                        // '#root' or '#Kitchen/...' = explicit path → resolve from hash
+                        const hasHash = hash.length > 1;
+
                         if (hasHash) {
-                            currentCategory = this.resolveCategoryFromHash(
-                                window.location.hash,
-                                result.categories,
-                                widgetSettings,
-                            );
+                            currentCategory = this.resolveCategoryFromHash(hash, result.categories, widgetSettings);
                         }
 
-                        if (!currentCategory) {
+                        if (!currentCategory && !this.props.admin) {
                             const defaultCatId = this.guiConfigCache?.root?.defaultCategory;
+                            // Only fall back to default category (favorites) when there is no hash at all
                             if (!hasHash && defaultCatId) {
                                 if (defaultCatId === FAVORITES_CATEGORY) {
                                     currentCategory = this.buildFavoritesCategory(widgetSettings) || undefined;
@@ -626,6 +639,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             loading: false,
                             currentCategory,
                             widgetSettings,
+                            adapterWidgets: result.adapterWidgets || {},
                         });
                         // Update hash to reflect the resolved category
                         this.updateHash(currentCategory);
@@ -1422,6 +1436,30 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ customWidgetDialogCategoryId: categoryId });
     };
 
+    private onAddPluginWidget = (adapter: string, component: string, url: string): void => {
+        const { customWidgetDialogCategoryId } = this.state;
+        if (!customWidgetDialogCategoryId || customWidgetDialogCategoryId === FAVORITES_CATEGORY) {
+            return;
+        }
+        const id = `custom_plugin_${adapter}_${component}_${Date.now().toString(36)}`;
+        const def: CustomWidgetDef = {
+            id,
+            type: 'plugin',
+            pluginAdapter: adapter,
+            pluginComponent: component,
+            pluginUrl: url,
+            size: '1x1',
+        };
+        const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const customWidgets = [...(settings.customWidgets || []), def];
+        const categorySettings = {
+            ...this.state.categorySettings,
+            [customWidgetDialogCategoryId]: { ...settings, customWidgets },
+        };
+        this.setState({ categorySettings, customWidgetDialogCategoryId: null });
+        this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
+    };
+
     private onCloseCustomWidgetDialog = (): void => {
         this.setState({ customWidgetDialogCategoryId: null });
     };
@@ -1490,7 +1528,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             ...this.state.categorySettings,
             [customWidgetDialogCategoryId]: { ...settings, customWidgets },
         };
-        this.setState({ categorySettings, customWidgetDialogCategoryId: null });
+        this.setState({
+            categorySettings,
+            customWidgetDialogCategoryId: null,
+            // Open settings dialog for the newly added widget
+            customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
+            customWidgetSettingsWidgetId: id,
+        });
         this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
     };
 
@@ -1882,6 +1926,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
                             onAddCustomWidget={this.onAddCustomWidget}
                             onCreateCategory={this.onCreateCategory}
+                            adapterWidgets={this.state.adapterWidgets}
+                            onAddPluginWidget={this.onAddPluginWidget}
                             customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
                             customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
                             onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}

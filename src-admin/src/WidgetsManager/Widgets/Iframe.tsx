@@ -5,7 +5,7 @@ import { Close, OpenInNew, Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import type { Theme } from '@mui/material/styles';
 
-import { getTileStyles } from './Generic';
+import WidgetGeneric, { getTileStyles } from './Generic';
 
 interface WidgetIframeProps {
     id: string;
@@ -135,7 +135,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         const { color } = this.props;
 
         return (
-            <Box sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}>
+            <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
                 <Box
                     onClick={this.handleClick}
                     sx={(theme: Theme) => ({
@@ -172,15 +172,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         const { color } = this.props;
 
         return (
-            <Box
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWide(theme)}>
                 <Box
                     onClick={this.handleClick}
                     sx={(theme: Theme) => ({
@@ -216,15 +208,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         const { color } = this.props;
 
         return (
-            <Box
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
                     onClick={this.handleClick}
@@ -275,6 +259,14 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                             maxWidth: '95vw',
                             maxHeight: '95vh',
                             borderRadius: '12px',
+                            '@media (orientation: landscape)': {
+                                width: '100dvw',
+                                height: '100dvh',
+                                maxWidth: '100dvw',
+                                maxHeight: '100dvh',
+                                borderRadius: 0,
+                                margin: 0,
+                            },
                         },
                     },
                 }}

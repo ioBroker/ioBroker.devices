@@ -4,7 +4,7 @@ import { Settings, WbSunny, NightsStay } from '@mui/icons-material';
 // @ts-expect-error no types
 import { getTimes } from 'suncalc2';
 
-import { getTileStyles } from './Generic';
+import WidgetGeneric, { getTileStyles } from './Generic';
 
 interface SunTimes {
     sunrise: Date;
@@ -306,7 +306,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -370,7 +370,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -478,13 +478,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -557,7 +551,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -608,7 +602,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -685,13 +679,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
             <Box
                 id={this.props.id}
                 className="widget-clock"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box

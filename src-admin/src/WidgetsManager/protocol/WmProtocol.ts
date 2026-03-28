@@ -1,6 +1,6 @@
 import { type Connection } from '@iobroker/adapter-react-v5';
 import type { RetVal } from '@iobroker/dm-utils';
-import type { CategoryInfo, WidgetInfo } from './api';
+import type { CategoryInfo, InstanceWidgetDescription, WidgetInfo } from './api';
 
 export type CommandName = `dm:${string}`;
 
@@ -8,6 +8,7 @@ export type LoadItemsCallback = (result: {
     categories: CategoryInfo[];
     widgets: WidgetInfo[];
     customWidgets?: Record<string, Record<string, any>>;
+    adapterWidgets?: Record<string, InstanceWidgetDescription>;
 }) => RetVal<void>;
 
 export class WmProtocol {
@@ -21,6 +22,7 @@ export class WmProtocol {
             categories: CategoryInfo[];
             widgets: WidgetInfo[];
             customWidgets?: Record<string, Record<string, any>>;
+            adapterWidgets?: Record<string, InstanceWidgetDescription>;
         }>('dm:loadItems');
         try {
             void callback(response);

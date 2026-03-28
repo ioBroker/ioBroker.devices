@@ -706,12 +706,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    ...(isWide ? { gridColumn: 'span 2' } : {}),
-                }}
+                sx={theme => (isWide ? WidgetGeneric.getStyleCompact(theme) : WidgetGeneric.getStyleWide(theme))}
             >
                 <Box
                     onClick={() => this.onTileClick()}

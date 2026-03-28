@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import { getTileStyles, isNeumorphicTheme } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme } from './Generic';
 import ChartDialog from './ChartDialog';
 
 interface ColorLevel {
@@ -516,12 +516,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return (
             <Box
                 id={this.props.id}
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     onClick={clickable ? this.onTileClick : undefined}
@@ -582,13 +577,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return (
             <Box
                 id={this.props.id}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     onClick={clickable ? this.onTileClick : undefined}
@@ -645,13 +634,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return (
             <Box
                 id={this.props.id}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />

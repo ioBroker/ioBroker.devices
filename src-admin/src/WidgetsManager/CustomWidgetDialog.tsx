@@ -13,10 +13,10 @@ import {
     ListItemText,
     TextField,
 } from '@mui/material';
-import { AccessTime, Air, Close, CreateNewFolder, Language, Speed, WbCloudy } from '@mui/icons-material';
+import { AccessTime, Air, Close, CreateNewFolder, Extension, Language, Speed, WbCloudy } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetType } from '../../../src/widget-utils';
+import type { CustomWidgetType, InstanceWidgetDescription } from '../../../src/widget-utils';
 
 interface CustomWidgetOption {
     type: CustomWidgetType;
@@ -63,10 +63,14 @@ interface CustomWidgetDialogProps {
     onClose: () => void;
     onAdd: (type: CustomWidgetType) => void;
     onCreateCategory?: (name: string) => void;
+    /** Plugin widgets from adapter instances */
+    adapterWidgets?: Record<string, InstanceWidgetDescription>;
+    /** Callback to add a plugin widget */
+    onAddPlugin?: (adapter: string, component: string, url: string, label: string) => void;
 }
 
 export default function CustomWidgetDialog(props: CustomWidgetDialogProps): React.JSX.Element {
-    const { open, onClose, onAdd, onCreateCategory } = props;
+    const { open, onClose, onAdd, onCreateCategory, adapterWidgets, onAddPlugin } = props;
     const [showNameInput, setShowNameInput] = useState(false);
     const [categoryName, setCategoryName] = useState('');
 
@@ -159,6 +163,50 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                             />
                         </ListItemButton>
                     ))}
+                    {/* Plugin widgets from adapters */}
+                    {adapterWidgets && onAddPlugin && Object.keys(adapterWidgets).length > 0 ? (
+                        <>
+                            <Divider />
+                            {Object.entries(adapterWidgets).flatMap(([adapter, desc]) =>
+                                desc.components.map(comp => {
+                                    const label =
+                                        typeof comp.label === 'object'
+                                            ? comp.label.en || Object.values(comp.label)[0]
+                                            : comp.label;
+                                    const description =
+                                        typeof comp.description === 'object'
+                                            ? comp.description.en || Object.values(comp.description)[0]
+                                            : comp.description;
+                                    return (
+                                        <ListItemButton
+                                            key={`${adapter}_${comp.name}`}
+                                            onClick={() => {
+                                                onAddPlugin(adapter, comp.name, desc.url, label || comp.name);
+                                                handleClose();
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                {comp.icon &&
+                                                (comp.icon.startsWith('data:') || comp.icon.startsWith('http')) ? (
+                                                    <img
+                                                        src={comp.icon}
+                                                        alt=""
+                                                        style={{ width: 24, height: 24 }}
+                                                    />
+                                                ) : (
+                                                    <Extension />
+                                                )}
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={label || comp.name}
+                                                secondary={description || adapter}
+                                            />
+                                        </ListItemButton>
+                                    );
+                                }),
+                            )}
+                        </>
+                    ) : null}
                 </List>
             </DialogContent>
         </Dialog>

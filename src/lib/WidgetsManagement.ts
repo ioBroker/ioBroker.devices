@@ -44,6 +44,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     private enabledDevices: DevicesPatternControl[] = [];
     private loaded: Promise<void> | null = null;
     private notifyTimeout: ReturnType<typeof setTimeout> | null = null;
+    private invalidatedIds: string[] = [];
     /** Lazily rebuilt sorted keys cache */
     private _sortedKeys: string[] | null = null;
 
@@ -482,6 +483,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         }
         this.notifyTimeout = setTimeout(async () => {
             this.notifyTimeout = null;
+            this.adapter.log.debug(`Update objects because of: ${this.invalidatedIds.join(', ')}`);
+            this.invalidatedIds = [];
             try {
                 await this.sendCommandToGui({ command: 'all' });
             } catch {
@@ -500,7 +503,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
         // Update local cache
         if (obj) {
-            this.objects[id] = obj;
+            // We must compare only common part
+            if (JSON.stringify(obj.common) !== JSON.stringify(this.objects[id]?.common)) {
+                this.objects[id] = obj;
+            }
         } else {
             delete this.objects[id];
         }
@@ -526,6 +532,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             }
 
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -548,6 +557,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             }
 
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -558,6 +570,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         const newEnabled = obj?.common?.custom?.[customKey]?.enabled;
         if (oldEnabled !== newEnabled) {
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -570,6 +585,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 this.allDevices.push(...this.detectForIds(affected));
             }
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
         }
     }

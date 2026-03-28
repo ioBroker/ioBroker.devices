@@ -8,6 +8,8 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@iobroker/adapter-react-v5": "^8.1.6",
         "@iobroker/type-detector": "^5.0.11",
+        "@module-federation/runtime": "^2.3.0",
+        "@module-federation/vite": "^1.13.5",
         "@mui/icons-material": "^6.5.0",
         "@mui/material": "^6.5.0",
         "@sentry/browser": "^10.46.0",
@@ -24,7 +26,9 @@
         "react-image-crop": "^11.0.10",
         "react-input-color": "^4.0.1",
         "suncalc2": "^1.8.1",
-        "vite": "^7.3.1"
+        "vite": "^7.3.1",
+        "vite-plugin-commonjs": "^0.10.4",
+        "vite-tsconfig-paths": "^6.1.1"
     },
     "scripts": {
         "start": "vite --host",

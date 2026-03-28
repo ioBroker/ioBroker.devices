@@ -30,6 +30,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
     enabledDevices = [];
     loaded = null;
     notifyTimeout = null;
+    invalidatedIds = [];
     /** Lazily rebuilt sorted keys cache */
     _sortedKeys = null;
     // ── Sorted keys cache ──────────────────────────────────────────────
@@ -426,6 +427,8 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         }
         this.notifyTimeout = setTimeout(async () => {
             this.notifyTimeout = null;
+            this.adapter.log.debug(`Update objects because of: ${this.invalidatedIds.join(', ')}`);
+            this.invalidatedIds = [];
             try {
                 await this.sendCommandToGui({ command: 'all' });
             }
@@ -442,7 +445,10 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         }
         // Update local cache
         if (obj) {
-            this.objects[id] = obj;
+            // We must compare only common part
+            if (JSON.stringify(obj.common) !== JSON.stringify(this.objects[id]?.common)) {
+                this.objects[id] = obj;
+            }
         }
         else {
             delete this.objects[id];
@@ -465,6 +471,9 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 this.allDevices.push(...this.detectForIds(added));
             }
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -482,6 +491,9 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 this.allDevices.push(...this.detectForIds(toDetect));
             }
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -491,6 +503,9 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         const newEnabled = obj?.common?.custom?.[customKey]?.enabled;
         if (oldEnabled !== newEnabled) {
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
             return;
         }
@@ -502,6 +517,9 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 this.allDevices.push(...this.detectForIds(affected));
             }
             this.rebuildEnabledDevices();
+            if (!this.invalidatedIds.includes(id)) {
+                this.invalidatedIds.push(id);
+            }
             this.scheduleNotify();
         }
     }
