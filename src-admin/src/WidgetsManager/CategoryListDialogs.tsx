@@ -77,6 +77,7 @@ export interface CategoryListDialogsProps {
     settingsWidgetId: string | number | null;
     onWidgetGroupMove: (categoryId: string, widgetId: string, groupId: string) => void;
     getCategoryName: (category: CategoryInfo) => string;
+    language: ioBroker.Languages;
 }
 
 function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element {
@@ -177,7 +178,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 }
                 showAnimation={
                     settingsWidget?.control?.type === Types.info &&
-                    !!settingsWidget?.control?.states.some(
+                    settingsWidget?.control?.states.some(
                         s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
                     )
                 }
@@ -274,12 +275,14 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 categoryOptions={categoryOptions}
             />
             <CustomWidgetDialog
+                admin={admin}
                 open={customWidgetDialogCategoryId != null}
                 onClose={onCloseCustomWidgetDialog}
                 onAdd={onAddCustomWidget}
                 onCreateCategory={props.onCreateCategory}
                 adapterWidgets={props.adapterWidgets}
                 onAddPlugin={props.onAddPluginWidget}
+                language={props.language}
             />
             <CustomWidgetSettingsDialog
                 open={customWidgetSettingsCategoryId != null}
@@ -316,6 +319,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                               onWidgetGroupMove(customWidgetSettingsCategoryId, customWidgetSettingsWidgetId, groupId)
                         : undefined
                 }
+                language={props.language}
             />
             <SidePanelInstallDialog
                 open={sidePanelDialogOpen}

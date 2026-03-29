@@ -14,6 +14,10 @@ import StateContext from './StateContext';
 
 type WidgetComponent = React.ComponentType<Record<string, unknown>>;
 
+// Expose the real WidgetGeneric and helpers on window so plugins can access them
+// even if MF shared module resolution fails.
+(window as any).__iobrokerDmWidgets__ = { ...DmWidgets, StateContext };
+
 // Initialize Module Federation runtime with shared dependencies.
 // Plugin widgets receive these from the host — they must NOT bundle them.
 init({
@@ -51,11 +55,13 @@ const componentCache = new Map<string, WidgetComponent>();
  * @param url        Remote entry URL (e.g. "/adapter/my-adapter/remoteEntry.js")
  * @param adapterName  Unique scope name for the remote (adapter name)
  * @param componentName Component name exported from the remote module
+ * @param admin Is called from admin or from web
  */
 export async function loadPluginComponent(
     url: string,
     adapterName: string,
     componentName: string,
+    admin: boolean,
 ): Promise<WidgetComponent> {
     const cacheKey = `${adapterName}/${componentName}`;
     const cached = componentCache.get(cacheKey);
@@ -65,7 +71,9 @@ export async function loadPluginComponent(
 
     // adapterName is also the federation scope / unique remote name
     const uniqueName = adapterName.replace(/[^a-zA-Z0-9_]/g, '_');
-    const loadKey = `${url}!${componentName}`;
+    // Always load the "Components" module — it's the standard exposed entry point.
+    // Individual components are picked from its default export by name.
+    const loadKey = `${adapterName}!Components`;
 
     let setPromise = runningLoads[loadKey];
     if (!(setPromise instanceof Promise)) {
@@ -73,10 +81,11 @@ export async function loadPluginComponent(
             registerRemotes([
                 {
                     name: uniqueName,
-                    entry: url,
+                    entry: admin ? `../adapter/${adapterName}/dm-widgets/${url}` : `../files/${adapterName}/${url}`,
+                    type: 'module',
                 },
             ]);
-            setPromise = loadRemote(`${uniqueName}/${componentName}`) as Promise<{
+            setPromise = loadRemote(`${uniqueName}/Components`) as Promise<{
                 default: Record<string, WidgetComponent>;
             }>;
             runningLoads[loadKey] = setPromise;
@@ -86,12 +95,15 @@ export async function loadPluginComponent(
     }
 
     const module = await setPromise;
-    const Component: WidgetComponent = module?.default
-        ? (module.default as unknown as WidgetComponent)
-        : (module as unknown as WidgetComponent);
+    // The exposed "Components" module exports { ComponentName: Class, ... } as default
+    const components = module?.default as Record<string, WidgetComponent> | undefined;
+    const Component = components?.[componentName];
 
     if (!Component) {
-        throw new Error(`Plugin component "${componentName}" not found from adapter "${adapterName}" (url: ${url})`);
+        const available = components ? Object.keys(components).join(', ') : 'none';
+        throw new Error(
+            `Plugin component "${componentName}" not found from adapter "${adapterName}" (url: ${url}). Available: ${available}`,
+        );
     }
 
     componentCache.set(cacheKey, Component);
@@ -101,4 +113,23 @@ export async function loadPluginComponent(
 /** Check if a plugin component is already loaded (cached) */
 export function isPluginLoaded(adapterName: string, componentName: string): boolean {
     return componentCache.has(`${adapterName}/${componentName}`);
+}
+
+/**
+ * Get the config schema from a loaded plugin component's static getConfigSchema() method.
+ * Returns null if the component is not loaded or has no getConfigSchema.
+ */
+export function getPluginConfigSchema(
+    adapterName: string,
+    componentName: string,
+): Record<string, unknown> | null {
+    const Component = componentCache.get(`${adapterName}/${componentName}`);
+    if (!Component) {
+        return null;
+    }
+    const getSchema = (Component as unknown as Record<string, unknown>).getConfigSchema;
+    if (typeof getSchema === 'function') {
+        return getSchema() as Record<string, unknown>;
+    }
+    return null;
 }

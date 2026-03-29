@@ -15,6 +15,7 @@ export default [
     {
         ignores: [
             'src-admin/**/*',
+            'packages/**/*',
             'src-www/**/*',
             'admin/**/*',
             'node_modules/**/*',

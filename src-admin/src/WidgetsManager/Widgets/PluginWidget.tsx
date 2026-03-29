@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { Extension } from '@mui/icons-material';
+import { Types } from '@iobroker/type-detector';
 
 import type StateContext from '../StateContext';
-import { getTileStyles, isNeumorphicTheme } from './Generic';
+import type { WidgetInfo } from '../../../../src/widget-utils';
+import WidgetGeneric, { getTileStyles, type WidgetGenericProps } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 
 interface PluginWidgetProps {
@@ -14,9 +16,12 @@ interface PluginWidgetProps {
     pluginAdapter: string;
     pluginComponent: string;
     pluginUrl: string;
+    admin: boolean;
     stateContext?: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
+    /** All custom widget definition fields — includes plugin-specific settings values */
+    pluginSettings?: Record<string, unknown>;
 }
 
 interface PluginWidgetState {
@@ -61,7 +66,7 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
 
         this.setState({ loading: true, error: null });
 
-        loadPluginComponent(pluginUrl, pluginAdapter, pluginComponent)
+        loadPluginComponent(pluginUrl, pluginAdapter, pluginComponent, this.props.admin)
             .then(Comp => {
                 if (this.mounted) {
                     this.setState({ PluginComp: Comp, loading: false });
@@ -84,13 +89,7 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
             return (
                 <Box
                     id={id}
-                    sx={theme => ({
-                        position: 'relative',
-                        containerType: 'inline-size',
-                        overflow: 'hidden',
-                        borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                        ...(is2col ? { gridColumn: 'span 2' } : {}),
-                    })}
+                    sx={theme => (is2col ? WidgetGeneric.getStyleWide(theme) : WidgetGeneric.getStyleCompact(theme))}
                 >
                     <Box
                         sx={theme => ({
@@ -124,18 +123,39 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
             );
         }
 
-        // Render the loaded plugin component
-        return (
-            <PluginComp
-                id={id}
-                size={size}
-                color={color}
-                language={this.props.language}
-                stateContext={this.props.stateContext}
-                onOpenSettings={this.props.onOpenSettings}
-                onRemove={this.props.onRemove}
-            />
-        );
+        // Build a synthetic WidgetInfo so the plugin can use WidgetGeneric's full lifecycle
+        const widget: WidgetInfo = {
+            type: 'widget',
+            id,
+            name: { en: '' },
+            control: {
+                states: [],
+                type: Types.info,
+                storeId: '',
+                parentId: '',
+                deviceId: '',
+                channelId: '',
+            },
+        };
+
+        const pluginProps: WidgetGenericProps & { pluginSettings?: Record<string, unknown> } = {
+            widget,
+            language: this.props.language,
+            stateContext: this.props.stateContext!,
+            size,
+            settings: {
+                size: size || '1x1',
+                color: color || '',
+            } as WidgetGenericProps['settings'],
+            onOpenSettings: this.props.onOpenSettings
+                ? () => this.props.onOpenSettings!(id)
+                : undefined,
+            // Pass all custom settings so the plugin can read its own config values
+            pluginSettings: this.props.pluginSettings,
+        };
+
+        // Render the loaded plugin component with full WidgetGenericProps
+        return <PluginComp {...(pluginProps as unknown as Record<string, unknown>)} />;
     }
 }
 

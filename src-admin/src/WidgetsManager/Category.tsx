@@ -2001,9 +2001,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         pluginAdapter={def.pluginAdapter}
                         pluginComponent={def.pluginComponent}
                         pluginUrl={def.pluginUrl}
+                        admin={!!this.props.admin}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
+                        pluginSettings={def as unknown as Record<string, unknown>}
                     />
                 ) : null;
             default:
@@ -2044,7 +2046,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
             const wName =
                 typeof w.name === 'object'
-                    ? (w.name as ioBroker.Translated)[I18n.getLanguage()] || (w.name as ioBroker.Translated).en || ''
+                    ? (w.name as ioBroker.Translated)[this.props.language] || (w.name as ioBroker.Translated).en || ''
                     : String(w.name || '');
             const ws = this.props.widgetSettings[String(w.id)];
             const iconSrc =

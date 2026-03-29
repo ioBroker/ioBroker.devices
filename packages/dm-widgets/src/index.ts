@@ -6,9 +6,10 @@
  * **At compile time:** Plugin authors `npm install @iobroker/dm-widgets` and import
  * types, interfaces, and the `WidgetGeneric` base class for TypeScript support.
  *
- * **At runtime:** The host app (ioBroker.devices) provides the real implementation
- * via Module Federation shared dependencies. The plugin's bundler must mark
- * `@iobroker/dm-widgets` as external/shared so it is NOT bundled — the host supplies it.
+ * **At runtime:** The host app (ioBroker.devices) exposes the real implementation on
+ * `window.__iobrokerDmWidgets__`. This module checks for that global and re-exports
+ * the host's real classes — so plugins get the full WidgetGeneric with all rendering
+ * logic, not the compile-time stubs.
  *
  * ## Usage
  *
@@ -30,32 +31,25 @@
  * ```
  */
 
-// Re-export everything from the actual Generic module.
-// At compile time, TypeScript resolves these from the local source.
-// At runtime, Module Federation provides the host's version.
+import * as _stubs from './WidgetGeneric';
+import _StateContextStub from './StateContext';
 
-export {
-    default,
-    default as WidgetGeneric,
-    getTileStyles,
-    isNeumorphicTheme,
-    DEFAULT_WIDGET_SETTINGS,
-    type WidgetSettings,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-    type IndicatorValues,
-    type ChartSeries,
-    type ExtraInfoEntry,
-} from './WidgetGeneric';
+// At runtime, the host provides the real implementations via window global.
+// Fall back to stubs if running outside the host (e.g. tests, SSR).
+const _host: typeof _stubs & { StateContext: typeof _StateContextStub } =
+    (typeof window !== 'undefined' && (window as any).__iobrokerDmWidgets__) || { ..._stubs, StateContext: _StateContextStub };
 
-export { default as StateContext, type StateChangeListener, type ObjectChangeListener } from './StateContext';
+// --- Value exports (resolved from host at runtime) ---
 
-export type {
-    ItemInfo,
-    WidgetInfo,
-    DevicesDetectorState,
-    DevicesPatternControl,
-    CategoryInfo,
-    CustomWidgetType,
-    CustomWidgetDef,
-} from './types';
+export const WidgetGeneric = _host.default || _host.WidgetGeneric || _stubs.default;
+export default WidgetGeneric;
+export const getTileStyles = _host.getTileStyles || _stubs.getTileStyles;
+export const isNeumorphicTheme = _host.isNeumorphicTheme || _stubs.isNeumorphicTheme;
+export const DEFAULT_WIDGET_SETTINGS = _host.DEFAULT_WIDGET_SETTINGS || _stubs.DEFAULT_WIDGET_SETTINGS;
+export const StateContext = _host.StateContext || _StateContextStub;
+
+// --- Type-only exports (no runtime presence needed) ---
+
+export type { WidgetSettings, WidgetGenericProps, WidgetGenericState, IndicatorValues, ChartSeries, ExtraInfoEntry } from './WidgetGeneric';
+export type { StateChangeListener, ObjectChangeListener } from './StateContext';
+export type { ItemInfo, WidgetInfo, DevicesDetectorState, DevicesPatternControl, CategoryInfo, CustomWidgetType, CustomWidgetDef, WidgetConfigItem } from './types';

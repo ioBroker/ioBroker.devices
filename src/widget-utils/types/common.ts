@@ -35,3 +35,30 @@ export interface InstanceWidgetDescription {
         icon: string;
     }[];
 }
+
+/** Config item definition for plugin widget settings */
+export interface WidgetConfigItem {
+    type: 'select' | 'checkbox' | 'color' | 'text' | 'stateId' | 'instanceSelect' | 'citySearch' | 'colorLevels';
+    /** i18n key or translated label for the field */
+    label: string;
+    /** Default value */
+    default?: unknown;
+    /** Select options (for type='select') */
+    options?: { value: string; label: string }[];
+    /** Render select as toggle-button row (for type='select') */
+    format?: 'radio';
+    /** Placeholder text (for type='text') */
+    placeholder?: string;
+    /** Helper text below the input (for type='text') */
+    helperText?: string;
+    /** Input type: 'text' or 'number' (for type='text') */
+    inputType?: 'text' | 'number';
+    /** Adapter names to list instances for (for type='instanceSelect') */
+    adapterNames?: string[];
+    /** Auto-populate other fields from the selected object's common properties (for type='stateId') */
+    autoFill?: Record<string, string>;
+    /** Color level defaults (for type='colorLevels') */
+    colorLevels?: { value: number; color: string }[];
+    /** Only show this item when the specified key has the specified value */
+    visibleWhen?: Record<string, unknown>;
+}

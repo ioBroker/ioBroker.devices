@@ -24,6 +24,7 @@ import { Add, Close, Delete, MyLocation, Remove, Save } from '@mui/icons-materia
 import { DialogSelectID, I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetDef } from '../../../src/widget-utils';
+import { getPluginConfigSchema } from './pluginLoader';
 
 /** Module-level cache for getAdapterInstances results (key = sorted adapter names) */
 const adapterInstancesCache: Record<string, { id: string; label: string }[]> = {};
@@ -54,6 +55,7 @@ interface CustomWidgetSettingsDialogProps {
     availableGroups?: WidgetGroup[];
     currentGroupId?: string;
     onGroupChange?: (groupId: string) => void;
+    language: ioBroker.Languages;
 }
 
 /** Extra keys that citySearch can write besides its own key */
@@ -231,6 +233,7 @@ function InstanceSelect(props: {
     value: string;
     onChange: (v: unknown) => void;
     socket?: Connection;
+    language: ioBroker.Languages;
 }): React.JSX.Element {
     const { configKey, item, value, onChange, socket } = props;
     const [instances, setInstances] = useState<{ id: string; label: string }[]>([]);
@@ -268,7 +271,9 @@ function InstanceSelect(props: {
                             const rawName = inst.common?.name;
                             const name =
                                 rawName && typeof rawName === 'object'
-                                    ? (rawName as ioBroker.Translated).en || instanceId
+                                    ? (rawName as ioBroker.Translated)[props.language] ||
+                                      (rawName as ioBroker.Translated).en ||
+                                      instanceId
                                     : rawName || instanceId;
                             found.push({ id: instanceId, label: `${name} (${instanceId})` });
                         }
@@ -510,6 +515,7 @@ function StateIdPicker(props: {
     socket?: Connection;
     theme?: IobTheme;
     updateMulti?: (updates: Record<string, unknown>) => void;
+    language: ioBroker.Languages;
 }): React.JSX.Element {
     const { configKey, item, value, onChange, socket, theme, updateMulti } = props;
     const [selectOpen, setSelectOpen] = useState(false);
@@ -533,7 +539,8 @@ function StateIdPicker(props: {
                                 updates[targetKey] =
                                     commonProp === 'name'
                                         ? typeof val === 'object'
-                                            ? (val as Record<string, string>).en ||
+                                            ? (val as Record<string, string>)[props.language] ||
+                                              (val as Record<string, string>).en ||
                                               Object.values(val as Record<string, string>)[0]
                                             : (val as string | number).toString()
                                         : val;
@@ -612,6 +619,7 @@ function renderConfigItem(
     item: CwConfigItem,
     value: unknown,
     onChange: (v: unknown) => void,
+    language: ioBroker.Languages,
     socket?: Connection,
     values?: Record<string, unknown>,
     updateMulti?: (updates: Record<string, unknown>) => void,
@@ -658,6 +666,7 @@ function renderConfigItem(
                     value={value as string}
                     onChange={onChange}
                     socket={socket}
+                    language={language}
                 />
             );
         case 'text':
@@ -698,6 +707,7 @@ function renderConfigItem(
                     socket={socket}
                     theme={theme}
                     updateMulti={updateMulti}
+                    language={language}
                 />
             );
         case 'colorLevels': {
@@ -782,11 +792,35 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
     const { open, widgetDef, onClose, onSave, onDelete, socket } = props;
     const [values, setValues] = useState<Record<string, unknown>>({});
 
-    const config = widgetDef ? CUSTOM_WIDGET_CONFIGS[widgetDef.type] : null;
+    // For plugin widgets, get config schema from the loaded component's static getConfigSchema()
+    const pluginSchema =
+        widgetDef?.type === 'plugin' && widgetDef.pluginAdapter && widgetDef.pluginComponent
+            ? (getPluginConfigSchema(widgetDef.pluginAdapter, widgetDef.pluginComponent) as Record<
+                  string,
+                  CwConfigItem
+              > | null)
+            : null;
+    const config = widgetDef
+        ? pluginSchema
+            ? {
+                  name: CUSTOM_WIDGET_CONFIGS.plugin.name,
+                  items: { ...CUSTOM_WIDGET_CONFIGS.plugin.items, ...pluginSchema },
+              }
+            : CUSTOM_WIDGET_CONFIGS[widgetDef.type]
+        : null;
 
     useEffect(() => {
         if (open && widgetDef) {
-            const cfg = CUSTOM_WIDGET_CONFIGS[widgetDef.type];
+            const pSchema =
+                widgetDef.type === 'plugin' && widgetDef.pluginAdapter && widgetDef.pluginComponent
+                    ? (getPluginConfigSchema(widgetDef.pluginAdapter, widgetDef.pluginComponent) as Record<
+                          string,
+                          CwConfigItem
+                      > | null)
+                    : null;
+            const cfg = pSchema
+                ? { items: { ...CUSTOM_WIDGET_CONFIGS.plugin.items, ...pSchema } }
+                : CUSTOM_WIDGET_CONFIGS[widgetDef.type];
             if (cfg) {
                 const initial: Record<string, unknown> = {};
                 for (const [key, item] of Object.entries(cfg.items)) {
@@ -834,6 +868,16 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         if (widgetDef.favorite) {
             newDef.favorite = true;
         }
+        // Preserve plugin-specific fields
+        if (widgetDef.pluginAdapter) {
+            newDef.pluginAdapter = widgetDef.pluginAdapter;
+        }
+        if (widgetDef.pluginComponent) {
+            newDef.pluginComponent = widgetDef.pluginComponent;
+        }
+        if (widgetDef.pluginUrl) {
+            newDef.pluginUrl = widgetDef.pluginUrl;
+        }
         for (const [key, item] of Object.entries(config.items)) {
             const value = values[key];
             const defaultVal = getConfigDefault(item);
@@ -866,6 +910,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                             item,
                             values[key],
                             v => updateValue(key, v),
+                            props.language,
                             socket,
                             values,
                             updateMulti,

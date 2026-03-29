@@ -947,6 +947,48 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ settingsWidgetId: null });
     };
 
+    /** Remove a widget ID from widgetOrder and widgetGroups of a given category */
+    private removeWidgetFromOrder(categoryId: string, widgetId: string): void {
+        const settings = this.state.categorySettings[categoryId];
+        if (!settings) {
+            return;
+        }
+        let changed = false;
+        let { widgetOrder, widgetGroups } = settings;
+
+        if (widgetOrder?.includes(widgetId)) {
+            widgetOrder = widgetOrder.filter(id => id !== widgetId);
+            changed = true;
+        }
+        if (widgetGroups?.length) {
+            const cleaned = widgetGroups.map(g => ({
+                ...g,
+                widgetIds: g.widgetIds.filter(id => id !== widgetId),
+            }));
+            if (widgetGroups.some((g, i) => g.widgetIds.length !== cleaned[i].widgetIds.length)) {
+                widgetGroups = cleaned;
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            if (widgetOrder) {
+                this.onWidgetOrderChange(categoryId, widgetOrder);
+            }
+            if (widgetGroups) {
+                this.onWidgetGroupsChange(categoryId, widgetGroups);
+            }
+        }
+    }
+
+    /** Remove a widget ID from order/groups across all categories */
+    private removeWidgetFromAllOrders(widgetId: string): void {
+        const id = String(widgetId);
+        for (const categoryId of Object.keys(this.state.categorySettings)) {
+            this.removeWidgetFromOrder(categoryId, id);
+        }
+    }
+
     /** Delete a widget by setting custom[instanceId] = null on its ioBroker object */
     private onDeleteWidget = async (): Promise<void> => {
         const widgetId = this.state.settingsWidgetId;
@@ -966,10 +1008,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             console.error('Failed to delete widget custom data:', err);
         }
 
-        // Remove from local state
+        // Remove from local state and from order/groups
         const widgetSettings = { ...this.state.widgetSettings };
         delete widgetSettings[String(widgetId)];
         this.setState({ widgetSettings, settingsWidgetId: null });
+        this.removeWidgetFromAllOrders(String(widgetId));
     };
 
     /** Delete a widget by ID (used for unsupported widget types that have a direct delete button) */
@@ -989,6 +1032,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const widgetSettings = { ...this.state.widgetSettings };
         delete widgetSettings[String(widgetId)];
         this.setState({ widgetSettings });
+        this.removeWidgetFromAllOrders(String(widgetId));
     };
 
     private extractCategorySettings(categories: CategoryInfo[]): void {
@@ -1041,6 +1085,56 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 icon,
             };
         }
+        // Clean stale widget IDs from order/groups:
+        // build a set of all valid IDs (regular widgets + custom widgets + category IDs)
+        const validIds = new Set<string>();
+        for (const w of this.state.widgets) {
+            validIds.add(String(w.id));
+        }
+        for (const cat of categories) {
+            validIds.add(String(cat.id));
+        }
+        for (const cs of Object.values(categorySettings)) {
+            if (cs.customWidgets) {
+                for (const cw of cs.customWidgets) {
+                    validIds.add(cw.id);
+                }
+            }
+        }
+
+        for (const [catId, cs] of Object.entries(categorySettings)) {
+            let catDirty = false;
+            if (cs.widgetOrder) {
+                const cleaned = cs.widgetOrder.filter(id => validIds.has(id));
+                if (cleaned.length !== cs.widgetOrder.length) {
+                    cs.widgetOrder = cleaned;
+                    catDirty = true;
+                }
+            }
+            if (cs.widgetGroups) {
+                const cleaned = cs.widgetGroups.map(g => {
+                    const ids = g.widgetIds.filter(id => validIds.has(id));
+                    if (ids.length !== g.widgetIds.length) {
+                        catDirty = true;
+                        return { ...g, widgetIds: ids };
+                    }
+                    return g;
+                });
+                if (catDirty) {
+                    cs.widgetGroups = cleaned;
+                }
+            }
+            if (catDirty) {
+                // Persist cleaned order/groups
+                if (cs.widgetOrder) {
+                    void this.saveWidgetOrderToObject(catId, cs.widgetOrder);
+                }
+                if (cs.widgetGroups) {
+                    void this.saveWidgetGroupsToObject(catId, cs.widgetGroups);
+                }
+            }
+        }
+
         this.setState({ categorySettings });
     }
 
@@ -1456,7 +1550,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             ...this.state.categorySettings,
             [customWidgetDialogCategoryId]: { ...settings, customWidgets },
         };
-        this.setState({ categorySettings, customWidgetDialogCategoryId: null });
+        this.setState({
+            categorySettings,
+            customWidgetDialogCategoryId: null,
+            customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
+            customWidgetSettingsWidgetId: id,
+        });
         this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
     };
 
@@ -1550,6 +1649,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         };
         this.setState({ categorySettings });
         this.persistCustomWidgets(categoryId, customWidgets);
+        this.removeWidgetFromOrder(categoryId, widgetId);
     };
 
     private onToggleCustomWidgetFavorite = (widgetId: string): void => {
@@ -1941,6 +2041,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             settingsWidgetId={this.state.settingsWidgetId}
                             onWidgetGroupMove={this.onWidgetGroupMove}
                             getCategoryName={this.getCategoryName}
+                            language={this.language}
                         />
                     </div>
                 </ThemeProvider>

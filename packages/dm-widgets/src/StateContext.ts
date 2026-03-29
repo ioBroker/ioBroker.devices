@@ -34,6 +34,7 @@ export default class StateContext {
         void handler;
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async getObject<T>(id: string): Promise<T | undefined> {
         void id;
         return undefined;
@@ -45,6 +46,7 @@ export default class StateContext {
         void cb;
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async removeObject(id: string, cb: ObjectChangeListener): Promise<void> {
         void id;
         void cb;
