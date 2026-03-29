@@ -58,11 +58,32 @@ export interface WidgetInfo extends ItemInfo {
 
 export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
 
+/** Config item definition for plugin widget settings */
+export interface WidgetConfigItem {
+    type: 'select' | 'checkbox' | 'color' | 'text' | 'stateId' | 'instanceSelect' | 'citySearch' | 'colorLevels';
+    label: string;
+    default?: unknown;
+    options?: { value: string; label: string }[];
+    format?: 'radio';
+    placeholder?: string;
+    helperText?: string;
+    inputType?: 'text' | 'number';
+    adapterNames?: string[];
+    autoFill?: Record<string, string>;
+    colorLevels?: { value: number; color: string }[];
+    visibleWhen?: Record<string, unknown>;
+}
+
 export interface CustomWidgetDef {
     id: string;
     type: CustomWidgetType;
     size?: '1x1' | '2x0.5' | '2x1';
     color?: string;
+    pluginAdapter?: string;
+    pluginComponent?: string;
+    pluginUrl?: string;
+    /** Plugin config schema for widget settings */
+    pluginConfigItems?: Record<string, WidgetConfigItem>;
     [key: string]: any;
 }
 

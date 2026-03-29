@@ -182,6 +182,24 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return {};
     }
 
+    /**
+     * Override in plugin widgets to provide a config schema for the settings dialog.
+     * The returned object maps config key → item definition (same format as CwConfigItem).
+     *
+     * Example:
+     * ```typescript
+     * static getConfigSchema(): Record<string, WidgetConfigItem> {
+     *     return {
+     *         refreshRate: { type: 'text', label: 'Refresh rate (ms)', inputType: 'number', default: '1000' },
+     *         sensorId: { type: 'stateId', label: 'Sensor state' },
+     *     };
+     * }
+     * ```
+     */
+    static getConfigSchema(): Record<string, unknown> | null {
+        return null;
+    }
+
     // --- Helpers available to subclasses ---
 
     protected getText(_translated: ioBroker.StringOrTranslated): string {

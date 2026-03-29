@@ -8,6 +8,7 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@iobroker/adapter-react-v5": "^8.1.6",
         "@iobroker/type-detector": "^5.0.11",
+        "@iobroker/dm-widgets": "file:../packages/dm-widgets",
         "@module-federation/runtime": "^2.3.0",
         "@module-federation/vite": "^1.13.5",
         "@mui/icons-material": "^6.5.0",

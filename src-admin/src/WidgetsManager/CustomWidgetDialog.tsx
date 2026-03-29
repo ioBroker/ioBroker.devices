@@ -14,7 +14,7 @@ import {
     TextField,
 } from '@mui/material';
 import { AccessTime, Air, Close, CreateNewFolder, Extension, Language, Speed, WbCloudy } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType, InstanceWidgetDescription } from '../../../src/widget-utils';
 
@@ -67,6 +67,8 @@ interface CustomWidgetDialogProps {
     adapterWidgets?: Record<string, InstanceWidgetDescription>;
     /** Callback to add a plugin widget */
     onAddPlugin?: (adapter: string, component: string, url: string, label: string) => void;
+    admin: boolean;
+    language: ioBroker.Languages;
 }
 
 export default function CustomWidgetDialog(props: CustomWidgetDialogProps): React.JSX.Element {
@@ -171,28 +173,48 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                 desc.components.map(comp => {
                                     const label =
                                         typeof comp.label === 'object'
-                                            ? comp.label.en || Object.values(comp.label)[0]
+                                            ? comp.label[props.language] ||
+                                              comp.label.en ||
+                                              Object.values(comp.label)[0]
                                             : comp.label;
                                     const description =
                                         typeof comp.description === 'object'
-                                            ? comp.description.en || Object.values(comp.description)[0]
+                                            ? comp.description[props.language] ||
+                                              comp.description.en ||
+                                              Object.values(comp.description)[0]
                                             : comp.description;
                                     return (
                                         <ListItemButton
                                             key={`${adapter}_${comp.name}`}
                                             onClick={() => {
-                                                onAddPlugin(adapter, comp.name, desc.url, label || comp.name);
+                                                onAddPlugin(
+                                                    adapter,
+                                                    comp.name,
+                                                    desc.url || 'customDevices.js',
+                                                    label || comp.name,
+                                                );
                                                 handleClose();
                                             }}
                                         >
                                             <ListItemIcon>
-                                                {comp.icon &&
-                                                (comp.icon.startsWith('data:') || comp.icon.startsWith('http')) ? (
-                                                    <img
-                                                        src={comp.icon}
-                                                        alt=""
-                                                        style={{ width: 24, height: 24 }}
-                                                    />
+                                                {comp.icon ? (
+                                                    comp.icon.startsWith('data:') || comp.icon.startsWith('http') ? (
+                                                        <Icon
+                                                            src={comp.icon}
+                                                            alt=""
+                                                            style={{ width: 24, height: 24 }}
+                                                        />
+                                                    ) : (
+                                                        <Icon
+                                                            src={
+                                                                props.admin
+                                                                    ? `../adapter/${adapter}/dm-widgets/${comp.icon}`
+                                                                    : `../files/${adapter}.admin/dm-widgets/${comp.icon}`
+                                                            }
+                                                            alt=""
+                                                            style={{ width: 24, height: 24 }}
+                                                        />
+                                                    )
                                                 ) : (
                                                     <Extension />
                                                 )}

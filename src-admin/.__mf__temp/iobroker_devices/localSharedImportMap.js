@@ -19,6 +19,11 @@
             return pkg;
         }
       ,
+        "@iobroker/dm-widgets": async () => {
+          let pkg = await import("__mf__virtual/iobroker_devices__prebuild___mf_0_iobroker_mf_1_dm_mf_2_widgets__prebuild__.js");
+            return pkg;
+        }
+      ,
         "@iobroker/type-detector": async () => {
           let pkg = await import("__mf__virtual/iobroker_devices__prebuild___mf_0_iobroker_mf_1_type_mf_2_detector__prebuild__.js");
             return pkg;
@@ -155,6 +160,38 @@
               const {"@iobroker/adapter-react-v5": pkgDynamicImport} = importMap
               const res = await pkgDynamicImport()
               const exportModule = false && "@iobroker/adapter-react-v5" === "react"
+                ? (res?.default ?? res)
+                : {...res}
+              // All npm packages pre-built by vite will be converted to esm
+              Object.defineProperty(exportModule, "__esModule", {
+                value: true,
+                enumerable: false
+              })
+              return function () {
+                return exportModule
+              }
+            },
+            shareConfig: {
+              singleton: true,
+              requiredVersion: "*",
+              
+            }
+          }
+        ,
+          "@iobroker/dm-widgets": {
+            name: "@iobroker/dm-widgets",
+            version: "0.1.1",
+            scope: ["default"],
+            loaded: false,
+            from: "iobroker_devices",
+            async get () {
+              if (false) {
+                throw new Error(`[Module Federation] Shared module '${"@iobroker/dm-widgets"}' must be provided by host`);
+              }
+              usedShared["@iobroker/dm-widgets"].loaded = true
+              const {"@iobroker/dm-widgets": pkgDynamicImport} = importMap
+              const res = await pkgDynamicImport()
+              const exportModule = false && "@iobroker/dm-widgets" === "react"
                 ? (res?.default ?? res)
                 : {...res}
               // All npm packages pre-built by vite will be converted to esm

@@ -14,7 +14,7 @@ export default [
         languageOptions: {
             parserOptions: {
                 projectService: {
-                    allowDefaultProject: ['*.mjs'],
+                    allowDefaultProject: ['*.ts', '*.mjs'],
                 },
                 tsconfigRootDir: import.meta.dirname,
             },
@@ -30,6 +30,12 @@ export default [
         },
     },
     {
-        ignores: ['build/**/*', 'node_modules/**/*', 'public/vendor/socket.io.js', 'src/icons/html.js'],
+        ignores: [
+            'build/**/*',
+            'node_modules/**/*',
+            'public/vendor/socket.io.js',
+            'src/icons/html.js',
+            '.__mf__temp/**/*',
+        ],
     },
 ];
