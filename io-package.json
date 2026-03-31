@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "news": {
+      "2.0.6": {
+        "en": "Corrected the layout for visualisation",
+        "de": "Korrektur des Layouts für die Visualisierung",
+        "ru": "Исправлен макет для визуализации",
+        "pt": "Corrigido o layout para visualização",
+        "nl": "De indeling voor visualisatie gecorrigeerd",
+        "fr": "Correction de la disposition pour la visualisation",
+        "it": "Corretto il layout per la visualizzazione",
+        "es": "Corregido el diseño de visualización",
+        "pl": "Poprawiono układ wizualizacji",
+        "uk": "Виправлено макет для візуалізації",
+        "zh-cn": "校正可视化的布局"
+      },
       "2.0.5": {
         "en": "Added many new widgets.",
         "de": "Viele neue Widgets hinzugefügt.",
@@ -80,19 +93,6 @@
         "pl": "Skorygowany błąd w GUI",
         "uk": "Виправлена помилка в GUI",
         "zh-cn": "在图形界面中更正错误"
-      },
-      "1.2.7": {
-        "en": "Replaced icon for the state import\nCorrected the edit dialog",
-        "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
-        "ru": "Замена иконки для государственного импорта\nИсправлен диалог редактирования",
-        "pt": "Ícone substituído para a importação do estado\nCorrigido o diálogo de edição",
-        "nl": "Pictogram vervangen door het status-importeren\nHet bewerkingsdialoogvenster corrigeren",
-        "fr": "Icône remplacée pour l'importation d'état\nCorrection de la boîte de dialogue d'édition",
-        "it": "Icona sostituita per l'importazione dello stato\nCorretto la finestra di dialogo Modifica",
-        "es": "Icono reemplazado para la importación del estado\nCorregido el diálogo de edición",
-        "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
-        "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
-        "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
       }
     },
     "titleLang": {
