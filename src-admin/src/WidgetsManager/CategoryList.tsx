@@ -647,7 +647,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
                         );
                         // Extract category settings from category.custom delivered by backend
-                        this.extractCategorySettings(result.categories);
+                        // Pass result.widgets because this.state.widgets hasn't been committed yet
+                        this.extractCategorySettings(result.categories, result.widgets);
                     });
                 }
             } catch (error) {
@@ -1035,7 +1036,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.removeWidgetFromAllOrders(String(widgetId));
     };
 
-    private extractCategorySettings(categories: CategoryInfo[]): void {
+    private extractCategorySettings(categories: CategoryInfo[], widgets?: WidgetInfo[]): void {
         const categorySettings: Record<string, CategorySettings> = {};
 
         // Root settings from guiConfig
@@ -1087,8 +1088,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
         // Clean stale widget IDs from order/groups:
         // build a set of all valid IDs (regular widgets + custom widgets + category IDs)
+        // Use passed widgets (from loadItems result) since this.state.widgets may not be committed yet
         const validIds = new Set<string>();
-        for (const w of this.state.widgets) {
+        for (const w of (widgets || this.state.widgets)) {
             validIds.add(String(w.id));
         }
         for (const cat of categories) {
