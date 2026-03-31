@@ -53,11 +53,11 @@ export default class App extends GenericApp {
             'zh-cn': zhCnLang,
         };
         extendedProps.sentryDSN = window.sentryDSN;
-        // if (window.location.port === '3000') {
-        //     extendedProps.socket = {
-        //         host: '192.168.1.129',
-        //     };
-        // }
+        if (window.location.port === '3000') {
+            extendedProps.socket = {
+                host: '192.168.1.129',
+            };
+        }
         super(props, extendedProps);
 
         extendDeviceTypeTranslation();

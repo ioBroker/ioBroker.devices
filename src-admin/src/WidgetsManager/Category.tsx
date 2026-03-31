@@ -1899,9 +1899,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             ? () => this.props.onRemoveCustomWidget!(ownerCategoryId, def.id)
             : undefined;
 
+        let content: React.JSX.Element | null;
+
         switch (def.type) {
             case 'clock':
-                return (
+                content = (
                     <WidgetClock
                         key={def.id}
                         id={def.id}
@@ -1918,8 +1920,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         longitude={this.props.longitude}
                     />
                 );
+                break;
             case 'weather':
-                return (
+                content = (
                     <WidgetWeather
                         key={def.id}
                         id={def.id}
@@ -1936,8 +1939,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+                break;
             case 'iframe':
-                return (
+                content = (
                     <WidgetIframe
                         key={def.id}
                         id={def.id}
@@ -1951,8 +1955,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+                break;
             case 'wind':
-                return (
+                content = (
                     <WidgetWind
                         key={def.id}
                         id={def.id}
@@ -1967,8 +1972,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+                break;
             case 'gauge':
-                return (
+                content = (
                     <WidgetGauge
                         key={def.id}
                         id={def.id}
@@ -1990,8 +1996,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onRemove={removeCb}
                     />
                 );
+                break;
             case 'plugin':
-                return def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
+                content = def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
                     <PluginWidget
                         key={def.id}
                         id={def.id}
@@ -2008,9 +2015,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         pluginSettings={def as unknown as Record<string, unknown>}
                     />
                 ) : null;
+                break;
             default:
-                return null;
+                content = null;
         }
+
+        // Wrap in a div with "widget-custom" class so the GroupedContent CSS
+        // :has([class^="widget-"]) selector finds it (otherwise the group is hidden in play mode)
+        return content ? <div className="widget-custom">{content}</div> : null;
     }
 
     /** Render small alarm/sensor widget icon previews for a sub-category tile (only active ones) */
