@@ -23,6 +23,7 @@ import type {
     ItemInfo,
     WidgetInfo,
     CustomWidgetDef,
+    PluginWidgetDef,
 } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
@@ -111,6 +112,10 @@ interface CategoryListState extends CommunicationState {
     /** Coordinates from system.config for sun calculations */
     latitude: number | null;
     longitude: number | null;
+    /** Decimal separator is comma (from system.config) */
+    isFloatComma: boolean;
+    /** Date format string (from system.config) */
+    dateFormat: string;
     /** Plugin widgets available from adapter instances */
     adapterWidgets: Record<string, InstanceWidgetDescription>;
 }
@@ -279,6 +284,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             sidePanelDialogOpen: false,
             latitude: null,
             longitude: null,
+            isFloatComma: false,
+            dateFormat: 'DD.MM.YYYY',
             adapterWidgets: {},
         };
 
@@ -469,13 +476,23 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             this.loadItemsList();
         }
 
-        // Load coordinates from system.config for sun calculations
+        // Load system settings from system.config
         try {
             const sysConfig = await this.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
-            const lat = sysConfig?.common?.latitude;
-            const lng = sysConfig?.common?.longitude;
-            if (lat != null && lng != null) {
-                this.setState({ latitude: lat, longitude: lng });
+            if (sysConfig?.common) {
+                const common = sysConfig.common;
+                const update: Partial<CategoryListState> = {};
+                if (common.latitude != null && common.longitude != null) {
+                    update.latitude = common.latitude;
+                    update.longitude = common.longitude;
+                }
+                if (common.isFloatComma != null) {
+                    update.isFloatComma = !!common.isFloatComma;
+                }
+                if (common.dateFormat) {
+                    update.dateFormat = common.dateFormat;
+                }
+                this.setState(update as CategoryListState);
             }
         } catch {
             // ignore
@@ -1090,7 +1107,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         // build a set of all valid IDs (regular widgets + custom widgets + category IDs)
         // Use passed widgets (from loadItems result) since this.state.widgets may not be committed yet
         const validIds = new Set<string>();
-        for (const w of (widgets || this.state.widgets)) {
+        for (const w of widgets || this.state.widgets) {
             validIds.add(String(w.id));
         }
         for (const cat of categories) {
@@ -1538,7 +1555,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return;
         }
         const id = `custom_plugin_${adapter}_${component}_${Date.now().toString(36)}`;
-        const def: CustomWidgetDef = {
+        const def: PluginWidgetDef = {
             id,
             type: 'plugin',
             pluginAdapter: adapter,
@@ -2004,6 +2021,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onToggleCustomWidgetFavorite={this.onToggleCustomWidgetFavorite}
                             latitude={this.state.latitude}
                             longitude={this.state.longitude}
+                            isFloatComma={this.state.isFloatComma}
                         />
                         <CategoryListDialogs
                             settingsWidget={settingsWidget || null}
@@ -2044,6 +2062,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onWidgetGroupMove={this.onWidgetGroupMove}
                             getCategoryName={this.getCategoryName}
                             language={this.language}
+                            isFloatComma={this.state.isFloatComma}
+                            dateFormat={this.state.dateFormat}
                         />
                     </div>
                 </ThemeProvider>

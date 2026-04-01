@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 
 import WidgetGeneric, {
+    formatFloat,
     getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
@@ -143,13 +144,13 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         return this.state.infoStates.some(s => s.value != null);
     }
 
-    private static formatValue(val: string | number | boolean | null, unit: string): string {
+    private formatValue(val: string | number | boolean | null, unit: string): string {
         if (val == null) {
             return '—';
         }
         if (typeof val === 'number') {
             // Show reasonable precision
-            const str = Number.isInteger(val) ? String(val) : val.toFixed(1);
+            const str = Number.isInteger(val) ? String(val) : formatFloat(val, 1, this.props.isFloatComma);
             return unit ? `${str} ${unit}` : str;
         }
         if (typeof val === 'boolean') {
@@ -217,7 +218,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         color: 'text.primary',
                     }}
                 >
-                    {WidgetInfo.formatValue(s.value, s.unit)}
+                    {this.formatValue(s.value, s.unit)}
                 </Typography>
             );
         }
@@ -238,7 +239,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                             color: 'text.primary',
                         }}
                     >
-                        {WidgetInfo.formatValue(s0.value, s0.unit)}
+                        {this.formatValue(s0.value, s0.unit)}
                     </Typography>
                     <Typography
                         variant="caption"
@@ -251,7 +252,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         }}
                     >
                         {icon}
-                        {WidgetInfo.formatValue(s1.value, s1.unit)}
+                        {this.formatValue(s1.value, s1.unit)}
                     </Typography>
                 </Box>
             );
@@ -285,7 +286,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                         color: i === 0 ? 'text.primary' : 'text.secondary',
                                     }}
                                 >
-                                    {WidgetInfo.formatValue(s.value, s.unit)}
+                                    {this.formatValue(s.value, s.unit)}
                                 </Typography>
                             </Box>
                         );
@@ -328,7 +329,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                 variant="body2"
                                 sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
                             >
-                                {WidgetInfo.formatValue(s.value, s.unit)}
+                                {this.formatValue(s.value, s.unit)}
                             </Typography>
                         </React.Fragment>
                     );
@@ -422,7 +423,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                             lineHeight: 1.3,
                                         }}
                                     >
-                                        {WidgetInfo.formatValue(s.value, s.unit)}
+                                        {this.formatValue(s.value, s.unit)}
                                     </Typography>
                                 </React.Fragment>
                             );

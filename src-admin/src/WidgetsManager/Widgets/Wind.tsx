@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { getTileStyles } from './Generic';
+import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
 
 interface WidgetWindProps {
     id: string;
@@ -18,6 +18,7 @@ interface WidgetWindProps {
     stateContext?: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
+    isFloatComma?: boolean;
 }
 
 interface WidgetWindState {
@@ -187,6 +188,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         gusts: number | null,
         gustsUnit: string,
         isDark: boolean,
+        isFloatComma?: boolean,
     ): React.JSX.Element {
         const cx = 100;
         const cy = 100;
@@ -406,19 +408,20 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         fontSize={9}
                         fontFamily="system-ui, sans-serif"
                     >
-                        {`${Math.round(gusts * 10) / 10}${gustsUnit ? ` ${gustsUnit}` : ''}`}
+                        {`${formatFloat(Math.round(gusts * 10) / 10, 1, isFloatComma)}${gustsUnit ? ` ${gustsUnit}` : ''}`}
                     </text>
                 ) : null}
             </svg>
         );
     }
 
-    static formatValue(val: number | null, unit: string): string {
+    static formatValue(val: number | null, unit: string, isFloatComma?: boolean): string {
         if (val == null) {
             return '–';
         }
         const rounded = Math.round(val * 10) / 10;
-        return unit ? `${rounded} ${unit}` : String(rounded);
+        const str = formatFloat(rounded, 1, isFloatComma);
+        return unit ? `${str} ${unit}` : str;
     }
 
     // --- Compact 1x1 layout: compass fills the whole tile ---
@@ -465,6 +468,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                 gusts,
                                 gustsUnit,
                                 true, // always dark bg for the compass instrument
+                                this.props.isFloatComma,
                             )}
                         </Box>
                     ) : (
@@ -505,7 +509,16 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                     })}
                 >
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', height: '100%', py: 0.5 }}>
-                        {WidgetWind.renderCompass(72, direction, speed, speedUnit, gusts, gustsUnit, true)}
+                        {WidgetWind.renderCompass(
+                            72,
+                            direction,
+                            speed,
+                            speedUnit,
+                            gusts,
+                            gustsUnit,
+                            true,
+                            this.props.isFloatComma,
+                        )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         {this.props.speedStateId ? (
@@ -517,7 +530,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Speed')}:
                                 </Typography>
                                 <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    {WidgetWind.formatValue(speed, speedUnit)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
@@ -530,7 +543,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Wind gusts')}:
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.85rem' }}>
-                                    {WidgetWind.formatValue(gusts, gustsUnit)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
@@ -592,6 +605,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             gusts,
                             gustsUnit,
                             true,
+                            this.props.isFloatComma,
                         )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -616,7 +630,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(speed, speedUnit)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}
@@ -641,7 +655,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(gusts, gustsUnit)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}

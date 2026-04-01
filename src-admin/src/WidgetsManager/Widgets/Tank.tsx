@@ -3,6 +3,7 @@ import { Box, ButtonBase, Typography } from '@mui/material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
+    formatFloat,
     getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
@@ -292,7 +293,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         typeof e.value === 'number'
                             ? Number.isInteger(e.value)
                                 ? e.value
-                                : e.value.toFixed(1)
+                                : formatFloat(e.value, 1, this.props.isFloatComma)
                             : typeof e.value === 'boolean'
                               ? e.value
                                   ? I18n.t('wm_On')
@@ -323,7 +324,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         if (unit === '%') {
             return `${level}%`;
         }
-        return `${Number.isInteger(rawValue) ? rawValue : rawValue.toFixed(1)} ${unit}`;
+        return `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.isFloatComma)} ${unit}`;
     }
 
     private shouldAnimate(): boolean {

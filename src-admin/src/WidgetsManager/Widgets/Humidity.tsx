@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WaterDrop, Thermostat } from '@mui/icons-material';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { formatFloat, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetHumidityState extends WidgetGenericState {
     humidity: number | null;
@@ -155,7 +155,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 12 }} />
-                        {temperature.toFixed(1)}°
+                        {formatFloat(temperature, 1, this.props.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>
@@ -185,7 +185,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 14 }} />
-                        {temperature.toFixed(1)}°
+                        {formatFloat(temperature, 1, this.props.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>

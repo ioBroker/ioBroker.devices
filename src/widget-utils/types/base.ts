@@ -48,12 +48,18 @@ export interface WidgetInfo extends ItemInfo {
 
 export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
 
-export interface CustomWidgetDef {
+export interface CustomWidgetBase {
     id: string;
     type: CustomWidgetType;
     size?: '1x1' | '2x0.5' | '2x1';
     color?: string;
-    /** Widget-specific style variant (e.g., 'digital' | 'analog' for clock) */
+    /** Whether the custom widget is marked as favorite */
+    favorite?: boolean;
+}
+
+export interface ClockWidgetDef extends CustomWidgetBase {
+    type: 'clock';
+    /** Style variant: digital or analog */
     style?: 'digital' | 'analog';
     /** Show date (day + month). Default: true */
     showDate?: boolean;
@@ -61,6 +67,10 @@ export interface CustomWidgetDef {
     showDow?: boolean;
     /** Show seconds. Default: true */
     showSeconds?: boolean;
+}
+
+export interface WeatherWidgetDef extends CustomWidgetBase {
+    type: 'weather';
     /** Weather adapter instance (e.g., "openweathermap.0") */
     adapterInstance?: string;
     /** Weather data source: adapter-based, open-meteo API, or yr.no API */
@@ -71,6 +81,10 @@ export interface CustomWidgetDef {
     longitude?: number;
     /** City name for display (open-meteo) */
     cityName?: string;
+}
+
+export interface IframeWidgetDef extends CustomWidgetBase {
+    type: 'iframe';
     /** URL for iframe widget */
     url?: string;
     /** Refresh interval in seconds (0 = no auto-refresh) */
@@ -79,37 +93,55 @@ export interface CustomWidgetDef {
     appendTimestamp?: boolean;
     /** Click action: open in dialog, new tab, or same tab */
     clickAction?: 'dialog' | 'newTab' | 'sameTab';
+}
+
+export interface WindWidgetDef extends CustomWidgetBase {
+    type: 'wind';
     /** Wind direction state ID (degrees 0-360) */
     directionStateId?: string;
     /** Wind speed state ID */
     speedStateId?: string;
     /** Wind gusts state ID */
     gustsStateId?: string;
-    /** Gauge: state ID to read value from */
+}
+
+export interface GaugeWidgetDef extends CustomWidgetBase {
+    type: 'gauge';
+    /** State ID to read value from */
     gaugeStateId?: string;
-    /** Gauge: optional second state ID shown as secondary value */
+    /** Optional second state ID shown as secondary value */
     gaugeStateId2?: string;
-    /** Gauge: display name / label */
+    /** Display name / label */
     gaugeName?: string;
-    /** Gauge: minimum value */
+    /** Minimum value */
     minValue?: number;
-    /** Gauge: maximum value */
+    /** Maximum value */
     maxValue?: number;
-    /** Gauge: display unit */
+    /** Display unit */
     gaugeUnit?: string;
-    /** Gauge: color level breakpoints — each entry paints the arc up to that value */
+    /** Color level breakpoints — each entry paints the arc up to that value */
     colorLevels?: { value: number; color: string }[];
-    /** Gauge: interpret colorLevels values as percentage (0-100) instead of absolute */
+    /** Interpret colorLevels values as percentage (0-100) instead of absolute */
     usePercentage?: boolean;
-    /** Whether the custom widget is marked as favorite */
-    favorite?: boolean;
-    /** Plugin: adapter name that provides the widget */
+}
+
+export interface PluginWidgetDef extends CustomWidgetBase {
+    type: 'plugin';
+    /** Adapter name that provides the widget */
     pluginAdapter?: string;
-    /** Plugin: component name exported by the adapter */
+    /** Component name exported by the adapter */
     pluginComponent?: string;
-    /** Plugin: URL to load the widget bundle (federation remote entry) */
+    /** URL to load the widget bundle (federation remote entry) */
     pluginUrl?: string;
 }
+
+export type CustomWidgetDef =
+    | ClockWidgetDef
+    | WeatherWidgetDef
+    | IframeWidgetDef
+    | WindWidgetDef
+    | GaugeWidgetDef
+    | PluginWidgetDef;
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';

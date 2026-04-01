@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Thermostat, WaterDrop } from '@mui/icons-material';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { formatFloat, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetTemperatureState extends WidgetGenericState {
     temperature: number | null;
@@ -100,7 +100,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
         if (this.state.temperature == null) {
             return '—';
         }
-        return `${this.state.temperature.toFixed(1)}°`;
+        return `${formatFloat(this.state.temperature, 1, this.props.isFloatComma)}°`;
     }
 
     protected isTileActive(): boolean {

@@ -184,7 +184,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     /**
      * Override in plugin widgets to provide a config schema for the settings dialog.
-     * The returned object maps config key → item definition (same format as CwConfigItem).
+     * The returned object maps config key → item definition (json-config schema format).
      *
      * Example:
      * ```typescript

@@ -17,6 +17,7 @@ import {
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
+    formatFloat,
     getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
@@ -515,11 +516,11 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         return '#f44336';
     }
 
-    private static formatTemp(t: number | null): string {
+    private static formatTemp(t: number | null, isFloatComma?: boolean): string {
         if (t == null) {
             return '—';
         }
-        return `${t.toFixed(1)}°`;
+        return `${formatFloat(t, 1, isFloatComma)}°`;
     }
 
     // --- History ---
@@ -586,7 +587,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 variant="caption"
                                 sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                             >
-                                {WidgetAirCondition.formatTemp(actualTemp)}
+                                {WidgetAirCondition.formatTemp(actualTemp, this.props.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -596,7 +597,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 variant="caption"
                                 sx={{ fontWeight: 500, color: 'text.secondary' }}
                             >
-                                → {WidgetAirCondition.formatTemp(setTemp)}
+                                → {WidgetAirCondition.formatTemp(setTemp, this.props.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -656,14 +657,14 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             variant="body2"
                             sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                         >
-                            {WidgetAirCondition.formatTemp(actualTemp)}
+                            {WidgetAirCondition.formatTemp(actualTemp, this.props.isFloatComma)}
                         </Typography>
                     ) : null}
                     <Typography
                         variant="h6"
                         sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
-                        → {WidgetAirCondition.formatTemp(setTemp)}
+                        → {WidgetAirCondition.formatTemp(setTemp, this.props.isFloatComma)}
                     </Typography>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
                     {power === false ? <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} /> : null}
@@ -832,14 +833,15 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     variant="h3"
                                     sx={{ fontWeight: 700, lineHeight: 1 }}
                                 >
-                                    {WidgetAirCondition.formatTemp(setTemp)}
+                                    {WidgetAirCondition.formatTemp(setTemp, this.props.isFloatComma)}
                                 </Typography>
                                 {actualTemp != null && setTemp != null ? (
                                     <Typography
                                         variant="body2"
                                         sx={{ color: 'text.secondary' }}
                                     >
-                                        {I18n.t('wm_Actual')}: {WidgetAirCondition.formatTemp(actualTemp)}
+                                        {I18n.t('wm_Actual')}:{' '}
+                                        {WidgetAirCondition.formatTemp(actualTemp, this.props.isFloatComma)}
                                     </Typography>
                                 ) : null}
                             </Box>
@@ -1219,7 +1221,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     variant="caption"
                                     sx={{ fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 }}
                                 >
-                                    {WidgetAirCondition.formatTemp(setTemp)}
+                                    {WidgetAirCondition.formatTemp(setTemp, this.props.isFloatComma)}
                                 </Typography>
                             ) : null}
                         </Box>
@@ -1253,7 +1255,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     variant="caption"
                                     sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
                                 >
-                                    {WidgetAirCondition.formatTemp(actualTemp)}
+                                    {WidgetAirCondition.formatTemp(actualTemp, this.props.isFloatComma)}
                                 </Typography>
                             ) : null}
                             {boost ? (
@@ -1353,14 +1355,14 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                         variant="body2"
                                         sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                                     >
-                                        {WidgetAirCondition.formatTemp(actualTemp)}
+                                        {WidgetAirCondition.formatTemp(actualTemp, this.props.isFloatComma)}
                                     </Typography>
                                 ) : null}
                                 <Typography
                                     variant="h6"
                                     sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                                 >
-                                    → {WidgetAirCondition.formatTemp(setTemp)}
+                                    → {WidgetAirCondition.formatTemp(setTemp, this.props.isFloatComma)}
                                 </Typography>
                                 {boost ? <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} /> : null}
                                 {power === false ? (

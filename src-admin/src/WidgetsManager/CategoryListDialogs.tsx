@@ -78,6 +78,8 @@ export interface CategoryListDialogsProps {
     onWidgetGroupMove: (categoryId: string, widgetId: string, groupId: string) => void;
     getCategoryName: (category: CategoryInfo) => string;
     language: ioBroker.Languages;
+    isFloatComma: boolean;
+    dateFormat: string;
 }
 
 function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element {
@@ -320,6 +322,9 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         : undefined
                 }
                 language={props.language}
+                isFloatComma={props.isFloatComma}
+                dateFormat={props.dateFormat}
+                selectedInstance={selectedInstance}
             />
             <SidePanelInstallDialog
                 open={sidePanelDialogOpen}

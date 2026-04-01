@@ -4,13 +4,14 @@
  * Each adapter that provides widgets exposes a federation remote entry URL.
  * We use registerRemotes / loadRemote from the MF runtime to load components.
  */
-import { registerRemotes, loadRemote, init } from '@module-federation/runtime';
+import { registerRemotes, loadRemote, createInstance } from '@module-federation/runtime';
 
 import React from 'react';
 import * as IconsMaterial from '@mui/icons-material';
 import * as AdapterReact from '@iobroker/adapter-react-v5';
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
+import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
 
 type WidgetComponent = React.ComponentType<Record<string, unknown>>;
 
@@ -20,7 +21,7 @@ type WidgetComponent = React.ComponentType<Record<string, unknown>>;
 
 // Initialize Module Federation runtime with shared dependencies.
 // Plugin widgets receive these from the host — they must NOT bundle them.
-init({
+createInstance({
     name: 'iobroker_devices',
     shared: {
         react: {
@@ -122,14 +123,14 @@ export function isPluginLoaded(adapterName: string, componentName: string): bool
 export function getPluginConfigSchema(
     adapterName: string,
     componentName: string,
-): Record<string, unknown> | null {
+): { name: string; schema: ConfigItemPanel | ConfigItemTabs } | null {
     const Component = componentCache.get(`${adapterName}/${componentName}`);
     if (!Component) {
         return null;
     }
     const getSchema = (Component as unknown as Record<string, unknown>).getConfigSchema;
     if (typeof getSchema === 'function') {
-        return getSchema() as Record<string, unknown>;
+        return getSchema() as { name: string; schema: ConfigItemPanel | ConfigItemTabs } | null;
     }
     return null;
 }

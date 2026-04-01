@@ -16,6 +16,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
+    formatFloat,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
@@ -660,7 +661,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                                     variant="body2"
                                     sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}
                                 >
-                                    {transitionTime != null ? `${(transitionTime / 1000).toFixed(1)}s` : '—'}
+                                    {transitionTime != null
+                                        ? `${formatFloat(transitionTime / 1000, 1, this.props.isFloatComma)}s`
+                                        : '—'}
                                 </Typography>
                             </Box>
                         </Box>

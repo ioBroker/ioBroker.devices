@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme } from './Generic';
+import WidgetGeneric, { getTileStyles, isNeumorphicTheme, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
 
 interface ColorLevel {
@@ -37,6 +37,7 @@ interface WidgetGaugeProps {
     onRemove?: (id: string) => void;
     defaultHistory?: string;
     instanceId?: string;
+    isFloatComma?: boolean;
 }
 
 interface WidgetGaugeState {
@@ -249,14 +250,14 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return levels[levels.length - 1]?.color || '#2196f3';
     }
 
-    static formatValue(raw: number): string {
+    static formatValue(raw: number, isFloatComma?: boolean): string {
         if (Math.abs(raw) >= 100) {
-            return raw.toFixed(0);
+            return formatFloat(raw, 0, isFloatComma);
         }
         if (Math.abs(raw) >= 10) {
-            return raw.toFixed(1);
+            return formatFloat(raw, 1, isFloatComma);
         }
-        return raw.toFixed(1);
+        return formatFloat(raw, 1, isFloatComma);
     }
 
     private onTileClick = (): void => {
@@ -357,7 +358,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                                 mb: 0.25,
                             }}
                         >
-                            {WidgetGauge.formatValue(this.state.value2)}
+                            {WidgetGauge.formatValue(this.state.value2, this.props.isFloatComma)}
                             {this.state.unit2 ? ` ${this.state.unit2}` : ''}
                         </Typography>
                     ) : null}
@@ -369,7 +370,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             color: value != null ? color : 'text.disabled',
                         }}
                     >
-                        {value != null ? WidgetGauge.formatValue(raw) : '—'}
+                        {value != null ? WidgetGauge.formatValue(raw, this.props.isFloatComma) : '—'}
                     </Typography>
                     {this.displayUnit ? (
                         <Typography
@@ -616,7 +617,9 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             variant="h6"
                             sx={{ fontWeight: 700, color, lineHeight: 1.2 }}
                         >
-                            {value != null ? `${WidgetGauge.formatValue(raw)} ${this.displayUnit}` : '—'}
+                            {value != null
+                                ? `${WidgetGauge.formatValue(raw, this.props.isFloatComma)} ${this.displayUnit}`
+                                : '—'}
                         </Typography>
                     </Box>
                 </Box>

@@ -52,4 +52,4 @@ export const StateContext = _host.StateContext || _StateContextStub;
 
 export type { WidgetSettings, WidgetGenericProps, WidgetGenericState, IndicatorValues, ChartSeries, ExtraInfoEntry } from './WidgetGeneric';
 export type { StateChangeListener, ObjectChangeListener } from './StateContext';
-export type { ItemInfo, WidgetInfo, DevicesDetectorState, DevicesPatternControl, CategoryInfo, CustomWidgetType, CustomWidgetDef, WidgetConfigItem } from './types';
+export type { ItemInfo, WidgetInfo, DevicesDetectorState, DevicesPatternControl, CategoryInfo, CustomWidgetType, CustomWidgetBase, CustomWidgetDef, ClockWidgetDef, WeatherWidgetDef, IframeWidgetDef, WindWidgetDef, GaugeWidgetDef, PluginWidgetDef, WidgetConfigItem } from './types';

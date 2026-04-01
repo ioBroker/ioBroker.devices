@@ -2,139 +2,48 @@ import React from 'react';
 
 import type { CustomWidgetType } from '../../../src/widget-utils';
 import { SizeIcon1x1, SizeIcon2x1, SizeIcon2xHalf } from './SizeIcons';
-
-// --- Config item types ---
-
-export interface CwConfigSelect {
-    type: 'select';
-    /** i18n key for the field label */
-    label: string;
-    options: { value: string; label: string; icon?: React.ReactNode }[];
-    default?: string;
-    /** Render as toggle-button row instead of dropdown */
-    format?: 'radio';
-}
-
-export interface CwConfigCheckbox {
-    type: 'checkbox';
-    /** i18n key for the checkbox label */
-    label: string;
-    default?: boolean;
-}
-
-export interface CwConfigColor {
-    type: 'color';
-    /** i18n key for the field label */
-    label: string;
-}
-
-export interface CwConfigInstanceSelect {
-    type: 'instanceSelect';
-    /** i18n key for the field label */
-    label: string;
-    /** Adapter names to list instances for */
-    adapterNames: string[];
-}
-
-export interface CwConfigText {
-    type: 'text';
-    /** i18n key for the field label */
-    label: string;
-    default?: string;
-    /** Placeholder text (i18n key) */
-    placeholder?: string;
-    /** Helper text below the input (i18n key) */
-    helperText?: string;
-    /** Input type: 'text' (default) or 'number' */
-    inputType?: 'text' | 'number';
-}
-
-export interface CwConfigCitySearch {
-    type: 'citySearch';
-    /** i18n key for the field label */
-    label: string;
-}
-
-export interface CwConfigStateId {
-    type: 'stateId';
-    /** i18n key for the field label */
-    label: string;
-    /**
-     * Auto-populate other fields from the selected object's common properties.
-     *  Maps config key → common property name, e.g. { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit' }
-     */
-    autoFill?: Record<string, string>;
-}
-
-export interface CwConfigColorLevels {
-    type: 'colorLevels';
-    /** i18n key for the field label */
-    label: string;
-    default?: { value: number; color: string }[];
-}
-
-export type CwConfigItem = (
-    | CwConfigSelect
-    | CwConfigCheckbox
-    | CwConfigColor
-    | CwConfigInstanceSelect
-    | CwConfigCitySearch
-    | CwConfigText
-    | CwConfigStateId
-    | CwConfigColorLevels
-) & {
-    /** Only show this item when the specified key has the specified value */
-    visibleWhen?: Record<string, unknown>;
-};
-
-export interface CwWidgetConfig {
-    /** i18n key for the widget type name (dialog title) */
-    name: string;
-    items: Record<string, CwConfigItem>;
-}
+import type { ConfigItemAny, ConfigItemPanel } from '@iobroker/json-config';
 
 // --- Helpers ---
 
-export function getConfigDefault(item: CwConfigItem): unknown {
+/** Extract a default value from a json-config item definition */
+export function getConfigDefault(item: ConfigItemAny): unknown {
     switch (item.type) {
         case 'select':
-            return item.default ?? item.options[0]?.value ?? '';
+            return item.default ?? (item.options?.[0] as { value?: unknown })?.value ?? '';
         case 'checkbox':
             return item.default ?? true;
         case 'color':
-            return '';
-        case 'instanceSelect':
-            return '';
-        case 'citySearch':
-            return '';
+            return item.default ?? '';
+        case 'instance':
+            return item.default ?? '';
         case 'text':
             return item.default ?? '';
-        case 'stateId':
-            return '';
-        case 'colorLevels':
-            return (
-                item.default ?? [
-                    { value: 30, color: '#4caf50' },
-                    { value: 70, color: '#ff9800' },
-                    { value: 100, color: '#f44336' },
-                ]
-            );
+        case 'number':
+            return item.default ?? 0;
+        case 'objectId':
+            return item.default ?? '';
+        case 'custom':
+            return item.default ?? '';
+        default:
+            return item.default ?? '';
     }
 }
 
 // --- Shared size options ---
 
-export const SIZE_OPTIONS: CwConfigSelect['options'] = [
+export const SIZE_OPTIONS: { value: string; label: string; icon?: React.ReactNode }[] = [
     { value: '1x1', label: '1\u00D71', icon: <SizeIcon1x1 /> },
     { value: '2x1', label: '2\u00D71', icon: <SizeIcon2x1 /> },
     { value: '2x0.5', label: '2\u00D7\u00BD', icon: <SizeIcon2xHalf /> },
 ];
 
-// --- Per-widget configs ---
+// --- Per-widget configs (json-config schema) ---
 
-export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
+export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = {
     clock: {
-        name: 'wm_Clock',
+        type: 'panel',
+        label: 'wm_Clock',
         items: {
             size: {
                 type: 'select',
@@ -175,7 +84,8 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
         },
     },
     weather: {
-        name: 'wm_Weather',
+        type: 'panel',
+        label: 'wm_Weather',
         items: {
             weatherSource: {
                 type: 'select',
@@ -189,15 +99,16 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 format: 'radio',
             },
             adapterInstance: {
-                type: 'instanceSelect',
+                type: 'instance',
                 label: 'wm_Adapter instance',
-                adapterNames: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
-                visibleWhen: { weatherSource: 'adapter' },
+                adapters: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
+                hidden: "data.weatherSource !== 'adapter'",
             },
             cityName: {
-                type: 'citySearch',
+                type: 'component',
+                subType: 'citySearch',
                 label: 'wm_City',
-                visibleWhen: { weatherSource: ['openmeteo', 'yrno'] },
+                hidden: "data.weatherSource === 'adapter'",
             },
             size: {
                 type: 'select',
@@ -213,7 +124,8 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
         },
     },
     iframe: {
-        name: 'wm_Iframe',
+        type: 'panel',
+        label: 'wm_Iframe',
         items: {
             url: {
                 type: 'text',
@@ -221,11 +133,10 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 placeholder: 'wm_URL placeholder',
             },
             refreshInterval: {
-                type: 'text',
+                type: 'number',
                 label: 'wm_Refresh interval',
-                default: '0',
-                helperText: 'wm_Refresh interval help',
-                inputType: 'number',
+                default: 0,
+                help: 'wm_Refresh interval help',
             },
             appendTimestamp: {
                 type: 'checkbox',
@@ -241,6 +152,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                     { value: 'sameTab', label: 'wm_Open in same tab' },
                 ],
                 default: 'dialog',
+                format: 'dropdown',
             },
             size: {
                 type: 'select',
@@ -256,15 +168,15 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
         },
     },
     gauge: {
-        name: 'wm_Gauge',
+        type: 'panel',
+        label: 'wm_Gauge',
         items: {
             gaugeStateId: {
-                type: 'stateId',
+                type: 'objectId',
                 label: 'wm_State ID',
-                autoFill: { minValue: 'min', maxValue: 'max', gaugeUnit: 'unit', gaugeName: 'name' },
             },
             gaugeStateId2: {
-                type: 'stateId',
+                type: 'objectId',
                 label: 'wm_Secondary value',
             },
             gaugeName: {
@@ -273,16 +185,14 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 default: '',
             },
             minValue: {
-                type: 'text',
+                type: 'number',
                 label: 'wm_Min value',
-                default: '0',
-                inputType: 'number',
+                default: 0,
             },
             maxValue: {
-                type: 'text',
+                type: 'number',
                 label: 'wm_Max value',
-                default: '100',
-                inputType: 'number',
+                default: 100,
             },
             gaugeUnit: {
                 type: 'text',
@@ -295,13 +205,9 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
                 default: true,
             },
             colorLevels: {
-                type: 'colorLevels',
+                type: 'component',
+                subType: 'colorLevels',
                 label: 'wm_Color levels',
-                default: [
-                    { value: 30, color: '#4caf50' },
-                    { value: 70, color: '#ff9800' },
-                    { value: 100, color: '#f44336' },
-                ],
             },
             size: {
                 type: 'select',
@@ -317,18 +223,19 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
         },
     },
     wind: {
-        name: 'wm_Wind',
+        type: 'panel',
+        label: 'wm_Wind',
         items: {
             directionStateId: {
-                type: 'stateId',
+                type: 'objectId',
                 label: 'wm_Wind direction',
             },
             speedStateId: {
-                type: 'stateId',
+                type: 'objectId',
                 label: 'wm_Wind speed',
             },
             gustsStateId: {
-                type: 'stateId',
+                type: 'objectId',
                 label: 'wm_Wind gusts',
             },
             size: {
@@ -345,7 +252,8 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, CwWidgetConfig> = {
         },
     },
     plugin: {
-        name: 'wm_Plugin',
+        type: 'panel',
+        label: 'wm_Plugin',
         items: {
             size: {
                 type: 'select',

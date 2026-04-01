@@ -74,11 +74,60 @@ export interface WidgetConfigItem {
     visibleWhen?: Record<string, unknown>;
 }
 
-export interface CustomWidgetDef {
+export interface CustomWidgetBase {
     id: string;
     type: CustomWidgetType;
     size?: '1x1' | '2x0.5' | '2x1';
     color?: string;
+    favorite?: boolean;
+}
+
+export interface ClockWidgetDef extends CustomWidgetBase {
+    type: 'clock';
+    style?: 'digital' | 'analog';
+    showDate?: boolean;
+    showDow?: boolean;
+    showSeconds?: boolean;
+}
+
+export interface WeatherWidgetDef extends CustomWidgetBase {
+    type: 'weather';
+    adapterInstance?: string;
+    weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
+    latitude?: number;
+    longitude?: number;
+    cityName?: string;
+}
+
+export interface IframeWidgetDef extends CustomWidgetBase {
+    type: 'iframe';
+    url?: string;
+    refreshInterval?: number;
+    appendTimestamp?: boolean;
+    clickAction?: 'dialog' | 'newTab' | 'sameTab';
+}
+
+export interface WindWidgetDef extends CustomWidgetBase {
+    type: 'wind';
+    directionStateId?: string;
+    speedStateId?: string;
+    gustsStateId?: string;
+}
+
+export interface GaugeWidgetDef extends CustomWidgetBase {
+    type: 'gauge';
+    gaugeStateId?: string;
+    gaugeStateId2?: string;
+    gaugeName?: string;
+    minValue?: number;
+    maxValue?: number;
+    gaugeUnit?: string;
+    colorLevels?: { value: number; color: string }[];
+    usePercentage?: boolean;
+}
+
+export interface PluginWidgetDef extends CustomWidgetBase {
+    type: 'plugin';
     pluginAdapter?: string;
     pluginComponent?: string;
     pluginUrl?: string;
@@ -86,6 +135,14 @@ export interface CustomWidgetDef {
     pluginConfigItems?: Record<string, WidgetConfigItem>;
     [key: string]: any;
 }
+
+export type CustomWidgetDef =
+    | ClockWidgetDef
+    | WeatherWidgetDef
+    | IframeWidgetDef
+    | WindWidgetDef
+    | GaugeWidgetDef
+    | PluginWidgetDef;
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';

@@ -16,7 +16,7 @@ import {
 import { Close, Settings } from '@mui/icons-material';
 import { I18n, type Connection } from '@iobroker/adapter-react-v5';
 
-import type { ChartSeries } from './Generic';
+import { formatFloat, type ChartSeries } from './Generic';
 
 // ---- Constants ----
 
@@ -73,14 +73,14 @@ function formatTime(ts: number, rangeMs: number): string {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function formatValue(val: number): string {
+function formatValue(val: number, isFloatComma?: boolean): string {
     if (Math.abs(val) >= 1000) {
-        return val.toFixed(0);
+        return formatFloat(val, 0, isFloatComma);
     }
     if (Math.abs(val) >= 10) {
-        return val.toFixed(1);
+        return formatFloat(val, 1, isFloatComma);
     }
-    return val.toFixed(2);
+    return formatFloat(val, 2, isFloatComma);
 }
 
 function niceStep(range: number, ticks: number): number {
@@ -198,12 +198,13 @@ interface InteractiveChartProps {
     title?: string;
     chartType: ChartLineType;
     smoothing: SmoothingWindow;
+    isFloatComma?: boolean;
     /** Called 400ms after the last pan/zoom interaction with the new visible time range */
     onViewSettle?: (startTs: number, endTs: number) => void;
 }
 
 function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
-    const { series, width, height, unit, title: chartTitle, chartType, smoothing, onViewSettle } = props;
+    const { series, width, height, unit, title: chartTitle, chartType, smoothing, isFloatComma, onViewSettle } = props;
     const svgRef = useRef<SVGSVGElement>(null);
     const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -550,7 +551,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                         fill="currentColor"
                         opacity={0.5}
                     >
-                        {formatValue(v)}
+                        {formatValue(v, isFloatComma)}
                     </text>
                 );
             })}
@@ -569,7 +570,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                       const labels = entries.map(e => {
                           const displayName = e.name || (series.length === 1 ? chartTitle : undefined);
                           const entryUnit = e.unit || unit;
-                          return `${displayName ? `${displayName}: ` : ''}${formatValue(e.val)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                          return `${displayName ? `${displayName}: ` : ''}${formatValue(e.val, isFloatComma)}${entryUnit ? ` ${entryUnit}` : ''}`;
                       });
 
                       const allLines = [...labels, timeLabel];
@@ -665,6 +666,7 @@ export interface ChartDialogProps {
     historyInstance: string;
     socket: Connection;
     unit?: string;
+    isFloatComma?: boolean;
     /** Widget object ID — used to persist chart settings in custom['devices.0'] */
     widgetId?: string;
     /** Adapter instance ID, e.g. "devices.0" */
@@ -680,6 +682,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         historyInstance,
         socket,
         unit: unitProp,
+        isFloatComma,
         widgetId,
         instanceId,
     } = props;
@@ -1050,6 +1053,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             title={title}
                             chartType={chartType}
                             smoothing={smoothing}
+                            isFloatComma={isFloatComma}
                             onViewSettle={handleViewSettle}
                         />
                     ) : (

@@ -300,7 +300,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     }
 
     private findIdInEnums(lookForId: string): string {
-        // Try to find room, to which this device belongs to
+        // Try to find room to which this device belongs to
         let useEnum = '';
         for (const enumId of this.enumIds) {
             if (enumId.startsWith('enum.rooms.')) {
@@ -345,8 +345,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
      * Rebuild enabledDevices from allDevices (cheap, no I/O, no detection).
      * Only devices with `common.custom[namespace].enabled === true` are included.
      */
-    private rebuildEnabledDevices(): void {
+    private rebuildEnabledDevices(): boolean {
         const customKey = this.adapter.namespace;
+        const oldEnabledDevices = JSON.stringify(this.enabledDevices);
         this.enabledDevices = this.allDevices.filter(
             d => d.storeId && this.objects[d.storeId]?.common?.custom?.[customKey]?.enabled,
         );
@@ -393,7 +394,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     parentCategoryId = getParentId(parentId);
                 }
             } else {
-                // Try to find room, to which this device belongs to
+                // Try to find room to which this device belongs to
                 let useEnum = this.findIdInEnums(device.storeId);
                 useEnum ||= this.findIdInEnums(device.channelId);
                 useEnum ||= this.findIdInEnums(device.deviceId);
@@ -435,6 +436,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 }
             }
         }
+
+        return JSON.stringify(this.enabledDevices) !== oldEnabledDevices;
     }
 
     /**
@@ -531,11 +534,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 this.allDevices.push(...this.detectForIds(added));
             }
 
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
 
@@ -556,11 +560,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 this.allDevices.push(...this.detectForIds(toDetect));
             }
 
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
 
@@ -569,11 +574,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         const oldEnabled = oldObj?.common?.custom?.[customKey]?.enabled;
         const newEnabled = obj?.common?.custom?.[customKey]?.enabled;
         if (oldEnabled !== newEnabled) {
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
 
@@ -584,11 +590,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             if (obj) {
                 this.allDevices.push(...this.detectForIds(affected));
             }
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
         }
     }
 

@@ -260,7 +260,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         this.allDevices = this.allDevices.filter(d => !set.has(d.storeId));
     }
     findIdInEnums(lookForId) {
-        // Try to find room, to which this device belongs to
+        // Try to find room to which this device belongs to
         let useEnum = '';
         for (const enumId of this.enumIds) {
             if (enumId.startsWith('enum.rooms.')) {
@@ -299,6 +299,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
      */
     rebuildEnabledDevices() {
         const customKey = this.adapter.namespace;
+        const oldEnabledDevices = JSON.stringify(this.enabledDevices);
         this.enabledDevices = this.allDevices.filter(d => d.storeId && this.objects[d.storeId]?.common?.custom?.[customKey]?.enabled);
         // Special case: the devices not from alias.0
         for (const device of this.enabledDevices) {
@@ -343,7 +344,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 }
             }
             else {
-                // Try to find room, to which this device belongs to
+                // Try to find room to which this device belongs to
                 let useEnum = this.findIdInEnums(device.storeId);
                 useEnum ||= this.findIdInEnums(device.channelId);
                 useEnum ||= this.findIdInEnums(device.deviceId);
@@ -386,6 +387,7 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                 }
             }
         }
+        return JSON.stringify(this.enabledDevices) !== oldEnabledDevices;
     }
     /**
      * For a given changed object ID, find the detection IDs (from idsInEnums) that are affected.
@@ -470,11 +472,12 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
             if (added.length) {
                 this.allDevices.push(...this.detectForIds(added));
             }
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
         // Case 2: Object under alias.* or linkeddevices.* — only alias scan needed, enum members unchanged
@@ -490,11 +493,12 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
             if (toDetect.length) {
                 this.allDevices.push(...this.detectForIds(toDetect));
             }
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
         // Case 3: Only the enabled flag changed — just rebuild the filter (no detection)
@@ -502,11 +506,12 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
         const oldEnabled = oldObj?.common?.custom?.[customKey]?.enabled;
         const newEnabled = obj?.common?.custom?.[customKey]?.enabled;
         if (oldEnabled !== newEnabled) {
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
             return;
         }
         // Case 4: Object referenced by idsInEnums or existing device changed
@@ -516,11 +521,12 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
             if (obj) {
                 this.allDevices.push(...this.detectForIds(affected));
             }
-            this.rebuildEnabledDevices();
-            if (!this.invalidatedIds.includes(id)) {
-                this.invalidatedIds.push(id);
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
             }
-            this.scheduleNotify();
         }
     }
     // ── Initial full detection (called once) ──────────────────────────

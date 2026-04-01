@@ -120,6 +120,17 @@ export interface WidgetGenericProps {
     defaultHistory?: string;
     /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
     instanceId?: string;
+    /** Use comma as a decimal separator (from system.config) */
+    isFloatComma?: boolean;
+}
+
+/**
+ * Format a number for display, replacing '.' with ',' when isFloatComma is true.
+ * Use ONLY for user-visible text — never for SVG paths, API calls, or CSS values.
+ */
+export function formatFloat(value: number, decimals: number, isFloatComma?: boolean): string {
+    const str = value.toFixed(decimals);
+    return isFloatComma ? str.replace('.', ',') : str;
 }
 
 export interface IndicatorValues {
@@ -662,7 +673,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         );
     };
 
-    // eslint-disable-next-line class-methods-use-this
     private formatExtraInfoValue(entry: ExtraInfoEntry): string {
         if (entry.value == null) {
             return '—';
@@ -673,8 +683,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 abs >= 100
                     ? Math.round(entry.value).toString()
                     : abs >= 10
-                      ? entry.value.toFixed(1)
-                      : entry.value.toFixed(2);
+                      ? formatFloat(entry.value, 1, this.props.isFloatComma)
+                      : formatFloat(entry.value, 2, this.props.isFloatComma);
             return entry.unit ? `${str} ${entry.unit}` : str;
         }
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
@@ -799,6 +809,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={entry.unit}
+                isFloatComma={this.props.isFloatComma}
                 widgetId={String(this.props.widget.id)}
                 instanceId={this.props.instanceId}
             />
@@ -1462,6 +1473,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.getChartUnit()}
+                isFloatComma={this.props.isFloatComma}
                 widgetId={String(this.props.widget.id)}
                 instanceId={this.props.instanceId}
             />

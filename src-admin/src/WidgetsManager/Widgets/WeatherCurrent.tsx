@@ -5,6 +5,7 @@ import { Air, Opacity, Speed, Thermostat, WaterDrop, WbSunny, WbCloudy } from '@
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
+    formatFloat,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
@@ -189,7 +190,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     variant="caption"
                     sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                 >
-                    {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                    {temperature != null ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°` : '—'}
                 </Typography>
                 {weather ? (
                     <Typography
@@ -220,7 +221,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         variant="h5"
                         sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
-                        {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                        {temperature != null ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°` : '—'}
                     </Typography>
                     {weather ? (
                         <Typography
@@ -319,7 +320,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                                 lineHeight: 1.1,
                             }}
                         >
-                            {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                            {temperature != null ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°` : '—'}
                         </Typography>
                     </Box>
 
@@ -413,7 +414,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         if (realFeel != null) {
             details.push({
                 icon: <Thermostat sx={{ fontSize: 14 }} />,
-                label: `${realFeel.toFixed(1)}°`,
+                label: `${formatFloat(realFeel, 1, this.props.isFloatComma)}°`,
             });
         }
         if (uv != null) {
@@ -452,7 +453,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         {this.renderWeatherIcon(52)}
                         <Box>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
-                                {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                                {temperature != null ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°` : '—'}
                             </Typography>
                             {weather ? (
                                 <Typography

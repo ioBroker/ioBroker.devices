@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import { getTileStyles, isNeumorphicTheme } from './Generic';
+import { formatFloat, getTileStyles, isNeumorphicTheme } from './Generic';
 import type StateContext from '../StateContext';
 
 /** WMO weather code → i18n key */
@@ -156,6 +156,7 @@ interface WidgetWeatherProps {
     size?: '1x1' | '2x0.5' | '2x1';
     color?: string;
     language: ioBroker.Languages;
+    isFloatComma?: boolean;
     stateContext: StateContext;
     onOpenSettings?: () => void;
     onRemove?: () => void;
@@ -935,7 +936,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {WidgetWeather.renderWeatherIcon(icon, 36, wmoCode)}
                                 <Typography sx={{ fontWeight: 700, fontSize: 'max(1.2rem, 12cqi)', lineHeight: 1.1 }}>
-                                    {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                    {temperature != null
+                                        ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                        : '\u2014'}
                                 </Typography>
                             </Box>
                             {weatherState ? (
@@ -1024,7 +1027,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         variant="h6"
                                         sx={{ fontWeight: 700 }}
                                     >
-                                        {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                        {temperature != null
+                                            ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                            : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
                                         <Typography
@@ -1145,7 +1150,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 {WidgetWeather.renderWeatherIcon(icon, 52, wmoCode)}
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
-                                        {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                        {temperature != null
+                                            ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                            : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
                                         <Typography
@@ -1311,7 +1318,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 variant="h4"
                                 sx={{ fontWeight: 700, lineHeight: 1.1 }}
                             >
-                                {temperature != null ? `${temperature.toFixed(1)}°C` : '\u2014'}
+                                {temperature != null
+                                    ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°C`
+                                    : '\u2014'}
                             </Typography>
                             {weatherState ? (
                                 <Typography
@@ -1426,7 +1435,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         variant="body2"
                                         sx={{ fontWeight: 600 }}
                                     >
-                                        {realFeel.toFixed(1)}°C
+                                        {formatFloat(realFeel, 1, this.props.isFloatComma)}°C
                                     </Typography>
                                 </Box>
                             </Box>

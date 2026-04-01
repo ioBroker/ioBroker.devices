@@ -56,6 +56,7 @@ import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/wid
 import {
     type WidgetGenericProps,
     type WidgetSettings,
+    formatFloat,
     WidgetSwitch,
     WidgetLight,
     WidgetDimmer,
@@ -144,6 +145,8 @@ interface CategoryProps {
     longitude?: number | null;
     /** Callback to go back to device list (admin split-screen narrow mode) */
     onBackToDevices?: () => void;
+    /** Use comma as decimal separator (from system.config) */
+    isFloatComma?: boolean;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -1872,6 +1875,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 onOpenSettings={this.props.onOpenSettings}
                 defaultHistory={this.props.defaultHistory}
                 instanceId={this.props.instanceId}
+                isFloatComma={this.props.isFloatComma}
             />
         );
     }
@@ -1932,6 +1936,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         longitude={def.longitude}
                         cityName={def.cityName}
                         language={this.props.language}
+                        isFloatComma={this.props.isFloatComma}
                         size={def.size}
                         color={def.color}
                         stateContext={this.props.stateContext}
@@ -1968,6 +1973,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         size={def.size}
                         color={def.color}
                         stateContext={this.props.stateContext}
+                        isFloatComma={this.props.isFloatComma}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
@@ -1992,29 +1998,31 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         stateContext={this.props.stateContext}
                         defaultHistory={this.props.defaultHistory}
                         instanceId={this.props.instanceId}
+                        isFloatComma={this.props.isFloatComma}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
                 );
                 break;
             case 'plugin':
-                content = def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
-                    <PluginWidget
-                        key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        size={def.size}
-                        color={def.color}
-                        pluginAdapter={def.pluginAdapter}
-                        pluginComponent={def.pluginComponent}
-                        pluginUrl={def.pluginUrl}
-                        admin={!!this.props.admin}
-                        stateContext={this.props.stateContext}
-                        onOpenSettings={settingsCb}
-                        onRemove={removeCb}
-                        pluginSettings={def as unknown as Record<string, unknown>}
-                    />
-                ) : null;
+                content =
+                    def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
+                        <PluginWidget
+                            key={def.id}
+                            id={def.id}
+                            language={this.props.language}
+                            size={def.size}
+                            color={def.color}
+                            pluginAdapter={def.pluginAdapter}
+                            pluginComponent={def.pluginComponent}
+                            pluginUrl={def.pluginUrl}
+                            admin={!!this.props.admin}
+                            stateContext={this.props.stateContext}
+                            onOpenSettings={settingsCb}
+                            onRemove={removeCb}
+                            pluginSettings={def as unknown as Record<string, unknown>}
+                        />
+                    ) : null;
                 break;
             default:
                 content = null;
@@ -2134,7 +2142,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="caption"
                             sx={{ color: 'text.secondary', fontWeight: 500 }}
                         >
-                            {status.temperature.toFixed(1)}°
+                            {formatFloat(status.temperature, 1, this.props.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2400,7 +2408,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="body2"
                             sx={{ fontWeight: 500, color: 'text.secondary' }}
                         >
-                            {temperature.toFixed(1)}°
+                            {formatFloat(temperature, 1, this.props.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2587,7 +2595,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 }}
                             >
                                 {this.props.configMode ? (
-                                    <PlayArrow fontSize="small" />
+                                    <PlayArrow
+                                        fontSize="small"
+                                        sx={{ color: '#4caf50' }}
+                                    />
                                 ) : (
                                     <Build
                                         fontSize="small"
@@ -2754,7 +2765,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                         }}
                                     >
                                         {this.props.configMode ? (
-                                            <PlayArrow fontSize="small" />
+                                            <PlayArrow
+                                                fontSize="small"
+                                                sx={{ color: '#4caf50' }}
+                                            />
                                         ) : (
                                             <Build
                                                 fontSize="small"

@@ -147,9 +147,7 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
                 size: size || '1x1',
                 color: color || '',
             } as WidgetGenericProps['settings'],
-            onOpenSettings: this.props.onOpenSettings
-                ? () => this.props.onOpenSettings!(id)
-                : undefined,
+            onOpenSettings: this.props.onOpenSettings ? () => this.props.onOpenSettings!(id) : undefined,
             // Pass all custom settings so the plugin can read its own config values
             pluginSettings: this.props.pluginSettings,
         };

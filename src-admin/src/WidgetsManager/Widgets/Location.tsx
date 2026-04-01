@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
+    formatFloat,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
@@ -563,15 +564,15 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         }
         const latDir = latitude >= 0 ? I18n.t('wm_N') : I18n.t('wm_S');
         const lngDir = longitude >= 0 ? I18n.t('wm_E') : I18n.t('wm_W');
-        return `${Math.abs(latitude).toFixed(4)}${latDir}, ${Math.abs(longitude).toFixed(4)}${lngDir}`;
+        return `${formatFloat(Math.abs(latitude), 4, this.props.isFloatComma)}${latDir}, ${formatFloat(Math.abs(longitude), 4, this.props.isFloatComma)}${lngDir}`;
     }
 
-    private static formatCoord(val: number, posKey: string, negKey: string): string {
+    private static formatCoord(val: number, posKey: string, negKey: string, isFloatComma?: boolean): string {
         const abs = Math.abs(val);
         const deg = Math.floor(abs);
         const minFloat = (abs - deg) * 60;
         const min = Math.floor(minFloat);
-        const sec = ((minFloat - min) * 60).toFixed(1);
+        const sec = formatFloat((minFloat - min) * 60, 1, isFloatComma);
         const dir = val >= 0 ? I18n.t(posKey) : I18n.t(negKey);
         return `${deg}°${min}'${sec}"${dir}`;
     }
@@ -581,7 +582,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         if (latitude == null || longitude == null) {
             return '—';
         }
-        return `${WidgetLocation.formatCoord(latitude, 'wm_N', 'wm_S')} ${WidgetLocation.formatCoord(longitude, 'wm_E', 'wm_W')}`;
+        return `${WidgetLocation.formatCoord(latitude, 'wm_N', 'wm_S', this.props.isFloatComma)} ${WidgetLocation.formatCoord(longitude, 'wm_E', 'wm_W', this.props.isFloatComma)}`;
     }
 
     // --- Tile overrides ---
