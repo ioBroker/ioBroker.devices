@@ -94,6 +94,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             }
             setValues(initial);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, widgetDef]);
 
     if (!widgetDef || !config) {
@@ -148,9 +149,10 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             onClose={onClose}
             maxWidth="xs"
             fullWidth
+            slotProps={{ paper: { sx: { maxHeight: '90vh' } } }}
         >
             <DialogTitle>{I18n.t((config.label as string) || '')}</DialogTitle>
-            <DialogContent>
+            <DialogContent dividers>
                 <Box sx={{ mt: 1 }}>
                     {socket && props.theme ? (
                         <JsonConfigComponent

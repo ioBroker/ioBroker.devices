@@ -32,5 +32,6 @@ export { WidgetWind } from './Wind';
 export { WidgetGate } from './Gate';
 export { PluginWidget } from './PluginWidget';
 export { WidgetGauge } from './Gauge';
+export { WidgetUniversal } from './Universal';
 export { getTileStyles, DEFAULT_WIDGET_SETTINGS, formatFloat } from './Generic';
 export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';

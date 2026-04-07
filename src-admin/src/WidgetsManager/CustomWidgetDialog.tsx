@@ -13,7 +13,17 @@ import {
     ListItemText,
     TextField,
 } from '@mui/material';
-import { AccessTime, Air, Close, CreateNewFolder, Extension, Language, Speed, WbCloudy } from '@mui/icons-material';
+import {
+    AccessTime,
+    Air,
+    Close,
+    CreateNewFolder,
+    Dashboard,
+    Extension,
+    Language,
+    Speed,
+    WbCloudy,
+} from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { CustomWidgetType, InstanceWidgetDescription } from '../../../src/widget-utils';
@@ -55,6 +65,12 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <Speed />,
         i18nKey: 'wm_Gauge',
         descriptionKey: 'wm_Gauge_desc',
+    },
+    {
+        type: 'universal',
+        icon: <Dashboard />,
+        i18nKey: 'wm_Universal',
+        descriptionKey: 'wm_Universal_desc',
     },
 ];
 

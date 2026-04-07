@@ -89,6 +89,7 @@ import {
     WidgetIframe,
     WidgetWind,
     WidgetGauge,
+    WidgetUniversal,
     WidgetGate,
     PluginWidget,
 } from './Widgets';
@@ -2004,6 +2005,52 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     />
                 );
                 break;
+            case 'universal':
+                content = (
+                    <WidgetUniversal
+                        key={def.id}
+                        id={def.id}
+                        language={this.props.language}
+                        stateId={def.stateId}
+                        secondaryStateId={def.secondaryStateId}
+                        opacityStateId={def.opacityStateId}
+                        opacityFalse={def.opacityFalse}
+                        opacityTrue={def.opacityTrue}
+                        colorLevels={def.colorLevels}
+                        icons={
+                            [
+                                def.icon1StateId
+                                    ? {
+                                          stateId: def.icon1StateId,
+                                          icon: def.icon1Name || '',
+                                          color: def.icon1Color || '',
+                                      }
+                                    : null,
+                                def.icon2StateId
+                                    ? {
+                                          stateId: def.icon2StateId,
+                                          icon: def.icon2Name || '',
+                                          color: def.icon2Color || '',
+                                      }
+                                    : null,
+                                def.icon3StateId
+                                    ? {
+                                          stateId: def.icon3StateId,
+                                          icon: def.icon3Name || '',
+                                          color: def.icon3Color || '',
+                                      }
+                                    : null,
+                            ].filter(Boolean) as { stateId: string; icon: string; color: string }[]
+                        }
+                        size={def.size}
+                        color={def.color}
+                        stateContext={this.props.stateContext}
+                        isFloatComma={this.props.isFloatComma}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
+                break;
             case 'plugin':
                 content =
                     def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
@@ -2585,28 +2632,30 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </IconButton>
                             </Tooltip>
                         ) : null}
-                        <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
-                            <IconButton
-                                size="small"
-                                onClick={this.props.onToggleConfigMode}
-                                sx={{
-                                    opacity: this.props.configMode ? 0.5 : 0.35,
-                                    '&:hover': { opacity: 1 },
-                                }}
-                            >
-                                {this.props.configMode ? (
-                                    <PlayArrow
-                                        fontSize="small"
-                                        sx={{ color: '#4caf50' }}
-                                    />
-                                ) : (
-                                    <Build
-                                        fontSize="small"
-                                        sx={{ fontSize: 18 }}
-                                    />
-                                )}
-                            </IconButton>
-                        </Tooltip>
+                        {this.props.onToggleConfigMode ? (
+                            <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                                <IconButton
+                                    size="small"
+                                    onClick={this.props.onToggleConfigMode}
+                                    sx={{
+                                        opacity: this.props.configMode ? 0.5 : 0.35,
+                                        '&:hover': { opacity: 1 },
+                                    }}
+                                >
+                                    {this.props.configMode ? (
+                                        <PlayArrow
+                                            fontSize="small"
+                                            sx={{ color: '#4caf50' }}
+                                        />
+                                    ) : (
+                                        <Build
+                                            fontSize="small"
+                                            sx={{ fontSize: 18 }}
+                                        />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                     </Box>
                 ) : null}
                 {/* Fixed header — hidden for the root category (no parent, no name) */}

@@ -46,7 +46,7 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'universal' | 'plugin';
 
 export interface CustomWidgetBase {
     id: string;
@@ -125,6 +125,42 @@ export interface GaugeWidgetDef extends CustomWidgetBase {
     usePercentage?: boolean;
 }
 
+
+
+export interface UniversalWidgetDef extends CustomWidgetBase {
+    type: 'universal';
+    /** Primary value state ID */
+    stateId?: string;
+    /** Secondary value state ID (shown in upper-right corner) */
+    secondaryStateId?: string;
+    /** Opacity control state ID (number 0-1 or boolean) */
+    opacityStateId?: string;
+    /** Opacity when boolean state is false (0-1). Default: 0 */
+    opacityFalse?: number;
+    /** Opacity when boolean state is true (0-1). Default: 1 */
+    opacityTrue?: number;
+    /** Color level breakpoints for the primary value */
+    colorLevels?: { value: number; color: string }[];
+    /** Icon 1: boolean state ID */
+    icon1StateId?: string;
+    /** Icon 1: Material icon name */
+    icon1Name?: string;
+    /** Icon 1: color when active */
+    icon1Color?: string;
+    /** Icon 2: boolean state ID */
+    icon2StateId?: string;
+    /** Icon 2: Material icon name */
+    icon2Name?: string;
+    /** Icon 2: color when active */
+    icon2Color?: string;
+    /** Icon 3: boolean state ID */
+    icon3StateId?: string;
+    /** Icon 3: Material icon name */
+    icon3Name?: string;
+    /** Icon 3: color when active */
+    icon3Color?: string;
+}
+
 export interface PluginWidgetDef extends CustomWidgetBase {
     type: 'plugin';
     /** Adapter name that provides the widget */
@@ -141,6 +177,7 @@ export type CustomWidgetDef =
     | IframeWidgetDef
     | WindWidgetDef
     | GaugeWidgetDef
+    | UniversalWidgetDef
     | PluginWidgetDef;
 
 export interface CategoryInfo extends ItemInfo {

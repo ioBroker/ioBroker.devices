@@ -331,5 +331,22 @@
     "wm_theme_styling-grey": "Styling Grau",
     "wm_Default category": "Standardkategorie",
     "wm_None (root)": "Keine (Hauptseite)",
-    "wm_Favorites": "Favoriten"
+    "wm_Favorites": "Favoriten",
+    "wm_Universal": "Universal",
+    "wm_Universal_desc": "Konfigurierbarer Wert mit Transparenz und Icon-Indikatoren",
+    "wm_Opacity state": "Transparenz-State",
+    "wm_Opacity when false": "Transparenz bei false",
+    "wm_Opacity when true": "Transparenz bei true",
+    "wm_Icon 1 state": "Icon 1 State",
+    "wm_Icon 1 name": "Icon 1 Name",
+    "wm_Icon 1 color": "Icon 1 Farbe",
+    "wm_Icon 2 state": "Icon 2 State",
+    "wm_Icon 2 name": "Icon 2 Name",
+    "wm_Icon 2 color": "Icon 2 Farbe",
+    "wm_Icon 3 state": "Icon 3 State",
+    "wm_Icon 3 name": "Icon 3 Name",
+    "wm_Icon 3 color": "Icon 3 Farbe",
+    "wm_Icon name help": "Material-Icon-Name, z.B. Warning, Water, Bolt",
+    "wm_Close preview": "Vorschau schließen",
+    "wm_GUI only": "Nur GUI"
 }

@@ -323,5 +323,21 @@
     "wm_theme_styling-grey": "Stile grigio",
     "wm_Default category": "Categoria predefinita",
     "wm_None (root)": "Nessuna (radice)",
-    "wm_Favorites": "Preferiti"
+    "wm_Favorites": "Preferiti",
+    "wm_Universal": "Universal",
+    "wm_Universal_desc": "Configurable value display with opacity and icon indicators",
+    "wm_Opacity state": "Opacity state",
+    "wm_Opacity when false": "Opacity when false",
+    "wm_Opacity when true": "Opacity when true",
+    "wm_Icon 1 state": "Icon 1 state",
+    "wm_Icon 1 name": "Icon 1 name",
+    "wm_Icon 1 color": "Icon 1 color",
+    "wm_Icon 2 state": "Icon 2 state",
+    "wm_Icon 2 name": "Icon 2 name",
+    "wm_Icon 2 color": "Icon 2 color",
+    "wm_Icon 3 state": "Icon 3 state",
+    "wm_Icon 3 name": "Icon 3 name",
+    "wm_Icon 3 color": "Icon 3 color",
+    "wm_Icon name help": "Material icon name, e.g. Warning, Water, Bolt",
+    "wm_Close preview": "Close preview"
 }

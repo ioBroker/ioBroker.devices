@@ -10,6 +10,7 @@ export type {
     IframeWidgetDef,
     WindWidgetDef,
     GaugeWidgetDef,
+    UniversalWidgetDef,
     PluginWidgetDef,
     BackendToGuiCommand,
     BackendToGuiCommandUpdate,

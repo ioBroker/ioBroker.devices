@@ -251,6 +251,96 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
             },
         },
     },
+    universal: {
+        type: 'panel',
+        label: 'wm_Universal',
+        items: {
+            stateId: {
+                type: 'objectId',
+                label: 'wm_State ID',
+            },
+            secondaryStateId: {
+                type: 'objectId',
+                label: 'wm_Secondary value',
+            },
+            colorLevels: {
+                type: 'component',
+                subType: 'colorLevels',
+                label: 'wm_Color levels',
+            },
+            opacityStateId: {
+                type: 'objectId',
+                label: 'wm_Opacity state',
+            },
+            opacityFalse: {
+                type: 'number',
+                label: 'wm_Opacity when false',
+                default: 0,
+                min: 0,
+                max: 1,
+                step: 0.1,
+            },
+            opacityTrue: {
+                type: 'number',
+                label: 'wm_Opacity when true',
+                default: 1,
+                min: 0,
+                max: 1,
+                step: 0.1,
+            },
+            icon1StateId: {
+                type: 'objectId',
+                label: 'wm_Icon 1 state',
+            },
+            icon1Name: {
+                type: 'text',
+                label: 'wm_Icon 1 name',
+                help: 'wm_Icon name help',
+                default: '',
+            },
+            icon1Color: {
+                type: 'color',
+                label: 'wm_Icon 1 color',
+            },
+            icon2StateId: {
+                type: 'objectId',
+                label: 'wm_Icon 2 state',
+            },
+            icon2Name: {
+                type: 'text',
+                label: 'wm_Icon 2 name',
+                default: '',
+            },
+            icon2Color: {
+                type: 'color',
+                label: 'wm_Icon 2 color',
+            },
+            icon3StateId: {
+                type: 'objectId',
+                label: 'wm_Icon 3 state',
+            },
+            icon3Name: {
+                type: 'text',
+                label: 'wm_Icon 3 name',
+                default: '',
+            },
+            icon3Color: {
+                type: 'color',
+                label: 'wm_Icon 3 color',
+            },
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS,
+                default: '1x1',
+                format: 'radio',
+            },
+            color: {
+                type: 'color',
+                label: 'wm_Color',
+            },
+        },
+    },
     plugin: {
         type: 'panel',
         label: 'wm_Plugin',

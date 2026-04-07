@@ -95,13 +95,11 @@ class WidgetsManagement {
             if (instances?.rows) {
                 for (const row of instances.rows) {
                     const common = row.value?.common;
-                    // @ts-expect-error will be fixed in js-controller
                     if (common?.deviceWidgets && typeof common.deviceWidgets === 'object') {
                         // Extract adapter name from "system.adapter.adapterName.0"
                         const parts = row.id.split('.');
                         const adapterName = parts[2];
                         if (adapterName) {
-                            // @ts-expect-error will be fixed in js-controller
                             result[adapterName] = common.deviceWidgets;
                         }
                     }

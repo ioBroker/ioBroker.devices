@@ -56,7 +56,7 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'plugin';
+export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'universal' | 'plugin';
 
 /** Config item definition for plugin widget settings */
 export interface WidgetConfigItem {
@@ -126,6 +126,25 @@ export interface GaugeWidgetDef extends CustomWidgetBase {
     usePercentage?: boolean;
 }
 
+export interface UniversalWidgetDef extends CustomWidgetBase {
+    type: 'universal';
+    stateId?: string;
+    secondaryStateId?: string;
+    opacityStateId?: string;
+    opacityFalse?: number;
+    opacityTrue?: number;
+    colorLevels?: { value: number; color: string }[];
+    icon1StateId?: string;
+    icon1Name?: string;
+    icon1Color?: string;
+    icon2StateId?: string;
+    icon2Name?: string;
+    icon2Color?: string;
+    icon3StateId?: string;
+    icon3Name?: string;
+    icon3Color?: string;
+}
+
 export interface PluginWidgetDef extends CustomWidgetBase {
     type: 'plugin';
     pluginAdapter?: string;
@@ -142,6 +161,7 @@ export type CustomWidgetDef =
     | IframeWidgetDef
     | WindWidgetDef
     | GaugeWidgetDef
+    | UniversalWidgetDef
     | PluginWidgetDef;
 
 export interface CategoryInfo extends ItemInfo {

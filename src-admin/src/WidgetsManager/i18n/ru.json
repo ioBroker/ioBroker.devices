@@ -328,5 +328,22 @@
     "wm_theme_styling-grey": "Стиль серый",
     "wm_Default category": "Категория по умолчанию",
     "wm_None (root)": "Нет (главная)",
-    "wm_Favorites": "Избранное"
+    "wm_Favorites": "Избранное",
+    "wm_Universal": "Универсальный",
+    "wm_Universal_desc": "Настраиваемое отображение значения с прозрачностью и индикаторами",
+    "wm_Opacity state": "Состояние прозрачности",
+    "wm_Opacity when false": "Прозрачность при false",
+    "wm_Opacity when true": "Прозрачность при true",
+    "wm_Icon 1 state": "Иконка 1 состояние",
+    "wm_Icon 1 name": "Иконка 1 имя",
+    "wm_Icon 1 color": "Иконка 1 цвет",
+    "wm_Icon 2 state": "Иконка 2 состояние",
+    "wm_Icon 2 name": "Иконка 2 имя",
+    "wm_Icon 2 color": "Иконка 2 цвет",
+    "wm_Icon 3 state": "Иконка 3 состояние",
+    "wm_Icon 3 name": "Иконка 3 имя",
+    "wm_Icon 3 color": "Иконка 3 цвет",
+    "wm_Icon name help": "Имя Material-иконки, напр. Warning, Water, Bolt",
+    "wm_Close preview": "Закрыть предпросмотр",
+    "wm_GUI only": "Только GUI"
 }
