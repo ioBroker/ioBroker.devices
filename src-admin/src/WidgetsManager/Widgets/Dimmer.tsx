@@ -17,9 +17,16 @@ import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
     formatFloat,
+    type GenericWidgetSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+
+/** Settings for Slider/Dimmer/Volume widgets */
+interface SliderWidgetSettings extends GenericWidgetSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+}
 
 interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
@@ -34,7 +41,7 @@ interface WidgetDimmerState extends WidgetGenericState {
     dialogOpen: boolean;
 }
 
-export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
+export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly onSetId: string | null;
@@ -46,7 +53,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     private dragStartPos: { x: number; y: number } | null = null;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');

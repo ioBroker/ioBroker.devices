@@ -26,13 +26,14 @@ import type {
     PluginWidgetDef,
 } from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
-import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
 import StateContext from './StateContext';
 import Category from './Category';
 import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings, type WmThemeId } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
+import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
+import WidgetGeneric from './Widgets/Generic';
 
 interface SpecialTile {
     type: 'clock';
@@ -94,7 +95,7 @@ interface CategoryListState extends CommunicationState {
     alive: boolean | null;
     triggerLoad: number;
     currentCategory: CategoryInfo;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     settingsWidgetId: string | number | null;
     chartAvailable: boolean;
     settingsObjectName: string;
@@ -125,7 +126,7 @@ interface CategoryListState extends CommunicationState {
 const ROOT_CATEGORY = '__root__';
 const FAVORITES_CATEGORY = '__favorites__';
 
-/** Widget types where iconInactive is stored in `common.icon` and iconActive in `common.custom` */
+/** Widget types where icon is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([
     Types.floodAlarm,
     Types.fireAlarm,
@@ -327,7 +328,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     /** Build the virtual Favorites CategoryInfo (or null if no favorites exist) */
-    private buildFavoritesCategory(widgetSettings?: Record<string, WidgetSettings>): CategoryInfo | null {
+    private buildFavoritesCategory(widgetSettings?: Record<string, WidgetSettingsBase>): CategoryInfo | null {
         const ws = widgetSettings || this.state.widgetSettings;
         const hasWidgetFavorites = Object.values(ws).some(s => s.favorite);
         const hasCustomFavorites = Object.values(this.state.categorySettings).some(cs =>
@@ -361,7 +362,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private resolveCategoryFromHash(
         hash: string,
         categories: CategoryInfo[],
-        widgetSettings?: Record<string, WidgetSettings>,
+        widgetSettings?: Record<string, WidgetSettingsBase>,
     ): CategoryInfo | undefined {
         const raw = hash.startsWith('#') ? hash.substring(1) : hash;
         if (!raw || raw === 'root') {
@@ -887,17 +888,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return false;
     }
 
-    private onSaveSettings = (settings: WidgetSettings): void => {
+    private onSaveSettings = (settings: WidgetSettingsBase): void => {
         const { settingsWidgetId } = this.state;
         if (settingsWidgetId != null) {
             const widgetSettings = { ...this.state.widgetSettings, [String(settingsWidgetId)]: settings };
 
-            // Update the local widget icon when the icon changes (for non-alarm widgets via `icon`, for alarm via `iconInactive`)
+            // Update the local widget icon when the icon changes (via `icon` for all widget types)
             const widget = this.state.widgets.find(w => String(w.id) === String(settingsWidgetId));
             let widgets = this.state.widgets;
             if (widget) {
                 const isAlarmType = widget.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
-                const newIcon = isAlarmType ? settings.iconInactive || '' : settings.icon || '';
+                const s = settings as Record<string, unknown>;
+                const newIcon = (s.icon as string) || '';
                 if (newIcon !== (widget.icon || '')) {
                     widgets = widgets.map(w =>
                         String(w.id) === String(settingsWidgetId) ? { ...w, icon: newIcon || undefined } : w,
@@ -911,33 +913,29 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     };
 
     private onToggleFavorite = (widgetId: string): void => {
-        const current = this.state.widgetSettings[widgetId] || { ...DEFAULT_WIDGET_SETTINGS };
-        const updated: WidgetSettings = { ...current, favorite: !current.favorite };
+        const current = this.state.widgetSettings[widgetId] || WidgetGeneric.getDefaultSettings();
+        const updated: WidgetSettingsBase = { ...current, favorite: !current.favorite };
         const widgetSettings = { ...this.state.widgetSettings, [widgetId]: updated };
         this.setState({ widgetSettings });
         void this.saveWidgetSettingsToObject(widgetId, updated);
     };
 
     /**
-     * Extract WidgetSettings from a single widget's custom data.
-     * Returns a full WidgetSettings if any non-default values exist, otherwise null.
+     * Extract WidgetSettingsBase from a single widget's custom data.
+     * Returns a full WidgetSettingsBase if any non-default values exist, otherwise null.
      */
-    private static extractSingleWidgetSettings(widget: WidgetInfo): WidgetSettings | null {
+    private static extractSingleWidgetSettings(widget: WidgetInfo): WidgetSettingsBase | null {
         const custom = widget.custom;
         if (!custom) {
             return null;
         }
         const settings: Record<string, any> = {};
-        for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS)) {
+        const defaultSettings: WidgetSettingsBase = WidgetGeneric.getDefaultSettings();
+        for (const key of Object.keys(defaultSettings)) {
             if (key === 'name') {
                 // name is stored in common.name (widget.name), not in custom
-            } else if (key === 'iconInactive' && ALARM_ICON_TYPES.has(widget.control?.type)) {
-                // For alarm types: iconInactive comes from widget.icon (common.icon)
-                if (widget.icon) {
-                    settings.iconInactive = widget.icon;
-                }
-            } else if (key === 'icon' && !ALARM_ICON_TYPES.has(widget.control?.type)) {
-                // For non-alarm types: icon comes from widget.icon (common.icon)
+            } else if (key === 'icon') {
+                // icon comes from widget.icon (common.icon) for all widget types
                 if (widget.icon) {
                     settings.icon = widget.icon;
                 }
@@ -946,17 +944,17 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             }
         }
 
-        if (Object.keys(settings).length === 0) {
+        if (!Object.keys(settings).length) {
             return null;
         }
-        return { ...DEFAULT_WIDGET_SETTINGS, ...settings };
+        return { ...defaultSettings, ...settings };
     }
 
     /**
      * Build widgetSettings record from all loaded widgets' custom data.
      */
-    static extractWidgetSettingsFromWidgets(widgets: WidgetInfo[]): Record<string, WidgetSettings> {
-        const result: Record<string, WidgetSettings> = {};
+    static extractWidgetSettingsFromWidgets(widgets: WidgetInfo[]): Record<string, WidgetSettingsBase> {
+        const result: Record<string, WidgetSettingsBase> = {};
         for (const widget of widgets) {
             const settings = CategoryList.extractSingleWidgetSettings(widget);
             if (settings) {
@@ -968,9 +966,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     /**
      * Persist widget settings to `common.custom[instanceId]` in the ioBroker object.
-     * For alarm-type widgets: iconInactive → `common.icon`, iconActive → `custom.iconActive`
+     * For alarm-type widgets: icon → `common.icon`, iconActive → `custom.iconActive`
      */
-    private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettings): Promise<void> {
+    private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettingsBase): Promise<void> {
         const instanceId = this.state.selectedInstance;
         const widget = this.state.widgets.find(w => String(w.id) === widgetId);
         const isAlarmType = widget?.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
@@ -980,39 +978,37 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             if (!obj) {
                 return;
             }
-            const common = obj.common as Record<string, any>;
+            const common = obj.common as ioBroker.StateCommon;
             common.custom ||= {};
             const custom = { ...(common.custom[instanceId] || {}) };
+            const defaultSettings = WidgetGeneric.getDefaultSettings() as Record<string, unknown>;
+            const settingsRecord = settings as Record<string, unknown>;
 
-            for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettings)[]) {
+            for (const key of Object.keys(defaultSettings)) {
                 if (key === 'name') {
-                    // name → common.name
-                    if (settings.name) {
-                        common.name = settings.name;
+                    if (settingsRecord.name) {
+                        common.name = settingsRecord.name as string;
                     }
                     continue;
                 }
-                if (key === 'iconInactive' && isAlarmType) {
-                    // For alarm types: iconInactive → common.icon
-                    if (settings.iconInactive) {
-                        common.icon = settings.iconInactive;
+                if (key === 'icon' && isAlarmType) {
+                    if (settingsRecord.icon) {
+                        common.icon = settingsRecord.icon as string;
                     } else {
                         delete common.icon;
                     }
                     continue;
                 }
                 if (key === 'icon' && !isAlarmType) {
-                    // For non-alarm types: icon → common.icon
-                    if (settings.icon) {
-                        common.icon = settings.icon;
+                    if (settingsRecord.icon) {
+                        common.icon = settingsRecord.icon as string;
                     } else {
                         delete common.icon;
                     }
                     continue;
                 }
-                // Store non-default values, remove defaults
-                const value = settings[key];
-                if (value !== DEFAULT_WIDGET_SETTINGS[key]) {
+                const value = settingsRecord[key];
+                if (value !== defaultSettings[key]) {
                     custom[key] = value;
                 } else {
                     delete custom[key];
@@ -1082,7 +1078,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         try {
             const obj = await this.props.socket.getObject(String(widgetId));
             if (obj) {
-                const common = obj.common as Record<string, any>;
+                const common = obj.common as ioBroker.StateCommon;
                 common.custom ||= {};
                 common.custom[instanceId] = null;
                 await this.props.socket.setObject(obj._id, obj);
@@ -1104,7 +1100,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         try {
             const obj = await this.props.socket.getObject(String(widgetId));
             if (obj) {
-                const common = obj.common as Record<string, any>;
+                const common = obj.common as ioBroker.StateCommon;
                 common.custom ||= {};
                 common.custom[instanceId] = null;
                 await this.props.socket.setObject(obj._id, obj);

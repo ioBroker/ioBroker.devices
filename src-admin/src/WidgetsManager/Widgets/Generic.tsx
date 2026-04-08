@@ -37,84 +37,26 @@ import {
     WidgetGeneric as WidgetGenericBase,
     type WidgetGenericProps as WidgetGenericPropsBase,
     type WidgetSettingsBase,
-} from '../../../../packages/dm-widgets/src/WidgetGeneric';
+} from '@iobroker/dm-widgets';
 import type StateContext from '../StateContext';
 import ChartDialog, { type ChartLineType } from './ChartDialog';
 
-export interface WidgetSettings extends WidgetSettingsBase {
-    blindType: 'shutter' | 'curtain';
-    pin: string;
-    hideWhenOk: boolean;
-    onBrightness: number;
-    showCoordinates: boolean;
-    /** Base64 data URI or predefined type name for map marker icon */
-    markerIcon: string;
-    /** Map tile theme: standard, dark, satellite */
-    mapTheme: string;
-    /** Slider visual type: normal, valve, fan, gauge */
-    sliderType: string;
-    /** Wide view slider style: horizontal (MUI slider) or round (arc knob) */
-    wideSliderStyle: string;
-    /** Show wave animation on tank widget */
-    showAnimation: boolean;
-    /** Image refresh interval in seconds (0 = no refresh) */
-    refreshInterval: number;
-    /** Append ?ts=timestamp to image URL for cache busting */
-    appendTimestamp: boolean;
-    /** Custom text shown when widget is in active/alarm state */
-    textActive: string;
-    /** Custom text shown when widget is in inactive/OK state */
-    textInactive: string;
-    /** Custom color for inactive state */
-    colorInactive: string;
-    /** Custom icon URL/base64 for active/alarm state */
-    iconActive: string;
-    /** Custom icon URL/base64 for inactive/OK state */
-    iconInactive: string;
-    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in common.icon) */
-    icon: string;
+/** Generic settings used by WidgetGeneric base class */
+export interface GenericWidgetSettings extends WidgetSettingsBase {
     /** Show trend arrow indicator based on recent history data */
-    showTrendArrow: boolean;
+    showTrendArrow?: boolean;
     /** Trend calculation period in minutes (default 30) */
-    trendMinutes: number;
+    trendMinutes?: number;
 }
 
 export interface WidgetGenericProps<
-    TSettings extends WidgetSettings = WidgetSettings,
+    TSettings extends WidgetSettingsBase = GenericWidgetSettings,
 > extends WidgetGenericPropsBase<TSettings> {
     /** Host's StateContext (superset of IStateContext) */
     stateContext: StateContext;
     /** Full widget settings (host's WidgetSettings + plugin-specific TSettings) */
     settings?: TSettings;
 }
-
-export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
-    size: '1x1',
-    chartHours: 12,
-    name: '',
-    color: '',
-    blindType: 'shutter',
-    pin: '',
-    hideWhenOk: false,
-    onBrightness: 100,
-    showCoordinates: false,
-    markerIcon: '',
-    mapTheme: 'standard',
-    sliderType: 'normal',
-    wideSliderStyle: 'horizontal',
-    showAnimation: true,
-    refreshInterval: 0,
-    appendTimestamp: false,
-    textActive: '',
-    textInactive: '',
-    colorInactive: '',
-    iconActive: '',
-    iconInactive: '',
-    icon: '',
-    showTrendArrow: false,
-    trendMinutes: 30,
-    favorite: false,
-};
 
 /**
  * Format a number for display, replacing '.' with ',' when isFloatComma is true.
@@ -262,8 +204,8 @@ const DEFAULT_INDICATORS: IndicatorValues = {
 
 export class WidgetGeneric<
     TState extends WidgetGenericState = WidgetGenericState,
-    TSettings extends WidgetSettings = WidgetSettings,
-> extends WidgetGenericBase<TSettings, TState> {
+    TSettings extends GenericWidgetSettings = GenericWidgetSettings,
+> extends WidgetGenericBase<TState, TSettings> {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
     /** Extra info state IDs (ELECTRIC_POWER, CURRENT, etc.) */
@@ -443,6 +385,23 @@ export class WidgetGeneric<
         }
 
         this.adjustNameFontSize();
+    }
+
+    static getDefaultSettings(): WidgetSettingsBase {
+        return {
+            size: '1x1',
+            chartHours: 12,
+            name: '',
+            color: '',
+            colorActive: '',
+            showTrendArrow: false,
+            trendMinutes: 30,
+            favorite: false,
+            icon: '',
+            iconActive: '',
+            text: '',
+            textActive: '',
+        };
     }
 
     /** Shrink the name font so it fits on one line without truncation */
@@ -942,11 +901,11 @@ export class WidgetGeneric<
     }
 
     protected getAccentColor(): string | undefined {
-        return this.props.settings?.color || this.state.color || undefined;
+        return this.props.settings?.colorActive || this.state.color || undefined;
     }
 
     protected getInactiveColor(): string | undefined {
-        return this.props.settings?.colorInactive || undefined;
+        return this.props.settings?.color || undefined;
     }
 
     // eslint-disable-next-line class-methods-use-this

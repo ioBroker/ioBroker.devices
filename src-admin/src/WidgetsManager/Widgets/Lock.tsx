@@ -3,7 +3,12 @@ import { Box, Button, Dialog, IconButton, Tooltip, Typography } from '@mui/mater
 import { Backspace, Lock, LockOpen, MeetingRoom, SensorDoor } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type GenericWidgetSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+
+/** Settings for Lock widget */
+export interface LockWidgetSettings extends GenericWidgetSettings {
+    pin?: string;
+}
 
 interface WidgetLockState extends WidgetGenericState {
     isLocked: boolean;
@@ -14,13 +19,13 @@ interface WidgetLockState extends WidgetGenericState {
     pendingAction: 'toggle' | 'open' | null;
 }
 
-export class WidgetLock extends WidgetGeneric<WidgetLockState> {
+export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSettings> {
     private readonly setId: string | null;
     private readonly listenId: string | null;
     private readonly openId: string | null;
     private readonly doorStateId: string | null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<LockWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -41,6 +46,13 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState> {
             pinInput: '',
             pinError: false,
             pendingAction: null,
+        };
+    }
+
+    static getDefaultSettings(): LockWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            pin: '',
         };
     }
 

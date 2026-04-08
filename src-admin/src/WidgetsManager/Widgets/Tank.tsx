@@ -6,9 +6,15 @@ import WidgetGeneric, {
     formatFloat,
     getTileStyles,
     isNeumorphicTheme,
+    type GenericWidgetSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+
+/** Settings for Tank widget */
+export interface TankWidgetSettings extends GenericWidgetSettings {
+    showAnimation?: boolean;
+}
 
 /** Color based on fill level */
 function getFillColor(percent: number, accent: string | undefined): string {
@@ -138,11 +144,11 @@ interface WidgetTankState extends WidgetGenericState {
     tankExtra: TankExtraState[];
 }
 
-export class WidgetTank extends WidgetGeneric<WidgetTankState> {
+export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSettings> {
     private readonly actualId: string | null;
     private readonly extraStateIds: { id: string; name: string }[] = [];
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<TankWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''));
@@ -186,6 +192,13 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         }
     }
 
+    static getDefaultSettings(): TankWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            showAnimation: true,
+        };
+    }
+
     private async loadExtraStates(): Promise<void> {
         const entries: TankExtraState[] = [];
         for (const { id, name } of this.extraStateIds) {
@@ -215,12 +228,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
     }
 
     private onExtraStateChange = (id: string, state: ioBroker.State): void => {
-        this.setState(
-            prev =>
-                ({
-                    tankExtra: prev.tankExtra.map(e => (e.id === id ? { ...e, value: state.val } : e)),
-                }) as any,
-        );
+        this.setState(prev => ({
+            tankExtra: prev.tankExtra.map(e => (e.id === id ? { ...e, value: state.val } : e)),
+        }));
     };
 
     private async loadObjectConfig(): Promise<void> {
@@ -448,10 +458,10 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <ButtonBase
-                    component={'div' as any}
+                    component="div"
                     disabled={!chartAction}
                     disableRipple={!chartAction}
-                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -570,10 +580,10 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                 sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <ButtonBase
-                    component={'div' as any}
+                    component="div"
                     disabled={!chartAction}
                     disableRipple={!chartAction}
-                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
@@ -644,10 +654,10 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
-                    component={'div' as any}
+                    component="div"
                     disabled={!chartAction}
                     disableRipple={!chartAction}
-                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,

@@ -4,7 +4,11 @@ import { DirectionsRun, LightMode } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type GenericWidgetSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+
+interface AlarmWidgetSettings extends GenericWidgetSettings {
+    hideWhenOk?: boolean;
+}
 
 interface WidgetMotionState extends WidgetGenericState {
     motion: boolean;
@@ -16,12 +20,12 @@ interface WidgetMotionState extends WidgetGenericState {
     lastMotionAgo: string;
 }
 
-export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
+export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
     private readonly brightnessId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
@@ -161,10 +165,10 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         const { motion } = this.state;
         const accent = this.getAccentColor();
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon = motion
-            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-            : this.props.settings?.iconInactive;
+            ? this.props.settings?.iconActive || this.props.settings?.icon
+            : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -211,7 +215,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                     >
                         {motion
                             ? this.props.settings?.textActive || I18n.t('wm_Motion')
-                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
+                            : this.props.settings?.text || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography
@@ -258,7 +262,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                     >
                         {motion
                             ? this.props.settings?.textActive || I18n.t('wm_Motion')
-                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
+                            : this.props.settings?.text || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography

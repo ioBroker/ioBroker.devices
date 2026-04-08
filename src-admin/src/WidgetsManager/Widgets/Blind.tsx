@@ -8,7 +8,13 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type GenericWidgetSettings,
 } from './Generic';
+
+/** Settings for Blind widget */
+export interface BlindWidgetSettings extends GenericWidgetSettings {
+    blindType?: 'shutter' | 'curtain';
+}
 
 interface WidgetBlindState extends WidgetGenericState {
     position: number;
@@ -283,7 +289,7 @@ function BlindSvg(props: BlindSvgProps & { blindType: 'shutter' | 'curtain' }): 
     return <ShutterSvg {...rest} />;
 }
 
-export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
+export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly stopId: string | null;
@@ -297,7 +303,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
     private dragStartPosition = 0;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<BlindWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -323,6 +329,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
             min: 0,
             max: 100,
             tiltPosition: null,
+        };
+    }
+
+    static getDefaultSettings(): BlindWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            blindType: 'shutter',
         };
     }
 

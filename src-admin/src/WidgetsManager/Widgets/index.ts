@@ -1,37 +1,42 @@
-export { WidgetSwitch } from './Switch';
-export { WidgetLight } from './Light';
-export { WidgetDimmer } from './Dimmer';
-export { WidgetTemperature } from './Temperature';
-export { WidgetMotion } from './Motion';
-export { WidgetWindow } from './Window';
+export { PluginWidget } from './PluginWidget';
+export { WidgetAirCondition } from './AirCondition';
 export { WidgetBlind } from './Blind';
 export { WidgetBlindButtons } from './BlindButtons';
-export { WidgetAirCondition } from './AirCondition';
-export { WidgetWarning } from './Warning';
-export { WidgetLock } from './Lock';
-export { WidgetDoor } from './Door';
-export { WidgetFloodAlarm } from './FloodAlarm';
-export { WidgetFireAlarm } from './FireAlarm';
-export { WidgetHumidity } from './Humidity';
-export { WidgetIlluminance } from './Illuminance';
-export { WidgetThermostat } from './Thermostat';
 export { WidgetClock } from './Clock';
-export { WidgetVolume } from './Volume';
-export { WidgetMediaPlayer } from './MediaPlayer';
 export { WidgetColorLight } from './ColorLight';
-export { WidgetInfo } from './Info';
-export { WidgetLocation } from './Location';
-export { WidgetSlider } from './Slider';
-export { WidgetTank } from './Tank';
+export { WidgetDimmer } from './Dimmer';
+export { WidgetDoor } from './Door';
+export { WidgetFireAlarm } from './FireAlarm';
+export { WidgetFloodAlarm } from './FloodAlarm';
+export { WidgetGate } from './Gate';
+export { WidgetGauge } from './Gauge';
+export { WidgetHumidity } from './Humidity';
+export { WidgetIframe } from './Iframe';
+export { WidgetIlluminance } from './Illuminance';
 export { WidgetImage } from './Image';
+export { WidgetInfo } from './Info';
+export { WidgetLight } from './Light';
+export { WidgetLocation } from './Location';
+export { WidgetLock } from './Lock';
+export { WidgetMediaPlayer } from './MediaPlayer';
+export { WidgetMotion } from './Motion';
+export { WidgetSlider } from './Slider';
+export { WidgetSwitch } from './Switch';
+export { WidgetTank } from './Tank';
+export { WidgetTemperature } from './Temperature';
+export { WidgetThermostat } from './Thermostat';
+export { WidgetUniversal } from './Universal';
+export { WidgetVolume } from './Volume';
+export { WidgetWarning } from './Warning';
+export { WidgetWeather } from './Weather';
 export { WidgetWeatherCurrent } from './WeatherCurrent';
 export { WidgetWeatherForecast } from './WeatherForecast';
-export { WidgetWeather } from './Weather';
-export { WidgetIframe } from './Iframe';
 export { WidgetWind } from './Wind';
-export { WidgetGate } from './Gate';
-export { PluginWidget } from './PluginWidget';
-export { WidgetGauge } from './Gauge';
-export { WidgetUniversal } from './Universal';
-export { getTileStyles, DEFAULT_WIDGET_SETTINGS, formatFloat } from './Generic';
-export type { WidgetGeneric, WidgetGenericProps, WidgetSettings } from './Generic';
+export { WidgetWindow } from './Window';
+export {
+    getTileStyles,
+    formatFloat,
+    type WidgetGeneric,
+    type WidgetGenericProps,
+    type GenericWidgetSettings,
+} from './Generic';

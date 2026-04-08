@@ -52,9 +52,8 @@ import {
 import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/widget-utils';
+import type { CategoryInfo, CustomWidgetDef, WidgetInfo, DevicesDetectorState } from '../../../src/widget-utils';
 import {
-    type WidgetSettings,
     formatFloat,
     WidgetSwitch,
     WidgetLight,
@@ -98,6 +97,8 @@ import type { CategorySettings } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
 import { getGroupIcon } from './groupIcons';
+import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
+import type WidgetGeneric from './Widgets/Generic';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -106,7 +107,7 @@ interface CategoryProps {
     language: ioBroker.Languages;
     stateContext: StateContext;
     onNavigate: (category: CategoryInfo) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onOpenSettings?: (widgetId: string | number) => void;
     categorySettings: Record<string, CategorySettings>;
     onOpenCategorySettings?: (categoryId: string) => void;
@@ -222,7 +223,7 @@ type OrderedItem = {
     data: CategoryInfo | WidgetInfo | CustomWidgetDef;
 };
 
-function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettings>): string | undefined {
+function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettingsBase>): string | undefined {
     if (item.type === 'category') {
         return '1 / -1';
     }
@@ -362,7 +363,7 @@ function SortableGrid(props: {
     categoryId: string;
     onOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
     const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings, onToggleFavorite } =
@@ -630,7 +631,7 @@ function GroupSortableGrid(props: {
     items: OrderedItem[];
     activeId: string | null;
     canDrag: boolean;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
     const { category, items, activeId, canDrag, widgetSettings, onToggleFavorite } = props;
@@ -823,7 +824,7 @@ function GroupedContent(props: {
     categoryId: string;
     onGroupsChange?: (categoryId: string, groups: WidgetGroup[]) => void;
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     configMode?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
@@ -1736,89 +1737,85 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return text;
     }
 
-    // eslint-disable-next-line react/no-unused-class-component-methods
-    renderWidget(widget: WidgetInfo): React.JSX.Element {
-        let Widget: React.ComponentType<any> | undefined;
-        if (widget.control && widget.control.type === Types.socket) {
+    static getWidgetComponent(
+        type?: Types,
+        states?: DevicesDetectorState[],
+    ): typeof WidgetGeneric<any, any> | undefined {
+        let Widget: typeof WidgetGeneric<any, any> | undefined;
+        if (type === Types.socket) {
             Widget = WidgetSwitch;
-        } else if (widget.control && widget.control.type === Types.light) {
+        } else if (type === Types.light) {
             Widget = WidgetLight;
-        } else if (widget.control && widget.control.type === Types.dimmer) {
+        } else if (type === Types.dimmer) {
             Widget = WidgetDimmer;
-        } else if (widget.control && widget.control.type === Types.temperature) {
+        } else if (type === Types.temperature) {
             Widget = WidgetTemperature;
-        } else if (widget.control && widget.control.type === Types.motion) {
+        } else if (type === Types.motion) {
             Widget = WidgetMotion;
-        } else if (widget.control && widget.control.type === Types.window) {
+        } else if (type === Types.window) {
             Widget = WidgetWindow;
-        } else if (widget.control && widget.control.type === Types.gate) {
+        } else if (type === Types.gate) {
             Widget = WidgetGate;
-        } else if (widget.control && widget.control.type === Types.blind) {
+        } else if (type === Types.blind) {
             Widget = WidgetBlind;
-        } else if (widget.control && widget.control.type === Types.blindButtons) {
+        } else if (type === Types.blindButtons) {
             Widget = WidgetBlindButtons;
-        } else if (widget.control && widget.control.type === Types.lock) {
+        } else if (type === Types.lock) {
             Widget = WidgetLock;
-        } else if (widget.control && widget.control.type === Types.door) {
+        } else if (type === Types.door) {
             Widget = WidgetDoor;
-        } else if (widget.control && widget.control.type === Types.floodAlarm) {
+        } else if (type === Types.floodAlarm) {
             Widget = WidgetFloodAlarm;
-        } else if (widget.control && widget.control.type === Types.fireAlarm) {
+        } else if (type === Types.fireAlarm) {
             Widget = WidgetFireAlarm;
-        } else if (widget.control && widget.control.type === Types.humidity) {
+        } else if (type === Types.humidity) {
             Widget = WidgetHumidity;
-        } else if (widget.control && widget.control.type === Types.illuminance) {
+        } else if (type === Types.illuminance) {
             Widget = WidgetIlluminance;
-        } else if (widget.control && widget.control.type === Types.thermostat) {
+        } else if (type === Types.thermostat) {
             Widget = WidgetThermostat;
-        } else if (widget.control && widget.control.type === Types.airCondition) {
+        } else if (type === Types.airCondition) {
             Widget = WidgetAirCondition;
-        } else if (widget.control && widget.control.type === Types.warning) {
+        } else if (type === Types.warning) {
             Widget = WidgetWarning;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)
-        ) {
+        } else if (type === Types.volume || type === Types.volumeGroup) {
             Widget = WidgetVolume;
-        } else if (widget.control && widget.control.type === Types.media) {
+        } else if (type === Types.media) {
             Widget = WidgetMediaPlayer;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.slider || widget.control.type === Types.percentage)
-        ) {
+        } else if (type === Types.slider || type === Types.percentage) {
             Widget = WidgetSlider;
         } else if (
-            widget.control?.type === Types.info &&
-            widget.control.states.some(
-                s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
-            )
+            type === Types.info &&
+            states?.some(s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''))
         ) {
             Widget = WidgetTank;
-        } else if (widget.control && widget.control.type === Types.image) {
+        } else if (type === Types.image) {
             Widget = WidgetImage;
-        } else if (widget.control && widget.control.type === Types.info) {
+        } else if (type === Types.info) {
             Widget = WidgetInfoWidget;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.location || widget.control.type === Types.locationOne)
-        ) {
+        } else if (type === Types.location || type === Types.locationOne) {
             Widget = WidgetLocation;
-        } else if (widget.control && widget.control.type === Types.weatherCurrent) {
+        } else if (type === Types.weatherCurrent) {
             Widget = WidgetWeatherCurrent;
-        } else if (widget.control && widget.control.type === Types.weatherForecast) {
+        } else if (type === Types.weatherForecast) {
             Widget = WidgetWeatherForecast;
         } else if (
-            widget.control &&
-            (widget.control.type === Types.rgbSingle ||
-                widget.control.type === Types.rgbwSingle ||
-                widget.control.type === Types.rgb ||
-                widget.control.type === Types.hue ||
-                widget.control.type === Types.cie ||
-                widget.control.type === Types.ct)
+            type === Types.rgbSingle ||
+            type === Types.rgbwSingle ||
+            type === Types.rgb ||
+            type === Types.hue ||
+            type === Types.cie ||
+            type === Types.ct
         ) {
             Widget = WidgetColorLight;
         }
 
+        return Widget;
+    }
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    renderWidget(widget: WidgetInfo): React.JSX.Element {
+        const Widget = Category.getWidgetComponent(widget.control?.type, widget.control?.states);
         if (!Widget) {
             const settings = this.props.widgetSettings[String(widget.id)];
             const size = settings?.size || '1x1';
@@ -1870,6 +1867,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 </Box>
             );
         }
+
         const settings = this.props.widgetSettings[String(widget.id)];
         return (
             <Widget
@@ -2140,8 +2138,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     ? (w.name as ioBroker.Translated)[this.props.language] || (w.name as ioBroker.Translated).en || ''
                     : String(w.name || '');
             const ws = this.props.widgetSettings[String(w.id)];
-            const iconSrc =
-                ws?.iconActive || ws?.iconInactive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
+            const iconSrc = ws?.iconActive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
             const color = ws?.color;
             icons.push({ id: w.id, src: iconSrc, name: wName, type: w.control.type, color });
         }
@@ -2237,7 +2234,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);
@@ -2503,7 +2500,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);

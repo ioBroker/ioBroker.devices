@@ -17,5 +17,6 @@ export type {
     BackendToGuiCommandAllUpdate,
     BackendToGuiCommandNavigate,
     BackendToGuiCommandDeviceDelete,
+    DevicesDetectorState,
 } from './base';
 export type * from './common';

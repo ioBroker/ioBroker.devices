@@ -7,16 +7,23 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
+    type GenericWidgetSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+
+/** Settings for Slider/Dimmer/Volume widgets */
+interface SliderWidgetSettings extends GenericWidgetSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+}
 
 interface WidgetVolumeState extends WidgetGenericState {
     volume: number;
     dragging: boolean;
 }
 
-export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
+export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly muteSetId: string | null;
@@ -26,7 +33,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
     private dragStartPos: { x: number; y: number } | null = null;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');

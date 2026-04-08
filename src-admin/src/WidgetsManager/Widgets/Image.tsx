@@ -7,7 +7,13 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type GenericWidgetSettings,
 } from './Generic';
+
+interface ImageWidgetSettings extends GenericWidgetSettings {
+    refreshInterval: number;
+    appendTimestamp: boolean;
+}
 
 interface WidgetImageState extends WidgetGenericState {
     url: string | null;
@@ -15,11 +21,11 @@ interface WidgetImageState extends WidgetGenericState {
     tick: number;
 }
 
-export class WidgetImage extends WidgetGeneric<WidgetImageState> {
+export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSettings> {
     private readonly urlId: string | null;
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<ImageWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const urlState = states.find(s => s.name === 'URL');
@@ -33,6 +39,14 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         };
     }
 
+    static getDefaultSettings(): ImageWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            refreshInterval: 0,
+            appendTimestamp: false,
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.urlId) {
@@ -41,7 +55,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         this.setupRefreshTimer();
     }
 
-    componentDidUpdate(prevProps: WidgetGenericProps): void {
+    componentDidUpdate(prevProps: WidgetGenericProps<ImageWidgetSettings>): void {
         const prevInterval = prevProps.settings?.refreshInterval ?? 0;
         const newInterval = this.props.settings?.refreshInterval ?? 0;
         if (prevInterval !== newInterval) {

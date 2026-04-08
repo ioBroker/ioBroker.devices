@@ -121,7 +121,7 @@ export default class StateContext {
         }
 
         const ids = pending.map(p => p.id);
-        void (this.socket as any)
+        void this.socket
             .getObjectsById(ids)
             .then((result: Record<string, ioBroker.Object> | undefined) => {
                 for (const { id, resolve, reject } of pending) {
@@ -135,7 +135,7 @@ export default class StateContext {
                     }
                 }
             })
-            .catch((err: any) => {
+            .catch(err => {
                 for (const { reject } of pending) {
                     reject(err instanceof Error ? err : new Error(String(err)));
                 }
@@ -179,7 +179,7 @@ export default class StateContext {
         };
 
         if (toFetch.length) {
-            void (this.socket as any)
+            void this.socket
                 .getObjectsById(toFetch)
                 .then(async (result: Record<string, ioBroker.Object> | undefined) => {
                     for (const id of toFetch) {

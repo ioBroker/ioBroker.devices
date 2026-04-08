@@ -360,7 +360,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    onClick={chartClickable ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
+                    onClick={chartClickable ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',

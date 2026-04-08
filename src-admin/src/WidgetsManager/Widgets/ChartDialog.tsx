@@ -710,7 +710,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         void (async () => {
             try {
                 const obj = await socket.getObject(widgetId);
-                const custom = (obj?.common as Record<string, any>)?.custom?.[instanceId];
+                const custom = (obj?.common as ioBroker.StateCommon)?.custom?.[instanceId];
                 if (custom) {
                     if (custom.chartType && ['line', 'step-start', 'step-end'].includes(custom.chartType)) {
                         setChartType(custom.chartType);
@@ -754,7 +754,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     if (!obj) {
                         return;
                     }
-                    const common = obj.common as Record<string, any>;
+                    const common = obj.common as ioBroker.StateCommon;
                     common.custom ||= {};
                     common.custom[instanceId] = { ...common.custom[instanceId], [key]: value };
                     await socket.setObject(obj._id, obj);

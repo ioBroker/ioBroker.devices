@@ -9,9 +9,17 @@ import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
     formatFloat,
+    type GenericWidgetSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+
+/** Settings for Location widget */
+export interface LocationWidgetSettings extends GenericWidgetSettings {
+    showCoordinates?: boolean;
+    markerIcon?: string;
+    mapTheme?: string;
+}
 
 interface WidgetLocationState extends WidgetGenericState {
     latitude: number | null;
@@ -117,11 +125,11 @@ function createMarkerIcon(
 }
 
 /**
- * Widget for Types.location (separate lat/lng) and Types.locationOne (combined GPS string).
+ * Widget for `Types.location` (separate lat/lng) and Types.locationOne (combined GPS string).
  * Always shows map as background. Coordinates display is toggled via settings.
  * Clicking opens a fullscreen interactive map dialog.
  */
-export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
+export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationWidgetSettings> {
     private readonly latId: string | null;
     private readonly lngId: string | null;
     private readonly gpsId: string | null;
@@ -148,7 +156,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
     private dialogMarker: L.Marker | null = null;
     private dialogCircle: L.Circle | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<LocationWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
 
@@ -172,6 +180,15 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
             accuracy: null,
             gpsString: null,
             dialogOpen: false,
+        };
+    }
+
+    static getDefaultSettings(): LocationWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            showCoordinates: false,
+            markerIcon: '',
+            mapTheme: 'standard',
         };
     }
 
@@ -221,7 +238,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState> {
         this.destroyDialogMap();
     }
 
-    componentDidUpdate(prevProps: Readonly<WidgetGenericProps>): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<LocationWidgetSettings>>): void {
         super.componentDidUpdate(prevProps);
         const { latitude, longitude, radius, accuracy } = this.state;
         const r = radius || accuracy;

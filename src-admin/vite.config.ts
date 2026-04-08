@@ -64,6 +64,9 @@ export default defineConfig({
             },
         },
     },
+    resolve: {
+        dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    },
     base: './',
     build: {
         target: 'chrome89',

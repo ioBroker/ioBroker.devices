@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 
-import type { WidgetSettings } from './Widgets/Generic';
+import { type WidgetSettingsBase } from '@iobroker/dm-widgets';
 import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
@@ -93,9 +93,9 @@ const PREDEFINED_MARKERS: { value: string; label: string; icon: React.JSX.Elemen
 interface WidgetSettingsDialogProps {
     open: boolean;
     widgetName: string;
-    settings: WidgetSettings;
+    settings: WidgetSettingsBase & Record<string, any>;
     onClose: () => void;
-    onSave: (settings: WidgetSettings) => void;
+    onSave: (settings: WidgetSettingsBase & Record<string, any>) => void;
     onDelete?: () => void;
     showChart?: boolean;
     showBlindType?: boolean;
@@ -153,8 +153,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         objectColor,
         onDelete,
     } = props;
-    const [local, setLocal] = useState<WidgetSettings>(settings);
-    const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'iconInactive' | 'icon' | null>(null);
+    const [local, setLocal] = useState<WidgetSettingsBase & Record<string, any>>(settings);
+    const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'icon' | null>(null);
     const [historyEnabled, setHistoryEnabled] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -265,9 +265,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 <Box
                                     component="input"
                                     type="color"
-                                    value={local.colorInactive || '#9e9e9e'}
+                                    value={local.color || '#9e9e9e'}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        setLocal({ ...local, colorInactive: e.target.value })
+                                        setLocal({ ...local, color: e.target.value })
                                     }
                                     sx={{
                                         width: 36,
@@ -280,10 +280,10 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                         backgroundColor: 'transparent',
                                     }}
                                 />
-                                {local.colorInactive ? (
+                                {local.color ? (
                                     <IconButton
                                         size="small"
-                                        onClick={() => setLocal({ ...local, colorInactive: '' })}
+                                        onClick={() => setLocal({ ...local, color: '' })}
                                     >
                                         <Delete fontSize="small" />
                                     </IconButton>
@@ -393,8 +393,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             <TextField
                                 variant="filled"
                                 label={I18n.t('wm_Text inactive')}
-                                value={local.textInactive || ''}
-                                onChange={e => setLocal({ ...local, textInactive: e.target.value })}
+                                value={local.text || ''}
+                                onChange={e => setLocal({ ...local, text: e.target.value })}
                                 placeholder={props.showAlarmTexts.inactiveDefault}
                                 size="small"
                                 sx={{ flex: 1 }}
@@ -480,7 +480,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                         {I18n.t('wm_Icon inactive')}
                                     </Typography>
                                     <Box
-                                        onClick={() => setIconPickerField('iconInactive')}
+                                        onClick={() => setIconPickerField('icon')}
                                         sx={{
                                             width: 48,
                                             height: 48,
@@ -494,21 +494,21 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                             '&:hover': { bgcolor: 'action.hover' },
                                         }}
                                     >
-                                        {local.iconInactive ? (
+                                        {local.icon ? (
                                             <Icon
-                                                src={local.iconInactive}
-                                                style={{ width: 32, height: 32, color: local.colorInactive || 'grey' }}
+                                                src={local.icon}
+                                                style={{ width: 32, height: 32, color: local.color || 'grey' }}
                                             />
                                         ) : (
                                             <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
                                         )}
                                     </Box>
-                                    {local.iconInactive ? (
+                                    {local.icon ? (
                                         <IconButton
                                             size="small"
                                             onClick={e => {
                                                 e.stopPropagation();
-                                                setLocal({ ...local, iconInactive: '' });
+                                                setLocal({ ...local, icon: '' });
                                             }}
                                         >
                                             <Delete fontSize="small" />
@@ -966,10 +966,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             (local.refreshInterval ?? 0) === (settings.refreshInterval ?? 0) &&
                             !!local.appendTimestamp === !!settings.appendTimestamp &&
                             (local.textActive || '') === (settings.textActive || '') &&
-                            (local.textInactive || '') === (settings.textInactive || '') &&
-                            (local.colorInactive || '') === (settings.colorInactive || '') &&
+                            (local.text || '') === (settings.text || '') &&
+                            (local.color || '') === (settings.color || '') &&
                             (local.iconActive || '') === (settings.iconActive || '') &&
-                            (local.iconInactive || '') === (settings.iconInactive || '') &&
                             (local.icon || '') === (settings.icon || '') &&
                             !!local.showTrendArrow === !!settings.showTrendArrow &&
                             (local.trendMinutes || 30) === (settings.trendMinutes || 30)
@@ -996,9 +995,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     title={I18n.t(
                         iconPickerField === 'iconActive'
                             ? 'wm_Icon active'
-                            : iconPickerField === 'iconInactive'
-                              ? 'wm_Icon inactive'
-                              : 'wm_Icons',
+                            : 'wm_Icons',
                     )}
                     value={local[iconPickerField] || ''}
                     onClose={() => setIconPickerField(null)}

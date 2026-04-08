@@ -9,10 +9,15 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type GenericWidgetSettings,
 } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
 
+/** Settings for ColorLight widget */
+export interface ColorLightWidgetSettings extends GenericWidgetSettings {
+    onBrightness?: number;
+}
 // --- State interface ---
 
 interface WidgetColorLightState extends WidgetGenericState {
@@ -31,7 +36,7 @@ interface WidgetColorLightState extends WidgetGenericState {
 
 // --- Widget ---
 
-export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
+export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, ColorLightWidgetSettings> {
     // Dimmer states
     protected readonly setId: string | null;
     protected readonly actualId: string | null;
@@ -56,7 +61,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
     private longPressTimer: ReturnType<typeof setTimeout> | null = null;
     private longPressTriggered = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<ColorLightWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const find = (name: string): string | null => states.find(s => s.name === name)?.id ?? null;
@@ -104,6 +109,13 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
             ctValue: 4000,
             ctMin: 2000,
             ctMax: 6500,
+        };
+    }
+
+    static getDefaultSettings(): ColorLightWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            onBrightness: 100,
         };
     }
 

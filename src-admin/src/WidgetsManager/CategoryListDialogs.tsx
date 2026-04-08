@@ -9,15 +9,17 @@ import type {
     InstanceWidgetDescription,
     WidgetInfo,
 } from '../../../src/widget-utils';
-import { DEFAULT_WIDGET_SETTINGS, type WidgetSettings } from './Widgets';
+import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
 import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
 import CustomWidgetDialog from './CustomWidgetDialog';
 import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
 import { findWidgetGroup } from './groupUtils';
 import SidePanelInstallDialog from './SidePanelInstallDialog';
+import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
+import WidgetGeneric from './Widgets/Generic';
 
-/** Widget types where iconInactive is stored in `common.icon` and iconActive in `common.custom` */
+/** Widget types where icon is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([
     Types.floodAlarm,
     Types.fireAlarm,
@@ -31,12 +33,12 @@ export interface CategoryListDialogsProps {
     // --- Widget settings dialog ---
     settingsWidget: WidgetInfo | null;
     settingsWidgetName: string;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     chartAvailable: boolean;
     settingsObjectName: string;
     settingsObjectColor: string;
     onCloseSettings: () => void;
-    onSaveSettings: (settings: WidgetSettings) => void;
+    onSaveSettings: (settings: WidgetSettingsBase) => void;
     onDeleteWidget: () => void;
     /** Default history adapter instance (e.g. "history.0") */
     defaultHistory?: string;
@@ -135,6 +137,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         return opts;
     }, [categories, rootCategory, getCategoryName]);
 
+    const Widget = Category.getWidgetComponent();
+
     return (
         <>
             <WidgetSettingsDialog
@@ -142,8 +146,10 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 widgetName={settingsWidgetName}
                 settings={
                     settingsWidget
-                        ? widgetSettings[String(settingsWidget.id)] || DEFAULT_WIDGET_SETTINGS
-                        : DEFAULT_WIDGET_SETTINGS
+                        ? widgetSettings[String(settingsWidget.id)] ||
+                          Widget?.getDefaultSettings?.() ||
+                          WidgetGeneric.getDefaultSettings()
+                        : Widget?.getDefaultSettings?.() || WidgetGeneric.getDefaultSettings()
                 }
                 instance={props.selectedInstance}
                 onClose={onCloseSettings}

@@ -17,9 +17,16 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
+    type GenericWidgetSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+
+/** Settings for Slider, Dimmer, Volume widgets */
+export interface SliderWidgetSettings extends GenericWidgetSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+}
 
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
@@ -74,7 +81,7 @@ interface WidgetSliderState extends WidgetGenericState {
     modeDialogOpen: boolean;
 }
 
-export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
+export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
 
@@ -84,7 +91,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
     /** true when the valve vertical fill bar is shown (compact); false when arc knob is used */
     private verticalDragMode = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -103,6 +110,14 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
             unit: '%',
             statesMap: null,
             modeDialogOpen: false,
+        };
+    }
+
+    static getDefaultSettings(): SliderWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            sliderType: 'normal',
+            wideSliderStyle: 'horizontal',
         };
     }
 

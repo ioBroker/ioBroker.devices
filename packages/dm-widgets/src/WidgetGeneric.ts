@@ -25,18 +25,23 @@ import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/dm-utils';
 
 export type WidgetSettingsBase = {
     size: '1x1' | '2x0.5' | '2x1';
-    chartHours: number;
     name: string;
-    color: string;
     favorite: boolean;
-}
 
-export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsBase = {
-    size: '1x1',
-    chartHours: 12,
-    name: '',
-    color: '',
-    favorite: false,
+    color: string;
+    /** Custom color for inactive state */
+    colorActive?: string;
+
+    trendMinutes?: number;
+    showTrendArrow?: boolean;
+    chartHours: number;
+
+    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in `common.icon`) */
+    icon: string;
+    iconActive: string;
+
+    text: string;
+    textActive: string;
 };
 
 export interface WidgetGenericProps<TPluginWidgetSettings extends WidgetSettingsBase = WidgetSettingsBase> {
@@ -124,12 +129,29 @@ export function getTileStyles(
 // ---------------------------------------------------------------------------
 
 export class WidgetGeneric<
-    TPluginWidgetSettings extends WidgetSettingsBase = WidgetSettingsBase,
     TState extends WidgetGenericState = WidgetGenericState,
-> extends Component<WidgetGenericProps<TPluginWidgetSettings>, TState> {
+    TSettings extends WidgetSettingsBase = WidgetSettingsBase,
+> extends Component<WidgetGenericProps<TSettings>, TState> {
     protected nameRef = { current: null as HTMLSpanElement | null };
 
     // --- Static style helpers (use in outer Box sx) ---
+
+    static getDefaultSettings(): WidgetSettingsBase {
+        return {
+            size: '1x1',
+            chartHours: 12,
+            name: '',
+            color: '',
+            colorActive: '',
+            showTrendArrow: false,
+            trendMinutes: 30,
+            favorite: false,
+            icon: '',
+            iconActive: '',
+            text: '',
+            textActive: '',
+        };
+    }
 
     static getStyleCompact(_theme: Theme): React.CSSProperties {
         return { position: 'relative', containerType: 'inline-size', overflow: 'hidden' };

@@ -191,8 +191,65 @@ interface StateSub {
 /** Refresh interval for direct API sources: 30 minutes */
 const API_REFRESH_MS = 30 * 60 * 1000;
 
+interface OpenMeteoCurrentUnits {
+    time: string;
+    interval: string;
+    temperature_2m: string;
+    relative_humidity_2m: string;
+    weather_code: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
+    surface_pressure: string;
+}
+
+interface OpenMeteoCurrent {
+    time: string;
+    interval: number;
+    temperature_2m: number;
+    relative_humidity_2m: number;
+    weather_code: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    surface_pressure: number;
+}
+
+interface OpenMeteoDailyUnits {
+    time: string;
+    weather_code: string;
+    temperature_2m_max: string;
+    temperature_2m_min: string;
+    precipitation_probability_max: string;
+}
+
+interface OpenMeteoDaily {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+}
+
+interface OpenMeteoResponse {
+    latitude: number;
+    longitude: number;
+    /** Generation time in milliseconds */
+    generationtime_ms: number;
+    /** UTC offset in seconds */
+    utc_offset_seconds: number;
+    /** IANA timezone string, e.g. "Europe/Berlin" */
+    timezone: string;
+    /** Timezone abbreviation, e.g. "CEST" */
+    timezone_abbreviation: string;
+    /** Elevation in meters */
+    elevation: number;
+    current_units?: OpenMeteoCurrentUnits;
+    current?: OpenMeteoCurrent;
+    daily_units?: OpenMeteoDailyUnits;
+    daily?: OpenMeteoDaily;
+}
+
 /** Module-level cache for weather API responses (key = "source|lat|lon") */
-const weatherApiCache: Record<string, { ts: number; data: unknown }> = {};
+const weatherApiCache: Record<string, { ts: number; data: OpenMeteoResponse }> = {};
 /** Cache lifetime: same as a refresh interval */
 const WEATHER_CACHE_MS = API_REFRESH_MS;
 
@@ -354,7 +411,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
         try {
             const cacheKey = `openmeteo|${latitude}|${longitude}`;
-            let data: any;
+            let data: OpenMeteoResponse;
             const cached = weatherApiCache[cacheKey];
             if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
                 data = cached.data;
@@ -372,7 +429,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
             const current = data.current;
             const daily = data.daily;
-            const wmoCode = current?.weather_code as number | undefined;
+            const wmoCode = current?.weather_code;
 
             const forecastDays: ForecastDay[] = [];
             if (daily?.time) {

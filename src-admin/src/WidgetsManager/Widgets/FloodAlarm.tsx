@@ -4,7 +4,12 @@ import { Water } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type GenericWidgetSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+
+/** Settings for alarm/sensor widgets */
+interface AlarmWidgetSettings extends GenericWidgetSettings {
+    hideWhenOk?: boolean;
+}
 
 const FLOOD_COLOR = '#00838f';
 
@@ -14,11 +19,11 @@ interface WidgetFloodAlarmState extends WidgetGenericState {
     lastChangedAgo: string;
 }
 
-export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
+export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
@@ -91,10 +96,10 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
         const { alarm } = this.state;
         const accent = this.getAccentColor();
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon = alarm
-            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-            : this.props.settings?.iconInactive;
+            ? this.props.settings?.iconActive || this.props.settings?.icon
+            : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -140,7 +145,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                 >
                     {alarm
                         ? this.props.settings?.textActive || I18n.t('wm_Flood')
-                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
+                        : this.props.settings?.text || I18n.t('wm_Dry')}
                 </Typography>
                 {size !== '2x1' && lastChangedAgo ? (
                     <Typography
@@ -170,7 +175,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                 >
                     {alarm
                         ? this.props.settings?.textActive || I18n.t('wm_Flood')
-                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
+                        : this.props.settings?.text || I18n.t('wm_Dry')}
                 </Typography>
                 {lastChangedAgo ? (
                     <Typography
