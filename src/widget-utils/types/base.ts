@@ -125,10 +125,18 @@ export interface GaugeWidgetDef extends CustomWidgetBase {
     usePercentage?: boolean;
 }
 
-
-
 export interface UniversalWidgetDef extends CustomWidgetBase {
     type: 'universal';
+    /** Display name (shown below the value) */
+    name?: string;
+    /** Secondary display name (shown below secondary value) */
+    secondaryName?: string;
+    /** Number of decimal digits. Default: 1 */
+    digits?: number;
+    /** Widget icon (inactive/default) — data URI, file path, or base64 */
+    widgetIcon?: string;
+    /** Widget icon when active (shown when action state is truthy) */
+    widgetIconActive?: string;
     /** Primary value state ID */
     stateId?: string;
     /** Secondary value state ID (shown in upper-right corner) */
@@ -141,6 +149,18 @@ export interface UniversalWidgetDef extends CustomWidgetBase {
     opacityTrue?: number;
     /** Color level breakpoints for the primary value */
     colorLevels?: { value: number; color: string }[];
+    /** Control object ID — written on click */
+    actionStateId?: string;
+    /** Control type: 'value' sends a fixed value, 'toggle' inverts boolean */
+    actionType?: 'value' | 'toggle';
+    /** Value to send when actionType is 'value' */
+    actionValue?: string | number | boolean;
+    /** Confirmation before executing: 'none', 'dialog', or 'pin' */
+    actionConfirm?: 'none' | 'dialog' | 'pin';
+    /** Custom text for the confirmation dialog */
+    actionConfirmText?: string;
+    /** PIN code when actionConfirm is 'pin' */
+    actionPin?: string;
     /** Icon 1: boolean state ID */
     icon1StateId?: string;
     /** Icon 1: Material icon name */

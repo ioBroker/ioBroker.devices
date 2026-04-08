@@ -259,9 +259,84 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 type: 'objectId',
                 label: 'wm_State ID',
             },
+            name: {
+                type: 'text',
+                label: 'wm_Name',
+                default: '',
+            },
+            digits: {
+                type: 'number',
+                label: 'wm_Digits after comma',
+                default: 1,
+                min: 0,
+                max: 5,
+            },
+            widgetIcon: {
+                type: 'component',
+                subType: 'iconSelect',
+                label: 'wm_Icon',
+                sm: 6,
+            },
+            widgetIconActive: {
+                type: 'component',
+                subType: 'iconSelect',
+                label: 'wm_Active icon',
+                sm: 6,
+            },
             secondaryStateId: {
                 type: 'objectId',
                 label: 'wm_Secondary value',
+            },
+            secondaryName: {
+                type: 'text',
+                label: 'wm_Secondary name',
+                default: '',
+            },
+            actionStateId: {
+                type: 'objectId',
+                label: 'wm_Action state',
+            },
+            actionType: {
+                type: 'select',
+                label: 'wm_Action type',
+                options: [
+                    { value: 'toggle', label: 'wm_Toggle' },
+                    { value: 'value', label: 'wm_Send value' },
+                ],
+                default: 'toggle',
+                format: 'radio',
+                hidden: '!data.actionStateId',
+            },
+            actionValue: {
+                type: 'text',
+                label: 'wm_Action value',
+                help: 'wm_Action value help',
+                default: '',
+                hidden: "!data.actionStateId || data.actionType !== 'value'",
+            },
+            actionConfirm: {
+                type: 'select',
+                label: 'wm_Confirmation',
+                options: [
+                    { value: 'none', label: 'wm_No confirmation' },
+                    { value: 'dialog', label: 'wm_Confirm dialog' },
+                    { value: 'pin', label: 'wm_PIN code' },
+                ],
+                default: 'none',
+                format: 'dropdown',
+                hidden: '!data.actionStateId',
+            },
+            actionConfirmText: {
+                type: 'text',
+                label: 'wm_Confirmation text',
+                default: '',
+                hidden: "!data.actionStateId || data.actionConfirm === 'none' || !data.actionConfirm",
+            },
+            actionPin: {
+                type: 'text',
+                label: 'wm_PIN',
+                default: '',
+                hidden: "!data.actionStateId || data.actionConfirm !== 'pin'",
             },
             colorLevels: {
                 type: 'component',
@@ -279,6 +354,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 min: 0,
                 max: 1,
                 step: 0.1,
+                hidden: '!data.opacityStateId',
             },
             opacityTrue: {
                 type: 'number',
@@ -287,46 +363,62 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 min: 0,
                 max: 1,
                 step: 0.1,
+                hidden: '!data.opacityStateId',
             },
-            icon1StateId: {
-                type: 'objectId',
-                label: 'wm_Icon 1 state',
-            },
-            icon1Name: {
-                type: 'text',
-                label: 'wm_Icon 1 name',
-                help: 'wm_Icon name help',
-                default: '',
-            },
-            icon1Color: {
-                type: 'color',
-                label: 'wm_Icon 1 color',
-            },
-            icon2StateId: {
-                type: 'objectId',
-                label: 'wm_Icon 2 state',
-            },
-            icon2Name: {
-                type: 'text',
-                label: 'wm_Icon 2 name',
-                default: '',
-            },
-            icon2Color: {
-                type: 'color',
-                label: 'wm_Icon 2 color',
-            },
-            icon3StateId: {
-                type: 'objectId',
-                label: 'wm_Icon 3 state',
-            },
-            icon3Name: {
-                type: 'text',
-                label: 'wm_Icon 3 name',
-                default: '',
-            },
-            icon3Color: {
-                type: 'color',
-                label: 'wm_Icon 3 color',
+            _iconsPanel: {
+                type: 'panel',
+                label: 'wm_Indicator icons',
+                collapsable: true,
+                items: {
+                    icon1StateId: {
+                        type: 'objectId',
+                        label: 'wm_Icon 1 state',
+                        sm: 12,
+                    },
+                    icon1Name: {
+                        type: 'component',
+                        subType: 'iconSelect',
+                        label: 'wm_Icon 1 name',
+                        sm: 6,
+                    },
+                    icon1Color: {
+                        type: 'color',
+                        label: 'wm_Icon 1 color',
+                        sm: 6,
+                    },
+                    icon2StateId: {
+                        type: 'objectId',
+                        label: 'wm_Icon 2 state',
+                        sm: 12,
+                    },
+                    icon2Name: {
+                        type: 'component',
+                        subType: 'iconSelect',
+                        label: 'wm_Icon 2 name',
+                        sm: 6,
+                    },
+                    icon2Color: {
+                        type: 'color',
+                        label: 'wm_Icon 2 color',
+                        sm: 6,
+                    },
+                    icon3StateId: {
+                        type: 'objectId',
+                        label: 'wm_Icon 3 state',
+                        sm: 12,
+                    },
+                    icon3Name: {
+                        type: 'component',
+                        subType: 'iconSelect',
+                        label: 'wm_Icon 3 name',
+                        sm: 6,
+                    },
+                    icon3Color: {
+                        type: 'color',
+                        label: 'wm_Icon 3 color',
+                        sm: 6,
+                    },
+                },
             },
             size: {
                 type: 'select',

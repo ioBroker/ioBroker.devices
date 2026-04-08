@@ -148,6 +148,12 @@ interface CategoryProps {
     onBackToDevices?: () => void;
     /** Use comma as decimal separator (from system.config) */
     isFloatComma?: boolean;
+    /** Widget dialog ID to auto-open (from hash) */
+    openDialogId?: string | null;
+    /** Callback to persist an opened widget dialog in the hash */
+    onOpenWidgetDialog?: (dialogId: string) => void;
+    /** Callback to clear the widget dialog from the hash */
+    onCloseWidgetDialog?: () => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -1877,6 +1883,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 defaultHistory={this.props.defaultHistory}
                 instanceId={this.props.instanceId}
                 isFloatComma={this.props.isFloatComma}
+                openDialogId={this.props.openDialogId}
+                onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                onCloseWidgetDialog={this.props.onCloseWidgetDialog}
             />
         );
     }
@@ -1959,6 +1968,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         color={def.color}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
+                        openDialogId={this.props.openDialogId}
+                        onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                        onCloseWidgetDialog={this.props.onCloseWidgetDialog}
                     />
                 );
                 break;
@@ -2011,11 +2023,22 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         key={def.id}
                         id={def.id}
                         language={this.props.language}
+                        name={def.name}
+                        secondaryName={def.secondaryName}
+                        digits={def.digits}
+                        widgetIcon={def.widgetIcon}
+                        widgetIconActive={def.widgetIconActive}
                         stateId={def.stateId}
                         secondaryStateId={def.secondaryStateId}
                         opacityStateId={def.opacityStateId}
                         opacityFalse={def.opacityFalse}
                         opacityTrue={def.opacityTrue}
+                        actionStateId={def.actionStateId}
+                        actionType={def.actionType}
+                        actionValue={def.actionValue}
+                        actionConfirm={def.actionConfirm}
+                        actionConfirmText={def.actionConfirmText}
+                        actionPin={def.actionPin}
                         colorLevels={def.colorLevels}
                         icons={
                             [
@@ -2046,6 +2069,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         color={def.color}
                         stateContext={this.props.stateContext}
                         isFloatComma={this.props.isFloatComma}
+                        defaultHistory={this.props.defaultHistory}
+                        instanceId={this.props.instanceId}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />

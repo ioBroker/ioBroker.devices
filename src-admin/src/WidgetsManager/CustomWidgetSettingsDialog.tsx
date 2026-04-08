@@ -18,6 +18,7 @@ import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
 import ConfigCitySearch from './Components/ConfigCitySearch';
 import ConfigColorLevels from './Components/ConfigColorLevels';
+import ConfigIconSelect from './Components/ConfigIconSelect';
 
 interface CustomWidgetSettingsDialogProps {
     open: boolean;
@@ -37,6 +38,21 @@ interface CustomWidgetSettingsDialogProps {
     selectedInstance?: string;
 }
 
+/** Recursively collect all data-bearing items from a panel (flattening nested panels) */
+function flattenItems(items: Record<string, any>): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const [key, item] of Object.entries(items)) {
+        if (item && typeof item === 'object' && item.type === 'panel' && item.items) {
+            // Nested panel — recurse into its items (don't add the panel key itself)
+            Object.assign(result, flattenItems(item.items));
+        } else if (!key.startsWith('_')) {
+            // Regular data item (skip internal keys like _iconsHeader)
+            result[key] = item;
+        }
+    }
+    return result;
+}
+
 /** Extra keys that citySearch can write besides its own key */
 const EXTRA_KEYS = ['latitude', 'longitude'] as const;
 
@@ -44,6 +60,7 @@ const EXTRA_KEYS = ['latitude', 'longitude'] as const;
 const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps, any>> = {
     citySearch: ConfigCitySearch as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
     colorLevels: ConfigColorLevels as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+    iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
 };
 
 // --- Dialog ---
@@ -82,7 +99,8 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
     useEffect(() => {
         if (open && widgetDef && config) {
             const initial: Record<string, any> = {};
-            for (const [key, item] of Object.entries(config.items)) {
+            const allItems = flattenItems(config.items);
+            for (const [key, item] of Object.entries(allItems)) {
                 const stored = (widgetDef as unknown as Record<string, unknown>)[key];
                 initial[key] = stored !== undefined ? stored : getConfigDefault(item);
             }
@@ -101,8 +119,9 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         return null;
     }
 
+    const allItems = flattenItems(config.items);
     const hasChanges =
-        Object.entries(config.items).some(([key, item]) => {
+        Object.entries(allItems).some(([key, item]) => {
             const stored = (widgetDef as unknown as Record<string, unknown>)[key];
             const original = stored !== undefined ? stored : getConfigDefault(item);
             return values[key] !== original;
@@ -128,7 +147,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 newDef.pluginUrl = widgetDef.pluginUrl;
             }
         }
-        for (const [key, item] of Object.entries(config.items)) {
+        for (const [key, item] of Object.entries(allItems)) {
             const value = values[key];
             const defaultVal = getConfigDefault(item);
             if (value !== defaultVal) {
@@ -153,25 +172,24 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         >
             <DialogTitle>{I18n.t((config.label as string) || '')}</DialogTitle>
             <DialogContent dividers>
-                <Box sx={{ mt: 1 }}>
-                    {socket && props.theme ? (
-                        <JsonConfigComponent
-                            socket={socket as unknown as AdminConnection}
-                            themeName={props.theme.name}
-                            themeType={props.theme.palette.mode as 'dark' | 'light'}
-                            adapterName={props.selectedInstance?.replace(/\.\d+$/, '') || 'devices'}
-                            instance={parseInt(props.selectedInstance?.match(/\.(\d+)$/)?.[1] || '0', 10)}
-                            isFloatComma={props.isFloatComma}
-                            dateFormat={props.dateFormat}
-                            schema={config}
-                            data={values}
-                            onError={() => {}}
-                            onChange={(data: Record<string, any>) => setValues(data)}
-                            theme={props.theme}
-                            customComponents={CUSTOM_COMPONENTS}
-                        />
-                    ) : null}
-                </Box>
+                {socket && props.theme ? (
+                    <JsonConfigComponent
+                        socket={socket as unknown as AdminConnection}
+                        themeName={props.theme.name}
+                        themeType={props.theme.palette.mode as 'dark' | 'light'}
+                        adapterName={props.selectedInstance?.replace(/\.\d+$/, '') || 'devices'}
+                        instance={parseInt(props.selectedInstance?.match(/\.(\d+)$/)?.[1] || '0', 10)}
+                        isFloatComma={props.isFloatComma}
+                        dateFormat={props.dateFormat}
+                        schema={config}
+                        data={values}
+                        onError={() => {}}
+                        onChange={(data: Record<string, any>) => setValues(data)}
+                        theme={props.theme}
+                        customComponents={CUSTOM_COMPONENTS}
+                        embedded
+                    />
+                ) : null}
                 {props.availableGroups?.length ? (
                     <Box sx={{ mb: 2 }}>
                         <GroupSelector

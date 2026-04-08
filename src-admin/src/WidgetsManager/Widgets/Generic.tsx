@@ -122,6 +122,12 @@ export interface WidgetGenericProps {
     instanceId?: string;
     /** Use comma as a decimal separator (from system.config) */
     isFloatComma?: boolean;
+    /** Widget dialog ID to auto-open (from hash). Matches `${widget.id}_chart` or `${widget.id}_info` or just `${widget.id}` */
+    openDialogId?: string | null;
+    /** Persist an opened dialog to the URL hash */
+    onOpenWidgetDialog?: (dialogId: string) => void;
+    /** Clear the dialog from the URL hash */
+    onCloseWidgetDialog?: () => void;
 }
 
 /**
@@ -292,8 +298,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             indicators: { ...DEFAULT_INDICATORS },
             chartSeries: [] as ChartSeries[],
             extraInfo: [] as ExtraInfoEntry[],
-            infoDialogOpen: false,
-            chartDialogOpen: false,
+            infoDialogOpen: props.openDialogId === `${props.widget.id}_info`,
+            chartDialogOpen: props.openDialogId === `${props.widget.id}_chart`,
             trend: null,
             chartType: 'line',
             infoChartEntry: null,
@@ -828,7 +834,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <>
                 <Dialog
                     open
-                    onClose={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                    onClose={() => this.closeWidgetDialog('info')}
                     maxWidth="xs"
                     fullWidth
                 >
@@ -836,7 +842,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         {this.props.settings?.name || this.state.name || '...'}
                         <IconButton
                             size="small"
-                            onClick={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                            onClick={() => this.closeWidgetDialog('info')}
                         >
                             <Close />
                         </IconButton>
@@ -926,6 +932,27 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     // eslint-disable-next-line class-methods-use-this
     protected isTileActive(): boolean {
         return false;
+    }
+
+    /** Open a dialog and persist it in the URL hash */
+    protected openWidgetDialog(type: 'chart' | 'info'): void {
+        const dialogId = `${this.props.widget.id}_${type}`;
+        this.props.onOpenWidgetDialog?.(dialogId);
+        if (type === 'chart') {
+            this.openWidgetDialog('chart');
+        } else {
+            this.openWidgetDialog('info');
+        }
+    }
+
+    /** Close a dialog and remove it from the URL hash */
+    protected closeWidgetDialog(type: 'chart' | 'info'): void {
+        this.props.onCloseWidgetDialog?.();
+        if (type === 'chart') {
+            this.setState({ chartDialogOpen: false } as Partial<TState> as TState);
+        } else {
+            this.setState({ infoDialogOpen: false } as Partial<TState> as TState);
+        }
     }
 
     protected getAccentColor(): string | undefined {
@@ -1465,7 +1492,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <ChartDialog
                 open
                 onClose={() => {
-                    this.setState({ chartDialogOpen: false } as Partial<TState> as TState);
+                    this.closeWidgetDialog('chart');
                     this.loadChartType();
                 }}
                 title={this.props.settings?.name || (this.state.name ?? '') || String(this.props.widget.id)}
@@ -1622,12 +1649,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         tabIndex={0}
                         onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                            this.openWidgetDialog('info');
                         }}
                         onKeyDown={(e: React.KeyboardEvent) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.stopPropagation();
-                                this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                                this.openWidgetDialog('info');
                             }
                         }}
                         sx={theme => ({
@@ -1724,10 +1751,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     disableRipple={!clickable}
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => {
@@ -1839,10 +1863,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 <Box
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => ({
@@ -1932,10 +1953,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     disableRipple={!clickable}
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => ({

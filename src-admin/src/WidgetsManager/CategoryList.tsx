@@ -116,6 +116,8 @@ interface CategoryListState extends CommunicationState {
     isFloatComma: boolean;
     /** Date format string (from system.config) */
     dateFormat: string;
+    /** Widget dialog to auto-open on load (from hash, e.g. "alias.0.Kitchen.Light_chart") */
+    openDialogId: string | null;
     /** Plugin widgets available from adapter instances */
     adapterWidgets: Record<string, InstanceWidgetDescription>;
 }
@@ -286,6 +288,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             longitude: null,
             isFloatComma: false,
             dateFormat: 'DD.MM.YYYY',
+            openDialogId: null,
             adapterWidgets: {},
         };
 
@@ -388,22 +391,62 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return found;
     }
 
-    private updateHash(category: CategoryInfo): void {
+    private updateHash(category: CategoryInfo, dialogId?: string | null): void {
         const path = this.buildHashPath(category);
-        // Use '#root' for root so a bare '#' (which browsers report as '') is never written
-        const newHash = path ? `#${path}` : '#root';
+        let newHash = path ? `#${path}` : '#root';
+        if (dialogId) {
+            newHash += `?dialog=${encodeURIComponent(dialogId)}`;
+        }
         if (window.location.hash !== newHash) {
             window.location.hash = newHash;
         }
+        // Persist to localStorage so Android WebView can restore on reopen
+        try {
+            localStorage.setItem('wm_lastHash', newHash);
+        } catch {
+            // ignore
+        }
     }
+
+    /** Parse a hash string and extract the dialog ID if present */
+    private static parseHash(hash: string): { path: string; dialogId: string | null } {
+        const raw = hash.startsWith('#') ? hash.substring(1) : hash;
+        const qIdx = raw.indexOf('?');
+        if (qIdx < 0) {
+            return { path: raw, dialogId: null };
+        }
+        const path = raw.substring(0, qIdx);
+        const params = new URLSearchParams(raw.substring(qIdx + 1));
+        return { path, dialogId: params.get('dialog') };
+    }
+
+    /** Open a widget dialog and persist it in the hash */
+    onOpenWidgetDialog = (dialogId: string): void => {
+        this.setState({ openDialogId: dialogId });
+        if (this.state.currentCategory) {
+            this.updateHash(this.state.currentCategory, dialogId);
+        }
+    };
+
+    /** Close the widget dialog and remove it from the hash */
+    onCloseWidgetDialog = (): void => {
+        this.setState({ openDialogId: null });
+        if (this.state.currentCategory) {
+            this.updateHash(this.state.currentCategory);
+        }
+    };
 
     private onHashChange = (): void => {
         if (!this.state.categories.length) {
             return;
         }
-        const category = this.resolveCategoryFromHash(window.location.hash, this.state.categories);
+        const { path, dialogId } = CategoryList.parseHash(window.location.hash);
+        const hashForResolve = path ? `#${path}` : '';
+        const category = this.resolveCategoryFromHash(hashForResolve, this.state.categories);
         if (category && String(category.id) !== String(this.state.currentCategory?.id)) {
-            this.setState({ currentCategory: category });
+            this.setState({ currentCategory: category, openDialogId: dialogId });
+        } else if (dialogId !== this.state.openDialogId) {
+            this.setState({ openDialogId: dialogId });
         }
     };
 
@@ -623,14 +666,35 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         // In admin mode, always start at root (ignore hash and favorites).
                         // In web mode, restore from hash or fall back to default category.
                         let currentCategory: CategoryInfo | undefined;
+                        let openDialogId: string | null = null;
 
-                        const hash = window.location.hash;
+                        let hash = window.location.hash;
                         // '' = no hash at all → fall back to default/favorites
                         // '#root' or '#Kitchen/...' = explicit path → resolve from hash
-                        const hasHash = hash.length > 1;
+                        let hasHash = hash.length > 1;
+
+                        // Restore from localStorage if no hash (e.g. Android WebView reopen)
+                        if (!hasHash && !this.props.admin) {
+                            try {
+                                const stored = localStorage.getItem('wm_lastHash');
+                                if (stored && stored.length > 1) {
+                                    hash = stored;
+                                    hasHash = true;
+                                }
+                            } catch {
+                                // ignore
+                            }
+                        }
 
                         if (hasHash) {
-                            currentCategory = this.resolveCategoryFromHash(hash, result.categories, widgetSettings);
+                            const parsed = CategoryList.parseHash(hash);
+                            openDialogId = parsed.dialogId;
+                            const hashForResolve = parsed.path ? `#${parsed.path}` : '';
+                            currentCategory = this.resolveCategoryFromHash(
+                                hashForResolve,
+                                result.categories,
+                                widgetSettings,
+                            );
                         }
 
                         if (!currentCategory && !this.props.admin) {
@@ -656,10 +720,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             loading: false,
                             currentCategory,
                             widgetSettings,
+                            openDialogId,
                             adapterWidgets: result.adapterWidgets || {},
                         });
-                        // Update hash to reflect the resolved category
-                        this.updateHash(currentCategory);
+                        // Update hash to reflect the resolved category (preserve dialog if present)
+                        this.updateHash(currentCategory, openDialogId);
                         console.log(
                             `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
                         );
@@ -2022,6 +2087,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             latitude={this.state.latitude}
                             longitude={this.state.longitude}
                             isFloatComma={this.state.isFloatComma}
+                            openDialogId={this.state.openDialogId}
+                            onOpenWidgetDialog={this.onOpenWidgetDialog}
+                            onCloseWidgetDialog={this.onCloseWidgetDialog}
                         />
                         <CategoryListDialogs
                             settingsWidget={settingsWidget || null}

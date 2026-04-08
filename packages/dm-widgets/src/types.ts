@@ -128,12 +128,23 @@ export interface GaugeWidgetDef extends CustomWidgetBase {
 
 export interface UniversalWidgetDef extends CustomWidgetBase {
     type: 'universal';
+    name?: string;
+    secondaryName?: string;
+    digits?: number;
+    widgetIcon?: string;
+    widgetIconActive?: string;
     stateId?: string;
     secondaryStateId?: string;
     opacityStateId?: string;
     opacityFalse?: number;
     opacityTrue?: number;
     colorLevels?: { value: number; color: string }[];
+    actionStateId?: string;
+    actionType?: 'value' | 'toggle';
+    actionValue?: string | number | boolean;
+    actionConfirm?: 'none' | 'dialog' | 'pin';
+    actionConfirmText?: string;
+    actionPin?: string;
     icon1StateId?: string;
     icon1Name?: string;
     icon1Color?: string;

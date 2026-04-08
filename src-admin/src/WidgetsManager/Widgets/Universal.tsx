@@ -1,11 +1,22 @@
 import React, { Component } from 'react';
-import { Box, type Theme, Typography } from '@mui/material';
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    type Theme,
+    Typography,
+} from '@mui/material';
 import { Settings } from '@mui/icons-material';
-import * as Icons from '@mui/icons-material';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
+import ChartDialog from './ChartDialog';
 
 interface ColorLevel {
     value: number;
@@ -23,6 +34,13 @@ interface WidgetUniversalProps {
     language: ioBroker.Languages;
     size?: '1x1' | '2x0.5' | '2x1';
     color?: string;
+    name?: string;
+    secondaryName?: string;
+    digits?: number;
+    /** Widget icon (inactive / default) */
+    widgetIcon?: string;
+    /** Widget icon when active (shown when action state is truthy) */
+    widgetIconActive?: string;
     stateId?: string;
     secondaryStateId?: string;
     opacityStateId?: string;
@@ -30,10 +48,23 @@ interface WidgetUniversalProps {
     opacityTrue?: number;
     colorLevels?: ColorLevel[];
     icons?: IconDef[];
+    actionStateId?: string;
+    actionType?: 'value' | 'toggle';
+    actionValue?: string | number | boolean;
+    /** Confirmation before executing action: 'none', 'dialog', or 'pin' */
+    actionConfirm?: 'none' | 'dialog' | 'pin';
+    /** Custom confirmation dialog text */
+    actionConfirmText?: string;
+    /** PIN code required when actionConfirm is 'pin' */
+    actionPin?: string;
     stateContext?: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
     isFloatComma?: boolean;
+    /** Default history adapter instance (e.g. "history.0") */
+    defaultHistory?: string;
+    /** Adapter instance ID (e.g. "devices.0") for persisting chart settings */
+    instanceId?: string;
 }
 
 interface WidgetUniversalState {
@@ -43,13 +74,25 @@ interface WidgetUniversalState {
     secondaryUnit: string;
     opacity: number;
     iconStates: boolean[];
+    /** Whether the action state is currently truthy (for active icon) */
+    actionActive: boolean;
+    confirmOpen: boolean;
+    pinInput: string;
+    pinError: boolean;
+    chartOpen: boolean;
+    historyId: string | null;
+    historyInstance: string;
 }
 
 export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUniversalState> {
     private primaryHandler: StateChangeListener | null = null;
+    private actionHandler: StateChangeListener | null = null;
     private secondaryHandler: StateChangeListener | null = null;
     private opacityHandler: StateChangeListener | null = null;
     private iconHandlers: (StateChangeListener | null)[] = [];
+
+    /** Cached object metadata keyed by state ID */
+    private objectCache = new Map<string, ioBroker.StateObject>();
 
     constructor(props: WidgetUniversalProps) {
         super(props);
@@ -60,6 +103,13 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             secondaryUnit: '',
             opacity: 1,
             iconStates: [false, false, false],
+            actionActive: false,
+            confirmOpen: false,
+            pinInput: '',
+            pinError: false,
+            chartOpen: false,
+            historyId: null,
+            historyInstance: '',
         };
     }
 
@@ -75,12 +125,26 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             prev.icons !== this.props.icons
         ) {
             this.unsubscribe();
+            this.objectCache.clear();
             this.subscribe();
         }
     }
 
     componentWillUnmount(): void {
         this.unsubscribe();
+    }
+
+    /** Get a StateObject from cache or fetch it once */
+    private async getCachedObject(id: string): Promise<ioBroker.StateObject | undefined> {
+        const cached = this.objectCache.get(id);
+        if (cached) {
+            return cached;
+        }
+        const obj = await this.props.stateContext?.getObject<ioBroker.StateObject>(id);
+        if (obj) {
+            this.objectCache.set(id, obj);
+        }
+        return obj;
     }
 
     private subscribe(): void {
@@ -96,8 +160,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 this.setState({ value: val != null ? Number(val) : null });
             };
             ctx.getState(this.props.stateId, this.primaryHandler);
-            // Get unit from object
-            void ctx.getObject<ioBroker.StateObject>(this.props.stateId).then(obj => {
+            void this.getCachedObject(this.props.stateId).then(obj => {
                 if (obj?.common?.unit) {
                     this.setState({ unit: obj.common.unit });
                 }
@@ -111,7 +174,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 this.setState({ secondaryValue: val != null ? Number(val) : null });
             };
             ctx.getState(this.props.secondaryStateId, this.secondaryHandler);
-            void ctx.getObject<ioBroker.StateObject>(this.props.secondaryStateId).then(obj => {
+            void this.getCachedObject(this.props.secondaryStateId).then(obj => {
                 if (obj?.common?.unit) {
                     this.setState({ secondaryUnit: obj.common.unit });
                 }
@@ -132,8 +195,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 }
             };
             ctx.getState(this.props.opacityStateId, this.opacityHandler);
-            // Store min/max for numeric opacity calculation
-            void ctx.getObject<ioBroker.StateObject>(this.props.opacityStateId).then(obj => {
+            void this.getCachedObject(this.props.opacityStateId).then(obj => {
                 const common = obj?.common;
                 this.opacityMeta = {
                     min: common?.min,
@@ -159,9 +221,72 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             ctx.getState(iconDef.stateId, handler);
             return handler;
         });
+
+        // Subscribe to action state for active icon + pre-fetch object
+        if (this.props.actionStateId) {
+            void this.getCachedObject(this.props.actionStateId);
+            if (this.props.widgetIconActive) {
+                this.actionHandler = (_id, state) => {
+                    this.setState({ actionActive: !!state?.val });
+                };
+                ctx.getState(this.props.actionStateId, this.actionHandler);
+            }
+        }
+
+        // Resolve history for chart
+        this.resolveHistory();
     }
 
     private opacityMeta: { min?: number; max?: number; type?: string } = {};
+
+    /** Check if the primary state has history enabled and resolve the history adapter */
+    private resolveHistory(): void {
+        const { stateId, stateContext, defaultHistory } = this.props;
+        if (!stateId || !stateContext) {
+            this.setState({ historyId: null, historyInstance: '' });
+            return;
+        }
+        const socket = stateContext.getSocket();
+
+        void (async () => {
+            let instance = defaultHistory || '';
+            if (!instance) {
+                try {
+                    const cfg = await socket.getObject('system.config');
+                    instance = ((cfg?.common as unknown as Record<string, unknown>)?.defaultHistory as string) || '';
+                } catch {
+                    // ignore
+                }
+            }
+            if (!instance) {
+                this.setState({ historyId: null, historyInstance: '' });
+                return;
+            }
+
+            try {
+                const obj = await this.getCachedObject(stateId);
+                if (obj?.common?.custom?.[instance]?.enabled) {
+                    this.setState({ historyId: stateId, historyInstance: instance });
+                    return;
+                }
+                // Follow alias
+                const aliasId = obj?.common?.alias?.id;
+                if (aliasId) {
+                    const targetId = typeof aliasId === 'object' ? (aliasId as { read?: string }).read : aliasId;
+                    if (targetId && targetId !== stateId) {
+                        const targetObj = await socket.getObject(targetId);
+                        if ((targetObj as ioBroker.StateObject)?.common?.custom?.[instance]?.enabled) {
+                            this.setState({ historyId: targetId, historyInstance: instance });
+                            return;
+                        }
+                    }
+                }
+            } catch {
+                // ignore
+            }
+            this.setState({ historyId: null, historyInstance: instance });
+        })();
+    }
 
     private computeNumericOpacity(val: number): void {
         const { min, max } = this.opacityMeta;
@@ -192,6 +317,10 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             ctx.removeState(this.props.opacityStateId, this.opacityHandler);
             this.opacityHandler = null;
         }
+        if (this.actionHandler && this.props.actionStateId) {
+            ctx.removeState(this.props.actionStateId, this.actionHandler);
+            this.actionHandler = null;
+        }
         const icons = (this.props.icons || []).slice(0, 3);
         for (let i = 0; i < this.iconHandlers.length; i++) {
             const handler = this.iconHandlers[i];
@@ -218,14 +347,71 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     private formatValue(val: number): string {
-        if (Math.abs(val) >= 1000) {
-            return formatFloat(val, 0, this.props.isFloatComma);
-        }
-        if (Math.abs(val) >= 10) {
-            return formatFloat(val, 1, this.props.isFloatComma);
-        }
-        return formatFloat(val, 1, this.props.isFloatComma);
+        const digits = this.props.digits ?? 1;
+        return formatFloat(val, digits, this.props.isFloatComma);
     }
+
+    /** Execute the action (send value / toggle) — called after confirmation if needed */
+    private executeAction(): void {
+        const { actionStateId, actionType, actionValue, stateContext } = this.props;
+        if (!actionStateId || !stateContext) {
+            return;
+        }
+        const socket = stateContext.getSocket();
+        if (actionType === 'toggle') {
+            void socket.getState(actionStateId).then(state => {
+                if (state) {
+                    void socket.setState(actionStateId, !state.val);
+                }
+            });
+        } else {
+            void this.getCachedObject(actionStateId).then(obj => {
+                const commonType = obj?.common?.type;
+                let val: ioBroker.StateValue;
+                if (commonType === 'boolean') {
+                    val = actionValue === 'true' || actionValue === true || actionValue === 1;
+                } else if (commonType === 'number') {
+                    val = Number(actionValue);
+                } else {
+                    val = actionValue != null ? String(actionValue) : '';
+                }
+                void socket.setState(actionStateId, val);
+            });
+        }
+    }
+
+    private handleTileClick = (): void => {
+        if (this.props.actionStateId && this.props.stateContext) {
+            // Action configured — execute (with confirmation if needed)
+            const confirm = this.props.actionConfirm || 'none';
+            if (confirm === 'dialog' || confirm === 'pin') {
+                this.setState({ confirmOpen: true, pinInput: '', pinError: false });
+            } else {
+                this.executeAction();
+            }
+        } else if (this.state.historyId) {
+            // No action but history available — open chart
+            this.setState({ chartOpen: true });
+        }
+    };
+
+    private handleConfirm = (): void => {
+        if (this.props.actionConfirm === 'pin') {
+            if (this.state.pinInput === (this.props.actionPin || '')) {
+                this.setState({ confirmOpen: false, pinInput: '', pinError: false });
+                this.executeAction();
+            } else {
+                this.setState({ pinError: true });
+            }
+        } else {
+            this.setState({ confirmOpen: false });
+            this.executeAction();
+        }
+    };
+
+    private handleConfirmClose = (): void => {
+        this.setState({ confirmOpen: false, pinInput: '', pinError: false });
+    };
 
     private renderSettingsButton(): React.JSX.Element | null {
         if (!this.props.onOpenSettings) {
@@ -253,76 +439,110 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         );
     }
 
-    static renderIcon(iconDef: IconDef, active: boolean): React.JSX.Element | null {
+    static renderIcon(iconDef: IconDef, active: boolean, iconSize = 18): React.JSX.Element | null {
         if (!active || !iconDef.icon) {
             return null;
         }
-        const IconComp = (Icons as Record<string, React.ComponentType<{ sx?: object }>>)[iconDef.icon];
-        if (!IconComp) {
-            return null;
-        }
-        return <IconComp sx={{ fontSize: 18, color: iconDef.color || 'text.primary' }} />;
+        return (
+            <Icon
+                src={iconDef.icon}
+                style={{ width: iconSize, height: iconSize, color: iconDef.color || undefined }}
+            />
+        );
     }
 
     render(): React.JSX.Element | null {
         const { opacity, value, unit, secondaryValue, secondaryUnit, iconStates } = this.state;
+        const isEditing = !!this.props.onOpenSettings;
 
-        // If opacity is 0, hide completely
-        if (opacity <= 0) {
+        // If opacity is 0, hide completely — but always show in edit mode
+        if (opacity <= 0 && !isEditing) {
             return null;
         }
+
+        // In edit mode, ensure minimum visibility
+        const displayOpacity = isEditing ? Math.max(opacity, 0.35) : opacity;
 
         const valueColor = this.getValueColor();
         const icons = (this.props.icons || []).slice(0, 3);
         const activeIcons = icons.filter((_, i) => iconStates[i]);
+        const clickable = !!this.props.actionStateId || !!this.state.historyId;
+
+        const size = this.props.size || '1x1';
+        const isWide = size === '2x1' || size === '2x0.5';
 
         return (
             <Box
                 sx={theme => ({
-                    ...WidgetGeneric.getStyleCompact(theme),
-                    opacity: opacity < 1 ? opacity : undefined,
+                    ...(isWide ? WidgetGeneric.getStyleWide(theme) : WidgetGeneric.getStyleCompact(theme)),
+                    aspectRatio: size === '2x0.5' ? undefined : isWide ? '2' : '1',
+                    ...(size === '2x0.5' && { height: 80 }),
+                    opacity: displayOpacity < 1 ? displayOpacity : undefined,
                     transition: 'opacity 0.3s ease',
                 })}
             >
                 <Box
+                    onClick={clickable ? this.handleTileClick : undefined}
                     sx={(theme: Theme) => ({
-                        ...getTileStyles(theme, false, this.props.color, false),
+                        ...getTileStyles(theme, false, this.props.color, clickable),
                         position: 'relative',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        width: '100%',
                         height: '100%',
                         p: 1.5,
-                        containerType: 'inline-size',
+                        cursor: clickable ? 'pointer' : 'default',
                     })}
                 >
                     {this.renderSettingsButton()}
 
                     {/* Secondary value — upper right */}
-                    {secondaryValue != null ? (
-                        <Typography
-                            variant="caption"
+                    {secondaryValue != null || this.props.secondaryName ? (
+                        <Box
                             sx={{
                                 position: 'absolute',
-                                top: 8,
+                                top: 6,
                                 right: 8,
-                                fontSize: '11cqi',
-                                lineHeight: 1,
-                                color: 'text.secondary',
-                                whiteSpace: 'nowrap',
+                                textAlign: 'right',
                             }}
                         >
-                            {this.formatValue(secondaryValue)}
-                            {secondaryUnit ? (
+                            {secondaryValue != null ? (
                                 <Typography
-                                    component="span"
-                                    sx={{ fontSize: '0.75em', ml: 0.25, opacity: 0.7 }}
+                                    variant="caption"
+                                    sx={{
+                                        fontSize: isWide ? 18 : 14,
+                                        lineHeight: 1.2,
+                                        color: 'text.secondary',
+                                        whiteSpace: 'nowrap',
+                                    }}
                                 >
-                                    {secondaryUnit}
+                                    {this.formatValue(secondaryValue)}
+                                    {secondaryUnit ? (
+                                        <Typography
+                                            component="span"
+                                            sx={{ fontSize: '0.8em', ml: 0.25, opacity: 0.7 }}
+                                        >
+                                            {secondaryUnit}
+                                        </Typography>
+                                    ) : null}
                                 </Typography>
                             ) : null}
-                        </Typography>
+                            {this.props.secondaryName ? (
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontSize: 10,
+                                        lineHeight: 1,
+                                        color: 'text.disabled',
+                                        display: 'block',
+                                    }}
+                                >
+                                    {this.props.secondaryName}
+                                </Typography>
+                            ) : null}
+                        </Box>
                     ) : null}
 
                     {/* Icon indicators — upper left */}
@@ -338,37 +558,157 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                         >
                             {icons.map((iconDef, i) => (
                                 <React.Fragment key={i}>
-                                    {WidgetUniversal.renderIcon(iconDef, iconStates[i])}
+                                    {WidgetUniversal.renderIcon(iconDef, iconStates[i], isWide ? 28 : 18)}
                                 </React.Fragment>
                             ))}
                         </Box>
                     ) : null}
 
-                    {/* Primary value — center */}
-                    {value != null ? (
+                    {/* Widget icon + Primary value — center */}
+                    {(() => {
+                        const iconSrc =
+                            this.state.actionActive && this.props.widgetIconActive
+                                ? this.props.widgetIconActive
+                                : this.props.widgetIcon;
+                        const iconSize = isWide ? 48 : 32;
+                        return (
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: isWide ? 1.5 : 1,
+                                }}
+                            >
+                                {iconSrc ? (
+                                    <Icon
+                                        src={iconSrc}
+                                        style={{
+                                            width: iconSize,
+                                            height: iconSize,
+                                            color: valueColor || undefined,
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                ) : null}
+                                {value != null ? (
+                                    <Typography
+                                        sx={{
+                                            fontSize: isWide ? 56 : 36,
+                                            fontWeight: 700,
+                                            lineHeight: 1,
+                                            color: valueColor,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        {this.formatValue(value)}
+                                        <Typography
+                                            component="span"
+                                            sx={{ fontSize: '0.45em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
+                                        >
+                                            {unit}
+                                        </Typography>
+                                    </Typography>
+                                ) : (
+                                    <Typography sx={{ fontSize: isWide ? 48 : 32, color: 'text.disabled' }}>
+                                        —
+                                    </Typography>
+                                )}
+                            </Box>
+                        );
+                    })()}
+
+                    {/* Name — below value */}
+                    {this.props.name ? (
                         <Typography
                             sx={{
-                                fontSize: '32cqi',
-                                fontWeight: 700,
-                                lineHeight: 1,
-                                color: valueColor,
+                                fontSize: isWide ? 16 : 12,
+                                fontWeight: 500,
+                                color: 'text.secondary',
                                 textAlign: 'center',
+                                mt: 0.5,
+                                lineHeight: 1.2,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '90%',
                             }}
                         >
-                            {this.formatValue(value)}
-                            {unit ? (
-                                <Typography
-                                    component="span"
-                                    sx={{ fontSize: '0.45em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
-                                >
-                                    {unit}
-                                </Typography>
-                            ) : null}
+                            {this.props.name}
                         </Typography>
-                    ) : (
-                        <Typography sx={{ fontSize: '28cqi', color: 'text.disabled' }}>—</Typography>
-                    )}
+                    ) : null}
                 </Box>
+
+                {/* Confirmation / PIN dialog */}
+                {this.state.confirmOpen ? (
+                    <Dialog
+                        open
+                        onClose={this.handleConfirmClose}
+                        maxWidth="xs"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <DialogTitle>
+                            {this.props.actionConfirmText ||
+                                I18n.t(this.props.actionConfirm === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure')}
+                        </DialogTitle>
+                        {this.props.actionConfirm === 'pin' ? (
+                            <DialogContent>
+                                <TextField
+                                    autoFocus
+                                    type="password"
+                                    inputMode="numeric"
+                                    value={this.state.pinInput}
+                                    onChange={e => this.setState({ pinInput: e.target.value, pinError: false })}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            this.handleConfirm();
+                                        }
+                                    }}
+                                    error={this.state.pinError}
+                                    helperText={this.state.pinError ? I18n.t('wm_Wrong PIN') : undefined}
+                                    fullWidth
+                                    size="small"
+                                    sx={{ mt: 1 }}
+                                />
+                            </DialogContent>
+                        ) : null}
+                        <DialogActions>
+                            <Button
+                                variant="contained"
+                                onClick={this.handleConfirm}
+                                disabled={this.props.actionConfirm === 'pin' && !this.state.pinInput}
+                            >
+                                {I18n.t('wm_OK')}
+                            </Button>
+                            <Button onClick={this.handleConfirmClose}>{I18n.t('wm_Cancel')}</Button>
+                        </DialogActions>
+                    </Dialog>
+                ) : null}
+
+                {/* Chart dialog */}
+                {this.state.chartOpen &&
+                this.state.historyId &&
+                this.state.historyInstance &&
+                this.props.stateContext ? (
+                    <ChartDialog
+                        open
+                        onClose={() => this.setState({ chartOpen: false })}
+                        title={this.props.name || this.props.id}
+                        historyIds={[
+                            {
+                                id: this.state.historyId,
+                                color: this.props.color || '#2196f3',
+                                name: this.props.name || this.props.id,
+                            },
+                        ]}
+                        historyInstance={this.state.historyInstance}
+                        socket={this.props.stateContext.getSocket()}
+                        unit={this.state.unit}
+                        isFloatComma={this.props.isFloatComma}
+                        widgetId={this.props.id}
+                        instanceId={this.props.instanceId}
+                    />
+                ) : null}
             </Box>
         );
     }

@@ -17,6 +17,12 @@ interface WidgetIframeProps {
     color?: string;
     onOpenSettings?: () => void;
     onRemove?: () => void;
+    /** Widget dialog ID to auto-open (from hash) */
+    openDialogId?: string | null;
+    /** Persist opened dialog to the URL hash */
+    onOpenWidgetDialog?: (dialogId: string) => void;
+    /** Clear the dialog from the URL hash */
+    onCloseWidgetDialog?: () => void;
 }
 
 interface WidgetIframeState {
@@ -29,7 +35,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     constructor(props: WidgetIframeProps) {
         super(props);
-        this.state = { dialogOpen: false, ts: Date.now() };
+        this.state = { dialogOpen: props.openDialogId === props.id, ts: Date.now() };
     }
 
     componentDidMount(): void {
@@ -81,6 +87,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         }
         if (action === 'dialog') {
             this.setState({ dialogOpen: true });
+            this.props.onOpenWidgetDialog?.(this.props.id);
         } else if (action === 'newTab') {
             window.open(url, '_blank', 'noopener');
         } else {
@@ -249,7 +256,10 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         return (
             <Dialog
                 open
-                onClose={() => this.setState({ dialogOpen: false })}
+                onClose={() => {
+                    this.setState({ dialogOpen: false });
+                    this.props.onCloseWidgetDialog?.();
+                }}
                 maxWidth={false}
                 slotProps={{
                     paper: {
@@ -282,7 +292,10 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         </IconButton>
                         <IconButton
                             size="small"
-                            onClick={() => this.setState({ dialogOpen: false })}
+                            onClick={() => {
+                                this.setState({ dialogOpen: false });
+                                this.props.onCloseWidgetDialog?.();
+                            }}
                             sx={{ backgroundColor: 'background.paper', '&:hover': { backgroundColor: 'action.hover' } }}
                         >
                             <Close fontSize="small" />
