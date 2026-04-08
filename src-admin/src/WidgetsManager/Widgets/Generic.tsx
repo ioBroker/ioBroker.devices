@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import {
     Box,
     ButtonBase,
@@ -33,15 +33,15 @@ import {
 import { alpha, type Theme } from '@mui/material/styles';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import type { WidgetInfo } from '../../../../src/widget-utils';
+import {
+    WidgetGeneric as WidgetGenericBase,
+    type WidgetGenericProps as WidgetGenericPropsBase,
+    type WidgetSettingsBase,
+} from '../../../../packages/dm-widgets/src/WidgetGeneric';
 import type StateContext from '../StateContext';
 import ChartDialog, { type ChartLineType } from './ChartDialog';
 
-export interface WidgetSettings {
-    size: '1x1' | '2x0.5' | '2x1';
-    chartHours: number;
-    name: string;
-    color: string;
+export interface WidgetSettings extends WidgetSettingsBase {
     blindType: 'shutter' | 'curtain';
     pin: string;
     hideWhenOk: boolean;
@@ -77,8 +77,15 @@ export interface WidgetSettings {
     showTrendArrow: boolean;
     /** Trend calculation period in minutes (default 30) */
     trendMinutes: number;
-    /** Mark widget as favorite — shown in auto-generated Favorites category */
-    favorite: boolean;
+}
+
+export interface WidgetGenericProps<
+    TSettings extends WidgetSettings = WidgetSettings,
+> extends WidgetGenericPropsBase<TSettings> {
+    /** Host's StateContext (superset of IStateContext) */
+    stateContext: StateContext;
+    /** Full widget settings (host's WidgetSettings + plugin-specific TSettings) */
+    settings?: TSettings;
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
@@ -108,27 +115,6 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     trendMinutes: 30,
     favorite: false,
 };
-
-export interface WidgetGenericProps {
-    widget: WidgetInfo;
-    language: ioBroker.Languages;
-    stateContext: StateContext;
-    size?: '1x1' | '2x0.5' | '2x1';
-    settings?: WidgetSettings;
-    onOpenSettings?: (widgetId: string | number) => void;
-    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
-    instanceId?: string;
-    /** Use comma as a decimal separator (from system.config) */
-    isFloatComma?: boolean;
-    /** Widget dialog ID to auto-open (from hash). Matches `${widget.id}_chart` or `${widget.id}_info` or just `${widget.id}` */
-    openDialogId?: string | null;
-    /** Persist an opened dialog to the URL hash */
-    onOpenWidgetDialog?: (dialogId: string) => void;
-    /** Clear the dialog from the URL hash */
-    onCloseWidgetDialog?: () => void;
-}
 
 /**
  * Format a number for display, replacing '.' with ',' when isFloatComma is true.
@@ -274,10 +260,10 @@ const DEFAULT_INDICATORS: IndicatorValues = {
     battery: null,
 };
 
-export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericState> extends Component<
-    WidgetGenericProps,
-    TState
-> {
+export class WidgetGeneric<
+    TState extends WidgetGenericState = WidgetGenericState,
+    TSettings extends WidgetSettings = WidgetSettings,
+> extends WidgetGenericBase<TSettings, TState> {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
     /** Extra info state IDs (ELECTRIC_POWER, CURRENT, etc.) */
@@ -289,7 +275,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private trendTimer: ReturnType<typeof setInterval> | null = null;
     protected nameRef = React.createRef<HTMLSpanElement>();
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<TSettings>) {
         super(props);
         this.state = {
             name: null,
@@ -418,7 +404,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
     }
 
-    componentDidUpdate(prevProps: Readonly<WidgetGenericProps>): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<TSettings>>): void {
         const prevHours = prevProps.settings?.chartHours ?? 12;
         const newHours = this.props.settings?.chartHours ?? 12;
         if (prevHours !== newHours) {

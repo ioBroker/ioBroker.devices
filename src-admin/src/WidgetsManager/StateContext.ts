@@ -28,7 +28,7 @@ export default class StateContext {
     private pendingObjPropIds: string[] = [];
     private objPropTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(private readonly socket: Connection) {}
+    constructor(protected readonly socket: Connection) {}
 
     private onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.subscribedStates[id]) {

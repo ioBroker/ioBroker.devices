@@ -13,81 +13,51 @@
  */
 import type React from 'react';
 import { Component } from 'react';
-import type { Theme } from '@mui/material/styles';
-import type { SxProps } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material';
 
-import type StateContext from './StateContext';
 import type { WidgetInfo } from './types';
+import type { IStateContext } from './StateContext';
+import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/dm-utils';
 
 // ---------------------------------------------------------------------------
 // Exported interfaces
 // ---------------------------------------------------------------------------
 
-export interface WidgetSettings {
+export type WidgetSettingsBase = {
     size: '1x1' | '2x0.5' | '2x1';
     chartHours: number;
     name: string;
     color: string;
-    blindType: 'shutter' | 'curtain';
-    pin: string;
-    hideWhenOk: boolean;
-    onBrightness: number;
-    showCoordinates: boolean;
-    markerIcon: string;
-    mapTheme: string;
-    sliderType: string;
-    wideSliderStyle: string;
-    showAnimation: boolean;
-    refreshInterval: number;
-    appendTimestamp: boolean;
-    textActive: string;
-    textInactive: string;
-    colorInactive: string;
-    iconActive: string;
-    iconInactive: string;
-    icon: string;
-    showTrendArrow: boolean;
-    trendMinutes: number;
     favorite: boolean;
 }
 
-export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
+export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsBase = {
     size: '1x1',
     chartHours: 12,
     name: '',
     color: '',
-    blindType: 'shutter',
-    pin: '',
-    hideWhenOk: false,
-    onBrightness: 100,
-    showCoordinates: false,
-    markerIcon: '',
-    mapTheme: 'standard',
-    sliderType: 'normal',
-    wideSliderStyle: 'horizontal',
-    showAnimation: true,
-    refreshInterval: 0,
-    appendTimestamp: false,
-    textActive: '',
-    textInactive: '',
-    colorInactive: '',
-    iconActive: '',
-    iconInactive: '',
-    icon: '',
-    showTrendArrow: false,
-    trendMinutes: 30,
     favorite: false,
 };
 
-export interface WidgetGenericProps {
+export interface WidgetGenericProps<TPluginWidgetSettings extends WidgetSettingsBase = WidgetSettingsBase> {
     widget: WidgetInfo;
     language: ioBroker.Languages;
-    stateContext: StateContext;
+    stateContext: IStateContext;
     size?: '1x1' | '2x0.5' | '2x1';
-    settings?: WidgetSettings;
+    settings?: TPluginWidgetSettings;
     onOpenSettings?: (widgetId: string | number) => void;
+    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
     defaultHistory?: string;
+    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
     instanceId?: string;
+    /** Use comma as a decimal separator (from system.config) */
+    isFloatComma?: boolean;
+    /** Widget dialog ID to auto-open (from hash). Matches `${widget.id}_chart` or `${widget.id}_info` or just `${widget.id}` */
+    openDialogId?: string | null;
+    /** Persist an opened dialog to the URL hash */
+    onOpenWidgetDialog?: (dialogId: string) => void;
+    /** Clear the dialog from the URL hash */
+    onCloseWidgetDialog?: () => void;
 }
 
 export interface IndicatorValues {
@@ -121,16 +91,11 @@ export type ChartLineType = 'line' | 'step-start' | 'step-end';
 
 export interface WidgetGenericState {
     name: string | null;
-    icon: string | null;
     color: string | null;
     indicators: IndicatorValues;
     chartSeries: ChartSeries[];
-    extraInfo: ExtraInfoEntry[];
-    infoDialogOpen: boolean;
     chartDialogOpen: boolean;
-    trend: 'up' | 'down' | 'stable' | null;
     chartType: ChartLineType;
-    infoChartEntry: ExtraInfoEntry | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +114,7 @@ export function getTileStyles(
     _accentColor?: string,
     _interactive?: boolean,
     _inactiveColor?: string,
-): Record<string, unknown> {
+): SxProps {
     // Stub — replaced at runtime by the host's real implementation
     return {};
 }
@@ -158,10 +123,10 @@ export function getTileStyles(
 // Base class
 // ---------------------------------------------------------------------------
 
-export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericState> extends Component<
-    WidgetGenericProps,
-    TState
-> {
+export class WidgetGeneric<
+    TPluginWidgetSettings extends WidgetSettingsBase = WidgetSettingsBase,
+    TState extends WidgetGenericState = WidgetGenericState,
+> extends Component<WidgetGenericProps<TPluginWidgetSettings>, TState> {
     protected nameRef = { current: null as HTMLSpanElement | null };
 
     // --- Static style helpers (use in outer Box sx) ---
@@ -183,20 +148,67 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     /**
-     * Override in plugin widgets to provide a config schema for the settings dialog.
-     * The returned object maps config key → item definition (json-config schema format).
+     * Override in plugin widgets to provide a settings dialog schema.
      *
-     * Example:
+     * Returns an `@iobroker/json-config` schema that the host renders in the
+     * widget settings dialog. The `name` field is used as the dialog title,
+     * and `schema` defines the form layout.
+     *
+     * Base fields (size, color) are automatically prepended by the host —
+     * only add plugin-specific fields here.
+     *
+     * Supported item types (see `@iobroker/json-config` docs for full list):
+     * - `text`, `number`, `checkbox`, `color`, `select` — standard inputs
+     * - `objectId` — ioBroker state picker with browse dialog
+     * - `instance` — adapter instance selector (`adapters: ['adapterName']`)
+     * - `custom` — custom component registered via `customComponents`
+     *
+     * Use `hidden: "data.fieldName === 'value'"` (JS expression) to
+     * conditionally show/hide fields based on other field values.
+     *
+     * @returns `{ name, schema }` or `null` if no settings are needed
+     *
+     * @example
      * ```typescript
-     * static getConfigSchema(): Record<string, WidgetConfigItem> {
+     * static getConfigSchema(): { name: string; schema: ConfigItemPanel } | null {
      *     return {
-     *         refreshRate: { type: 'text', label: 'Refresh rate (ms)', inputType: 'number', default: '1000' },
-     *         sensorId: { type: 'stateId', label: 'Sensor state' },
+     *         name: 'My Widget Settings',
+     *         schema: {
+     *             type: 'panel',
+     *             items: {
+     *                 refreshRate: {
+     *                     type: 'number',
+     *                     label: 'Refresh rate (ms)',
+     *                     default: 1000,
+     *                     min: 100,
+     *                 },
+     *                 sensorId: {
+     *                     type: 'objectId',
+     *                     label: 'Sensor state',
+     *                 },
+     *                 mode: {
+     *                     type: 'select',
+     *                     label: 'Display mode',
+     *                     options: [
+     *                         { value: 'simple', label: 'Simple' },
+     *                         { value: 'detailed', label: 'Detailed' },
+     *                     ],
+     *                     default: 'simple',
+     *                     format: 'radio',
+     *                 },
+     *                 showUnit: {
+     *                     type: 'checkbox',
+     *                     label: 'Show unit',
+     *                     default: true,
+     *                     hidden: "data.mode === 'simple'",
+     *                 },
+     *             },
+     *         },
      *     };
      * }
      * ```
      */
-    static getConfigSchema(): Record<string, unknown> | null {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel | ConfigItemTabs } | null {
         return null;
     }
 

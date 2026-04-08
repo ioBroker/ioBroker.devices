@@ -54,7 +54,6 @@ import { CSS } from '@dnd-kit/utilities';
 
 import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/widget-utils';
 import {
-    type WidgetGenericProps,
     type WidgetSettings,
     formatFloat,
     WidgetSwitch,
@@ -1739,7 +1738,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     // eslint-disable-next-line react/no-unused-class-component-methods
     renderWidget(widget: WidgetInfo): React.JSX.Element {
-        let Widget: React.ComponentType<WidgetGenericProps> | undefined;
+        let Widget: React.ComponentType<any> | undefined;
         if (widget.control && widget.control.type === Types.socket) {
             Widget = WidgetSwitch;
         } else if (widget.control && widget.control.type === Types.light) {

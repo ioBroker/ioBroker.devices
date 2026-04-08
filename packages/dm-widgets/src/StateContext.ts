@@ -14,8 +14,19 @@ export type ObjectChangeListener = (
     value: string | boolean | number | ioBroker.StringOrTranslated,
 ) => void;
 
-export default class StateContext {
-    constructor(private readonly socket: Connection) {}
+/** Interface for StateContext — used in WidgetGenericProps so host and plugin types are compatible */
+export interface IStateContext {
+    getState(id: string, handler: StateChangeListener): void;
+    getObject<T>(id: string): Promise<T | undefined>;
+    getObjectProperty(id: string, property: string, cb: ObjectChangeListener): void;
+    removeObject(id: string, cb: ObjectChangeListener): Promise<void>;
+    removeState(id: string, handler: StateChangeListener): void;
+    getSocket(): Connection;
+    destroy(): void;
+}
+
+export default class StateContext implements IStateContext {
+    constructor(protected readonly socket: Connection) {}
 
     static extractProperty<T>(obj: ioBroker.Object, property: string): T {
         const parts = property.split('.');
