@@ -137,7 +137,10 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         return opts;
     }, [categories, rootCategory, getCategoryName]);
 
-    const Widget = Category.getWidgetComponent();
+    const Widget = settingsWidget
+        ? (Category.getWidgetComponent(settingsWidget.control?.type, settingsWidget.control?.states) as any)
+        : undefined;
+    const isAlarmType = settingsWidget?.control?.type ? ALARM_ICON_TYPES.has(settingsWidget.control.type) : false;
 
     return (
         <>
@@ -149,85 +152,18 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         ? widgetSettings[String(settingsWidget.id)] ||
                           Widget?.getDefaultSettings?.() ||
                           WidgetGeneric.getDefaultSettings()
-                        : Widget?.getDefaultSettings?.() || WidgetGeneric.getDefaultSettings()
+                        : WidgetGeneric.getDefaultSettings()
                 }
                 instance={props.selectedInstance}
                 onClose={onCloseSettings}
                 onSave={onSaveSettings}
                 onDelete={onDeleteWidget}
+                widgetSchema={Widget?.getSettingsSchema?.()}
                 showChart={chartAvailable}
-                showBlindType={settingsWidget?.control?.type === Types.blind}
-                showPin={settingsWidget?.control?.type === Types.lock}
-                showHideWhenOk={
-                    settingsWidget?.control?.type === Types.floodAlarm ||
-                    settingsWidget?.control?.type === Types.fireAlarm ||
-                    settingsWidget?.control?.type === Types.warning
-                }
-                showCoordinates={
-                    settingsWidget?.control?.type === Types.location ||
-                    settingsWidget?.control?.type === Types.locationOne
-                }
-                showMarkerIcon={
-                    settingsWidget?.control?.type === Types.location ||
-                    settingsWidget?.control?.type === Types.locationOne
-                }
-                showMapTheme={
-                    settingsWidget?.control?.type === Types.location ||
-                    settingsWidget?.control?.type === Types.locationOne
-                }
-                showSliderType={
-                    settingsWidget?.control?.type === Types.slider || settingsWidget?.control?.type === Types.percentage
-                }
-                showWideSliderStyle={
-                    settingsWidget?.control?.type === Types.dimmer ||
-                    settingsWidget?.control?.type === Types.volume ||
-                    settingsWidget?.control?.type === Types.slider ||
-                    settingsWidget?.control?.type === Types.percentage
-                }
-                showAnimation={
-                    settingsWidget?.control?.type === Types.info &&
-                    settingsWidget?.control?.states.some(
-                        s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
-                    )
-                }
-                showOnBrightness={
-                    settingsWidget != null &&
-                    [Types.rgbSingle, Types.rgbwSingle, Types.rgb, Types.hue, Types.cie, Types.ct].includes(
-                        settingsWidget.control?.type,
-                    ) &&
-                    settingsWidget.control.states.some(
-                        s => s.name === 'SET' || s.name === 'ACTUAL' || s.name === 'DIMMER' || s.name === 'BRIGHTNESS',
-                    ) &&
-                    !settingsWidget.control.states.some(s => s.name === 'ON_SET' || s.name === 'ON')
-                }
-                showAlarmTexts={
-                    settingsWidget?.control?.type === Types.floodAlarm
-                        ? { activeDefault: I18n.t('wm_Flood'), inactiveDefault: I18n.t('wm_Dry') }
-                        : settingsWidget?.control?.type === Types.fireAlarm
-                          ? { activeDefault: I18n.t('wm_Fire'), inactiveDefault: I18n.t('wm_OK') }
-                          : settingsWidget?.control?.type === Types.motion
-                            ? { activeDefault: I18n.t('wm_Motion'), inactiveDefault: I18n.t('wm_Clear') }
-                            : settingsWidget?.control?.type === Types.window
-                              ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
-                              : settingsWidget?.control?.type === Types.door
-                                ? { activeDefault: I18n.t('wm_Open'), inactiveDefault: I18n.t('wm_Closed') }
-                                : settingsWidget?.control?.type === Types.warning
-                                  ? {
-                                        activeDefault: I18n.t('wm_Warning'),
-                                        inactiveDefault: I18n.t('wm_OK'),
-                                    }
-                                  : undefined
-                }
-                showAlarmIcons={
-                    settingsWidget?.control?.type === Types.floodAlarm ||
-                    settingsWidget?.control?.type === Types.fireAlarm ||
-                    settingsWidget?.control?.type === Types.motion ||
-                    settingsWidget?.control?.type === Types.window ||
-                    settingsWidget?.control?.type === Types.door ||
-                    settingsWidget?.control?.type === Types.warning
-                }
-                showIcon={!!settingsWidget?.control?.type && !ALARM_ICON_TYPES.has(settingsWidget.control.type)}
-                showRefreshInterval={settingsWidget?.control?.type === Types.image}
+                showAlarmFields={isAlarmType}
+                showIcon={!!settingsWidget?.control?.type && !isAlarmType}
+                isFloatComma={props.isFloatComma}
+                dateFormat={props.dateFormat}
                 primaryStateId={
                     settingsWidget?.control?.states
                         ? settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||

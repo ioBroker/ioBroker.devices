@@ -22,20 +22,6 @@ export type DeviceStatus =
           warning?: ValueOrState<ioBroker.StringOrTranslated | boolean>; // warning text or just boolean true (means warning)
       };
 
-export interface InstanceWidgetDescription {
-    url: string;
-    components: {
-        /** Name of the class */
-        name: string;
-        /** Title */
-        label: ioBroker.StringOrTranslated;
-        /** Description */
-        description: ioBroker.StringOrTranslated;
-        /** Icon as a link to picture imageName.png relative to the admin folder or base64 */
-        icon: string;
-    }[];
-}
-
 /** Config item definition for plugin widget settings */
 export interface WidgetConfigItem {
     type: 'select' | 'checkbox' | 'color' | 'text' | 'stateId' | 'instanceSelect' | 'citySearch' | 'colorLevels';

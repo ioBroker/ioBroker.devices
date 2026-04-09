@@ -121,6 +121,34 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            sliderType: {
+                type: 'select',
+                label: 'wm_Slider type',
+                options: [
+                    { value: 'normal', label: 'wm_slider_normal', icon: 'Tune' },
+                    { value: 'valve', label: 'wm_slider_valve', icon: 'Valve' },
+                    { value: 'fan', label: 'wm_slider_fan', icon: 'Air' },
+                    { value: 'gauge', label: 'wm_slider_gauge', icon: 'Speed' },
+                ],
+                default: 'normal',
+                format: 'radio',
+            },
+            wideSliderStyle: {
+                type: 'select',
+                label: 'wm_Wide slider style',
+                options: [
+                    { value: 'horizontal', label: 'wm_slider_horizontal' },
+                    { value: 'round', label: 'wm_slider_round' },
+                ],
+                default: 'horizontal',
+                format: 'radio',
+                hidden: "data.size === '1x1'",
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.actualId) {

@@ -32,7 +32,7 @@
         "@iobroker/eslint-config": "^2.2.0",
         "@iobroker/legacy-testing": "^2.0.2",
         "@iobroker/testing": "^5.2.2",
-        "@iobroker/types": "^7.1.1",
+        "@iobroker/types": "^7.1.2-alpha.0-20260409-feacb179d",
         "@types/node": "^25.3.5",
         "colorette": "^2.0.20",
         "puppeteer": "^24.38.0"

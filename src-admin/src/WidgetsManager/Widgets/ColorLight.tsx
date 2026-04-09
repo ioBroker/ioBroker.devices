@@ -119,6 +119,19 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            onBrightness: {
+                type: 'number',
+                label: 'wm_On brightness',
+                default: 100,
+                min: 1,
+                max: 100,
+                unit: '%',
+            },
+        };
+    }
+
     // --- Lifecycle ---
 
     componentDidMount(): void {

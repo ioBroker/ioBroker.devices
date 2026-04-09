@@ -199,6 +199,16 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            showAnimation: {
+                type: 'checkbox',
+                label: 'wm_Show animation',
+                default: true,
+            },
+        };
+    }
+
     private async loadExtraStates(): Promise<void> {
         const entries: TankExtraState[] = [];
         for (const { id, name } of this.extraStateIds) {

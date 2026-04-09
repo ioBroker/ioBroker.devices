@@ -4,14 +4,7 @@
  */
 
 import type { AdapterInstance } from '@iobroker/adapter-core';
-import type {
-    WidgetInfo,
-    CategoryInfo,
-    DeviceStatus,
-    RetVal,
-    BackendToGuiCommand,
-    InstanceWidgetDescription,
-} from './types';
+import type { WidgetInfo, CategoryInfo, DeviceStatus, RetVal, BackendToGuiCommand } from './types';
 import type { WmResponseItems } from './types/api';
 
 export abstract class WidgetsManagement<TAdapter extends AdapterInstance = AdapterInstance> {
@@ -102,8 +95,8 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
      * Read all adapter instances that have `common.deviceWidgets` and return them
      * as `{ adapterName: { widget1: any, widget2: any } }`.
      */
-    private async loadCustomWidgets(): Promise<Record<string, InstanceWidgetDescription>> {
-        const result: Record<string, InstanceWidgetDescription> = {};
+    private async loadCustomWidgets(): Promise<Record<string, ioBroker.DevicesWidgets>> {
+        const result: Record<string, ioBroker.DevicesWidgets> = {};
         try {
             const instances = await this.adapter.getObjectViewAsync('system', 'instance', {
                 startkey: 'system.adapter.',
@@ -117,7 +110,7 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                         const parts = row.id.split('.');
                         const adapterName = parts[2];
                         if (adapterName) {
-                            result[adapterName] = common.deviceWidgets as unknown as InstanceWidgetDescription;
+                            result[adapterName] = common.deviceWidgets;
                         }
                     }
                 }

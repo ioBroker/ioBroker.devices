@@ -38,6 +38,16 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            hideWhenOk: {
+                type: 'checkbox',
+                label: 'wm_Hide when OK',
+                default: false,
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.actualId) {

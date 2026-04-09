@@ -56,6 +56,17 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            pin: {
+                type: 'text',
+                label: 'wm_PIN Code',
+                default: '',
+                help: 'wm_PIN help',
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.listenId) {

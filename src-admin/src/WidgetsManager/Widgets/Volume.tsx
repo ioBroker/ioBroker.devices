@@ -51,6 +51,22 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            wideSliderStyle: {
+                type: 'select',
+                label: 'wm_Wide slider style',
+                options: [
+                    { value: 'horizontal', label: 'wm_slider_horizontal' },
+                    { value: 'round', label: 'wm_slider_round' },
+                ],
+                default: 'horizontal',
+                format: 'radio',
+                hidden: "data.size === '1x1'",
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.actualId) {

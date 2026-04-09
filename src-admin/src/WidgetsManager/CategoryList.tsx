@@ -897,9 +897,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const widget = this.state.widgets.find(w => String(w.id) === String(settingsWidgetId));
             let widgets = this.state.widgets;
             if (widget) {
-                const isAlarmType = widget.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
-                const s = settings as Record<string, unknown>;
-                const newIcon = (s.icon as string) || '';
+                const s = settings;
+                const newIcon = s.icon || '';
                 if (newIcon !== (widget.icon || '')) {
                     widgets = widgets.map(w =>
                         String(w.id) === String(settingsWidgetId) ? { ...w, icon: newIcon || undefined } : w,

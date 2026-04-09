@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box,
     Button,
@@ -7,88 +7,24 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
-    IconButton,
-    SvgIcon,
     Switch,
-    TextField,
-    ToggleButton,
-    ToggleButtonGroup,
-    Tooltip,
-    Typography,
 } from '@mui/material';
-import {
-    Close,
-    CloudUpload,
-    Delete,
-    DirectionsBoat,
-    DirectionsCar,
-    FiberManualRecord,
-    PedalBike,
-    Person,
-    Sailing,
-    Save,
-    Speed,
-    Tune,
-    TwoWheeler,
-} from '@mui/icons-material';
-import { I18n, Icon, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
+import { Close, Delete, Save } from '@mui/icons-material';
+import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
+import type { AdminConnection } from '@iobroker/socket-client';
 
 import { type WidgetSettingsBase } from '@iobroker/dm-widgets';
 import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
-import IconPickerDialog from './IconPickerDialog';
-
-/** Gate valve icon with handle */
-function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
-    return (
-        <SvgIcon
-            {...props}
-            viewBox="0 0 24 24"
-        >
-            <rect
-                x="7"
-                y="2"
-                width="10"
-                height="2.5"
-                rx="1.25"
-            />
-            <rect
-                x="11"
-                y="4.5"
-                width="2"
-                height="4"
-            />
-            <path d="M3,8.5 L21,8.5 L12,14 Z" />
-            <path d="M3,15.5 L21,15.5 L12,10 Z" />
-            <rect
-                x="10"
-                y="15.5"
-                width="4"
-                height="6.5"
-            />
-        </SvgIcon>
-    );
-}
-
-/** Ventilator / fan blade icon (MDI fan) */
-function FanIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
-    return (
-        <SvgIcon {...props}>
-            <path d="M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z" />
-        </SvgIcon>
-    );
-}
-
-const PREDEFINED_MARKERS: { value: string; label: string; icon: React.JSX.Element }[] = [
-    { value: '', label: 'wm_Default', icon: <FiberManualRecord sx={{ fontSize: 20 }} /> },
-    { value: 'person', label: 'wm_Person', icon: <Person sx={{ fontSize: 20 }} /> },
-    { value: 'car', label: 'wm_Car', icon: <DirectionsCar sx={{ fontSize: 20 }} /> },
-    { value: 'boat', label: 'wm_Boat', icon: <DirectionsBoat sx={{ fontSize: 20 }} /> },
-    { value: 'yacht', label: 'wm_Yacht', icon: <Sailing sx={{ fontSize: 20 }} /> },
-    { value: 'moped', label: 'wm_Moped', icon: <TwoWheeler sx={{ fontSize: 20 }} /> },
-    { value: 'bicycle', label: 'wm_Bicycle', icon: <PedalBike sx={{ fontSize: 20 }} /> },
-];
+import ConfigIconSelect from './Components/ConfigIconSelect';
+import {
+    type ConfigGenericProps,
+    type ConfigItemPanel,
+    type ConfigItemAny,
+    type ConfigGeneric,
+    JsonConfigComponent,
+} from '@iobroker/json-config';
 
 interface WidgetSettingsDialogProps {
     open: boolean;
@@ -97,24 +33,8 @@ interface WidgetSettingsDialogProps {
     onClose: () => void;
     onSave: (settings: WidgetSettingsBase & Record<string, any>) => void;
     onDelete?: () => void;
-    showChart?: boolean;
-    showBlindType?: boolean;
-    showPin?: boolean;
-    showHideWhenOk?: boolean;
-    showOnBrightness?: boolean;
-    showCoordinates?: boolean;
-    showMarkerIcon?: boolean;
-    showMapTheme?: boolean;
-    showSliderType?: boolean;
-    showWideSliderStyle?: boolean;
-    showAnimation?: boolean;
-    showRefreshInterval?: boolean;
-    /** Show text override fields for alarm-like widgets. Contains default labels as placeholders. */
-    showAlarmTexts?: { activeDefault: string; inactiveDefault: string };
-    /** Show icon override fields for alarm-like widgets */
-    showAlarmIcons?: boolean;
-    /** Show a single icon picker for normal (non-alarm) widgets */
-    showIcon?: boolean;
+    /** Widget-specific schema items from Widget.getSettingsSchema() */
+    widgetSchema?: Record<string, any>;
     socket: Connection;
     theme: IobTheme;
     admin: boolean;
@@ -128,43 +48,143 @@ interface WidgetSettingsDialogProps {
     primaryStateId?: string;
     /** Default history adapter instance (e.g. "history.0") */
     defaultHistory?: string;
+    /** Show chart duration selector */
+    showChart?: boolean;
+    /** Show alarm text/icon fields */
+    showAlarmFields?: boolean;
+    /** Show icon picker for non-alarm widgets */
+    showIcon?: boolean;
+    isFloatComma?: boolean;
+    dateFormat?: string;
+}
+
+/** Custom component registry */
+const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps, any>> = {
+    iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+};
+
+/** Build the full json-config schema from base + widget-specific items */
+function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
+    const items: Record<string, ConfigItemAny> = {
+        name: {
+            type: 'text',
+            label: 'wm_Name',
+            default: '',
+        },
+        size: {
+            type: 'select',
+            label: 'wm_Size',
+            options: SIZE_OPTIONS,
+            default: '1x1',
+            format: 'radio',
+            horizontal: true,
+        },
+        colorActive: {
+            type: 'color',
+            label: 'wm_Color',
+            sm: 6,
+        },
+        color: {
+            type: 'color',
+            label: 'wm_Color inactive',
+            sm: 6,
+        },
+    };
+
+    // Icon fields
+    if (props.showAlarmFields) {
+        items.iconActive = {
+            type: 'component',
+            subType: 'iconSelect',
+            label: 'wm_Icon active',
+            sm: 6,
+        };
+        items.icon = {
+            type: 'component',
+            subType: 'iconSelect',
+            label: 'wm_Icon inactive',
+            sm: 6,
+        };
+        items.textActive = {
+            type: 'text',
+            label: 'wm_Text active',
+            default: '',
+            sm: 6,
+        };
+        items.text = {
+            type: 'text',
+            label: 'wm_Text inactive',
+            default: '',
+            sm: 6,
+        };
+    } else if (props.showIcon) {
+        items.icon = {
+            type: 'component',
+            subType: 'iconSelect',
+            label: 'wm_Icons',
+        };
+    }
+
+    // Widget-specific fields
+    if (props.widgetSchema) {
+        Object.assign(items, props.widgetSchema);
+    }
+
+    // Chart fields (always at the bottom if enabled)
+    if (props.showChart) {
+        items.chartHours = {
+            type: 'select',
+            label: 'wm_Chart',
+            options: [
+                { value: 0, label: 'wm_Off' },
+                { value: 1, label: '1h' },
+                { value: 3, label: '3h' },
+                { value: 6, label: '6h' },
+                { value: 12, label: '12h' },
+                { value: 24, label: '24h' },
+            ],
+            default: 12,
+            format: 'radio',
+        };
+        items.showTrendArrow = {
+            type: 'checkbox',
+            label: 'wm_Trend arrow',
+            default: false,
+        };
+        items.trendMinutes = {
+            type: 'number',
+            label: 'wm_Trend period (min)',
+            default: 30,
+            min: 5,
+            max: 1440,
+            hidden: '!data.showTrendArrow',
+        };
+    }
+
+    return {
+        type: 'panel',
+        label: '',
+        items,
+    };
 }
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
-    const {
-        open,
-        widgetName,
-        settings,
-        onClose,
-        onSave,
-        showChart,
-        showBlindType,
-        showPin,
-        showHideWhenOk,
-        showOnBrightness,
-        showCoordinates,
-        showMarkerIcon,
-        showMapTheme,
-        showSliderType,
-        showWideSliderStyle,
-        showAnimation,
-        showRefreshInterval,
-        objectName,
-        objectColor,
-        onDelete,
-    } = props;
-    const [local, setLocal] = useState<WidgetSettingsBase & Record<string, any>>(settings);
-    const [iconPickerField, setIconPickerField] = useState<'iconActive' | 'icon' | null>(null);
+    const { open, widgetName, settings, onClose, onSave, onDelete, objectName, objectColor } = props;
+    const [values, setValues] = useState<Record<string, any>>({});
     const [historyEnabled, setHistoryEnabled] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const schema = useMemo(
+        () => buildSchema(props),
+        [props, props.widgetSchema, props.showChart, props.showAlarmFields, props.showIcon],
+    );
 
     useEffect(() => {
         if (open) {
-            setLocal({
+            setValues({
                 ...settings,
                 name: settings.name || objectName || widgetName,
-                color: settings.color || objectColor || '',
+                colorActive: settings.colorActive || objectColor || '',
             });
             // Load history enabled state
             if (props.primaryStateId && props.defaultHistory && props.socket) {
@@ -178,841 +198,126 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     .catch(() => setHistoryEnabled(false));
             }
         }
-    }, [settings, open, widgetName, objectName, objectColor, props.primaryStateId, props.defaultHistory, props.socket]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, settings]);
 
-    const isCustomIcon = local.markerIcon?.startsWith('data:');
+    const hasChanges = Object.keys(schema.items).some(key => {
+        return values[key] !== settings[key];
+    });
 
-    const handleMarkerUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-            setLocal({ ...local, markerIcon: reader.result as string });
-        };
-        reader.readAsDataURL(file);
-        // Reset so the same file can be re-selected
-        e.target.value = '';
-    };
+    const adapterName = props.instance?.replace(/\.\d+$/, '') || 'devices';
+    const instanceNum = parseInt(props.instance?.match(/\.(\d+)$/)?.[1] || '0', 10);
 
     return (
-        <>
-            <Dialog
-                open={open}
-                onClose={onClose}
-                maxWidth="xs"
-                fullWidth
-            >
-                <DialogTitle>{widgetName}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        fullWidth
-                        variant="filled"
-                        label={I18n.t('wm_Name')}
-                        value={local.name}
-                        onChange={e => setLocal({ ...local, name: e.target.value })}
-                        placeholder={widgetName}
-                        size="small"
-                        sx={{ mt: 1, mb: 2 }}
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="xs"
+            fullWidth
+            slotProps={{ paper: { sx: { maxHeight: '90vh' } } }}
+        >
+            <DialogTitle>{widgetName}</DialogTitle>
+            <DialogContent dividers>
+                {props.socket && props.theme ? (
+                    <JsonConfigComponent
+                        socket={props.socket as unknown as AdminConnection}
+                        themeName={props.theme.name}
+                        themeType={props.theme.palette.mode as 'dark' | 'light'}
+                        adapterName={adapterName}
+                        instance={instanceNum}
+                        isFloatComma={props.isFloatComma ?? false}
+                        dateFormat={props.dateFormat || 'DD.MM.YYYY'}
+                        schema={schema}
+                        data={values}
+                        onError={() => {}}
+                        onChange={(data: Record<string, any>) => setValues(data)}
+                        theme={props.theme}
+                        customComponents={CUSTOM_COMPONENTS}
+                        embedded
                     />
+                ) : null}
 
-                    <Box sx={{ mb: 2, display: 'flex', gap: 3 }}>
-                        <Box sx={{ flex: 1 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 0.5, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Color')}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Box
-                                    component="input"
-                                    type="color"
-                                    value={local.color || '#1976d2'}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        setLocal({ ...local, color: e.target.value })
-                                    }
-                                    sx={{
-                                        width: 36,
-                                        height: 36,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        borderRadius: 1,
-                                        cursor: 'pointer',
-                                        p: '2px',
-                                        backgroundColor: 'transparent',
-                                    }}
-                                />
-                                {local.color ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setLocal({ ...local, color: '' })}
-                                    >
-                                        <Delete fontSize="small" />
-                                    </IconButton>
-                                ) : null}
-                            </Box>
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 0.5, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Color inactive')}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Box
-                                    component="input"
-                                    type="color"
-                                    value={local.color || '#9e9e9e'}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        setLocal({ ...local, color: e.target.value })
-                                    }
-                                    sx={{
-                                        width: 36,
-                                        height: 36,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        borderRadius: 1,
-                                        cursor: 'pointer',
-                                        p: '2px',
-                                        backgroundColor: 'transparent',
-                                    }}
-                                />
-                                {local.color ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setLocal({ ...local, color: '' })}
-                                    >
-                                        <Delete fontSize="small" />
-                                    </IconButton>
-                                ) : null}
-                            </Box>
-                        </Box>
-                    </Box>
-
-                    <Box>
-                        <Typography
-                            variant="body2"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                            {I18n.t('wm_Size')}
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={local.size}
-                            exclusive
-                            onChange={(_, value) => {
-                                if (value) {
-                                    setLocal({ ...local, size: value });
-                                }
-                            }}
-                            size="small"
-                        >
-                            {SIZE_OPTIONS.map(opt => (
-                                <ToggleButton
-                                    key={opt.value}
-                                    value={opt.value}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                                        {opt.icon}
-                                        <span>{opt.label}</span>
-                                    </Box>
-                                </ToggleButton>
-                            ))}
-                        </ToggleButtonGroup>
-                    </Box>
-
-                    {showBlindType ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_BlindType')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={local.blindType || 'shutter'}
-                                exclusive
-                                onChange={(_, value) => {
-                                    if (value) {
-                                        setLocal({ ...local, blindType: value });
-                                    }
-                                }}
-                                size="small"
-                            >
-                                <ToggleButton value="shutter">{I18n.t('wm_Shutter')}</ToggleButton>
-                                <ToggleButton value="curtain">{I18n.t('wm_Curtain')}</ToggleButton>
-                            </ToggleButtonGroup>
-                        </Box>
-                    ) : null}
-
-                    {showPin ? (
-                        <TextField
-                            fullWidth
-                            variant="filled"
-                            label={I18n.t('wm_PIN Code')}
-                            value={local.pin || ''}
-                            onChange={e => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                setLocal({ ...local, pin: val });
-                            }}
-                            placeholder="1234"
-                            size="small"
-                            slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 8 } }}
-                            helperText={I18n.t('wm_PIN help')}
-                            sx={{ mt: 2 }}
-                        />
-                    ) : null}
-
-                    {showHideWhenOk ? (
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={!!local.hideWhenOk}
-                                    onChange={(_, checked) => setLocal({ ...local, hideWhenOk: checked })}
-                                    color="primary"
-                                />
-                            }
-                            label={I18n.t('wm_Hide when OK')}
-                            sx={{ mt: 1, display: 'flex' }}
-                        />
-                    ) : null}
-
-                    {props.showAlarmTexts ? (
-                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                            <TextField
-                                variant="filled"
-                                label={I18n.t('wm_Text active')}
-                                value={local.textActive || ''}
-                                onChange={e => setLocal({ ...local, textActive: e.target.value })}
-                                placeholder={props.showAlarmTexts.activeDefault}
-                                size="small"
-                                sx={{ flex: 1 }}
-                            />
-                            <TextField
-                                variant="filled"
-                                label={I18n.t('wm_Text inactive')}
-                                value={local.text || ''}
-                                onChange={e => setLocal({ ...local, text: e.target.value })}
-                                placeholder={props.showAlarmTexts.inactiveDefault}
-                                size="small"
-                                sx={{ flex: 1 }}
-                            />
-                        </Box>
-                    ) : null}
-
-                    {props.showAlarmIcons ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Icons')}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                {/* Active icon */}
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        gap: 0.5,
-                                    }}
-                                >
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ color: 'text.secondary' }}
-                                    >
-                                        {I18n.t('wm_Icon active')}
-                                    </Typography>
-                                    <Box
-                                        onClick={() => setIconPickerField('iconActive')}
-                                        sx={{
-                                            width: 48,
-                                            height: 48,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: 1,
-                                            cursor: 'pointer',
-                                            border: '1px dashed',
-                                            borderColor: 'divider',
-                                            '&:hover': { bgcolor: 'action.hover' },
-                                        }}
-                                    >
-                                        {local.iconActive ? (
-                                            <Icon
-                                                src={local.iconActive}
-                                                style={{ width: 32, height: 32, color: local.color || undefined }}
-                                            />
-                                        ) : (
-                                            <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
-                                        )}
-                                    </Box>
-                                    {local.iconActive ? (
-                                        <IconButton
-                                            size="small"
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                setLocal({ ...local, iconActive: '' });
-                                            }}
-                                        >
-                                            <Delete fontSize="small" />
-                                        </IconButton>
-                                    ) : null}
-                                </Box>
-                                {/* Inactive icon */}
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        gap: 0.5,
-                                    }}
-                                >
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ color: 'text.secondary' }}
-                                    >
-                                        {I18n.t('wm_Icon inactive')}
-                                    </Typography>
-                                    <Box
-                                        onClick={() => setIconPickerField('icon')}
-                                        sx={{
-                                            width: 48,
-                                            height: 48,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: 1,
-                                            cursor: 'pointer',
-                                            border: '1px dashed',
-                                            borderColor: 'divider',
-                                            '&:hover': { bgcolor: 'action.hover' },
-                                        }}
-                                    >
-                                        {local.icon ? (
-                                            <Icon
-                                                src={local.icon}
-                                                style={{ width: 32, height: 32, color: local.color || 'grey' }}
-                                            />
-                                        ) : (
-                                            <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
-                                        )}
-                                    </Box>
-                                    {local.icon ? (
-                                        <IconButton
-                                            size="small"
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                setLocal({ ...local, icon: '' });
-                                            }}
-                                        >
-                                            <Delete fontSize="small" />
-                                        </IconButton>
-                                    ) : null}
-                                </Box>
-                            </Box>
-                        </Box>
-                    ) : null}
-
-                    {props.showIcon ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Icons')}
-                            </Typography>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                    width: 'fit-content',
-                                }}
-                            >
-                                <Box
-                                    onClick={() => setIconPickerField('icon')}
-                                    sx={{
-                                        width: 48,
-                                        height: 48,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: 1,
-                                        cursor: 'pointer',
-                                        border: '1px dashed',
-                                        borderColor: 'divider',
-                                        '&:hover': { bgcolor: 'action.hover' },
-                                    }}
-                                >
-                                    {local.icon ? (
-                                        <Icon
-                                            src={local.icon}
-                                            style={{ width: 32, height: 32, color: local.color || '#1976d2' }}
-                                        />
-                                    ) : (
-                                        <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
-                                    )}
-                                </Box>
-                                {local.icon ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            setLocal({ ...local, icon: '' });
-                                        }}
-                                    >
-                                        <Delete fontSize="small" />
-                                    </IconButton>
-                                ) : null}
-                            </Box>
-                        </Box>
-                    ) : null}
-
-                    {showOnBrightness ? (
-                        <TextField
-                            fullWidth
-                            variant="filled"
-                            label={I18n.t('wm_On brightness')}
-                            type="number"
-                            value={local.onBrightness ?? 100}
-                            onChange={e => {
-                                const val = Math.max(1, Math.min(100, Number(e.target.value) || 100));
-                                setLocal({ ...local, onBrightness: val });
-                            }}
-                            size="small"
-                            slotProps={{ htmlInput: { min: 1, max: 100 } }}
-                            helperText="%"
-                            sx={{ mt: 2 }}
-                        />
-                    ) : null}
-
-                    {showCoordinates ? (
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={!!local.showCoordinates}
-                                    onChange={(_, checked) => setLocal({ ...local, showCoordinates: checked })}
-                                    color="primary"
-                                />
-                            }
-                            label={I18n.t('wm_Show coordinates')}
-                            sx={{ mt: 1, display: 'flex' }}
-                        />
-                    ) : null}
-
-                    {showSliderType ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Slider type')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={local.sliderType || 'normal'}
-                                exclusive
-                                onChange={(_, value) => {
-                                    if (value) {
-                                        setLocal({ ...local, sliderType: value });
-                                    }
-                                }}
-                                size="small"
-                            >
-                                <ToggleButton value="normal">
-                                    <Tooltip title={I18n.t('wm_slider_normal')}>
-                                        <Tune sx={{ fontSize: 18, mr: 0.5 }} />
-                                    </Tooltip>
-                                    {I18n.t('wm_slider_normal')}
-                                </ToggleButton>
-                                <ToggleButton value="valve">
-                                    <Tooltip title={I18n.t('wm_slider_valve')}>
-                                        <ValveIcon sx={{ fontSize: 18, mr: 0.5 }} />
-                                    </Tooltip>
-                                    {I18n.t('wm_slider_valve')}
-                                </ToggleButton>
-                                <ToggleButton value="fan">
-                                    <Tooltip title={I18n.t('wm_slider_fan')}>
-                                        <FanIcon sx={{ fontSize: 18, mr: 0.5 }} />
-                                    </Tooltip>
-                                    {I18n.t('wm_slider_fan')}
-                                </ToggleButton>
-                                <ToggleButton value="gauge">
-                                    <Tooltip title={I18n.t('wm_slider_gauge')}>
-                                        <Speed sx={{ fontSize: 18, mr: 0.5 }} />
-                                    </Tooltip>
-                                    {I18n.t('wm_slider_gauge')}
-                                </ToggleButton>
-                            </ToggleButtonGroup>
-                        </Box>
-                    ) : null}
-
-                    {showWideSliderStyle && (local.size === '2x0.5' || local.size === '2x1') ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Wide slider style')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={local.wideSliderStyle || 'horizontal'}
-                                exclusive
-                                onChange={(_, value) => {
-                                    if (value) {
-                                        setLocal({ ...local, wideSliderStyle: value });
-                                    }
-                                }}
-                                size="small"
-                            >
-                                <ToggleButton value="horizontal">{I18n.t('wm_slider_horizontal')}</ToggleButton>
-                                <ToggleButton value="round">{I18n.t('wm_slider_round')}</ToggleButton>
-                            </ToggleButtonGroup>
-                        </Box>
-                    ) : null}
-
-                    {showAnimation ? (
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={local.showAnimation !== false}
-                                    onChange={(_, checked) => setLocal({ ...local, showAnimation: checked })}
-                                    color="primary"
-                                />
-                            }
-                            label={I18n.t('wm_Show animation')}
-                            sx={{ mt: 1, display: 'flex' }}
-                        />
-                    ) : null}
-
-                    {showRefreshInterval ? (
-                        <Box sx={{ mt: 2 }}>
-                            <TextField
-                                fullWidth
-                                variant="filled"
-                                label={I18n.t('wm_Refresh interval')}
-                                type="number"
-                                value={local.refreshInterval ?? 0}
-                                onChange={e => {
-                                    const val = Math.max(0, Number(e.target.value) || 0);
-                                    setLocal({ ...local, refreshInterval: val });
-                                }}
-                                size="small"
-                                slotProps={{ htmlInput: { min: 0 } }}
-                                helperText={I18n.t('wm_Refresh interval help')}
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={!!local.appendTimestamp}
-                                        onChange={(_, checked) => setLocal({ ...local, appendTimestamp: checked })}
-                                        color="primary"
-                                    />
-                                }
-                                label={I18n.t('wm_Append timestamp')}
-                                sx={{ mt: 1, display: 'flex' }}
-                            />
-                        </Box>
-                    ) : null}
-
-                    {showMarkerIcon ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Marker icon')}
-                            </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-                                {PREDEFINED_MARKERS.map(m => {
-                                    const selected = !isCustomIcon && (local.markerIcon || '') === m.value;
-                                    return (
-                                        <Tooltip
-                                            key={m.value || '__default'}
-                                            title={I18n.t(m.label)}
-                                        >
-                                            <Box
-                                                onClick={() => setLocal({ ...local, markerIcon: m.value })}
-                                                sx={theme => ({
-                                                    width: 36,
-                                                    height: 36,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    borderRadius: 1,
-                                                    cursor: 'pointer',
-                                                    border: `2px solid ${selected ? theme.palette.primary.main : 'transparent'}`,
-                                                    bgcolor: selected ? 'action.selected' : 'action.hover',
-                                                    '&:hover': { bgcolor: 'action.focus' },
-                                                })}
-                                            >
-                                                {m.icon}
-                                            </Box>
-                                        </Tooltip>
-                                    );
-                                })}
-                                {/* Upload custom icon button */}
-                                <Tooltip title={I18n.t('wm_Custom')}>
-                                    <Box
-                                        onClick={() => fileInputRef.current?.click()}
-                                        sx={theme => ({
-                                            width: 36,
-                                            height: 36,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: 1,
-                                            cursor: 'pointer',
-                                            border: `2px solid ${isCustomIcon ? theme.palette.primary.main : 'transparent'}`,
-                                            bgcolor: isCustomIcon ? 'action.selected' : 'action.hover',
-                                            '&:hover': { bgcolor: 'action.focus' },
-                                        })}
-                                    >
-                                        {isCustomIcon ? (
-                                            <Icon
-                                                src={local.markerIcon}
-                                                style={{ width: 20, height: 20 }}
-                                            />
-                                        ) : (
-                                            <CloudUpload sx={{ fontSize: 20 }} />
-                                        )}
-                                    </Box>
-                                </Tooltip>
-                                {isCustomIcon ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setLocal({ ...local, markerIcon: '' })}
-                                    >
-                                        <Delete fontSize="small" />
-                                    </IconButton>
-                                ) : null}
-                            </Box>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,.svg"
-                                style={{ display: 'none' }}
-                                onChange={handleMarkerUpload}
-                            />
-                        </Box>
-                    ) : null}
-
-                    {showMapTheme ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Map theme')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={local.mapTheme || 'standard'}
-                                exclusive
-                                onChange={(_, value) => {
-                                    if (value) {
-                                        setLocal({ ...local, mapTheme: value });
-                                    }
-                                }}
-                                size="small"
-                            >
-                                <ToggleButton value="standard">{I18n.t('wm_map_standard')}</ToggleButton>
-                                <ToggleButton value="dark">{I18n.t('wm_map_dark')}</ToggleButton>
-                                <ToggleButton value="satellite">{I18n.t('wm_map_satellite')}</ToggleButton>
-                            </ToggleButtonGroup>
-                        </Box>
-                    ) : null}
-
-                    {props.primaryStateId && props.defaultHistory ? (
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={historyEnabled}
-                                    disabled={historyLoading}
-                                    onChange={async (_e, checked) => {
-                                        setHistoryLoading(true);
-                                        try {
-                                            const obj = await props.socket.getObject(props.primaryStateId!);
-                                            if (obj) {
-                                                const common = (obj as ioBroker.StateObject).common;
-                                                common.custom ||= {};
-                                                if (checked) {
-                                                    common.custom[props.defaultHistory!] = {
-                                                        ...common.custom[props.defaultHistory!],
-                                                        enabled: true,
-                                                    };
-                                                } else if (common.custom[props.defaultHistory!]) {
-                                                    common.custom[props.defaultHistory!].enabled = false;
-                                                }
-                                                await props.socket.setObject(obj._id, obj);
-                                                setHistoryEnabled(checked);
+                {/* History toggle — not part of json-config schema (async action) */}
+                {props.primaryStateId && props.defaultHistory ? (
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={historyEnabled}
+                                disabled={historyLoading}
+                                onChange={async (_e, checked) => {
+                                    setHistoryLoading(true);
+                                    try {
+                                        const obj = await props.socket.getObject(props.primaryStateId!);
+                                        if (obj) {
+                                            const common = (obj as ioBroker.StateObject).common;
+                                            common.custom ||= {};
+                                            if (checked) {
+                                                common.custom[props.defaultHistory!] = {
+                                                    ...common.custom[props.defaultHistory!],
+                                                    enabled: true,
+                                                };
+                                            } else if (common.custom[props.defaultHistory!]) {
+                                                common.custom[props.defaultHistory!].enabled = false;
                                             }
-                                        } catch (err) {
-                                            console.error('Failed to toggle history:', err);
+                                            await props.socket.setObject(obj._id, obj);
+                                            setHistoryEnabled(checked);
                                         }
-                                        setHistoryLoading(false);
-                                    }}
-                                    size="small"
-                                />
-                            }
-                            label={I18n.t('wm_Record history')}
-                            sx={{ mt: 1 }}
-                        />
-                    ) : null}
-
-                    {showChart ? (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                                {I18n.t('wm_Chart')}
-                            </Typography>
-                            <ToggleButtonGroup
-                                value={local.chartHours}
-                                exclusive
-                                onChange={(_, value) => {
-                                    if (value != null) {
-                                        setLocal({ ...local, chartHours: value });
+                                    } catch (err) {
+                                        console.error('Failed to toggle history:', err);
                                     }
+                                    setHistoryLoading(false);
                                 }}
                                 size="small"
-                                sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1 } }}
-                            >
-                                <ToggleButton value={0}>{I18n.t('wm_Off')}</ToggleButton>
-                                <ToggleButton value={1}>1h</ToggleButton>
-                                <ToggleButton value={3}>3h</ToggleButton>
-                                <ToggleButton value={6}>6h</ToggleButton>
-                                <ToggleButton value={12}>12h</ToggleButton>
-                                <ToggleButton value={24}>24h</ToggleButton>
-                            </ToggleButtonGroup>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={local.showTrendArrow}
-                                        onChange={e => setLocal({ ...local, showTrendArrow: e.target.checked })}
-                                        size="small"
-                                    />
-                                }
-                                label={I18n.t('wm_Trend arrow')}
-                                sx={{ mt: 1 }}
                             />
-                            {local.showTrendArrow ? (
-                                <TextField
-                                    label={I18n.t('wm_Trend period (min)')}
-                                    type="number"
-                                    size="small"
-                                    value={local.trendMinutes || 30}
-                                    onChange={e => {
-                                        const val = Math.max(5, Math.min(1440, parseInt(e.target.value, 10) || 30));
-                                        setLocal({ ...local, trendMinutes: val });
-                                    }}
-                                    slotProps={{ htmlInput: { min: 5, max: 1440, step: 5 } }}
-                                    sx={{ mt: 1, width: 180 }}
-                                />
-                            ) : null}
-                        </Box>
-                    ) : null}
-
-                    {props.availableGroups?.length ? (
-                        <Box sx={{ mt: 2 }}>
-                            <GroupSelector
-                                availableGroups={props.availableGroups}
-                                currentGroupId={props.currentGroupId}
-                                onGroupChange={groupId => props.onGroupChange?.(groupId)}
-                            />
-                        </Box>
-                    ) : null}
-
-                    {onDelete ? (
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            startIcon={<Delete />}
-                            onClick={() => {
-                                onDelete();
-                                onClose();
-                            }}
-                            fullWidth
-                            sx={{ mt: 3 }}
-                        >
-                            {I18n.t('wm_Delete')}
-                        </Button>
-                    ) : null}
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        disabled={
-                            local.size === settings.size &&
-                            local.chartHours === settings.chartHours &&
-                            local.name === (settings.name || objectName || widgetName) &&
-                            local.color === (settings.color || objectColor || '') &&
-                            local.blindType === settings.blindType &&
-                            (local.pin || '') === (settings.pin || '') &&
-                            !!local.hideWhenOk === !!settings.hideWhenOk &&
-                            (local.onBrightness ?? 100) === (settings.onBrightness ?? 100) &&
-                            !!local.showCoordinates === !!settings.showCoordinates &&
-                            (local.markerIcon || '') === (settings.markerIcon || '') &&
-                            (local.mapTheme || 'standard') === (settings.mapTheme || 'standard') &&
-                            (local.sliderType || 'normal') === (settings.sliderType || 'normal') &&
-                            (local.wideSliderStyle || 'horizontal') === (settings.wideSliderStyle || 'horizontal') &&
-                            (local.showAnimation !== false) === (settings.showAnimation !== false) &&
-                            (local.refreshInterval ?? 0) === (settings.refreshInterval ?? 0) &&
-                            !!local.appendTimestamp === !!settings.appendTimestamp &&
-                            (local.textActive || '') === (settings.textActive || '') &&
-                            (local.text || '') === (settings.text || '') &&
-                            (local.color || '') === (settings.color || '') &&
-                            (local.iconActive || '') === (settings.iconActive || '') &&
-                            (local.icon || '') === (settings.icon || '') &&
-                            !!local.showTrendArrow === !!settings.showTrendArrow &&
-                            (local.trendMinutes || 30) === (settings.trendMinutes || 30)
                         }
-                        startIcon={<Save />}
-                        onClick={() => onSave(local)}
-                    >
-                        {I18n.t('wm_Save')}
-                    </Button>
-                    <Button
-                        color="grey"
-                        startIcon={<Close />}
-                        onClick={onClose}
-                    >
-                        {I18n.t('wm_Cancel')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                        label={I18n.t('wm_Record history')}
+                        sx={{ mt: 1 }}
+                    />
+                ) : null}
 
-            {/* Icon picker dialog for active/inactive icons */}
-            {iconPickerField ? (
-                <IconPickerDialog
-                    open
-                    title={I18n.t(
-                        iconPickerField === 'iconActive'
-                            ? 'wm_Icon active'
-                            : 'wm_Icons',
-                    )}
-                    value={local[iconPickerField] || ''}
-                    onClose={() => setIconPickerField(null)}
-                    onSelect={iconValue => {
-                        setLocal({ ...local, [iconPickerField]: iconValue });
-                        if (!iconValue) {
-                            // Keep the dialog open when clearing
-                            return;
-                        }
-                        setIconPickerField(null);
-                    }}
-                    instance={props.instance}
-                    socket={props.socket}
-                    theme={props.theme}
-                    admin={props.admin}
-                />
-            ) : null}
-        </>
+                {props.availableGroups?.length ? (
+                    <Box sx={{ mt: 2 }}>
+                        <GroupSelector
+                            availableGroups={props.availableGroups}
+                            currentGroupId={props.currentGroupId}
+                            onGroupChange={groupId => props.onGroupChange?.(groupId)}
+                        />
+                    </Box>
+                ) : null}
+
+                {onDelete ? (
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => {
+                            onDelete();
+                            onClose();
+                        }}
+                        fullWidth
+                        sx={{ mt: 3 }}
+                    >
+                        {I18n.t('wm_Delete')}
+                    </Button>
+                ) : null}
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    disabled={!hasChanges}
+                    startIcon={<Save />}
+                    onClick={() => onSave(values as WidgetSettingsBase & Record<string, any>)}
+                >
+                    {I18n.t('wm_Save')}
+                </Button>
+                <Button
+                    color="grey"
+                    startIcon={<Close />}
+                    onClick={onClose}
+                >
+                    {I18n.t('wm_Cancel')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }

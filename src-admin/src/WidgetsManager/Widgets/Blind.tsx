@@ -339,6 +339,21 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            blindType: {
+                type: 'select',
+                label: 'wm_BlindType',
+                options: [
+                    { value: 'shutter', label: 'wm_Shutter', icon: 'Blinds' },
+                    { value: 'curtain', label: 'wm_Curtain', icon: 'CurtainsClosed' },
+                ],
+                default: 'shutter',
+                format: 'radio',
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.actualId) {

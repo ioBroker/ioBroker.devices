@@ -404,6 +404,11 @@ export class WidgetGeneric<
         };
     }
 
+    /** Override in subclasses to provide widget-specific settings schema items */
+    static getSettingsSchema(): Record<string, any> {
+        return {};
+    }
+
     /** Shrink the name font so it fits on one line without truncation */
     protected adjustNameFontSize(): void {
         const el = this.nameRef.current;

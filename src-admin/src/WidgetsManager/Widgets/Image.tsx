@@ -47,6 +47,23 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            refreshInterval: {
+                type: 'number',
+                label: 'wm_Refresh interval',
+                default: 0,
+                min: 0,
+                help: 'wm_Refresh interval help',
+            },
+            appendTimestamp: {
+                type: 'checkbox',
+                label: 'wm_Append timestamp',
+                default: false,
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.urlId) {

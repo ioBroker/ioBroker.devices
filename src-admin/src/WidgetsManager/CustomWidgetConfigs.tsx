@@ -1,7 +1,4 @@
-import React from 'react';
-
 import type { CustomWidgetType } from '../../../src/widget-utils';
-import { SizeIcon1x1, SizeIcon2x1, SizeIcon2xHalf } from './SizeIcons';
 import type { ConfigItemAny, ConfigItemPanel } from '@iobroker/json-config';
 
 // --- Helpers ---
@@ -32,10 +29,14 @@ export function getConfigDefault(item: ConfigItemAny): unknown {
 
 // --- Shared size options ---
 
-export const SIZE_OPTIONS: { value: string; label: string; icon?: React.ReactNode }[] = [
-    { value: '1x1', label: '1\u00D71', icon: <SizeIcon1x1 /> },
-    { value: '2x1', label: '2\u00D71', icon: <SizeIcon2x1 /> },
-    { value: '2x0.5', label: '2\u00D7\u00BD', icon: <SizeIcon2xHalf /> },
+const SIZE_ICON_1x1 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><rect x="1" y="1" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+const SIZE_ICON_2x1 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18" viewBox="0 0 32 18"><rect x="1" y="1" width="30" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+const SIZE_ICON_2xHalf = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="12" viewBox="0 0 32 12"><rect x="1" y="1" width="30" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+
+export const SIZE_OPTIONS: { value: string; label: string; icon?: string }[] = [
+    { value: '1x1', label: '1\u00D71', icon: SIZE_ICON_1x1 },
+    { value: '2x1', label: '2\u00D71', icon: SIZE_ICON_2x1 },
+    { value: '2x0.5', label: '2\u00D7\u00BD', icon: SIZE_ICON_2xHalf },
 ];
 
 // --- Per-widget configs (json-config schema) ---
@@ -51,6 +52,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '1x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -116,6 +118,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '2x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -160,6 +163,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '2x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -215,6 +219,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '1x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -244,6 +249,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '1x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -426,6 +432,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '1x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',
@@ -443,6 +450,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
                 options: SIZE_OPTIONS,
                 default: '1x1',
                 format: 'radio',
+                horizontal: true,
             },
             color: {
                 type: 'color',

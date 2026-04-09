@@ -192,6 +192,27 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         };
     }
 
+    static getSettingsSchema(): Record<string, any> {
+        return {
+            showCoordinates: {
+                type: 'checkbox',
+                label: 'wm_Show coordinates',
+                default: false,
+            },
+            mapTheme: {
+                type: 'select',
+                label: 'wm_Map theme',
+                options: [
+                    { value: 'standard', label: 'wm_map_standard', icon: 'Map' },
+                    { value: 'dark', label: 'wm_map_dark', icon: 'DarkMode' },
+                    { value: 'satellite', label: 'wm_map_satellite', icon: 'Satellite' },
+                ],
+                default: 'standard',
+                format: 'radio',
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.latId) {
