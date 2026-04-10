@@ -39,6 +39,10 @@ import _StateContextStub from './StateContext';
 const _host: typeof _stubs & { StateContext: typeof _StateContextStub } = (typeof window !== 'undefined' &&
     (window as any).__iobrokerDmWidgets__) || { ..._stubs, StateContext: _StateContextStub };
 
+// Shared modules provided by the host via window.__iobrokerShared__
+// Plugins should import react/MUI from here instead of directly to avoid dual-instance issues
+const _shared: Record<string, any> = (typeof window !== 'undefined' && (window as any).__iobrokerShared__) || {};
+
 // --- Value exports (resolved from host at runtime) ---
 
 export const WidgetGeneric = _host.default || _host.WidgetGeneric || _stubs.default;
@@ -46,6 +50,13 @@ export default WidgetGeneric;
 export const getTileStyles = _host.getTileStyles || _stubs.getTileStyles;
 export const isNeumorphicTheme = _host.isNeumorphicTheme || _stubs.isNeumorphicTheme;
 export const StateContext = _host.StateContext || _StateContextStub;
+
+/** Host's React instance — use this instead of importing 'react' directly in plugins */
+export const React = _shared.react;
+/** Host's MUI Material — use this instead of importing '@mui/material' directly in plugins */
+export const MuiMaterial = _shared['@mui/material'];
+/** Host's MUI Icons — use this instead of importing '@mui/icons-material' directly in plugins */
+export const MuiIcons = _shared['@mui/icons-material'];
 
 // --- Type-only exports (no runtime presence needed) ---
 
