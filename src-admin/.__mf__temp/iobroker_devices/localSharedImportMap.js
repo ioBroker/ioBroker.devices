@@ -180,7 +180,7 @@
         ,
           "@iobroker/dm-widgets": {
             name: "@iobroker/dm-widgets",
-            version: "0.1.8",
+            version: "0.1.10",
             scope: ["default"],
             loaded: false,
             from: "iobroker_devices",

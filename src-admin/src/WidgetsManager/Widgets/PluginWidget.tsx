@@ -142,8 +142,8 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
                 settings={this.props.settings}
                 onOpenSettings={this.props.onOpenSettings ? () => this.props.onOpenSettings!(id) : undefined}
                 openDialogId={this.props.openDialogId}
-                onOpenWidgetDialog={(dialogId: string) => this.props.onOpenWidgetDialog?.(dialogId)}
-                onCloseWidgetDialog={() => this.props.onCloseWidgetDialog?.()}
+                onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                onCloseWidgetDialog={this.props.onCloseWidgetDialog}
             />
         );
     }

@@ -7,7 +7,9 @@
 import { registerRemotes, loadRemote, createInstance } from '@module-federation/runtime';
 
 import React from 'react';
+import * as ReactDOM from 'react-dom';
 import * as IconsMaterial from '@mui/icons-material';
+import * as MuiMaterial from '@mui/material';
 import * as AdapterReact from '@iobroker/adapter-react-v5';
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
@@ -16,34 +18,46 @@ import type WidgetGeneric from '@iobroker/dm-widgets';
 
 type WidgetComponent = typeof WidgetGeneric<any, any>;
 
-// Expose the real WidgetGeneric and helpers on window so plugins can access them
+// Expose the real modules on window so plugins can access them
 // even if MF shared module resolution fails.
 (window as any).__iobrokerDmWidgets__ = { ...DmWidgets, StateContext };
+(window as any).__iobrokerShared__ = {
+    react: React,
+    'react-dom': ReactDOM,
+    '@mui/material': MuiMaterial,
+    '@mui/icons-material': IconsMaterial,
+    '@iobroker/adapter-react-v5': AdapterReact,
+};
 
 // Initialize Module Federation runtime with shared dependencies.
 // Plugin widgets receive these from the host — they must NOT bundle them.
+// Shared module config: eager + singleton ensures plugins always get the host's copies
+const sharedConfig = (lib: () => any) => ({
+    lib,
+    version: '*',
+    shareConfig: {
+        singleton: true,
+        eager: true,
+        requiredVersion: '*',
+    },
+});
+
 createInstance({
     name: 'iobroker_devices',
+    shareStrategy: 'loaded-first',
     shared: {
-        react: {
-            lib: () => React,
-            version: '*',
-        },
-        '@iobroker/adapter-react-v5': {
-            lib: () => AdapterReact,
-            version: '*',
-        },
-        '@mui/icons-material': {
-            lib: () => IconsMaterial,
-            version: '*',
-        },
-        '@iobroker/dm-widgets': {
-            lib: () => ({ ...DmWidgets, StateContext }),
-            version: '*',
-        },
+        react: sharedConfig(() => React),
+        'react-dom': sharedConfig(() => ReactDOM),
+        '@mui/material': sharedConfig(() => MuiMaterial),
+        '@iobroker/adapter-react-v5': sharedConfig(() => AdapterReact),
+        '@mui/icons-material': sharedConfig(() => IconsMaterial),
+        '@iobroker/dm-widgets': sharedConfig(() => ({ ...DmWidgets, StateContext })),
     },
     remotes: [],
 });
+
+// Debug: verify single React instance
+console.log('[MF] Host React version:', React.version, '| React identity:', (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ? 'OK' : 'MISSING INTERNALS');
 
 /** In-flight load promises keyed by "url!module" for deduplication */
 const runningLoads: Record<string, Promise<{ default: Record<string, WidgetComponent> }>> = {};
@@ -97,6 +111,17 @@ export async function loadPluginComponent(
     }
 
     const module = await setPromise;
+
+    // Debug: check if the plugin received the same React
+    try {
+        const pluginReact = (module as any)?.__esModule ? undefined : (module as any)?.React;
+        if (pluginReact && pluginReact !== React) {
+            console.error('[MF] REACT MISMATCH! Plugin has different React instance. Host:', React.version, 'Plugin:', pluginReact.version);
+        }
+    } catch {
+        // ignore
+    }
+
     // The exposed "Components" module exports { ComponentName: Class, ... } as default
     const components = module?.default as Record<string, WidgetComponent> | undefined;
     const Component = components?.[componentName];
