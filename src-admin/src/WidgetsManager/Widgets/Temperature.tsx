@@ -100,7 +100,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
         if (this.state.temperature == null) {
             return '—';
         }
-        return `${formatFloat(this.state.temperature, 1, this.props.isFloatComma)}°`;
+        return `${formatFloat(this.state.temperature, 1, this.props.stateContext.isFloatComma)}°`;
     }
 
     protected isTileActive(): boolean {
@@ -143,7 +143,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         // In wide/tall modes, values are shown via renderTileAction
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }

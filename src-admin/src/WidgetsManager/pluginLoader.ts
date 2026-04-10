@@ -12,8 +12,9 @@ import * as AdapterReact from '@iobroker/adapter-react-v5';
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
+import type WidgetGeneric from '@iobroker/dm-widgets';
 
-type WidgetComponent = React.ComponentType<Record<string, unknown>>;
+type WidgetComponent = typeof WidgetGeneric<any, any>;
 
 // Expose the real WidgetGeneric and helpers on window so plugins can access them
 // even if MF shared module resolution fails.

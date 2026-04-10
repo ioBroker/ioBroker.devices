@@ -42,7 +42,7 @@ import type StateContext from '../StateContext';
 import ChartDialog, { type ChartLineType } from './ChartDialog';
 
 /** Generic settings used by WidgetGeneric base class */
-export interface GenericWidgetSettings extends WidgetSettingsBase {
+export interface WidgetGenericSettings extends WidgetSettingsBase {
     /** Show trend arrow indicator based on recent history data */
     showTrendArrow?: boolean;
     /** Trend calculation period in minutes (default 30) */
@@ -50,12 +50,24 @@ export interface GenericWidgetSettings extends WidgetSettingsBase {
 }
 
 export interface WidgetGenericProps<
-    TSettings extends WidgetSettingsBase = GenericWidgetSettings,
+    TSettings extends WidgetSettingsBase = WidgetGenericSettings,
 > extends WidgetGenericPropsBase<TSettings> {
     /** Host's StateContext (superset of IStateContext) */
     stateContext: StateContext;
-    /** Full widget settings (host's WidgetSettings + plugin-specific TSettings) */
-    settings?: TSettings;
+}
+
+/** Resolve an ioBroker StringOrTranslated value to a plain string */
+export function resolveTranslated(
+    text: ioBroker.StringOrTranslated | undefined | null,
+    language?: ioBroker.Languages,
+): string {
+    if (!text) {
+        return '';
+    }
+    if (typeof text === 'string') {
+        return text;
+    }
+    return (language && text[language]) || text.en || Object.values(text)[0] || '';
 }
 
 /**
@@ -204,7 +216,7 @@ const DEFAULT_INDICATORS: IndicatorValues = {
 
 export class WidgetGeneric<
     TState extends WidgetGenericState = WidgetGenericState,
-    TSettings extends GenericWidgetSettings = GenericWidgetSettings,
+    TSettings extends WidgetGenericSettings = WidgetGenericSettings,
 > extends WidgetGenericBase<TState, TSettings> {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
@@ -405,8 +417,15 @@ export class WidgetGeneric<
     }
 
     /** Override in subclasses to provide widget-specific settings schema items */
-    static getSettingsSchema(): Record<string, any> {
-        return {};
+    // Return type uses `any` because ConfigItemPanel from @iobroker/json-config and @iobroker/dm-utils are structurally equivalent but TypeScript treats them as different types
+    static override getConfigSchema(): any {
+        return {
+            name: 'Generic',
+            schema: {
+                type: 'panel',
+                items: {},
+            },
+        };
     }
 
     /** Shrink the name font so it fits on one line without truncation */
@@ -566,11 +585,7 @@ export class WidgetGeneric<
     };
 
     getText(text: ioBroker.StringOrTranslated): string {
-        if (typeof text === 'object') {
-            return text[this.props.language] || text.en;
-        }
-
-        return text;
+        return resolveTranslated(text, this.props.stateContext.language);
     }
 
     // --- Extra info (ELECTRIC_POWER, CURRENT, VOLTAGE, etc.) ---
@@ -578,8 +593,8 @@ export class WidgetGeneric<
     private async loadExtraInfoMetadata(): Promise<void> {
         // Ensure history instance is resolved before checking history availability
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const cfg = await this.props.stateContext.getSocket().getObject('system.config');
@@ -639,8 +654,8 @@ export class WidgetGeneric<
                 abs >= 100
                     ? Math.round(entry.value).toString()
                     : abs >= 10
-                      ? formatFloat(entry.value, 1, this.props.isFloatComma)
-                      : formatFloat(entry.value, 2, this.props.isFloatComma);
+                      ? formatFloat(entry.value, 1, this.props.stateContext.isFloatComma)
+                      : formatFloat(entry.value, 2, this.props.stateContext.isFloatComma);
             return entry.unit ? `${str} ${entry.unit}` : str;
         }
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
@@ -765,9 +780,9 @@ export class WidgetGeneric<
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={entry.unit}
-                isFloatComma={this.props.isFloatComma}
+                isFloatComma={this.props.stateContext.isFloatComma}
                 widgetId={String(this.props.widget.id)}
-                instanceId={this.props.instanceId}
+                instanceId={this.props.stateContext.instanceId}
             />
         );
     }
@@ -1167,7 +1182,7 @@ export class WidgetGeneric<
 
     private loadChartType(): void {
         const widgetId = String(this.props.widget.id);
-        const instanceId = this.props.instanceId;
+        const instanceId = this.props.stateContext.instanceId;
         if (!widgetId || !instanceId) {
             return;
         }
@@ -1250,8 +1265,8 @@ export class WidgetGeneric<
         const socket = this.props.stateContext.getSocket();
 
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const sysConfig =
@@ -1331,8 +1346,8 @@ export class WidgetGeneric<
     private async loadTrend(stateId: string): Promise<void> {
         // Ensure history instance is resolved
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const sysConfig =
@@ -1450,9 +1465,9 @@ export class WidgetGeneric<
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.getChartUnit()}
-                isFloatComma={this.props.isFloatComma}
+                isFloatComma={this.props.stateContext.isFloatComma}
                 widgetId={String(this.props.widget.id)}
-                instanceId={this.props.instanceId}
+                instanceId={this.props.stateContext.instanceId}
             />
         );
     }
@@ -1986,7 +2001,7 @@ export class WidgetGeneric<
     }
 
     render(): React.JSX.Element {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

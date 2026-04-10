@@ -49,29 +49,18 @@ export const StateContext = _host.StateContext || _StateContextStub;
 
 // --- Type-only exports (no runtime presence needed) ---
 
-export type {
-    WidgetSettingsBase,
-    WidgetGenericProps,
-    WidgetGenericState,
-    IndicatorValues,
-    ChartSeries,
-    ExtraInfoEntry,
-} from './WidgetGeneric';
+export type { WidgetGenericProps, IndicatorValues, ChartSeries, ExtraInfoEntry } from './WidgetGeneric';
 export type { StateChangeListener, ObjectChangeListener } from './StateContext';
 export type {
-    ItemInfo,
-    WidgetInfo,
+    CategoryInfo,
+    CustomWidgetBase,
+    CustomWidgetPlugin,
+    CustomWidgetType,
+    DeviceStatus,
     DevicesDetectorState,
     DevicesPatternControl,
-    CategoryInfo,
-    CustomWidgetType,
-    CustomWidgetBase,
-    CustomWidgetDef,
-    ClockWidgetDef,
-    WeatherWidgetDef,
-    IframeWidgetDef,
-    WindWidgetDef,
-    GaugeWidgetDef,
-    PluginWidgetDef,
-    WidgetConfigItem,
+    ItemInfo,
+    WidgetGenericState,
+    WidgetInfo,
+    WidgetSettingsBase,
 } from './types';

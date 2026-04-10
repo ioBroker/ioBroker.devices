@@ -4,10 +4,11 @@ import { Water } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type GenericWidgetSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for alarm/sensor widgets */
-interface AlarmWidgetSettings extends GenericWidgetSettings {
+interface AlarmWidgetSettings extends WidgetGenericSettings {
     hideWhenOk?: boolean;
 }
 
@@ -38,12 +39,18 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState, Alarm
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            hideWhenOk: {
-                type: 'checkbox',
-                label: 'wm_Hide when OK',
-                default: false,
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    hideWhenOk: {
+                        type: 'checkbox',
+                        label: 'wm_Hide when OK',
+                        default: false,
+                    },
+                },
             },
         };
     }
@@ -68,7 +75,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState, Alarm
     }
 
     private fromNow(ts: number): string {
-        return moment(ts).locale(this.props.language).fromNow();
+        return moment(ts).locale(this.props.stateContext.language).fromNow();
     }
 
     private updateAgo(): void {
@@ -135,7 +142,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState, Alarm
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }

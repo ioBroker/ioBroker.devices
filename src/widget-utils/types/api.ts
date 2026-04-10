@@ -1,4 +1,4 @@
-import type { CategoryInfo, WidgetInfo } from './base';
+import type { CategoryInfo, WidgetInfo } from '@iobroker/dm-widgets';
 
 export type WmResponseItems = {
     categories: CategoryInfo[];

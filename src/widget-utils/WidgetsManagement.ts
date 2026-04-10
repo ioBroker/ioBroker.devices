@@ -4,7 +4,8 @@
  */
 
 import type { AdapterInstance } from '@iobroker/adapter-core';
-import type { WidgetInfo, CategoryInfo, DeviceStatus, RetVal, BackendToGuiCommand } from './types';
+import type { WidgetInfo, CategoryInfo, DeviceStatus } from '@iobroker/dm-widgets';
+import type { RetVal, BackendToGuiCommand } from './types';
 import type { WmResponseItems } from './types/api';
 
 export abstract class WidgetsManagement<TAdapter extends AdapterInstance = AdapterInstance> {
@@ -110,7 +111,7 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                         const parts = row.id.split('.');
                         const adapterName = parts[2];
                         if (adapterName) {
-                            result[adapterName] = common.deviceWidgets;
+                            result[adapterName] = common.deviceWidgets as any;
                         }
                     }
                 }

@@ -17,13 +17,14 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider, Dimmer, Volume widgets */
-export interface SliderWidgetSettings extends GenericWidgetSettings {
+export interface SliderWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     wideSliderStyle?: string;
 }
@@ -121,30 +122,36 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            sliderType: {
-                type: 'select',
-                label: 'wm_Slider type',
-                options: [
-                    { value: 'normal', label: 'wm_slider_normal', icon: 'Tune' },
-                    { value: 'valve', label: 'wm_slider_valve', icon: 'Valve' },
-                    { value: 'fan', label: 'wm_slider_fan', icon: 'Air' },
-                    { value: 'gauge', label: 'wm_slider_gauge', icon: 'Speed' },
-                ],
-                default: 'normal',
-                format: 'radio',
-            },
-            wideSliderStyle: {
-                type: 'select',
-                label: 'wm_Wide slider style',
-                options: [
-                    { value: 'horizontal', label: 'wm_slider_horizontal' },
-                    { value: 'round', label: 'wm_slider_round' },
-                ],
-                default: 'horizontal',
-                format: 'radio',
-                hidden: "data.size === '1x1'",
+            name: 'Slider',
+            schema: {
+                type: 'panel',
+                items: {
+                    sliderType: {
+                        type: 'select',
+                        label: 'wm_Slider type',
+                        options: [
+                            { value: 'normal', label: 'wm_slider_normal', icon: 'Tune' },
+                            { value: 'valve', label: 'wm_slider_valve', icon: 'Valve' },
+                            { value: 'fan', label: 'wm_slider_fan', icon: 'Air' },
+                            { value: 'gauge', label: 'wm_slider_gauge', icon: 'Speed' },
+                        ],
+                        default: 'normal',
+                        format: 'radio',
+                    },
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                },
             },
         };
     }

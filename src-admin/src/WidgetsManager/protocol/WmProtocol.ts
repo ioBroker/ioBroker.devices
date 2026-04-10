@@ -1,15 +1,10 @@
 import { type Connection } from '@iobroker/adapter-react-v5';
 import type { RetVal } from '@iobroker/dm-utils';
-import type { CategoryInfo, InstanceWidgetDescription, WidgetInfo } from './api';
+import type { WmResponseItems } from './api';
 
 export type CommandName = `dm:${string}`;
 
-export type LoadItemsCallback = (result: {
-    categories: CategoryInfo[];
-    widgets: WidgetInfo[];
-    customWidgets?: Record<string, Record<string, any>>;
-    adapterWidgets?: Record<string, InstanceWidgetDescription>;
-}) => RetVal<void>;
+export type LoadItemsCallback = (result: WmResponseItems) => RetVal<void>;
 
 export class WmProtocol {
     constructor(
@@ -18,12 +13,7 @@ export class WmProtocol {
     ) {}
 
     public async loadItems(callback: LoadItemsCallback): Promise<void> {
-        const response = await this.send<{
-            categories: CategoryInfo[];
-            widgets: WidgetInfo[];
-            customWidgets?: Record<string, Record<string, any>>;
-            adapterWidgets?: Record<string, InstanceWidgetDescription>;
-        }>('dm:loadItems');
+        const response = await this.send<WmResponseItems>('dm:loadItems');
         try {
             void callback(response);
         } catch (error) {

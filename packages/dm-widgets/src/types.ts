@@ -3,15 +3,21 @@
  * These mirror the types from src/widget-utils/types/base.ts
  */
 import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
+import type { ChartLineType, ChartSeries, IndicatorValues } from './WidgetGeneric';
 
 export type Color = 'primary' | 'secondary' | (string & {});
 export type ValueOrObject<T> = T | { objectId: string; property: string };
 export type ValueOrState<T> = T | { stateId: string; mapping?: Record<string | number, string> };
+export type ValueOrStateOrObject<T> = T | ValueOrObject<T> | ValueOrState<T>;
 
 export type DeviceStatus =
     | 'connected'
     | 'disconnected'
     | {
+          // or string '10V',
+          // or string '10mV',
+          // or string '100' in mV
+          // or boolean true (means OK) or false (Battery warning)
           battery?: ValueOrState<number | boolean | 'charging' | (string & {})>;
           connection?: ValueOrState<'connected' | 'disconnected'>;
           rssi?: ValueOrState<number>;
@@ -20,13 +26,20 @@ export type DeviceStatus =
 
 export interface ItemInfo {
     type: 'widget' | 'category';
+    /** ID of the device. Must be unique only in one adapter. Other adapters could have the same IDs */
     id: string | number;
+    /** Name of the device. It will be shown in the card header */
     name: ValueOrObject<ioBroker.StringOrTranslated>;
+    /** base64 or url icon for device card */
     icon?: ValueOrState<string>;
+    /** Color or 'primary', 'secondary' for the text in the card header */
     color?: ValueOrState<Color>;
+    /** Background color of card header (you can use primary, secondary or color rgb value or hex) */
     backgroundColor?: ValueOrState<Color>;
     status?: DeviceStatus | DeviceStatus[];
+    /** If this flag is true or false, the according indication will be shown. Additionally, if ACTIONS.ENABLE_DISABLE is implemented, this action will be sent to the backend by clicking on this indication */
     enabled?: ValueOrState<boolean>;
+    /** ID of the category to which belongs the widget */
     parent?: string;
 }
 
@@ -58,123 +71,6 @@ export interface WidgetInfo extends ItemInfo {
 
 export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'universal' | 'plugin';
 
-/** Config item definition for plugin widget settings */
-export interface WidgetConfigItem {
-    type: 'select' | 'checkbox' | 'color' | 'text' | 'stateId' | 'instanceSelect' | 'citySearch' | 'colorLevels';
-    label: string;
-    default?: unknown;
-    options?: { value: string; label: string }[];
-    format?: 'radio';
-    placeholder?: string;
-    helperText?: string;
-    inputType?: 'text' | 'number';
-    adapterNames?: string[];
-    autoFill?: Record<string, string>;
-    colorLevels?: { value: number; color: string }[];
-    visibleWhen?: Record<string, unknown>;
-}
-
-export interface CustomWidgetBase {
-    id: string;
-    type: CustomWidgetType;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
-    favorite?: boolean;
-}
-
-export interface ClockWidgetDef extends CustomWidgetBase {
-    type: 'clock';
-    style?: 'digital' | 'analog';
-    showDate?: boolean;
-    showDow?: boolean;
-    showSeconds?: boolean;
-}
-
-export interface WeatherWidgetDef extends CustomWidgetBase {
-    type: 'weather';
-    adapterInstance?: string;
-    weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
-    latitude?: number;
-    longitude?: number;
-    cityName?: string;
-}
-
-export interface IframeWidgetDef extends CustomWidgetBase {
-    type: 'iframe';
-    url?: string;
-    refreshInterval?: number;
-    appendTimestamp?: boolean;
-    clickAction?: 'dialog' | 'newTab' | 'sameTab';
-}
-
-export interface WindWidgetDef extends CustomWidgetBase {
-    type: 'wind';
-    directionStateId?: string;
-    speedStateId?: string;
-    gustsStateId?: string;
-}
-
-export interface GaugeWidgetDef extends CustomWidgetBase {
-    type: 'gauge';
-    gaugeStateId?: string;
-    gaugeStateId2?: string;
-    gaugeName?: string;
-    minValue?: number;
-    maxValue?: number;
-    gaugeUnit?: string;
-    colorLevels?: { value: number; color: string }[];
-    usePercentage?: boolean;
-}
-
-export interface UniversalWidgetDef extends CustomWidgetBase {
-    type: 'universal';
-    name?: string;
-    secondaryName?: string;
-    digits?: number;
-    widgetIcon?: string;
-    widgetIconActive?: string;
-    stateId?: string;
-    secondaryStateId?: string;
-    opacityStateId?: string;
-    opacityFalse?: number;
-    opacityTrue?: number;
-    colorLevels?: { value: number; color: string }[];
-    actionStateId?: string;
-    actionType?: 'value' | 'toggle';
-    actionValue?: string | number | boolean;
-    actionConfirm?: 'none' | 'dialog' | 'pin';
-    actionConfirmText?: string;
-    actionPin?: string;
-    icon1StateId?: string;
-    icon1Name?: string;
-    icon1Color?: string;
-    icon2StateId?: string;
-    icon2Name?: string;
-    icon2Color?: string;
-    icon3StateId?: string;
-    icon3Name?: string;
-    icon3Color?: string;
-}
-
-export interface PluginWidgetDef extends CustomWidgetBase {
-    type: 'plugin';
-    pluginAdapter?: string;
-    pluginComponent?: string;
-    pluginUrl?: string;
-    /** Plugin config schema for widget settings */
-    pluginConfigItems?: Record<string, WidgetConfigItem>;
-    [key: string]: any;
-}
-
-export type CustomWidgetDef =
-    | ClockWidgetDef
-    | WeatherWidgetDef
-    | IframeWidgetDef
-    | WindWidgetDef
-    | GaugeWidgetDef
-    | UniversalWidgetDef
-    | PluginWidgetDef;
-
 export interface CategoryInfo extends ItemInfo {
     type: 'category';
     custom?: {
@@ -185,7 +81,7 @@ export interface CategoryInfo extends ItemInfo {
         noHumidity?: boolean;
         noTemperature?: boolean;
         noWindows?: boolean;
-        customWidgets?: CustomWidgetDef[];
+        customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
         widgetGroups?: Array<{
             id: string;
@@ -194,4 +90,52 @@ export interface CategoryInfo extends ItemInfo {
             widgetIds: string[];
         }>;
     };
+}
+
+export interface WidgetSettingsBase {
+    size: '1x1' | '2x0.5' | '2x1';
+    name: string;
+    favorite: boolean;
+
+    color: string;
+    /** Custom color for inactive state */
+    colorActive?: string;
+
+    trendMinutes?: number;
+    showTrendArrow?: boolean;
+    chartHours: number;
+
+    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in `common.icon`) */
+    icon: string;
+    iconActive: string;
+
+    text: string;
+    textActive: string;
+}
+
+export interface CustomWidgetBase extends WidgetSettingsBase {
+    id: string;
+    type: CustomWidgetType;
+}
+
+/** Custom widget definition — settings are stored dynamically via JsonConfig schemas */
+export interface CustomWidgetPlugin extends CustomWidgetBase {
+    type: 'plugin';
+    /** Plugin: adapter name that provides the widget */
+    pluginAdapter?: string;
+    /** Plugin: component name exported by the adapter */
+    pluginComponent?: string;
+    /** Plugin: URL to load the widget bundle (federation remote entry) */
+    pluginUrl?: string;
+    /** Any widget-specific settings (managed by JsonConfig) */
+    [key: string]: any;
+}
+
+export interface WidgetGenericState {
+    name: string | null;
+    color: string | null;
+    indicators: IndicatorValues;
+    chartSeries: ChartSeries[];
+    chartDialogOpen: boolean;
+    chartType: ChartLineType;
 }

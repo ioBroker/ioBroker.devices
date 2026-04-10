@@ -17,13 +17,14 @@ import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
     formatFloat,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider/Dimmer/Volume widgets */
-interface SliderWidgetSettings extends GenericWidgetSettings {
+interface SliderWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     wideSliderStyle?: string;
 }
@@ -83,18 +84,24 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            wideSliderStyle: {
-                type: 'select',
-                label: 'wm_Wide slider style',
-                options: [
-                    { value: 'horizontal', label: 'wm_slider_horizontal' },
-                    { value: 'round', label: 'wm_slider_round' },
-                ],
-                default: 'horizontal',
-                format: 'radio',
-                hidden: "data.size === '1x1'",
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                },
             },
         };
     }
@@ -685,7 +692,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                     sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}
                                 >
                                     {transitionTime != null
-                                        ? `${formatFloat(transitionTime / 1000, 1, this.props.isFloatComma)}s`
+                                        ? `${formatFloat(transitionTime / 1000, 1, this.props.stateContext.isFloatComma)}s`
                                         : '—'}
                                 </Typography>
                             </Box>

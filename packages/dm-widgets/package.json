@@ -1,6 +1,6 @@
 {
     "name": "@iobroker/dm-widgets",
-    "version": "0.1.4",
+    "version": "0.1.8",
     "description": "Types and base class for ioBroker Device Manager widget plugins",
     "main": "build/index.js",
     "types": "build/index.d.ts",
@@ -9,14 +9,15 @@
     },
     "scripts": {
         "build": "tsc",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build",
+        "lint": "eslint -c eslint.config.mjs"
     },
     "files": [
         "build/",
         "modulefederation.devices.config.js"
     ],
     "peerDependencies": {
-        "react": ">=18",
+        "react": "=18",
         "@iobroker/adapter-react-v5": ">=8",
         "@iobroker/type-detector": ">=5",
         "@mui/material": ">=6",
@@ -25,12 +26,12 @@
     "devDependencies": {
         "@iobroker/adapter-react-v5": "^8.1.6",
         "@iobroker/type-detector": "^5.0.11",
-        "@iobroker/types": "*",
+        "@iobroker/types": "^7.1.2-alpha.0-20260409-feacb179d",
         "@mui/material": "^6.5.0",
         "@mui/icons-material": "^6.5.0",
         "@types/react": "^18.3.28",
         "react": "^18.3.1",
-        "typescript": "^5.7.3"
+        "typescript": "^5.9.3"
     },
     "license": "MIT",
     "repository": {

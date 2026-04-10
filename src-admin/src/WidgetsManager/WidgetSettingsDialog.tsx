@@ -24,17 +24,18 @@ import {
     type ConfigItemAny,
     type ConfigGeneric,
     JsonConfigComponent,
+    type ConfigItemTabs,
 } from '@iobroker/json-config';
 
 interface WidgetSettingsDialogProps {
     open: boolean;
     widgetName: string;
-    settings: WidgetSettingsBase & Record<string, any>;
+    settings: WidgetSettingsBase;
     onClose: () => void;
-    onSave: (settings: WidgetSettingsBase & Record<string, any>) => void;
+    onSave: (settings: WidgetSettingsBase) => void;
     onDelete?: () => void;
-    /** Widget-specific schema items from Widget.getSettingsSchema() */
-    widgetSchema?: Record<string, any>;
+    /** Widget-specific schema items from Widget.getConfigSchema() */
+    configSchema?: { name: string; schema: ConfigItemPanel | ConfigItemTabs } | null;
     socket: Connection;
     theme: IobTheme;
     admin: boolean;
@@ -126,8 +127,11 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
     }
 
     // Widget-specific fields
-    if (props.widgetSchema) {
-        Object.assign(items, props.widgetSchema);
+    if (props.configSchema) {
+        if (props.configSchema.schema.type !== 'panel') {
+            throw new Error('Only panel is supported as root component');
+        }
+        Object.assign(items, props.configSchema.schema.items);
     }
 
     // Chart fields (always at the bottom if enabled)
@@ -170,13 +174,13 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
 
 export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): React.JSX.Element {
     const { open, widgetName, settings, onClose, onSave, onDelete, objectName, objectColor } = props;
-    const [values, setValues] = useState<Record<string, any>>({});
+    const [values, setValues] = useState<WidgetSettingsBase>({} as WidgetSettingsBase);
     const [historyEnabled, setHistoryEnabled] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
 
     const schema = useMemo(
         () => buildSchema(props),
-        [props, props.widgetSchema, props.showChart, props.showAlarmFields, props.showIcon],
+        [props, props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
     );
 
     useEffect(() => {
@@ -202,7 +206,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     }, [open, settings]);
 
     const hasChanges = Object.keys(schema.items).some(key => {
-        return values[key] !== settings[key];
+        return (values as Record<string, any>)[key] !== (settings as Record<string, any>)[key];
     });
 
     const adapterName = props.instance?.replace(/\.\d+$/, '') || 'devices';
@@ -230,7 +234,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         schema={schema}
                         data={values}
                         onError={() => {}}
-                        onChange={(data: Record<string, any>) => setValues(data)}
+                        onChange={(data: Record<string, any>) => setValues(data as WidgetSettingsBase)}
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
@@ -306,7 +310,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     variant="contained"
                     disabled={!hasChanges}
                     startIcon={<Save />}
-                    onClick={() => onSave(values as WidgetSettingsBase & Record<string, any>)}
+                    onClick={() => onSave(values)}
                 >
                     {I18n.t('wm_Save')}
                 </Button>

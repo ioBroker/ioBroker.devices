@@ -1,4 +1,4 @@
-import type { Connection } from '@iobroker/adapter-react-v5';
+import { type Connection, I18n } from '@iobroker/adapter-react-v5';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 export type ObjectChangeListener = (
@@ -28,7 +28,68 @@ export default class StateContext {
     private pendingObjPropIds: string[] = [];
     private objPropTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(protected readonly socket: Connection) {}
+    private readonly _language = I18n.getLanguage();
+    private readonly _isFloatComma: boolean;
+    private readonly _dateFormat: string;
+    private readonly _admin: boolean;
+    private readonly _instanceId: string;
+    protected readonly socket: Connection;
+    /** Latitude from system.config for sun calculations */
+    private readonly _latitude: number | null = null;
+    /** Longitude from system.config for sun calculations */
+    private readonly _longitude: number | null = null;
+    private readonly _defaultHistory: string | null = null;
+
+    constructor(props: {
+        socket: Connection;
+        instanceId: string;
+        admin: boolean;
+        dateFormat: string;
+        isFloatComma: boolean;
+        latitude: number | null;
+        longitude: number | null;
+        defaultHistory: string | null;
+    }) {
+        this.socket = props.socket;
+        this._instanceId = props.instanceId;
+        this._isFloatComma = props.isFloatComma;
+        this._dateFormat = props.dateFormat;
+        this._admin = props.admin;
+        this._longitude = props.longitude ?? null;
+        this._latitude = props.latitude ?? null;
+        this._defaultHistory = props.defaultHistory;
+    }
+
+    public get language(): ioBroker.Languages {
+        return this._language;
+    }
+    public get isFloatComma(): boolean {
+        return this._isFloatComma;
+    }
+
+    public get dateFormat(): string {
+        return this._dateFormat;
+    }
+
+    public get admin(): boolean {
+        return this._admin;
+    }
+
+    public get instanceId(): string {
+        return this._instanceId;
+    }
+
+    public get defaultHistory(): string | null {
+        return this._defaultHistory;
+    }
+
+    public get longitude(): number | null {
+        return this._longitude;
+    }
+
+    public get latitude(): number | null {
+        return this._latitude;
+    }
 
     private onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.subscribedStates[id]) {

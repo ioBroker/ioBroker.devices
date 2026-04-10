@@ -20,7 +20,7 @@ import {
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
 import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetDef } from '../../../src/widget-utils';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
 
@@ -34,7 +34,7 @@ export interface CategorySettings {
     image: string;
     /** 'header' = background only behind header, 'page' = background behind whole page */
     imageScope: 'header' | 'page';
-    customWidgets?: CustomWidgetDef[];
+    customWidgets?: CustomWidgetBase[];
     widgetOrder?: string[];
     widgetGroups?: WidgetGroup[];
     /** Hide the config/play toggle button (root category only) */

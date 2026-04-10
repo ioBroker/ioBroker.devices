@@ -6,15 +6,19 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import type { Theme } from '@mui/material/styles';
 
 import WidgetGeneric, { getTileStyles } from './Generic';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type StateContext from '../StateContext';
 
-interface WidgetIframeProps {
-    id: string;
+export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;
     refreshInterval?: number;
     appendTimestamp?: boolean;
     clickAction?: 'dialog' | 'newTab' | 'sameTab';
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
+}
+
+interface WidgetIframeProps {
+    settings: WidgetIframeSettings;
+    stateContext: StateContext;
     onOpenSettings?: () => void;
     onRemove?: () => void;
     /** Widget dialog ID to auto-open (from hash) */
@@ -35,7 +39,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     constructor(props: WidgetIframeProps) {
         super(props);
-        this.state = { dialogOpen: props.openDialogId === props.id, ts: Date.now() };
+        this.state = { dialogOpen: props.openDialogId === props.settings.id, ts: Date.now() };
     }
 
     componentDidMount(): void {
@@ -43,7 +47,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     }
 
     componentDidUpdate(prevProps: WidgetIframeProps): void {
-        if (prevProps.refreshInterval !== this.props.refreshInterval) {
+        if (prevProps.settings.refreshInterval !== this.props.settings.refreshInterval) {
             this.setupRefreshTimer();
         }
     }
@@ -59,7 +63,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
             clearInterval(this.refreshTimer);
             this.refreshTimer = null;
         }
-        const interval = Number(this.props.refreshInterval) || 0;
+        const interval = Number(this.props.settings.refreshInterval) || 0;
         if (interval > 0) {
             this.refreshTimer = setInterval(() => {
                 this.setState({ ts: Date.now() });
@@ -68,11 +72,11 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     }
 
     private getUrl(forceTs?: boolean): string {
-        let url = this.props.url || '';
+        let url = this.props.settings.url || '';
         if (!url) {
             return '';
         }
-        if (this.props.appendTimestamp || forceTs) {
+        if (this.props.settings.appendTimestamp || forceTs) {
             const sep = url.includes('?') ? '&' : '?';
             url = `${url}${sep}ts=${this.state.ts}`;
         }
@@ -80,14 +84,14 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     }
 
     private handleClick = (): void => {
-        const action = this.props.clickAction || 'dialog';
-        const url = this.props.url || '';
+        const action = this.props.settings.clickAction || 'dialog';
+        const url = this.props.settings.url || '';
         if (!url) {
             return;
         }
         if (action === 'dialog') {
             this.setState({ dialogOpen: true });
-            this.props.onOpenWidgetDialog?.(this.props.id);
+            this.props.onOpenWidgetDialog?.(this.props.settings.id);
         } else if (action === 'newTab') {
             window.open(url, '_blank', 'noopener');
         } else {
@@ -139,7 +143,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     renderCompact(): React.JSX.Element {
         const url = this.getUrl();
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
@@ -176,7 +180,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     renderWide(): React.JSX.Element {
         const url = this.getUrl();
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleWide(theme)}>
@@ -212,7 +216,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     renderWideTall(): React.JSX.Element {
         const url = this.getUrl();
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
@@ -285,7 +289,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                     <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 1 }}>
                         <IconButton
                             size="small"
-                            onClick={() => window.open(this.props.url || '', '_blank', 'noopener')}
+                            onClick={() => window.open(this.props.settings.url || '', '_blank', 'noopener')}
                             sx={{ backgroundColor: 'background.paper', '&:hover': { backgroundColor: 'action.hover' } }}
                         >
                             <OpenInNew fontSize="small" />
@@ -308,7 +312,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     }
 
     render(): React.JSX.Element {
-        const size = this.props.size || '2x1';
+        const size = this.props.settings.size || '2x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

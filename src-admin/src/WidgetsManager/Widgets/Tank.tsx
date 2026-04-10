@@ -6,13 +6,14 @@ import WidgetGeneric, {
     formatFloat,
     getTileStyles,
     isNeumorphicTheme,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Tank widget */
-export interface TankWidgetSettings extends GenericWidgetSettings {
+export interface TankWidgetSettings extends WidgetGenericSettings {
     showAnimation?: boolean;
 }
 
@@ -199,12 +200,18 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            showAnimation: {
-                type: 'checkbox',
-                label: 'wm_Show animation',
-                default: true,
+            name: 'Tank',
+            schema: {
+                type: 'panel',
+                items: {
+                    showAnimation: {
+                        type: 'checkbox',
+                        label: 'wm_Show animation',
+                        default: true,
+                    },
+                },
             },
         };
     }
@@ -313,7 +320,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         typeof e.value === 'number'
                             ? Number.isInteger(e.value)
                                 ? e.value
-                                : formatFloat(e.value, 1, this.props.isFloatComma)
+                                : formatFloat(e.value, 1, this.props.stateContext.isFloatComma)
                             : typeof e.value === 'boolean'
                               ? e.value
                                   ? I18n.t('wm_On')
@@ -344,7 +351,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         if (unit === '%') {
             return `${level}%`;
         }
-        return `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.isFloatComma)} ${unit}`;
+        return `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
     }
 
     private shouldAnimate(): boolean {

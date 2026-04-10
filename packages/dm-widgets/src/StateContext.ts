@@ -23,6 +23,14 @@ export interface IStateContext {
     removeState(id: string, handler: StateChangeListener): void;
     getSocket(): Connection;
     destroy(): void;
+    defaultHistory: string | null;
+    instanceId: string;
+    admin: boolean;
+    language: ioBroker.Languages;
+    longitude: number | null;
+    latitude: number | null;
+    isFloatComma: boolean;
+    dateFormat: string;
 }
 
 export default class StateContext implements IStateContext {
@@ -71,6 +79,16 @@ export default class StateContext implements IStateContext {
     getSocket(): Connection {
         return this.socket;
     }
+
+    // --- Stub getters for IStateContext properties (replaced at runtime by host) ---
+    defaultHistory: string | null = null;
+    instanceId = '';
+    admin = false;
+    language: ioBroker.Languages = 'en';
+    longitude: number | null = null;
+    latitude: number | null = null;
+    isFloatComma = false;
+    dateFormat = 'DD.MM.YYYY';
 
     destroy(): void {
         // stub

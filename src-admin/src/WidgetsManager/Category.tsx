@@ -52,9 +52,9 @@ import {
 import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import type { CategoryInfo, CustomWidgetDef, WidgetInfo, DevicesDetectorState } from '../../../src/widget-utils';
 import {
     formatFloat,
+    resolveTranslated,
     WidgetSwitch,
     WidgetLight,
     WidgetDimmer,
@@ -88,8 +88,14 @@ import {
     WidgetWind,
     WidgetGauge,
     WidgetUniversal,
+    type WidgetUniversalSettings,
     WidgetGate,
     PluginWidget,
+    type WidgetWeatherSettings,
+    type WidgetIframeSettings,
+    type WidgetWindSettings,
+    type WidgetGaugeSettings,
+    type WidgetClockSettings,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -97,14 +103,20 @@ import type { CategorySettings } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
 import { getGroupIcon } from './groupIcons';
-import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
-import type WidgetGeneric from './Widgets/Generic';
+import type {
+    WidgetSettingsBase,
+    CustomWidgetBase,
+    CategoryInfo,
+    WidgetInfo,
+    DevicesDetectorState,
+    CustomWidgetPlugin,
+} from '@iobroker/dm-widgets';
+import type { WidgetGeneric } from './Widgets/Generic';
 
 interface CategoryProps {
     category: CategoryInfo;
     categories: CategoryInfo[];
     widgets: WidgetInfo[];
-    language: ioBroker.Languages;
     stateContext: StateContext;
     onNavigate: (category: CategoryInfo) => void;
     widgetSettings: Record<string, WidgetSettingsBase>;
@@ -120,18 +132,12 @@ interface CategoryProps {
         categoryId: string,
         orderedItems: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: unknown }>,
     ) => void;
-    /** true if running in admin, false if in web */
-    admin: boolean;
     /** Whether config/editing mode is active */
     configMode?: boolean;
     /** Toggle between config and play mode. If undefined, no toggle button is shown. */
     onToggleConfigMode?: () => void;
     /** Open the "Install as Side Panel" dialog */
     onInstallSidePanel?: () => void;
-    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings */
-    instanceId?: string;
     /** Move a widget to a different category (drag & drop between groups) */
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     /** Delete a widget by ID (for unsupported widget types) */
@@ -140,14 +146,8 @@ interface CategoryProps {
     onToggleFavorite?: (widgetId: string) => void;
     /** Toggle favorite on a custom widget */
     onToggleCustomWidgetFavorite?: (widgetId: string) => void;
-    /** Latitude from system.config for sun calculations */
-    latitude?: number | null;
-    /** Longitude from system.config for sun calculations */
-    longitude?: number | null;
     /** Callback to go back to device list (admin split-screen narrow mode) */
     onBackToDevices?: () => void;
-    /** Use comma as decimal separator (from system.config) */
-    isFloatComma?: boolean;
     /** Widget dialog ID to auto-open (from hash) */
     openDialogId?: string | null;
     /** Callback to persist an opened widget dialog in the hash */
@@ -220,7 +220,7 @@ interface StatusSubscription {
 type OrderedItem = {
     type: 'category' | 'widget' | 'custom';
     id: string;
-    data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+    data: CategoryInfo | WidgetInfo | CustomWidgetBase;
 };
 
 function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettingsBase>): string | undefined {
@@ -231,7 +231,7 @@ function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetS
     if (item.type === 'widget') {
         size = widgetSettings[item.id]?.size || '1x1';
     } else {
-        const def = item.data as CustomWidgetDef;
+        const def = item.data as CustomWidgetBase;
         // Fall back to the config default when size wasn't persisted (older widgets)
         const configDefault = CUSTOM_WIDGET_CONFIGS[def.type]?.items.size;
         size =
@@ -506,7 +506,7 @@ function SortableGrid(props: {
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
 
     if (!canDrag) {
@@ -591,7 +591,7 @@ function SortableGrid(props: {
                             item.type === 'category'
                                 ? undefined
                                 : isCw
-                                  ? (item.data as CustomWidgetDef).favorite
+                                  ? (item.data as CustomWidgetBase).favorite
                                   : widgetSettings[item.id]?.favorite;
                         const toggleFav =
                             item.type === 'category'
@@ -643,7 +643,7 @@ function GroupSortableGrid(props: {
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
 
     if (!canDrag) {
@@ -690,7 +690,7 @@ function GroupSortableGrid(props: {
                         item.type === 'category'
                             ? undefined
                             : isCw
-                              ? (item.data as CustomWidgetDef).favorite
+                              ? (item.data as CustomWidgetBase).favorite
                               : widgetSettings[item.id]?.favorite;
                     const toggleFav =
                         item.type === 'category'
@@ -970,7 +970,7 @@ function GroupedContent(props: {
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
 
     const showCatDropTargets = !!activeId && !!onMoveWidgetToCategory;
@@ -1702,7 +1702,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     getOrderedItems(): Array<{
         type: 'category' | 'widget' | 'custom';
         id: string;
-        data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+        data: CategoryInfo | WidgetInfo | CustomWidgetBase;
     }> {
         const categoryId = String(this.props.category.id);
         const catSettings = this.props.categorySettings[categoryId];
@@ -1712,7 +1712,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const items: Array<{
             type: 'category' | 'widget' | 'custom';
             id: string;
-            data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+            data: CategoryInfo | WidgetInfo | CustomWidgetBase;
         }> = [
             ...this.subCategories.map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
             ...this.widgets.map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
@@ -1731,7 +1731,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     getText(text: ioBroker.StringOrTranslated): string {
         if (typeof text === 'object') {
-            return text[this.props.language] || text.en;
+            return text[this.props.stateContext.language] || text.en;
         }
 
         return text;
@@ -1874,12 +1874,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 key={widget.id}
                 stateContext={this.props.stateContext}
                 widget={widget}
-                language={this.props.language}
                 settings={settings}
                 onOpenSettings={this.props.onOpenSettings}
-                defaultHistory={this.props.defaultHistory}
-                instanceId={this.props.instanceId}
-                isFloatComma={this.props.isFloatComma}
                 openDialogId={this.props.openDialogId}
                 onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                 onCloseWidgetDialog={this.props.onCloseWidgetDialog}
@@ -1901,7 +1897,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderCustomWidget(def: CustomWidgetDef): React.JSX.Element | null {
+    renderCustomWidget(def: CustomWidgetBase): React.JSX.Element | null {
         const ownerCategoryId = this.findCustomWidgetCategory(def.id);
         const settingsCb = this.props.onOpenCustomWidgetSettings
             ? () => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
@@ -1917,18 +1913,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetClock
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        size={def.size}
-                        color={def.color}
-                        style={def.style}
-                        showDate={def.showDate}
-                        showDow={def.showDow}
-                        showSeconds={def.showSeconds}
+                        settings={def as WidgetClockSettings}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
-                        latitude={this.props.latitude}
-                        longitude={this.props.longitude}
+                        stateContext={this.props.stateContext}
                     />
                 );
                 break;
@@ -1936,16 +1924,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetWeather
                         key={def.id}
-                        id={def.id}
-                        weatherSource={def.weatherSource}
-                        adapterInstance={def.adapterInstance}
-                        latitude={def.latitude}
-                        longitude={def.longitude}
-                        cityName={def.cityName}
-                        language={this.props.language}
-                        isFloatComma={this.props.isFloatComma}
-                        size={def.size}
-                        color={def.color}
+                        settings={def as WidgetWeatherSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
@@ -1956,13 +1935,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetIframe
                         key={def.id}
-                        id={def.id}
-                        url={def.url}
-                        refreshInterval={def.refreshInterval}
-                        appendTimestamp={def.appendTimestamp}
-                        clickAction={def.clickAction}
-                        size={def.size}
-                        color={def.color}
+                        stateContext={this.props.stateContext}
+                        settings={def as WidgetIframeSettings}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                         openDialogId={this.props.openDialogId}
@@ -1975,15 +1949,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetWind
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        directionStateId={def.directionStateId}
-                        speedStateId={def.speedStateId}
-                        gustsStateId={def.gustsStateId}
-                        size={def.size}
-                        color={def.color}
+                        settings={def as WidgetWindSettings}
                         stateContext={this.props.stateContext}
-                        isFloatComma={this.props.isFloatComma}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
@@ -1993,105 +1960,39 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetGauge
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        gaugeStateId={def.gaugeStateId}
-                        gaugeStateId2={def.gaugeStateId2}
-                        gaugeName={def.gaugeName}
-                        minValue={def.minValue}
-                        maxValue={def.maxValue}
-                        gaugeUnit={def.gaugeUnit}
-                        colorLevels={def.colorLevels}
-                        usePercentage={def.usePercentage}
-                        size={def.size}
-                        color={def.color}
+                        settings={def as WidgetGaugeSettings}
                         stateContext={this.props.stateContext}
-                        defaultHistory={this.props.defaultHistory}
-                        instanceId={this.props.instanceId}
-                        isFloatComma={this.props.isFloatComma}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
                 );
                 break;
-            case 'universal':
+            case 'universal': {
                 content = (
                     <WidgetUniversal
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        name={def.name}
-                        secondaryName={def.secondaryName}
-                        digits={def.digits}
-                        widgetIcon={def.widgetIcon}
-                        widgetIconActive={def.widgetIconActive}
-                        stateId={def.stateId}
-                        secondaryStateId={def.secondaryStateId}
-                        opacityStateId={def.opacityStateId}
-                        opacityFalse={def.opacityFalse}
-                        opacityTrue={def.opacityTrue}
-                        actionStateId={def.actionStateId}
-                        actionType={def.actionType}
-                        actionValue={def.actionValue}
-                        actionConfirm={def.actionConfirm}
-                        actionConfirmText={def.actionConfirmText}
-                        actionPin={def.actionPin}
-                        colorLevels={def.colorLevels}
-                        icons={
-                            [
-                                def.icon1StateId
-                                    ? {
-                                          stateId: def.icon1StateId,
-                                          icon: def.icon1Name || '',
-                                          color: def.icon1Color || '',
-                                      }
-                                    : null,
-                                def.icon2StateId
-                                    ? {
-                                          stateId: def.icon2StateId,
-                                          icon: def.icon2Name || '',
-                                          color: def.icon2Color || '',
-                                      }
-                                    : null,
-                                def.icon3StateId
-                                    ? {
-                                          stateId: def.icon3StateId,
-                                          icon: def.icon3Name || '',
-                                          color: def.icon3Color || '',
-                                      }
-                                    : null,
-                            ].filter(Boolean) as { stateId: string; icon: string; color: string }[]
-                        }
-                        size={def.size}
-                        color={def.color}
+                        settings={def as WidgetUniversalSettings}
                         stateContext={this.props.stateContext}
-                        isFloatComma={this.props.isFloatComma}
-                        defaultHistory={this.props.defaultHistory}
-                        instanceId={this.props.instanceId}
                         onOpenSettings={settingsCb}
                         onRemove={removeCb}
                     />
                 );
                 break;
+            }
             case 'plugin':
-                content =
-                    def.pluginAdapter && def.pluginComponent && def.pluginUrl ? (
-                        <PluginWidget
-                            key={def.id}
-                            id={def.id}
-                            language={this.props.language}
-                            size={def.size}
-                            color={def.color}
-                            pluginAdapter={def.pluginAdapter}
-                            pluginComponent={def.pluginComponent}
-                            pluginUrl={def.pluginUrl}
-                            admin={!!this.props.admin}
-                            stateContext={this.props.stateContext}
-                            onOpenSettings={settingsCb}
-                            onRemove={removeCb}
-                            pluginSettings={def as unknown as Record<string, unknown>}
-                        />
-                    ) : null;
+                content = (
+                    <PluginWidget
+                        key={def.id}
+                        id={def.id}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                        settings={def as CustomWidgetPlugin}
+                        openDialogId={this.props.openDialogId}
+                        onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                        onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                    />
+                );
                 break;
             default:
                 content = null;
@@ -2134,9 +2035,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 continue; // no trackable state — skip
             }
             const wName =
-                typeof w.name === 'object'
-                    ? (w.name as ioBroker.Translated)[this.props.language] || (w.name as ioBroker.Translated).en || ''
-                    : String(w.name || '');
+                resolveTranslated(w.name as ioBroker.StringOrTranslated, this.props.stateContext.language) ||
+                String(w.id);
             const ws = this.props.widgetSettings[String(w.id)];
             const iconSrc = ws?.iconActive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
             const color = ws?.color;
@@ -2210,7 +2110,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="caption"
                             sx={{ color: 'text.secondary', fontWeight: 500 }}
                         >
-                            {formatFloat(status.temperature, 1, this.props.isFloatComma)}°
+                            {formatFloat(status.temperature, 1, this.props.stateContext.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2305,7 +2205,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
         const tileStoredImage = tileCatSettings?.image;
         const tileImage = tileStoredImage
-            ? `/${this.props.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
+            ? `/${this.props.stateContext.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
             : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
         const scale = this.state.widgetScale / 100;
@@ -2476,7 +2376,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="body2"
                             sx={{ fontWeight: 500, color: 'text.secondary' }}
                         >
-                            {formatFloat(temperature, 1, this.props.isFloatComma)}°
+                            {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2582,7 +2482,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const storedImage = categorySettings?.image;
         // Stored path has no prefix; add files/ prefix for admin
         const catImage = storedImage
-            ? `${this.props.admin ? '../../files/' : '../'}${storedImage.replace(/^\//, '')}`
+            ? `${this.props.stateContext.admin ? '../../files/' : '../'}${storedImage.replace(/^\//, '')}`
             : '';
         const imageScope = categorySettings?.imageScope || 'header';
         const catColor = categorySettings?.color;
@@ -2749,7 +2649,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     {(() => {
                                         const rootIconRaw = categorySettings?.rootIcon;
                                         const rootIcon = rootIconRaw
-                                            ? `${this.props.admin ? '../../files/' : '../'}${rootIconRaw.replace(/^\//, '')}`
+                                            ? `${this.props.stateContext.admin ? '../../files/' : '../'}${rootIconRaw.replace(/^\//, '')}`
                                             : '';
                                         const headerIcon = rootIcon || this.state.icons[this.props.category.id];
                                         return headerIcon ? (

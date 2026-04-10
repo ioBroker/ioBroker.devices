@@ -4,7 +4,7 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 import type { AdminConnection } from '@iobroker/socket-client';
 
-import type { CustomWidgetDef } from '../../../src/widget-utils';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import { getPluginConfigSchema } from './pluginLoader';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import {
@@ -22,9 +22,9 @@ import ConfigIconSelect from './Components/ConfigIconSelect';
 
 interface CustomWidgetSettingsDialogProps {
     open: boolean;
-    widgetDef: CustomWidgetDef | null;
+    widgetDef: CustomWidgetBase | null;
     onClose: () => void;
-    onSave: (def: CustomWidgetDef) => void;
+    onSave: (def: CustomWidgetBase) => void;
     onDelete: () => void;
     socket?: Connection;
     theme?: IobTheme;
@@ -74,8 +74,9 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         if (!widgetDef) {
             return null;
         }
-        if (widgetDef.type === 'plugin' && widgetDef.pluginAdapter && widgetDef.pluginComponent) {
-            const pluginSchema = getPluginConfigSchema(widgetDef.pluginAdapter, widgetDef.pluginComponent);
+        const wd = widgetDef as any;
+        if (widgetDef.type === 'plugin' && wd.pluginAdapter && wd.pluginComponent) {
+            const pluginSchema = getPluginConfigSchema(wd.pluginAdapter, wd.pluginComponent);
             if (pluginSchema) {
                 const baseItems = CUSTOM_WIDGET_CONFIGS.plugin.items;
                 if (pluginSchema.schema.type === 'panel') {
@@ -137,14 +138,15 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             newDef.favorite = true;
         }
         if (widgetDef.type === 'plugin') {
-            if (widgetDef.pluginAdapter) {
-                newDef.pluginAdapter = widgetDef.pluginAdapter;
+            const p = widgetDef as any;
+            if (p.pluginAdapter) {
+                newDef.pluginAdapter = p.pluginAdapter;
             }
-            if (widgetDef.pluginComponent) {
-                newDef.pluginComponent = widgetDef.pluginComponent;
+            if (p.pluginComponent) {
+                newDef.pluginComponent = p.pluginComponent;
             }
-            if (widgetDef.pluginUrl) {
-                newDef.pluginUrl = widgetDef.pluginUrl;
+            if (p.pluginUrl) {
+                newDef.pluginUrl = p.pluginUrl;
             }
         }
         for (const [key, item] of Object.entries(allItems)) {
@@ -159,7 +161,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 newDef[extraKey] = values[extraKey];
             }
         }
-        onSave(newDef as unknown as CustomWidgetDef);
+        onSave(newDef as unknown as CustomWidgetBase);
     };
 
     return (

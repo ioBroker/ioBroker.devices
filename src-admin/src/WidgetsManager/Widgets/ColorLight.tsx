@@ -9,13 +9,14 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
 } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for ColorLight widget */
-export interface ColorLightWidgetSettings extends GenericWidgetSettings {
+export interface ColorLightWidgetSettings extends WidgetGenericSettings {
     onBrightness?: number;
 }
 // --- State interface ---
@@ -119,15 +120,21 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            onBrightness: {
-                type: 'number',
-                label: 'wm_On brightness',
-                default: 100,
-                min: 1,
-                max: 100,
-                unit: '%',
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    onBrightness: {
+                        type: 'number',
+                        label: 'wm_On brightness',
+                        default: 100,
+                        min: 1,
+                        max: 100,
+                        unit: '%',
+                    },
+                },
             },
         };
     }

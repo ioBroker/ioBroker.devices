@@ -1,22 +1,9 @@
 export type {
-    WidgetInfo,
-    CategoryInfo,
-    ItemInfo,
-    CustomWidgetType,
-    CustomWidgetBase,
-    CustomWidgetDef,
-    ClockWidgetDef,
-    WeatherWidgetDef,
-    IframeWidgetDef,
-    WindWidgetDef,
-    GaugeWidgetDef,
-    UniversalWidgetDef,
-    PluginWidgetDef,
     BackendToGuiCommand,
     BackendToGuiCommandUpdate,
     BackendToGuiCommandAllUpdate,
     BackendToGuiCommandNavigate,
     BackendToGuiCommandDeviceDelete,
-    DevicesDetectorState,
+    RetVal,
 } from './base';
-export type * from './common';
+export type { WmResponseItems } from './api';

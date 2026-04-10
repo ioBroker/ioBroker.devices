@@ -286,7 +286,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }

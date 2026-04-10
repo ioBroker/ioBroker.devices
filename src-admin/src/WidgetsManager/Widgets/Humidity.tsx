@@ -123,7 +123,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         // In wide/tall modes, values are shown via renderTileAction
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }
@@ -155,7 +155,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 12 }} />
-                        {formatFloat(temperature, 1, this.props.isFloatComma)}°
+                        {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>
@@ -185,7 +185,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 14 }} />
-                        {formatFloat(temperature, 1, this.props.isFloatComma)}°
+                        {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>

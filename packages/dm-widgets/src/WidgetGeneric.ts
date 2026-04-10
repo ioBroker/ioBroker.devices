@@ -15,7 +15,7 @@ import type React from 'react';
 import { Component } from 'react';
 import type { SxProps, Theme } from '@mui/material';
 
-import type { WidgetInfo } from './types';
+import type { WidgetGenericState, WidgetInfo, WidgetSettingsBase } from './types';
 import type { IStateContext } from './StateContext';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/dm-utils';
 
@@ -23,40 +23,11 @@ import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/dm-utils';
 // Exported interfaces
 // ---------------------------------------------------------------------------
 
-export type WidgetSettingsBase = {
-    size: '1x1' | '2x0.5' | '2x1';
-    name: string;
-    favorite: boolean;
-
-    color: string;
-    /** Custom color for inactive state */
-    colorActive?: string;
-
-    trendMinutes?: number;
-    showTrendArrow?: boolean;
-    chartHours: number;
-
-    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in `common.icon`) */
-    icon: string;
-    iconActive: string;
-
-    text: string;
-    textActive: string;
-};
-
 export interface WidgetGenericProps<TPluginWidgetSettings extends WidgetSettingsBase = WidgetSettingsBase> {
     widget: WidgetInfo;
-    language: ioBroker.Languages;
     stateContext: IStateContext;
-    size?: '1x1' | '2x0.5' | '2x1';
-    settings?: TPluginWidgetSettings;
+    settings: TPluginWidgetSettings;
     onOpenSettings?: (widgetId: string | number) => void;
-    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
-    instanceId?: string;
-    /** Use comma as a decimal separator (from system.config) */
-    isFloatComma?: boolean;
     /** Widget dialog ID to auto-open (from hash). Matches `${widget.id}_chart` or `${widget.id}_info` or just `${widget.id}` */
     openDialogId?: string | null;
     /** Persist an opened dialog to the URL hash */
@@ -93,15 +64,6 @@ export interface ExtraInfoEntry {
 }
 
 export type ChartLineType = 'line' | 'step-start' | 'step-end';
-
-export interface WidgetGenericState {
-    name: string | null;
-    color: string | null;
-    indicators: IndicatorValues;
-    chartSeries: ChartSeries[];
-    chartDialogOpen: boolean;
-    chartType: ChartLineType;
-}
 
 // ---------------------------------------------------------------------------
 // Helper functions
@@ -189,7 +151,6 @@ export class WidgetGeneric<
      * conditionally show/hide fields based on other field values.
      *
      * @returns `{ name, schema }` or `null` if no settings are needed
-     *
      * @example
      * ```typescript
      * static getConfigSchema(): { name: string; schema: ConfigItemPanel } | null {

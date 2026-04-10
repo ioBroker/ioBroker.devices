@@ -2,13 +2,6 @@ import React from 'react';
 import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import type {
-    CategoryInfo,
-    CustomWidgetDef,
-    CustomWidgetType,
-    InstanceWidgetDescription,
-    WidgetInfo,
-} from '../../../src/widget-utils';
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
 import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
@@ -16,7 +9,13 @@ import CustomWidgetDialog from './CustomWidgetDialog';
 import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
 import { findWidgetGroup } from './groupUtils';
 import SidePanelInstallDialog from './SidePanelInstallDialog';
-import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
+import type {
+    WidgetSettingsBase,
+    CustomWidgetBase,
+    CategoryInfo,
+    CustomWidgetType,
+    WidgetInfo,
+} from '@iobroker/dm-widgets';
 import WidgetGeneric from './Widgets/Generic';
 
 /** Widget types where icon is stored in `common.icon` and iconActive in `common.custom` */
@@ -58,14 +57,14 @@ export interface CategoryListDialogsProps {
     onCloseCustomWidgetDialog: () => void;
     onAddCustomWidget: (type: CustomWidgetType) => void;
     onCreateCategory?: (name: string) => void;
-    adapterWidgets?: Record<string, InstanceWidgetDescription>;
+    adapterWidgets?: Record<string, ioBroker.DevicesWidgets>;
     onAddPluginWidget?: (adapter: string, component: string, url: string, label: string) => void;
 
     // --- Custom widget settings dialog ---
     customWidgetSettingsCategoryId: string | null;
     customWidgetSettingsWidgetId: string | null;
     onCloseCustomWidgetSettings: () => void;
-    onSaveCustomWidgetSettings: (def: CustomWidgetDef) => void;
+    onSaveCustomWidgetSettings: (def: CustomWidgetBase) => void;
     onDeleteCustomWidgetFromSettings: () => void;
 
     // --- Side panel dialog ---
@@ -138,7 +137,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
     }, [categories, rootCategory, getCategoryName]);
 
     const Widget = settingsWidget
-        ? (Category.getWidgetComponent(settingsWidget.control?.type, settingsWidget.control?.states) as any)
+        ? Category.getWidgetComponent(settingsWidget.control?.type, settingsWidget.control?.states)
         : undefined;
     const isAlarmType = settingsWidget?.control?.type ? ALARM_ICON_TYPES.has(settingsWidget.control.type) : false;
 
@@ -150,7 +149,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 settings={
                     settingsWidget
                         ? widgetSettings[String(settingsWidget.id)] ||
-                          Widget?.getDefaultSettings?.() ||
+                          (Widget as any)?.getDefaultSettings?.() ||
                           WidgetGeneric.getDefaultSettings()
                         : WidgetGeneric.getDefaultSettings()
                 }
@@ -158,7 +157,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onClose={onCloseSettings}
                 onSave={onSaveSettings}
                 onDelete={onDeleteWidget}
-                widgetSchema={Widget?.getSettingsSchema?.()}
+                configSchema={(Widget as any)?.getConfigSchema?.()}
                 showChart={chartAvailable}
                 showAlarmFields={isAlarmType}
                 showIcon={!!settingsWidget?.control?.type && !isAlarmType}

@@ -7,10 +7,11 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
-interface ImageWidgetSettings extends GenericWidgetSettings {
+interface ImageWidgetSettings extends WidgetGenericSettings {
     refreshInterval: number;
     appendTimestamp: boolean;
 }
@@ -47,19 +48,25 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            refreshInterval: {
-                type: 'number',
-                label: 'wm_Refresh interval',
-                default: 0,
-                min: 0,
-                help: 'wm_Refresh interval help',
-            },
-            appendTimestamp: {
-                type: 'checkbox',
-                label: 'wm_Append timestamp',
-                default: false,
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    refreshInterval: {
+                        type: 'number',
+                        label: 'wm_Refresh interval',
+                        default: 0,
+                        min: 0,
+                        help: 'wm_Refresh interval help',
+                    },
+                    appendTimestamp: {
+                        type: 'checkbox',
+                        label: 'wm_Append timestamp',
+                        default: false,
+                    },
+                },
             },
         };
     }

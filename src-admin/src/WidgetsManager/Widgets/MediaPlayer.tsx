@@ -1074,7 +1074,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     // ── Main render ──────────────────────────────────────────────────
 
     render(): React.JSX.Element {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

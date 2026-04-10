@@ -4,28 +4,24 @@ import { Extension } from '@mui/icons-material';
 import { Types } from '@iobroker/type-detector';
 
 import type StateContext from '../StateContext';
-import type { WidgetInfo } from '../../../../src/widget-utils';
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps } from './Generic';
+import type { CustomWidgetPlugin, WidgetInfo } from '@iobroker/dm-widgets';
+import WidgetGeneric, { getTileStyles } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 
 interface PluginWidgetProps {
     id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
-    pluginAdapter: string;
-    pluginComponent: string;
-    pluginUrl: string;
-    admin: boolean;
-    stateContext?: StateContext;
+    stateContext: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
     /** All custom widget definition fields — includes plugin-specific settings values */
-    pluginSettings?: Record<string, unknown>;
+    settings: CustomWidgetPlugin;
+    openDialogId?: string | null;
+    onOpenWidgetDialog?: (widgetId: string) => void;
+    onCloseWidgetDialog?: () => void;
 }
 
 interface PluginWidgetState {
-    PluginComp: React.ComponentType<Record<string, unknown>> | null;
+    PluginComp: typeof WidgetGeneric<any, any> | null;
     loading: boolean;
     error: string | null;
 }
@@ -45,9 +41,9 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
 
     componentDidUpdate(prevProps: PluginWidgetProps): void {
         if (
-            prevProps.pluginAdapter !== this.props.pluginAdapter ||
-            prevProps.pluginComponent !== this.props.pluginComponent ||
-            prevProps.pluginUrl !== this.props.pluginUrl
+            prevProps.settings.pluginAdapter !== this.props.settings.pluginAdapter ||
+            prevProps.settings.pluginComponent !== this.props.settings.pluginComponent ||
+            prevProps.settings.pluginUrl !== this.props.settings.pluginUrl
         ) {
             this.loadComponent();
         }
@@ -58,7 +54,7 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
     }
 
     private loadComponent(): void {
-        const { pluginUrl, pluginAdapter, pluginComponent } = this.props;
+        const { pluginUrl, pluginAdapter, pluginComponent } = this.props.settings;
         if (!pluginUrl || !pluginAdapter || !pluginComponent) {
             this.setState({ loading: false, error: 'Missing plugin configuration' });
             return;
@@ -66,10 +62,10 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
 
         this.setState({ loading: true, error: null });
 
-        loadPluginComponent(pluginUrl, pluginAdapter, pluginComponent, this.props.admin)
+        loadPluginComponent(pluginUrl, pluginAdapter, pluginComponent, this.props.stateContext.admin)
             .then(Comp => {
                 if (this.mounted) {
-                    this.setState({ PluginComp: Comp, loading: false });
+                    this.setState({ PluginComp: Comp as any, loading: false });
                 }
             })
             .catch(err => {
@@ -81,11 +77,11 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
 
     render(): React.JSX.Element {
         const { PluginComp, loading, error } = this.state;
-        const { size, color, id, pluginAdapter, pluginComponent } = this.props;
+        const { id, pluginAdapter, pluginComponent } = this.props.settings;
 
         // Loading or error state
         if (loading || error || !PluginComp) {
-            const is2col = size === '2x0.5' || size === '2x1';
+            const is2col = this.props.settings.size === '2x0.5' || this.props.settings.size === '2x1';
             return (
                 <Box
                     id={id}
@@ -98,10 +94,10 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
                             alignItems: 'center',
                             justifyContent: 'center',
                             width: '100%',
-                            aspectRatio: size === '2x0.5' ? undefined : '1',
-                            height: size === '2x0.5' ? 80 : undefined,
+                            aspectRatio: this.props.settings.size === '2x0.5' ? undefined : '1',
+                            height: this.props.settings.size === '2x0.5' ? 80 : undefined,
                             overflow: 'hidden',
-                            ...getTileStyles(theme, false, color, false),
+                            ...getTileStyles(theme, false, this.props.settings.color, false),
                             gap: 1,
                         })}
                     >
@@ -138,22 +134,18 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
             },
         };
 
-        const pluginProps: WidgetGenericProps & { pluginSettings?: Record<string, unknown> } = {
-            widget,
-            language: this.props.language,
-            stateContext: this.props.stateContext!,
-            size,
-            settings: {
-                size: size || '1x1',
-                color: color || '',
-            } as WidgetGenericProps['settings'],
-            onOpenSettings: this.props.onOpenSettings ? () => this.props.onOpenSettings!(id) : undefined,
-            // Pass all custom settings so the plugin can read its own config values
-            pluginSettings: this.props.pluginSettings,
-        };
-
         // Render the loaded plugin component with full WidgetGenericProps
-        return <PluginComp {...(pluginProps as unknown as Record<string, unknown>)} />;
+        return (
+            <PluginComp
+                widget={widget}
+                stateContext={this.props.stateContext}
+                settings={this.props.settings}
+                onOpenSettings={this.props.onOpenSettings ? () => this.props.onOpenSettings!(id) : undefined}
+                openDialogId={this.props.openDialogId}
+                onOpenWidgetDialog={(dialogId: string) => this.props.onOpenWidgetDialog?.(dialogId)}
+                onCloseWidgetDialog={() => this.props.onCloseWidgetDialog?.()}
+            />
+        );
     }
 }
 

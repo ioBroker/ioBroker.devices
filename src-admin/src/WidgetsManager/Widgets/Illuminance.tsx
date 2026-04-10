@@ -103,7 +103,7 @@ export class WidgetIlluminance extends WidgetGeneric<WidgetIlluminanceState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }

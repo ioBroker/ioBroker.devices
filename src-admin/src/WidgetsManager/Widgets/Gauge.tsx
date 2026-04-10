@@ -7,6 +7,7 @@ import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, isNeumorphicTheme, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 interface ColorLevel {
     value: number;
@@ -19,11 +20,7 @@ const DEFAULT_LEVELS: ColorLevel[] = [
     { value: 100, color: '#f44336' },
 ];
 
-interface WidgetGaugeProps {
-    id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
+export interface WidgetGaugeSettings extends CustomWidgetBase {
     gaugeStateId?: string;
     minValue?: number;
     maxValue?: number;
@@ -32,12 +29,13 @@ interface WidgetGaugeProps {
     gaugeStateId2?: string;
     colorLevels?: ColorLevel[];
     usePercentage?: boolean;
-    stateContext?: StateContext;
+}
+
+interface WidgetGaugeProps {
+    settings: WidgetGaugeSettings;
+    stateContext: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
-    defaultHistory?: string;
-    instanceId?: string;
-    isFloatComma?: boolean;
 }
 
 interface WidgetGaugeState {
@@ -74,12 +72,12 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     componentDidUpdate(prevProps: WidgetGaugeProps): void {
-        if (prevProps.gaugeStateId !== this.props.gaugeStateId) {
+        if (prevProps.settings.gaugeStateId !== this.props.settings.gaugeStateId) {
             this.unsubscribe();
             this.subscribe();
             this.resolveHistory();
         }
-        if (prevProps.gaugeStateId2 !== this.props.gaugeStateId2) {
+        if (prevProps.settings.gaugeStateId2 !== this.props.settings.gaugeStateId2) {
             this.unsubscribe2();
             this.subscribe2();
         }
@@ -91,7 +89,8 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     private subscribe(): void {
-        const { gaugeStateId, stateContext } = this.props;
+        const { gaugeStateId } = this.props.settings;
+        const { stateContext } = this.props;
         if (!gaugeStateId || !stateContext) {
             return;
         }
@@ -116,7 +115,8 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     private subscribe2(): void {
-        const { gaugeStateId2, stateContext } = this.props;
+        const { gaugeStateId2 } = this.props.settings;
+        const { stateContext } = this.props;
         if (!gaugeStateId2 || !stateContext) {
             return;
         }
@@ -141,21 +141,22 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     private unsubscribe(): void {
-        if (this.handler && this.props.gaugeStateId && this.props.stateContext) {
-            this.props.stateContext.removeState(this.props.gaugeStateId, this.handler);
+        if (this.handler && this.props.settings.gaugeStateId && this.props.stateContext) {
+            this.props.stateContext.removeState(this.props.settings.gaugeStateId, this.handler);
             this.handler = null;
         }
     }
 
     private unsubscribe2(): void {
-        if (this.handler2 && this.props.gaugeStateId2 && this.props.stateContext) {
-            this.props.stateContext.removeState(this.props.gaugeStateId2, this.handler2);
+        if (this.handler2 && this.props.settings.gaugeStateId2 && this.props.stateContext) {
+            this.props.stateContext.removeState(this.props.settings.gaugeStateId2, this.handler2);
             this.handler2 = null;
         }
     }
 
     private resolveHistory(): void {
-        const { gaugeStateId, stateContext, defaultHistory } = this.props;
+        const { gaugeStateId } = this.props.settings;
+        const { stateContext } = this.props;
         if (!gaugeStateId || !stateContext) {
             this.setState({ historyId: null, historyInstance: '' });
             return;
@@ -163,7 +164,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         const socket = stateContext.getSocket();
 
         void (async () => {
-            let instance = defaultHistory || '';
+            let instance = stateContext.defaultHistory || '';
             if (!instance) {
                 try {
                     const cfg = await socket.getObject('system.config');
@@ -205,23 +206,25 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     // ── Helpers ──────────────────────────────────────────────────────
 
     private get min(): number {
-        return this.props.minValue ?? 0;
+        return this.props.settings.minValue ?? 0;
     }
 
     private get max(): number {
-        return this.props.maxValue ?? 100;
+        return this.props.settings.maxValue ?? 100;
     }
 
     private get levels(): ColorLevel[] {
-        return this.props.colorLevels?.length ? this.props.colorLevels : DEFAULT_LEVELS;
+        return this.props.settings.colorLevels?.length ? this.props.settings.colorLevels : DEFAULT_LEVELS;
     }
 
     private get displayUnit(): string {
-        return this.props.gaugeUnit || this.state.unit || '';
+        return this.props.settings.gaugeUnit || this.state.unit || '';
     }
 
     private get displayName(): string {
-        return this.props.gaugeName || this.props.gaugeStateId?.split('.').pop() || I18n.t('wm_Gauge');
+        return (
+            this.props.settings.gaugeName || this.props.settings.gaugeStateId?.split('.').pop() || I18n.t('wm_Gauge')
+        );
     }
 
     private get hasChart(): boolean {
@@ -238,7 +241,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     private getColor(raw: number): string {
         const levels = this.levels;
-        const { usePercentage } = this.props;
+        const { usePercentage } = this.props.settings;
         const frac = this.toFraction(raw);
         const cmp = usePercentage ? frac * 100 : raw;
 
@@ -278,7 +281,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     private renderArc(size: number): React.JSX.Element {
         const { value } = this.state;
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const vb = 100;
         const sw = 10;
         const r = (vb - sw) / 2;
@@ -358,7 +361,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                                 mb: 0.25,
                             }}
                         >
-                            {WidgetGauge.formatValue(this.state.value2, this.props.isFloatComma)}
+                            {WidgetGauge.formatValue(this.state.value2, this.props.stateContext.isFloatComma)}
                             {this.state.unit2 ? ` ${this.state.unit2}` : ''}
                         </Typography>
                     ) : null}
@@ -370,7 +373,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             color: value != null ? color : 'text.disabled',
                         }}
                     >
-                        {value != null ? WidgetGauge.formatValue(raw, this.props.isFloatComma) : '—'}
+                        {value != null ? WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma) : '—'}
                     </Typography>
                     {this.displayUnit ? (
                         <Typography
@@ -398,7 +401,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         valueFrac: number,
     ): React.JSX.Element[] {
         const levels = this.levels;
-        const { usePercentage } = this.props;
+        const { usePercentage } = this.props.settings;
         const segments: React.JSX.Element[] = [];
         let prevFrac = 0;
 
@@ -454,12 +457,12 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                 open
                 onClose={() => this.setState({ chartOpen: false })}
                 title={this.displayName}
-                historyIds={[{ id: historyId, color: this.props.color || '#2196f3', name: this.displayName }]}
+                historyIds={[{ id: historyId, color: this.props.settings.color || '#2196f3', name: this.displayName }]}
                 historyInstance={historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.displayUnit}
-                widgetId={this.props.id}
-                instanceId={this.props.instanceId}
+                widgetId={this.props.settings.id}
+                instanceId={this.props.stateContext.instanceId}
             />
         );
     }
@@ -475,12 +478,12 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                 tabIndex={0}
                 onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.id);
+                    this.props.onOpenSettings!(this.props.settings.id);
                 }}
                 onKeyDown={(e: React.KeyboardEvent) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.id);
+                        this.props.onOpenSettings!(this.props.settings.id);
                     }
                 }}
                 sx={theme => ({
@@ -511,12 +514,12 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     // ── 1x1 compact ──────────────────────────────────────────────────
 
     private renderCompact(): React.JSX.Element {
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const clickable = this.hasChart;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
@@ -570,14 +573,14 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     private renderWide(): React.JSX.Element {
         const { value } = this.state;
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const raw = value ?? this.min;
         const color = value != null ? this.getColor(raw) : undefined;
         const clickable = this.hasChart;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
@@ -618,7 +621,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             sx={{ fontWeight: 700, color, lineHeight: 1.2 }}
                         >
                             {value != null
-                                ? `${WidgetGauge.formatValue(raw, this.props.isFloatComma)} ${this.displayUnit}`
+                                ? `${WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma)} ${this.displayUnit}`
                                 : '—'}
                         </Typography>
                     </Box>
@@ -631,12 +634,12 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     // ── 2x1 wide tall ────────────────────────────────────────────────
 
     private renderWideTall(): React.JSX.Element {
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const clickable = this.hasChart;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer */}
@@ -687,7 +690,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
 
     private renderLevelLegend(): React.JSX.Element {
         const levels = this.levels;
-        const { usePercentage } = this.props;
+        const { usePercentage } = this.props.settings;
 
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.5 }}>
@@ -718,7 +721,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     render(): React.JSX.Element {
-        const size = this.props.size || '1x1';
+        const size = this.props.settings.size || '1x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

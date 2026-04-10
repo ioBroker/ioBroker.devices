@@ -1,4 +1,4 @@
-import type { CustomWidgetType } from '../../../src/widget-utils';
+import type { CustomWidgetType } from '@iobroker/dm-widgets';
 import type { ConfigItemAny, ConfigItemPanel } from '@iobroker/json-config';
 
 // --- Helpers ---

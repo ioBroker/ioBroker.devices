@@ -462,7 +462,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }
@@ -479,7 +479,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="caption"
                                 sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                             >
-                                {WidgetThermostat.formatTemp(actualTemp, this.props.isFloatComma)}
+                                {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -489,7 +489,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="caption"
                                 sx={{ fontWeight: 500, color: 'text.secondary' }}
                             >
-                                → {WidgetThermostat.formatTemp(setTemp, this.props.isFloatComma)}
+                                → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -542,7 +542,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="body2"
                                 sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                             >
-                                {WidgetThermostat.formatTemp(actualTemp, this.props.isFloatComma)}
+                                {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -551,7 +551,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             variant="h6"
                             sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                         >
-                            → {WidgetThermostat.formatTemp(setTemp, this.props.isFloatComma)}
+                            → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                         </Typography>
                     </Tooltip>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
@@ -710,7 +710,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     variant="h3"
                                     sx={{ fontWeight: 700, lineHeight: 1 }}
                                 >
-                                    {WidgetThermostat.formatTemp(setTemp, this.props.isFloatComma)}
+                                    {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                                 </Typography>
                                 {actualTemp != null && setTemp != null ? (
                                     <Typography
@@ -718,7 +718,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                         sx={{ color: 'text.secondary' }}
                                     >
                                         {I18n.t('wm_Actual')}:{' '}
-                                        {WidgetThermostat.formatTemp(actualTemp, this.props.isFloatComma)}
+                                        {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 ) : null}
                             </Box>
@@ -1069,7 +1069,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                                 : {}),
                                         })}
                                     >
-                                        {WidgetThermostat.formatTemp(setTemp, this.props.isFloatComma)}
+                                        {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 </Tooltip>
                             ) : null}
@@ -1105,7 +1105,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                         variant="caption"
                                         sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
                                     >
-                                        {WidgetThermostat.formatTemp(actualTemp, this.props.isFloatComma)}
+                                        {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 </Tooltip>
                             ) : null}
@@ -1205,7 +1205,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                             variant="body2"
                                             sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                                         >
-                                            {WidgetThermostat.formatTemp(actualTemp, this.props.isFloatComma)}
+                                            {WidgetThermostat.formatTemp(
+                                                actualTemp,
+                                                this.props.stateContext.isFloatComma,
+                                            )}
                                         </Typography>
                                     </Tooltip>
                                 ) : null}
@@ -1242,7 +1245,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="h5"
                                 sx={{ fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
                             >
-                                → {WidgetThermostat.formatTemp(setTemp, this.props.isFloatComma)}
+                                → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     </Box>

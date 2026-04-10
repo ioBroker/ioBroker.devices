@@ -7,13 +7,14 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider/Dimmer/Volume widgets */
-interface SliderWidgetSettings extends GenericWidgetSettings {
+interface SliderWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     wideSliderStyle?: string;
 }
@@ -51,18 +52,24 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            wideSliderStyle: {
-                type: 'select',
-                label: 'wm_Wide slider style',
-                options: [
-                    { value: 'horizontal', label: 'wm_slider_horizontal' },
-                    { value: 'round', label: 'wm_slider_round' },
-                ],
-                default: 'horizontal',
-                format: 'radio',
-                hidden: "data.size === '1x1'",
+            name: 'Volume',
+            schema: {
+                type: 'panel',
+                items: {
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                },
             },
         };
     }

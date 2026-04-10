@@ -16,15 +16,6 @@ import pl from './i18n/pl.json';
 import uk from './i18n/uk.json';
 import zhCn from './i18n/zh-cn.json';
 
-import type {
-    CategoryInfo,
-    CustomWidgetType,
-    InstanceWidgetDescription,
-    ItemInfo,
-    WidgetInfo,
-    CustomWidgetDef,
-    PluginWidgetDef,
-} from '../../../src/widget-utils';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import StateContext from './StateContext';
 import Category from './Category';
@@ -32,8 +23,15 @@ import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings, type WmThemeId } from
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
-import type { WidgetSettingsBase } from '@iobroker/dm-widgets';
-import WidgetGeneric from './Widgets/Generic';
+import WidgetGeneric, { resolveTranslated } from './Widgets/Generic';
+import type {
+    WidgetSettingsBase,
+    CustomWidgetBase,
+    CategoryInfo,
+    WidgetInfo,
+    CustomWidgetType,
+    ItemInfo,
+} from '@iobroker/dm-widgets';
 
 interface SpecialTile {
     type: 'clock';
@@ -58,7 +56,7 @@ interface GuiConfig {
         wmTheme?: WmThemeId;
         /** Default category ID to show when page is opened without hash */
         defaultCategory?: string;
-        customWidgets?: CustomWidgetDef[];
+        customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
         widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
     };
@@ -94,7 +92,7 @@ interface CategoryListState extends CommunicationState {
     loading: boolean | null;
     alive: boolean | null;
     triggerLoad: number;
-    currentCategory: CategoryInfo;
+    currentCategory?: CategoryInfo;
     widgetSettings: Record<string, WidgetSettingsBase>;
     settingsWidgetId: string | number | null;
     chartAvailable: boolean;
@@ -120,7 +118,7 @@ interface CategoryListState extends CommunicationState {
     /** Widget dialog to auto-open on load (from hash, e.g. "alias.0.Kitchen.Light_chart") */
     openDialogId: string | null;
     /** Plugin widgets available from adapter instances */
-    adapterWidgets: Record<string, InstanceWidgetDescription>;
+    adapterWidgets: Record<string, ioBroker.DevicesWidgets>;
 }
 
 const ROOT_CATEGORY = '__root__';
@@ -223,13 +221,25 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return !!admin;
     }
 
-    private stateContext: StateContext = new StateContext(this.props.socket);
+    private stateContext: StateContext = new StateContext({
+        socket: this.props.socket,
+        admin: this.props.admin,
+        dateFormat: this.props.dateFormat,
+        isFloatComma: this.props.isFloatComma,
+        instanceId: this.state.selectedInstance,
+        latitude: null,
+        longitude: null,
+        defaultHistory: null,
+    });
 
     private defaultHistory: string | undefined;
 
     private lastAliveSubscribe = '';
 
     private lastTriggerLoad = 0;
+
+    /** Prevents concurrent loadItemsList calls */
+    private loadingInProgress = false;
 
     private filterTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -299,23 +309,20 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     // --- Hash routing ---
 
     private getCategoryName = (category: CategoryInfo): string => {
-        if (category.name && typeof category.name === 'string') {
-            return category.name;
+        if (category.name && typeof category.name === 'object' && (category.name as { objectId: string }).objectId) {
+            // ValueOrObject pattern — resolved asynchronously elsewhere
+            return String(category.id).split('.').pop() || '';
         }
-        if (
-            category.name &&
-            typeof category.name === 'object' &&
-            !(category.name as { objectId: string; property: string }).objectId
-        ) {
-            const translated = category.name as ioBroker.Translated;
-            return translated[this.language] || translated.en || String(category.id);
-        }
-        return String(category.id).split('.').pop() || '';
+        return (
+            resolveTranslated(category.name as ioBroker.StringOrTranslated, this.language) ||
+            String(category.id).split('.').pop() ||
+            ''
+        );
     };
 
     /** Build a hash path like #Room/SubRoom by walking up the parent chain */
-    private buildHashPath(category: CategoryInfo): string {
-        if (String(category.id) === ROOT_CATEGORY) {
+    private buildHashPath(category?: CategoryInfo): string {
+        if (!category || String(category.id) === ROOT_CATEGORY) {
             return '';
         }
         const segments: string[] = [];
@@ -392,7 +399,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return found;
     }
 
-    private updateHash(category: CategoryInfo, dialogId?: string | null): void {
+    private updateHash(category?: CategoryInfo, dialogId?: string | null): void {
         const path = this.buildHashPath(category);
         let newHash = path ? `#${path}` : '#root';
         if (dialogId) {
@@ -621,6 +628,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
      * Load devices
      */
     override loadItemsList(): void {
+        if (this.loadingInProgress) {
+            return;
+        }
+        this.loadingInProgress = true;
         this.setState({ loading: true }, async () => {
             console.log(`Loading items for ${this.state.selectedInstance}...`);
             let alive = this.state.alive;
@@ -732,10 +743,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         // Extract category settings from category.custom delivered by backend
                         // Pass result.widgets because this.state.widgets hasn't been committed yet
                         this.extractCategorySettings(result.categories, result.widgets);
+                        this.loadingInProgress = false;
                     });
+                } else {
+                    this.loadingInProgress = false;
                 }
             } catch (error) {
                 console.error(error);
+                this.loadingInProgress = false;
             }
         });
     }
@@ -811,10 +826,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         try {
             const obj = await this.stateContext.getObject<ioBroker.Object>(String(widgetId));
             if (obj?.common) {
-                const name =
-                    typeof obj.common.name === 'object'
-                        ? obj.common.name[this.language] || obj.common.name.en || ''
-                        : obj.common.name || '';
+                const name = resolveTranslated(obj.common.name, this.language);
                 const color = (obj.common.color as string) || '';
                 this.setState({ settingsObjectName: name, settingsObjectColor: color });
             }
@@ -897,11 +909,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const widget = this.state.widgets.find(w => String(w.id) === String(settingsWidgetId));
             let widgets = this.state.widgets;
             if (widget) {
-                const s = settings;
-                const newIcon = s.icon || '';
-                if (newIcon !== (widget.icon || '')) {
+                if ((settings.icon || '') !== (widget.icon || '')) {
                     widgets = widgets.map(w =>
-                        String(w.id) === String(settingsWidgetId) ? { ...w, icon: newIcon || undefined } : w,
+                        String(w.id) === String(settingsWidgetId) ? { ...w, icon: settings.icon || undefined } : w,
                     );
                 }
             }
@@ -980,8 +990,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const common = obj.common as ioBroker.StateCommon;
             common.custom ||= {};
             const custom = { ...(common.custom[instanceId] || {}) };
-            const defaultSettings = WidgetGeneric.getDefaultSettings() as Record<string, unknown>;
-            const settingsRecord = settings as Record<string, unknown>;
+            // Wen want compare attribute by attribute
+            const defaultSettings = WidgetGeneric.getDefaultSettings() as unknown as Record<string, unknown>;
+            const settingsRecord = settings as unknown as Record<string, unknown>;
 
             for (const key of Object.keys(defaultSettings)) {
                 if (key === 'name') {
@@ -1528,7 +1539,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private moveCustomWidgetToCategory(widgetId: string, targetCategoryId: string): void {
         // Find the source category (skip virtual __favorites__)
         let sourceCatId: string | null = null;
-        let widgetDef: CustomWidgetDef | null = null;
+        let widgetDef: CustomWidgetBase | null = null;
         for (const [catId, cs] of Object.entries(this.state.categorySettings)) {
             if (catId === FAVORITES_CATEGORY) {
                 continue;
@@ -1615,14 +1626,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return;
         }
         const id = `custom_plugin_${adapter}_${component}_${Date.now().toString(36)}`;
-        const def: PluginWidgetDef = {
+        const def = {
             id,
             type: 'plugin',
             pluginAdapter: adapter,
             pluginComponent: component,
             pluginUrl: url,
             size: '1x1',
-        };
+        } as unknown as CustomWidgetBase;
         const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
         const customWidgets = [...(settings.customWidgets || []), def];
         const categorySettings = {
@@ -1698,7 +1709,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 defaults[key] = getConfigDefault(item);
             }
         }
-        const def: CustomWidgetDef = { id, type, ...defaults } as CustomWidgetDef;
+        const def: CustomWidgetBase = { id, type, ...defaults } as CustomWidgetBase;
 
         const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
         const customWidgets = [...(settings.customWidgets || []), def];
@@ -1764,7 +1775,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ customWidgetSettingsCategoryId: null, customWidgetSettingsWidgetId: null });
     };
 
-    private onSaveCustomWidgetSettings = (def: CustomWidgetDef): void => {
+    private onSaveCustomWidgetSettings = (def: CustomWidgetBase): void => {
         const { customWidgetSettingsCategoryId } = this.state;
         if (!customWidgetSettingsCategoryId) {
             return;
@@ -1790,7 +1801,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ customWidgetSettingsCategoryId: null, customWidgetSettingsWidgetId: null });
     };
 
-    private persistCustomWidgets(categoryId: string, customWidgets: CustomWidgetDef[]): void {
+    private persistCustomWidgets(categoryId: string, customWidgets: CustomWidgetBase[]): void {
         if (categoryId === ROOT_CATEGORY) {
             const guiConfig: GuiConfig = {
                 ...this.state.guiConfig,
@@ -1811,7 +1822,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     }
 
-    private async saveCustomWidgetsToObject(categoryId: string, customWidgets: CustomWidgetDef[]): Promise<void> {
+    private async saveCustomWidgetsToObject(categoryId: string, customWidgets: CustomWidgetBase[]): Promise<void> {
         const instanceId = this.state.selectedInstance;
         try {
             const obj = (await this.props.socket.getObject(categoryId)) as ioBroker.StateObject | null | undefined;
@@ -1829,14 +1840,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private getWidgetName(widget: WidgetInfo): string {
-        if (typeof widget.name === 'string') {
-            return widget.name || String(widget.id);
-        }
-        if (typeof widget.name === 'object' && 'en' in widget.name) {
-            const translated = widget.name;
-            return translated[this.language] || translated.en || String(widget.id);
-        }
-        return String(widget.id);
+        return resolveTranslated(widget.name as ioBroker.StringOrTranslated, this.language) || String(widget.id);
     }
 
     private cachedWmThemeId: WmThemeId | undefined;
@@ -1988,7 +1992,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             .map(([id]) => id);
 
         // Collect favorited custom widgets from all categories
-        const favoriteCustomWidgets: CustomWidgetDef[] = [];
+        const favoriteCustomWidgets: CustomWidgetBase[] = [];
         for (const cs of Object.values(this.state.categorySettings)) {
             if (cs.customWidgets) {
                 for (const cw of cs.customWidgets) {
@@ -2040,7 +2044,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             categories={categories}
                             widgets={widgets}
                             stateContext={this.stateContext}
-                            language={this.language}
                             onNavigate={(category: CategoryInfo) => {
                                 this.setState({ currentCategory: category });
                                 this.updateHash(category);
@@ -2071,17 +2074,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                           })
                                     : undefined
                             }
-                            admin={this.props.admin}
                             onBackToDevices={this.props.onBackToDevices}
-                            defaultHistory={this.defaultHistory || undefined}
-                            instanceId={this.state.selectedInstance || undefined}
                             onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
                             onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
                             onToggleFavorite={editing ? this.onToggleFavorite : undefined}
                             onToggleCustomWidgetFavorite={this.onToggleCustomWidgetFavorite}
-                            latitude={this.state.latitude}
-                            longitude={this.state.longitude}
-                            isFloatComma={this.state.isFloatComma}
                             openDialogId={this.state.openDialogId}
                             onOpenWidgetDialog={this.onOpenWidgetDialog}
                             onCloseWidgetDialog={this.onCloseWidgetDialog}

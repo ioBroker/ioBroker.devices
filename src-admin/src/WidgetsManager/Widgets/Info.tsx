@@ -23,6 +23,7 @@ import {
 
 import WidgetGeneric, {
     formatFloat,
+    resolveTranslated,
     getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
@@ -103,10 +104,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                 const obj = await this.props.stateContext.getObject<ioBroker.StateObject>(entry.id);
                 if (obj?.common) {
                     unit = obj.common.unit || '';
-                    name =
-                        typeof obj.common.name === 'object'
-                            ? obj.common.name[this.props.language] || obj.common.name.en || ''
-                            : obj.common.name || '';
+                    name = resolveTranslated(obj.common.name, this.props.stateContext.language);
                     role = obj.common.role || role;
                 }
             } catch {
@@ -150,7 +148,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         }
         if (typeof val === 'number') {
             // Show reasonable precision
-            const str = Number.isInteger(val) ? String(val) : formatFloat(val, 1, this.props.isFloatComma);
+            const str = Number.isInteger(val) ? String(val) : formatFloat(val, 1, this.props.stateContext.isFloatComma);
             return unit ? `${str} ${unit}` : str;
         }
         if (typeof val === 'boolean') {
@@ -197,7 +195,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
     // --- Tile status (below name, 1x1 only — value like Humidity shows "65%") ---
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }

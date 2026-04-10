@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.6",
+    "version": "2.0.7",
     "news": {
+      "2.0.7": {
+        "en": "Added new widgets",
+        "de": "Neue Widgets hinzugefügt",
+        "ru": "Добавлены новые виджеты",
+        "pt": "Adicionados novos widgets",
+        "nl": "Nieuwe widgets toegevoegd",
+        "fr": "Ajout de nouveaux widgets",
+        "it": "Aggiunto nuovi widget",
+        "es": "Nuevos widgets añadidos",
+        "pl": "Dodano nowe widżety",
+        "uk": "Додано нові віджети",
+        "zh-cn": "添加新部件"
+      },
       "2.0.6": {
         "en": "Corrected the layout for visualisation",
         "de": "Korrektur des Layouts für die Visualisierung",
@@ -80,19 +93,6 @@
         "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
         "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
         "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
-      },
-      "1.2.8": {
-        "en": "Corrected error in GUI",
-        "de": "Fehler behoben in GUI",
-        "ru": "Исправленная ошибка в GUI",
-        "pt": "Erro corrigido na interface gráfica",
-        "nl": "Gecorrigeerde fout in GUI",
-        "fr": "Erreur corrigée dans l'interface graphique",
-        "it": "Errore corretto in GUI",
-        "es": "Error corregido en GUI",
-        "pl": "Skorygowany błąd w GUI",
-        "uk": "Виправлена помилка в GUI",
-        "zh-cn": "在图形界面中更正错误"
       }
     },
     "titleLang": {

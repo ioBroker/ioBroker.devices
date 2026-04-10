@@ -9,13 +9,14 @@ import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
     formatFloat,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Location widget */
-export interface LocationWidgetSettings extends GenericWidgetSettings {
+export interface LocationWidgetSettings extends WidgetGenericSettings {
     showCoordinates?: boolean;
     markerIcon?: string;
     mapTheme?: string;
@@ -192,23 +193,29 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            showCoordinates: {
-                type: 'checkbox',
-                label: 'wm_Show coordinates',
-                default: false,
-            },
-            mapTheme: {
-                type: 'select',
-                label: 'wm_Map theme',
-                options: [
-                    { value: 'standard', label: 'wm_map_standard', icon: 'Map' },
-                    { value: 'dark', label: 'wm_map_dark', icon: 'DarkMode' },
-                    { value: 'satellite', label: 'wm_map_satellite', icon: 'Satellite' },
-                ],
-                default: 'standard',
-                format: 'radio',
+            name: 'Location',
+            schema: {
+                type: 'panel',
+                items: {
+                    showCoordinates: {
+                        type: 'checkbox',
+                        label: 'wm_Show coordinates',
+                        default: false,
+                    },
+                    mapTheme: {
+                        type: 'select',
+                        label: 'wm_Map theme',
+                        options: [
+                            { value: 'standard', label: 'wm_map_standard', icon: 'Map' },
+                            { value: 'dark', label: 'wm_map_dark', icon: 'DarkMode' },
+                            { value: 'satellite', label: 'wm_map_satellite', icon: 'Satellite' },
+                        ],
+                        default: 'standard',
+                        format: 'radio',
+                    },
+                },
             },
         };
     }
@@ -602,7 +609,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         }
         const latDir = latitude >= 0 ? I18n.t('wm_N') : I18n.t('wm_S');
         const lngDir = longitude >= 0 ? I18n.t('wm_E') : I18n.t('wm_W');
-        return `${formatFloat(Math.abs(latitude), 4, this.props.isFloatComma)}${latDir}, ${formatFloat(Math.abs(longitude), 4, this.props.isFloatComma)}${lngDir}`;
+        return `${formatFloat(Math.abs(latitude), 4, this.props.stateContext.isFloatComma)}${latDir}, ${formatFloat(Math.abs(longitude), 4, this.props.stateContext.isFloatComma)}${lngDir}`;
     }
 
     private static formatCoord(val: number, posKey: string, negKey: string, isFloatComma?: boolean): string {
@@ -620,7 +627,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         if (latitude == null || longitude == null) {
             return '—';
         }
-        return `${WidgetLocation.formatCoord(latitude, 'wm_N', 'wm_S', this.props.isFloatComma)} ${WidgetLocation.formatCoord(longitude, 'wm_E', 'wm_W', this.props.isFloatComma)}`;
+        return `${WidgetLocation.formatCoord(latitude, 'wm_N', 'wm_S', this.props.stateContext.isFloatComma)} ${WidgetLocation.formatCoord(longitude, 'wm_E', 'wm_W', this.props.stateContext.isFloatComma)}`;
     }
 
     // --- Tile overrides ---
@@ -857,7 +864,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     }
 
     render(): React.JSX.Element {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return this.renderWide();
         }

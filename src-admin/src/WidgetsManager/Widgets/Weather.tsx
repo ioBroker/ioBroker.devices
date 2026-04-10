@@ -16,6 +16,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import { formatFloat, getTileStyles, isNeumorphicTheme } from './Generic';
 import type StateContext from '../StateContext';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {
@@ -146,17 +147,16 @@ interface ForecastDay {
     wmoCode?: number;
 }
 
-interface WidgetWeatherProps {
-    id: string;
+export interface WidgetWeatherSettings extends CustomWidgetBase {
     adapterInstance?: string;
     weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
     latitude?: number;
     longitude?: number;
     cityName?: string;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
-    language: ioBroker.Languages;
-    isFloatComma?: boolean;
+}
+
+interface WidgetWeatherProps {
+    settings: WidgetWeatherSettings;
     stateContext: StateContext;
     onOpenSettings?: () => void;
     onRemove?: () => void;
@@ -333,10 +333,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     componentDidUpdate(prevProps: WidgetWeatherProps): void {
-        const sourceChanged = prevProps.weatherSource !== this.props.weatherSource;
-        const adapterChanged = prevProps.adapterInstance !== this.props.adapterInstance;
+        const sourceChanged = prevProps.settings.weatherSource !== this.props.settings.weatherSource;
+        const adapterChanged = prevProps.settings.adapterInstance !== this.props.settings.adapterInstance;
         const coordsChanged =
-            prevProps.latitude !== this.props.latitude || prevProps.longitude !== this.props.longitude;
+            prevProps.settings.latitude !== this.props.settings.latitude ||
+            prevProps.settings.longitude !== this.props.settings.longitude;
 
         if (sourceChanged || adapterChanged || coordsChanged) {
             this.cleanup();
@@ -350,27 +351,37 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     /** Whether this source uses direct API (coordinates-based) */
     private isDirectApi(): boolean {
-        return this.props.weatherSource === 'openmeteo' || this.props.weatherSource === 'yrno';
+        return this.props.settings.weatherSource === 'openmeteo' || this.props.settings.weatherSource === 'yrno';
+    }
+
+    /** Get coordinates — from widget settings, falling back to system.config via stateContext */
+    private getCoordinates(): { latitude: number; longitude: number } | null {
+        const lat = this.props.settings.latitude ?? this.props.stateContext?.latitude;
+        const lon = this.props.settings.longitude ?? this.props.stateContext?.longitude;
+        if (lat != null && lon != null) {
+            return { latitude: lat, longitude: lon };
+        }
+        return null;
     }
 
     private isConfigured(): boolean {
         if (this.isDirectApi()) {
-            return this.props.latitude != null && this.props.longitude != null;
+            return this.getCoordinates() != null;
         }
-        return !!this.props.adapterInstance;
+        return !!this.props.settings.adapterInstance;
     }
 
     private startDataSource(): void {
         if (this.isDirectApi()) {
-            if (this.props.latitude != null && this.props.longitude != null) {
+            if (this.getCoordinates()) {
                 const fetcher = (): void => void this.fetchDirectApi();
                 fetcher();
                 this.refreshTimer = setInterval(fetcher, API_REFRESH_MS);
             } else {
                 this.setState({ loading: false });
             }
-        } else if (this.props.adapterInstance) {
-            void this.discoverAndSubscribe(this.props.adapterInstance);
+        } else if (this.props.settings.adapterInstance) {
+            void this.discoverAndSubscribe(this.props.settings.adapterInstance);
         } else {
             this.setState({ loading: false });
         }
@@ -378,7 +389,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     /** Route to the correct API fetcher */
     private async fetchDirectApi(): Promise<void> {
-        if (this.props.weatherSource === 'yrno') {
+        if (this.props.settings.weatherSource === 'yrno') {
             await this.fetchYrNo();
         } else {
             await this.fetchOpenMeteo();
@@ -404,10 +415,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     // --- Open-Meteo direct API ---
 
     private async fetchOpenMeteo(): Promise<void> {
-        const { latitude, longitude, language } = this.props;
-        if (latitude == null || longitude == null) {
+        const coords = this.getCoordinates();
+        if (!coords) {
             return;
         }
+        const { latitude, longitude } = coords;
 
         try {
             const cacheKey = `openmeteo|${latitude}|${longitude}`;
@@ -441,7 +453,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         icon: null,
                         tempMin: daily.temperature_2m_min?.[i] ?? null,
                         tempMax: daily.temperature_2m_max?.[i] ?? null,
-                        dow: formatDow(daily.time[i], language),
+                        dow: formatDow(daily.time[i], this.props.stateContext.language),
                         state: dayWmo != null ? tw(WMO_KEYS[dayWmo]) : null,
                         precipitationChance: daily.precipitation_probability_max?.[i] ?? null,
                         wmoCode: dayWmo,
@@ -472,10 +484,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     // --- yr.no API ---
 
     private async fetchYrNo(): Promise<void> {
-        const { latitude, longitude, language } = this.props;
-        if (latitude == null || longitude == null) {
+        const coords = this.getCoordinates();
+        if (!coords) {
             return;
         }
+        const { latitude, longitude } = coords;
 
         try {
             const cacheKey = `yrno|${latitude.toFixed(4)}|${longitude.toFixed(4)}`;
@@ -582,7 +595,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                     icon: day.symbol ? yrIconUrl(day.symbol) : null,
                     tempMin: day.tempMin,
                     tempMax: day.tempMax,
-                    dow: formatDow(day.date, language),
+                    dow: formatDow(day.date, this.props.stateContext.language),
                     state: day.symbol ? yrSymbolToDescription(day.symbol) : null,
                     precipitationChance: null,
                 });
@@ -920,7 +933,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     renderCompact(): React.JSX.Element {
         const { icon, temperature, weatherState, loading, wmoCode } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         if (!this.isConfigured()) {
             return (
@@ -994,7 +1007,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 {WidgetWeather.renderWeatherIcon(icon, 36, wmoCode)}
                                 <Typography sx={{ fontWeight: 700, fontSize: 'max(1.2rem, 12cqi)', lineHeight: 1.1 }}>
                                     {temperature != null
-                                        ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                        ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
                                         : '\u2014'}
                                 </Typography>
                             </Box>
@@ -1031,7 +1044,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         : {}),
                                 })}
                             >
-                                {this.props.cityName || I18n.t('wm_Weather')}
+                                {this.props.settings.cityName || I18n.t('wm_Weather')}
                             </Typography>
                         </>
                     )}
@@ -1043,7 +1056,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     renderWide(): React.JSX.Element {
         const { icon, temperature, weatherState, humidity, windSpeed, pressure, loading, wmoCode } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         return (
             <Box
@@ -1085,7 +1098,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         sx={{ fontWeight: 700 }}
                                     >
                                         {temperature != null
-                                            ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                            ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
                                             : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
@@ -1159,7 +1172,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             loading,
             wmoCode,
         } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
 
         const visibleDays = forecastDays
             .filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null)
@@ -1208,7 +1221,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
                                         {temperature != null
-                                            ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°`
+                                            ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
                                             : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
@@ -1307,7 +1320,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                     textOverflow: 'ellipsis',
                                 }}
                             >
-                                {this.props.cityName || I18n.t('wm_Weather')}
+                                {this.props.settings.cityName || I18n.t('wm_Weather')}
                             </Typography>
                         </>
                     )}
@@ -1343,7 +1356,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         } = this.state;
 
         const allDays = forecastDays.filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null);
-        const title = this.props.cityName || I18n.t('wm_Weather');
+        const title = this.props.settings.cityName || I18n.t('wm_Weather');
 
         return (
             <Dialog
@@ -1376,7 +1389,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 sx={{ fontWeight: 700, lineHeight: 1.1 }}
                             >
                                 {temperature != null
-                                    ? `${formatFloat(temperature, 1, this.props.isFloatComma)}°C`
+                                    ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°C`
                                     : '\u2014'}
                             </Typography>
                             {weatherState ? (
@@ -1492,7 +1505,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         variant="body2"
                                         sx={{ fontWeight: 600 }}
                                     >
-                                        {formatFloat(realFeel, 1, this.props.isFloatComma)}°C
+                                        {formatFloat(realFeel, 1, this.props.stateContext.isFloatComma)}°C
                                     </Typography>
                                 </Box>
                             </Box>
@@ -1592,7 +1605,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     render(): React.JSX.Element {
-        const size = this.props.size || '2x1';
+        const size = this.props.settings.size || '2x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

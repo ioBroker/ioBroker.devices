@@ -26,7 +26,8 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetType, InstanceWidgetDescription } from '../../../src/widget-utils';
+import type { CustomWidgetType } from '@iobroker/dm-widgets';
+import { resolveTranslated } from './Widgets';
 
 interface CustomWidgetOption {
     type: CustomWidgetType;
@@ -80,7 +81,7 @@ interface CustomWidgetDialogProps {
     onAdd: (type: CustomWidgetType) => void;
     onCreateCategory?: (name: string) => void;
     /** Plugin widgets from adapter instances */
-    adapterWidgets?: Record<string, InstanceWidgetDescription>;
+    adapterWidgets?: Record<string, ioBroker.DevicesWidgets>;
     /** Callback to add a plugin widget */
     onAddPlugin?: (adapter: string, component: string, url: string, label: string) => void;
     admin: boolean;
@@ -187,18 +188,8 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                             <Divider />
                             {Object.entries(adapterWidgets).flatMap(([adapter, desc]) =>
                                 desc.components.map(comp => {
-                                    const label =
-                                        typeof comp.label === 'object'
-                                            ? comp.label[props.language] ||
-                                              comp.label.en ||
-                                              Object.values(comp.label)[0]
-                                            : comp.label;
-                                    const description =
-                                        typeof comp.description === 'object'
-                                            ? comp.description[props.language] ||
-                                              comp.description.en ||
-                                              Object.values(comp.description)[0]
-                                            : comp.description;
+                                    const label = resolveTranslated(comp.label, props.language);
+                                    const description = resolveTranslated(comp.description, props.language);
                                     return (
                                         <ListItemButton
                                             key={`${adapter}_${comp.name}`}

@@ -3,10 +3,11 @@ import { Box, Button, Dialog, IconButton, Tooltip, Typography } from '@mui/mater
 import { Backspace, Lock, LockOpen, MeetingRoom, SensorDoor } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { type GenericWidgetSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Lock widget */
-export interface LockWidgetSettings extends GenericWidgetSettings {
+export interface LockWidgetSettings extends WidgetGenericSettings {
     pin?: string;
 }
 
@@ -56,13 +57,19 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            pin: {
-                type: 'text',
-                label: 'wm_PIN Code',
-                default: '',
-                help: 'wm_PIN help',
+            name: 'Lock',
+            schema: {
+                type: 'panel',
+                items: {
+                    pin: {
+                        type: 'text',
+                        label: 'wm_PIN Code',
+                        default: '',
+                        help: 'wm_PIN help',
+                    },
+                },
             },
         };
     }

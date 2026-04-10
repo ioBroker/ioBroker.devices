@@ -8,11 +8,12 @@ import WidgetGeneric, {
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Blind widget */
-export interface BlindWidgetSettings extends GenericWidgetSettings {
+export interface BlindWidgetSettings extends WidgetGenericSettings {
     blindType?: 'shutter' | 'curtain';
 }
 
@@ -339,17 +340,23 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         };
     }
 
-    static getSettingsSchema(): Record<string, any> {
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
         return {
-            blindType: {
-                type: 'select',
-                label: 'wm_BlindType',
-                options: [
-                    { value: 'shutter', label: 'wm_Shutter', icon: 'Blinds' },
-                    { value: 'curtain', label: 'wm_Curtain', icon: 'CurtainsClosed' },
-                ],
-                default: 'shutter',
-                format: 'radio',
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    blindType: {
+                        type: 'select',
+                        label: 'wm_BlindType',
+                        options: [
+                            { value: 'shutter', label: 'wm_Shutter', icon: 'Blinds' },
+                            { value: 'curtain', label: 'wm_Curtain', icon: 'CurtainsClosed' },
+                        ],
+                        default: 'shutter',
+                        format: 'radio',
+                    },
+                },
             },
         };
     }

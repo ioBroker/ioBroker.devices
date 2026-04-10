@@ -6,19 +6,19 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
-interface WidgetWindProps {
-    id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
+export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;
     speedStateId?: string;
     gustsStateId?: string;
-    stateContext?: StateContext;
+}
+
+interface WidgetWindProps {
+    settings: WidgetWindSettings;
+    stateContext: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
-    isFloatComma?: boolean;
 }
 
 interface WidgetWindState {
@@ -57,9 +57,9 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
 
     componentDidUpdate(prevProps: WidgetWindProps): void {
         if (
-            prevProps.directionStateId !== this.props.directionStateId ||
-            prevProps.speedStateId !== this.props.speedStateId ||
-            prevProps.gustsStateId !== this.props.gustsStateId
+            prevProps.settings.directionStateId !== this.props.settings.directionStateId ||
+            prevProps.settings.speedStateId !== this.props.settings.speedStateId ||
+            prevProps.settings.gustsStateId !== this.props.settings.gustsStateId
         ) {
             this.unsubscribe(prevProps);
             this.subscribe();
@@ -76,19 +76,19 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             return;
         }
 
-        if (this.props.directionStateId) {
+        if (this.props.settings.directionStateId) {
             this.dirHandler = (_id, state) => {
                 this.setState({ direction: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.directionStateId, this.dirHandler);
+            ctx.getState(this.props.settings.directionStateId, this.dirHandler);
         }
-        if (this.props.speedStateId) {
+        if (this.props.settings.speedStateId) {
             this.speedHandler = (_id, state) => {
                 this.setState({ speed: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.speedStateId, this.speedHandler);
+            ctx.getState(this.props.settings.speedStateId, this.speedHandler);
             void ctx
-                .getObject<ioBroker.StateObject>(this.props.speedStateId)
+                .getObject<ioBroker.StateObject>(this.props.settings.speedStateId)
                 .then(obj => {
                     if (obj?.common?.unit) {
                         this.setState({ speedUnit: obj.common.unit });
@@ -96,13 +96,13 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 })
                 .catch(() => {});
         }
-        if (this.props.gustsStateId) {
+        if (this.props.settings.gustsStateId) {
             this.gustsHandler = (_id, state) => {
                 this.setState({ gusts: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.gustsStateId, this.gustsHandler);
+            ctx.getState(this.props.settings.gustsStateId, this.gustsHandler);
             void ctx
-                .getObject<ioBroker.StateObject>(this.props.gustsStateId)
+                .getObject<ioBroker.StateObject>(this.props.settings.gustsStateId)
                 .then(obj => {
                     if (obj?.common?.unit) {
                         this.setState({ gustsUnit: obj.common.unit });
@@ -117,16 +117,16 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         if (!ctx) {
             return;
         }
-        if (props.directionStateId && this.dirHandler) {
-            ctx.removeState(props.directionStateId, this.dirHandler);
+        if (props.settings.directionStateId && this.dirHandler) {
+            ctx.removeState(props.settings.directionStateId, this.dirHandler);
             this.dirHandler = null;
         }
-        if (props.speedStateId && this.speedHandler) {
-            ctx.removeState(props.speedStateId, this.speedHandler);
+        if (props.settings.speedStateId && this.speedHandler) {
+            ctx.removeState(props.settings.speedStateId, this.speedHandler);
             this.speedHandler = null;
         }
-        if (props.gustsStateId && this.gustsHandler) {
-            ctx.removeState(props.gustsStateId, this.gustsHandler);
+        if (props.settings.gustsStateId && this.gustsHandler) {
+            ctx.removeState(props.settings.gustsStateId, this.gustsHandler);
             this.gustsHandler = null;
         }
     }
@@ -142,12 +142,12 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 tabIndex={0}
                 onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.id);
+                    this.props.onOpenSettings!(this.props.settings.id);
                 }}
                 onKeyDown={(e: React.KeyboardEvent) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.id);
+                        this.props.onOpenSettings!(this.props.settings.id);
                     }
                 }}
                 sx={theme => ({
@@ -427,12 +427,15 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
     // --- Compact 1x1 layout: compass fills the whole tile ---
     private renderCompact(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
-        const hasData = this.props.directionStateId || this.props.speedStateId || this.props.gustsStateId;
+        const accent = this.props.settings.color;
+        const hasData =
+            this.props.settings.directionStateId ||
+            this.props.settings.speedStateId ||
+            this.props.settings.gustsStateId;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 className="widget-wind"
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
@@ -468,7 +471,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                 gusts,
                                 gustsUnit,
                                 true, // always dark bg for the compass instrument
-                                this.props.isFloatComma,
+                                this.props.stateContext.isFloatComma,
                             )}
                         </Box>
                     ) : (
@@ -488,11 +491,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
     // --- Wide 2x0.5 layout: compass left, details right ---
     private renderWide(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 className="widget-wind"
                 sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
@@ -517,11 +520,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             gusts,
                             gustsUnit,
                             true,
-                            this.props.isFloatComma,
+                            this.props.stateContext.isFloatComma,
                         )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {this.props.speedStateId ? (
+                        {this.props.settings.speedStateId ? (
                             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                                 <Typography
                                     variant="caption"
@@ -530,11 +533,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Speed')}:
                                 </Typography>
                                 <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    {WidgetWind.formatValue(speed, speedUnit, this.props.isFloatComma)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.stateContext.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
-                        {this.props.gustsStateId ? (
+                        {this.props.settings.gustsStateId ? (
                             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                                 <Typography
                                     variant="caption"
@@ -543,7 +546,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Wind gusts')}:
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.85rem' }}>
-                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.isFloatComma)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.stateContext.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
@@ -565,11 +568,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
     // --- Wide tall 2x1 layout: compass left, details right ---
     private renderWideTall(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
 
         return (
             <Box
-                id={this.props.id}
+                id={this.props.settings.id}
                 className="widget-wind"
                 sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
@@ -605,11 +608,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             gusts,
                             gustsUnit,
                             true,
-                            this.props.isFloatComma,
+                            this.props.stateContext.isFloatComma,
                         )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                        {this.props.speedStateId ? (
+                        {this.props.settings.speedStateId ? (
                             <Typography
                                 noWrap
                                 style={{
@@ -630,11 +633,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(speed, speedUnit, this.props.isFloatComma)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}
-                        {this.props.gustsStateId ? (
+                        {this.props.settings.gustsStateId ? (
                             <Typography
                                 noWrap
                                 style={{
@@ -655,7 +658,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.isFloatComma)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}
@@ -692,7 +695,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
     }
 
     render(): React.JSX.Element {
-        const size = this.props.size || '1x1';
+        const size = this.props.settings.size || '1x1';
         if (size === '2x0.5') {
             return this.renderWide();
         }

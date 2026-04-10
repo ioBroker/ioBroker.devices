@@ -17,6 +17,7 @@ import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
+import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 interface ColorLevel {
     value: number;
@@ -29,12 +30,7 @@ interface IconDef {
     color: string;
 }
 
-interface WidgetUniversalProps {
-    id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
-    name?: string;
+export interface WidgetUniversalSettings extends CustomWidgetBase {
     secondaryName?: string;
     digits?: number;
     /** Widget icon (inactive / default) */
@@ -57,14 +53,13 @@ interface WidgetUniversalProps {
     actionConfirmText?: string;
     /** PIN code required when actionConfirm is 'pin' */
     actionPin?: string;
-    stateContext?: StateContext;
+}
+
+interface WidgetUniversalProps {
+    settings: WidgetUniversalSettings;
+    stateContext: StateContext;
     onOpenSettings?: (id: string) => void;
     onRemove?: (id: string) => void;
-    isFloatComma?: boolean;
-    /** Default history adapter instance (e.g. "history.0") */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0") for persisting chart settings */
-    instanceId?: string;
 }
 
 interface WidgetUniversalState {
@@ -85,6 +80,19 @@ interface WidgetUniversalState {
 }
 
 export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUniversalState> {
+    /** Build WidgetUniversalSettings from a flat CustomWidgetBase (resolves icon1StateId/icon1Name/icon1Color → icons[]) */
+    static buildSettings(def: CustomWidgetBase): WidgetUniversalSettings {
+        const d = def as Record<string, any>;
+        return {
+            ...def,
+            icons: [
+                d.icon1StateId ? { stateId: d.icon1StateId, icon: d.icon1Name || '', color: d.icon1Color || '' } : null,
+                d.icon2StateId ? { stateId: d.icon2StateId, icon: d.icon2Name || '', color: d.icon2Color || '' } : null,
+                d.icon3StateId ? { stateId: d.icon3StateId, icon: d.icon3Name || '', color: d.icon3Color || '' } : null,
+            ].filter(Boolean) as IconDef[],
+        } as WidgetUniversalSettings;
+    }
+
     private primaryHandler: StateChangeListener | null = null;
     private actionHandler: StateChangeListener | null = null;
     private secondaryHandler: StateChangeListener | null = null;
@@ -94,8 +102,12 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     /** Cached object metadata keyed by state ID */
     private objectCache = new Map<string, ioBroker.StateObject>();
 
+    /** Resolved settings with icons[] built from flat icon1/2/3 fields */
+    private resolved: WidgetUniversalSettings;
+
     constructor(props: WidgetUniversalProps) {
         super(props);
+        this.resolved = WidgetUniversal.buildSettings(props.settings);
         this.state = {
             value: null,
             unit: '',
@@ -118,11 +130,14 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     componentDidUpdate(prev: WidgetUniversalProps): void {
+        if (prev.settings !== this.props.settings) {
+            this.resolved = WidgetUniversal.buildSettings(this.props.settings);
+        }
         if (
-            prev.stateId !== this.props.stateId ||
-            prev.secondaryStateId !== this.props.secondaryStateId ||
-            prev.opacityStateId !== this.props.opacityStateId ||
-            prev.icons !== this.props.icons
+            prev.settings.stateId !== this.props.settings.stateId ||
+            prev.settings.secondaryStateId !== this.props.settings.secondaryStateId ||
+            prev.settings.opacityStateId !== this.props.settings.opacityStateId ||
+            prev.settings.icons !== this.props.settings.icons
         ) {
             this.unsubscribe();
             this.objectCache.clear();
@@ -154,13 +169,13 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         }
 
         // Primary value
-        if (this.props.stateId) {
+        if (this.props.settings.stateId) {
             this.primaryHandler = (_id, state) => {
                 const val = state?.val;
                 this.setState({ value: val != null ? Number(val) : null });
             };
-            ctx.getState(this.props.stateId, this.primaryHandler);
-            void this.getCachedObject(this.props.stateId).then(obj => {
+            ctx.getState(this.props.settings.stateId, this.primaryHandler);
+            void this.getCachedObject(this.props.settings.stateId).then(obj => {
                 if (obj?.common?.unit) {
                     this.setState({ unit: obj.common.unit });
                 }
@@ -168,13 +183,13 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         }
 
         // Secondary value
-        if (this.props.secondaryStateId) {
+        if (this.props.settings.secondaryStateId) {
             this.secondaryHandler = (_id, state) => {
                 const val = state?.val;
                 this.setState({ secondaryValue: val != null ? Number(val) : null });
             };
-            ctx.getState(this.props.secondaryStateId, this.secondaryHandler);
-            void this.getCachedObject(this.props.secondaryStateId).then(obj => {
+            ctx.getState(this.props.settings.secondaryStateId, this.secondaryHandler);
+            void this.getCachedObject(this.props.settings.secondaryStateId).then(obj => {
                 if (obj?.common?.unit) {
                     this.setState({ secondaryUnit: obj.common.unit });
                 }
@@ -182,20 +197,20 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         }
 
         // Opacity
-        if (this.props.opacityStateId) {
+        if (this.props.settings.opacityStateId) {
             this.opacityHandler = (_id, state) => {
                 const val = state?.val;
                 if (typeof val === 'boolean') {
                     this.setState({
-                        opacity: val ? (this.props.opacityTrue ?? 1) : (this.props.opacityFalse ?? 0),
+                        opacity: val ? (this.props.settings.opacityTrue ?? 1) : (this.props.settings.opacityFalse ?? 0),
                     });
                 } else if (val != null) {
                     // Will compute properly once we have min/max from object
                     this.computeNumericOpacity(Number(val));
                 }
             };
-            ctx.getState(this.props.opacityStateId, this.opacityHandler);
-            void this.getCachedObject(this.props.opacityStateId).then(obj => {
+            ctx.getState(this.props.settings.opacityStateId, this.opacityHandler);
+            void this.getCachedObject(this.props.settings.opacityStateId).then(obj => {
                 const common = obj?.common;
                 this.opacityMeta = {
                     min: common?.min,
@@ -206,7 +221,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         }
 
         // Icons (up to 3)
-        const icons = (this.props.icons || []).slice(0, 3);
+        const icons = (this.resolved.icons || []).slice(0, 3);
         this.iconHandlers = icons.map((iconDef, idx) => {
             if (!iconDef.stateId) {
                 return null;
@@ -223,13 +238,13 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         });
 
         // Subscribe to action state for active icon + pre-fetch object
-        if (this.props.actionStateId) {
-            void this.getCachedObject(this.props.actionStateId);
-            if (this.props.widgetIconActive) {
+        if (this.props.settings.actionStateId) {
+            void this.getCachedObject(this.props.settings.actionStateId);
+            if (this.props.settings.widgetIconActive) {
                 this.actionHandler = (_id, state) => {
                     this.setState({ actionActive: !!state?.val });
                 };
-                ctx.getState(this.props.actionStateId, this.actionHandler);
+                ctx.getState(this.props.settings.actionStateId, this.actionHandler);
             }
         }
 
@@ -241,7 +256,8 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
 
     /** Check if the primary state has history enabled and resolve the history adapter */
     private resolveHistory(): void {
-        const { stateId, stateContext, defaultHistory } = this.props;
+        const { stateId } = this.props.settings;
+        const { stateContext } = this.props;
         if (!stateId || !stateContext) {
             this.setState({ historyId: null, historyInstance: '' });
             return;
@@ -249,7 +265,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         const socket = stateContext.getSocket();
 
         void (async () => {
-            let instance = defaultHistory || '';
+            let instance = stateContext.defaultHistory || '';
             if (!instance) {
                 try {
                     const cfg = await socket.getObject('system.config');
@@ -305,23 +321,23 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         if (!ctx) {
             return;
         }
-        if (this.primaryHandler && this.props.stateId) {
-            ctx.removeState(this.props.stateId, this.primaryHandler);
+        if (this.primaryHandler && this.props.settings.stateId) {
+            ctx.removeState(this.props.settings.stateId, this.primaryHandler);
             this.primaryHandler = null;
         }
-        if (this.secondaryHandler && this.props.secondaryStateId) {
-            ctx.removeState(this.props.secondaryStateId, this.secondaryHandler);
+        if (this.secondaryHandler && this.props.settings.secondaryStateId) {
+            ctx.removeState(this.props.settings.secondaryStateId, this.secondaryHandler);
             this.secondaryHandler = null;
         }
-        if (this.opacityHandler && this.props.opacityStateId) {
-            ctx.removeState(this.props.opacityStateId, this.opacityHandler);
+        if (this.opacityHandler && this.props.settings.opacityStateId) {
+            ctx.removeState(this.props.settings.opacityStateId, this.opacityHandler);
             this.opacityHandler = null;
         }
-        if (this.actionHandler && this.props.actionStateId) {
-            ctx.removeState(this.props.actionStateId, this.actionHandler);
+        if (this.actionHandler && this.props.settings.actionStateId) {
+            ctx.removeState(this.props.settings.actionStateId, this.actionHandler);
             this.actionHandler = null;
         }
-        const icons = (this.props.icons || []).slice(0, 3);
+        const icons = (this.resolved.icons || []).slice(0, 3);
         for (let i = 0; i < this.iconHandlers.length; i++) {
             const handler = this.iconHandlers[i];
             if (handler && icons[i]?.stateId) {
@@ -333,9 +349,9 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
 
     private getValueColor(): string | undefined {
         const { value } = this.state;
-        const levels = this.props.colorLevels;
+        const levels = this.props.settings.colorLevels;
         if (value == null || !levels?.length) {
-            return this.props.color || undefined;
+            return this.props.settings.color || undefined;
         }
         const sorted = [...levels].sort((a, b) => a.value - b.value);
         for (const lvl of sorted) {
@@ -347,13 +363,14 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     private formatValue(val: number): string {
-        const digits = this.props.digits ?? 1;
-        return formatFloat(val, digits, this.props.isFloatComma);
+        const digits = this.props.settings.digits ?? 1;
+        return formatFloat(val, digits, this.props.stateContext.isFloatComma);
     }
 
     /** Execute the action (send value / toggle) — called after confirmation if needed */
     private executeAction(): void {
-        const { actionStateId, actionType, actionValue, stateContext } = this.props;
+        const { actionStateId, actionType, actionValue } = this.props.settings;
+        const { stateContext } = this.props;
         if (!actionStateId || !stateContext) {
             return;
         }
@@ -381,9 +398,9 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     private handleTileClick = (): void => {
-        if (this.props.actionStateId && this.props.stateContext) {
+        if (this.props.settings.actionStateId && this.props.stateContext) {
             // Action configured — execute (with confirmation if needed)
-            const confirm = this.props.actionConfirm || 'none';
+            const confirm = this.props.settings.actionConfirm || 'none';
             if (confirm === 'dialog' || confirm === 'pin') {
                 this.setState({ confirmOpen: true, pinInput: '', pinError: false });
             } else {
@@ -396,8 +413,8 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     };
 
     private handleConfirm = (): void => {
-        if (this.props.actionConfirm === 'pin') {
-            if (this.state.pinInput === (this.props.actionPin || '')) {
+        if (this.props.settings.actionConfirm === 'pin') {
+            if (this.state.pinInput === (this.props.settings.actionPin || '')) {
                 this.setState({ confirmOpen: false, pinInput: '', pinError: false });
                 this.executeAction();
             } else {
@@ -424,12 +441,12 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 tabIndex={0}
                 onClick={e => {
                     e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.id);
+                    this.props.onOpenSettings!(this.props.settings.id);
                 }}
                 onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.id);
+                        this.props.onOpenSettings!(this.props.settings.id);
                     }
                 }}
                 sx={WidgetGeneric.getSettingButtonStyle()}
@@ -464,11 +481,11 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         const displayOpacity = isEditing ? Math.max(opacity, 0.35) : opacity;
 
         const valueColor = this.getValueColor();
-        const icons = (this.props.icons || []).slice(0, 3);
+        const icons = (this.resolved.icons || []).slice(0, 3);
         const activeIcons = icons.filter((_, i) => iconStates[i]);
-        const clickable = !!this.props.actionStateId || !!this.state.historyId;
+        const clickable = !!this.props.settings.actionStateId || !!this.state.historyId;
 
-        const size = this.props.size || '1x1';
+        const size = this.props.settings.size || '1x1';
         const isWide = size === '2x1' || size === '2x0.5';
 
         return (
@@ -484,7 +501,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 <Box
                     onClick={clickable ? this.handleTileClick : undefined}
                     sx={(theme: Theme) => ({
-                        ...getTileStyles(theme, false, this.props.color, clickable),
+                        ...getTileStyles(theme, false, this.props.settings.color, clickable),
                         position: 'relative',
                         display: 'flex',
                         flexDirection: 'column',
@@ -499,7 +516,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                     {this.renderSettingsButton()}
 
                     {/* Secondary value — upper right */}
-                    {secondaryValue != null || this.props.secondaryName ? (
+                    {secondaryValue != null || this.props.settings.secondaryName ? (
                         <Box
                             sx={{
                                 position: 'absolute',
@@ -529,7 +546,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                                     ) : null}
                                 </Typography>
                             ) : null}
-                            {this.props.secondaryName ? (
+                            {this.props.settings.secondaryName ? (
                                 <Typography
                                     variant="caption"
                                     sx={{
@@ -539,7 +556,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                                         display: 'block',
                                     }}
                                 >
-                                    {this.props.secondaryName}
+                                    {this.props.settings.secondaryName}
                                 </Typography>
                             ) : null}
                         </Box>
@@ -567,9 +584,9 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                     {/* Widget icon + Primary value — center */}
                     {(() => {
                         const iconSrc =
-                            this.state.actionActive && this.props.widgetIconActive
-                                ? this.props.widgetIconActive
-                                : this.props.widgetIcon;
+                            this.state.actionActive && this.props.settings.widgetIconActive
+                                ? this.props.settings.widgetIconActive
+                                : this.props.settings.widgetIcon;
                         const iconSize = isWide ? 48 : 32;
                         return (
                             <Box
@@ -619,7 +636,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                     })()}
 
                     {/* Name — below value */}
-                    {this.props.name ? (
+                    {this.props.settings.name ? (
                         <Typography
                             sx={{
                                 fontSize: isWide ? 16 : 12,
@@ -634,7 +651,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                                 maxWidth: '90%',
                             }}
                         >
-                            {this.props.name}
+                            {this.props.settings.name}
                         </Typography>
                     ) : null}
                 </Box>
@@ -648,10 +665,12 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                         onClick={e => e.stopPropagation()}
                     >
                         <DialogTitle>
-                            {this.props.actionConfirmText ||
-                                I18n.t(this.props.actionConfirm === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure')}
+                            {this.props.settings.actionConfirmText ||
+                                I18n.t(
+                                    this.props.settings.actionConfirm === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure',
+                                )}
                         </DialogTitle>
-                        {this.props.actionConfirm === 'pin' ? (
+                        {this.props.settings.actionConfirm === 'pin' ? (
                             <DialogContent>
                                 <TextField
                                     autoFocus
@@ -676,7 +695,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                             <Button
                                 variant="contained"
                                 onClick={this.handleConfirm}
-                                disabled={this.props.actionConfirm === 'pin' && !this.state.pinInput}
+                                disabled={this.props.settings.actionConfirm === 'pin' && !this.state.pinInput}
                             >
                                 {I18n.t('wm_OK')}
                             </Button>
@@ -693,20 +712,20 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                     <ChartDialog
                         open
                         onClose={() => this.setState({ chartOpen: false })}
-                        title={this.props.name || this.props.id}
+                        title={this.props.settings.name || this.props.settings.id}
                         historyIds={[
                             {
                                 id: this.state.historyId,
-                                color: this.props.color || '#2196f3',
-                                name: this.props.name || this.props.id,
+                                color: this.props.settings.color || '#2196f3',
+                                name: this.props.settings.name || this.props.settings.id,
                             },
                         ]}
                         historyInstance={this.state.historyInstance}
                         socket={this.props.stateContext.getSocket()}
                         unit={this.state.unit}
-                        isFloatComma={this.props.isFloatComma}
-                        widgetId={this.props.id}
-                        instanceId={this.props.instanceId}
+                        isFloatComma={this.props.stateContext.isFloatComma}
+                        widgetId={this.props.settings.id}
+                        instanceId={this.props.stateContext.instanceId}
                     />
                 ) : null}
             </Box>

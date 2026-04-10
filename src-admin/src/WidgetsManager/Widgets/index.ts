@@ -2,16 +2,16 @@ export { PluginWidget } from './PluginWidget';
 export { WidgetAirCondition } from './AirCondition';
 export { WidgetBlind } from './Blind';
 export { WidgetBlindButtons } from './BlindButtons';
-export { WidgetClock } from './Clock';
+export { WidgetClock, type WidgetClockSettings } from './Clock';
 export { WidgetColorLight } from './ColorLight';
 export { WidgetDimmer } from './Dimmer';
 export { WidgetDoor } from './Door';
 export { WidgetFireAlarm } from './FireAlarm';
 export { WidgetFloodAlarm } from './FloodAlarm';
 export { WidgetGate } from './Gate';
-export { WidgetGauge } from './Gauge';
+export { WidgetGauge, type WidgetGaugeSettings } from './Gauge';
 export { WidgetHumidity } from './Humidity';
-export { WidgetIframe } from './Iframe';
+export { WidgetIframe, type WidgetIframeSettings } from './Iframe';
 export { WidgetIlluminance } from './Illuminance';
 export { WidgetImage } from './Image';
 export { WidgetInfo } from './Info';
@@ -25,18 +25,19 @@ export { WidgetSwitch } from './Switch';
 export { WidgetTank } from './Tank';
 export { WidgetTemperature } from './Temperature';
 export { WidgetThermostat } from './Thermostat';
-export { WidgetUniversal } from './Universal';
+export { WidgetUniversal, type WidgetUniversalSettings } from './Universal';
 export { WidgetVolume } from './Volume';
 export { WidgetWarning } from './Warning';
-export { WidgetWeather } from './Weather';
+export { WidgetWeather, type WidgetWeatherSettings } from './Weather';
 export { WidgetWeatherCurrent } from './WeatherCurrent';
 export { WidgetWeatherForecast } from './WeatherForecast';
-export { WidgetWind } from './Wind';
+export { WidgetWind, type WidgetWindSettings } from './Wind';
 export { WidgetWindow } from './Window';
 export {
     getTileStyles,
     formatFloat,
+    resolveTranslated,
     type WidgetGeneric,
     type WidgetGenericProps,
-    type GenericWidgetSettings,
+    type WidgetGenericSettings,
 } from './Generic';
