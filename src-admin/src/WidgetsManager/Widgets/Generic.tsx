@@ -914,9 +914,9 @@ export class WidgetGeneric<
         const dialogId = `${this.props.widget.id}_${type}`;
         this.props.onOpenWidgetDialog?.(dialogId);
         if (type === 'chart') {
-            this.openWidgetDialog('chart');
+            this.setState({ chartDialogOpen: true } as Partial<TState> as TState);
         } else {
-            this.openWidgetDialog('info');
+            this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
         }
     }
 

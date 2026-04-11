@@ -62,6 +62,5 @@ export default defineConfig({
     build: {
         target: 'chrome89',
         outDir: './build',
-        minify: false,
     },
 });
