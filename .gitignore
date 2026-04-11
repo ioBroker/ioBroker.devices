@@ -19,3 +19,4 @@ admin/i18n/*/flat.txt
 /.claude/settings.local.json
 /packages/dm-widgets/build/
 /src-admin/.__mf__temp/
+/src-www/.__mf__temp/

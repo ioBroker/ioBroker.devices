@@ -220,7 +220,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
             fullWidth
             slotProps={{ paper: { sx: { maxHeight: '90vh' } } }}
         >
-            <DialogTitle>{widgetName}</DialogTitle>
+            <DialogTitle>{props.configSchema?.name ? I18n.t(props.configSchema.name) : widgetName}</DialogTitle>
             <DialogContent dividers>
                 {props.socket && props.theme ? (
                     <JsonConfigComponent

@@ -915,13 +915,20 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         };
         // Measure after dialog animation
         const timer = setTimeout(measure, 100);
+
+        // Observe container resize (e.g. dialog layout changes)
         const observer = new ResizeObserver(measure);
         if (containerRef.current) {
             observer.observe(containerRef.current);
         }
+
+        // Also listen for window resize (orientation change, window drag, etc.)
+        window.addEventListener('resize', measure);
+
         return () => {
             clearTimeout(timer);
             observer.disconnect();
+            window.removeEventListener('resize', measure);
         };
     }, [open]);
 

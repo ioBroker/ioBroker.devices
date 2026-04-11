@@ -3546,7 +3546,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 {this.state.splitScreen === 'gui' || (this.state.splitScreen === 'split' && narrow) ? (
                     <div
                         style={{
-                            height: this.state.splitScreen === 'gui' ? 'calc(100% - 57px)' : '100%',
+                            height: '100%',
                             overflow: 'auto',
                             display: 'flex',
                             alignItems: 'center',

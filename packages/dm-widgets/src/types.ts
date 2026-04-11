@@ -127,8 +127,6 @@ export interface CustomWidgetPlugin extends CustomWidgetBase {
     pluginComponent?: string;
     /** Plugin: URL to load the widget bundle (federation remote entry) */
     pluginUrl?: string;
-    /** Any widget-specific settings (managed by JsonConfig) */
-    [key: string]: any;
 }
 
 export interface WidgetGenericState {

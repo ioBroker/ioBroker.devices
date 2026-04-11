@@ -392,6 +392,16 @@ export class WidgetGeneric<
                 state.color = this.props.widget.color || null;
             }
         }
+        // Sync from settings when they change (for plugin widgets where widget is synthetic)
+        if (prevProps.settings !== this.props.settings) {
+            if (this.props.settings?.name && this.props.settings.name !== prevProps.settings?.name) {
+                state.name = this.props.settings.name;
+            }
+            if (this.props.settings?.color && this.props.settings.color !== prevProps.settings?.color) {
+                state.color = this.props.settings.color;
+            }
+        }
+
         if (Object.keys(state).length) {
             this.setState(state as TState);
         }

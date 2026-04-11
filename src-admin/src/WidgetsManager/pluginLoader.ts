@@ -15,6 +15,7 @@ import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
 import type WidgetGeneric from '@iobroker/dm-widgets';
+import { I18n } from '@iobroker/adapter-react-v5';
 
 type WidgetComponent = typeof WidgetGeneric<any, any>;
 
@@ -29,35 +30,22 @@ type WidgetComponent = typeof WidgetGeneric<any, any>;
     '@iobroker/adapter-react-v5': AdapterReact,
 };
 
-// Initialize Module Federation runtime with shared dependencies.
-// Plugin widgets receive these from the host — they must NOT bundle them.
-// Shared module config: eager + singleton ensures plugins always get the host's copies
-const sharedConfig = (lib: () => any) => ({
-    lib,
-    version: '*',
-    shareConfig: {
-        singleton: true,
-        eager: true,
-        requiredVersion: '*',
-    },
-});
-
+// Initialize Module Federation runtime for loading remote plugin widgets.
+// Shared modules are provided via window.__iobrokerShared__ (not MF sharing)
+// to avoid proxy wrapping issues in production builds.
 createInstance({
     name: 'iobroker_devices',
-    shareStrategy: 'loaded-first',
-    shared: {
-        react: sharedConfig(() => React),
-        'react-dom': sharedConfig(() => ReactDOM),
-        '@mui/material': sharedConfig(() => MuiMaterial),
-        '@iobroker/adapter-react-v5': sharedConfig(() => AdapterReact),
-        '@mui/icons-material': sharedConfig(() => IconsMaterial),
-        '@iobroker/dm-widgets': sharedConfig(() => ({ ...DmWidgets, StateContext })),
-    },
+    shared: {},
     remotes: [],
 });
 
 // Debug: verify single React instance
-console.log('[MF] Host React version:', React.version, '| React identity:', (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ? 'OK' : 'MISSING INTERNALS');
+console.log(
+    '[MF] Host React version:',
+    React.version,
+    '| React identity:',
+    (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ? 'OK' : 'MISSING INTERNALS',
+);
 
 /** In-flight load promises keyed by "url!module" for deduplication */
 const runningLoads: Record<string, Promise<{ default: Record<string, WidgetComponent> }>> = {};
@@ -101,9 +89,22 @@ export async function loadPluginComponent(
                     type: 'module',
                 },
             ]);
-            setPromise = loadRemote(`${uniqueName}/Components`) as Promise<{
-                default: Record<string, WidgetComponent>;
-            }>;
+            setPromise = // load translations
+                (
+                    loadRemote(`${uniqueName}/translations`) as Promise<{
+                        default: {
+                            [lang in ioBroker.Languages]?: Record<string, string>;
+                        };
+                    }>
+                )
+                    .then(translations => I18n.extendTranslations(translations.default))
+                    .catch(error => console.error(`Cannot load translations for ${uniqueName}: ${error}`))
+                    .then(
+                        () =>
+                            loadRemote(`${uniqueName}/Components`) as Promise<{
+                                default: Record<string, WidgetComponent>;
+                            }>,
+                    );
             runningLoads[loadKey] = setPromise;
         } catch (error) {
             throw new Error(`Cannot register remote "${adapterName}" from ${url}: ${error}`);
@@ -116,7 +117,12 @@ export async function loadPluginComponent(
     try {
         const pluginReact = (module as any)?.__esModule ? undefined : (module as any)?.React;
         if (pluginReact && pluginReact !== React) {
-            console.error('[MF] REACT MISMATCH! Plugin has different React instance. Host:', React.version, 'Plugin:', pluginReact.version);
+            console.error(
+                '[MF] REACT MISMATCH! Plugin has different React instance. Host:',
+                React.version,
+                'Plugin:',
+                pluginReact.version,
+            );
         }
     } catch {
         // ignore

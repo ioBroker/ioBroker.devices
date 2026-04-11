@@ -3,20 +3,11 @@ import react from '@vitejs/plugin-react';
 import commonjs from 'vite-plugin-commonjs';
 import viteTsConfigPaths from 'vite-tsconfig-paths';
 import { federation } from '@module-federation/vite';
-import { moduleFederationShared } from '../packages/dm-widgets/modulefederation.devices.config';
-
-// Make all shared modules eager for the host application,
-// so they are available in the shared scope for remote modules
-const shared = moduleFederationShared();
-for (const key of Object.keys(shared)) {
-    shared[key].eager = true;
-}
-
 export default defineConfig({
     plugins: [
         federation({
             name: 'iobroker_devices',
-            shared,
+            shared: {},
             exposes: {},
             remotes: {},
             filename: 'remoteEntry.js',
@@ -71,5 +62,6 @@ export default defineConfig({
     build: {
         target: 'chrome89',
         outDir: './build',
+        minify: false,
     },
 });
