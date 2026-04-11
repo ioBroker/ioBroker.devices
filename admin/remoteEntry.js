@@ -1,6 +1,1 @@
-import "./assets/preload-helper-e_IRvegh.js";
-import { g, i } from "./assets/virtual_mf-REMOTE_ENTRY_ID_iobroker_devices__remoteEntry_js-r2t0e36G.js";
-export {
-  g as get,
-  i as init
-};
+import"./assets/preload-helper-BDBacUwf.js";import{g as r,i as a}from"./assets/virtual_mf-REMOTE_ENTRY_ID_iobroker_devices__remoteEntry_js-D5_qLLYC.js";export{r as get,a as init};

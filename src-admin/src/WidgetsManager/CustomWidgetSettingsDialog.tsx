@@ -80,7 +80,11 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             if (pluginSchema) {
                 const baseItems = CUSTOM_WIDGET_CONFIGS.plugin.items;
                 if (pluginSchema.schema.type === 'panel') {
-                    return { ...pluginSchema.schema, items: { ...baseItems, ...pluginSchema.schema.items } };
+                    return {
+                        ...pluginSchema.schema,
+                        items: { ...baseItems, ...pluginSchema.schema.items },
+                        label: pluginSchema.name || pluginSchema.schema.label || wd.pluginAdapter,
+                    };
                 }
                 // Tabs: flatten into a single panel
                 const allItems: Record<string, ConfigItemAny> = { ...baseItems };
