@@ -94,7 +94,12 @@ export class PluginWidget extends Component<PluginWidgetProps, PluginWidgetState
                             alignItems: 'center',
                             justifyContent: 'center',
                             width: '100%',
-                            aspectRatio: this.props.settings.size === '2x0.5' ? undefined : '1',
+                            aspectRatio:
+                                this.props.settings.size === '2x0.5'
+                                    ? undefined
+                                    : this.props.settings.size === '2x1'
+                                      ? '2'
+                                      : '1',
                             height: this.props.settings.size === '2x0.5' ? 80 : undefined,
                             overflow: 'hidden',
                             ...getTileStyles(theme, false, this.props.settings.color, false),

@@ -233,9 +233,58 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         globalTsMin = Date.now() - 3_600_000;
         globalTsMax = Date.now();
     }
-    const valRange = globalValMax - globalValMin || 1;
+    let valRange = globalValMax - globalValMin || 1;
     globalValMin -= valRange * 0.05;
     globalValMax += valRange * 0.05;
+
+    // Detect dual-axis mode: exactly 2 series with different, non-empty units
+    const dualAxis =
+        series.length === 2 && !!series[0]?.unit && !!series[1]?.unit && series[0].unit !== series[1].unit;
+
+    let series1ValMin = 0;
+    let series1ValMax = 1;
+
+    if (dualAxis) {
+        // Override global range to only reflect series[0] (left axis)
+        globalValMin = Infinity;
+        globalValMax = -Infinity;
+        for (const p of series[0].data) {
+            if (p.val < globalValMin) {
+                globalValMin = p.val;
+            }
+            if (p.val > globalValMax) {
+                globalValMax = p.val;
+            }
+        }
+        if (globalValMin === Infinity) {
+            globalValMin = 0;
+            globalValMax = 1;
+        }
+        valRange = globalValMax - globalValMin || 1;
+        globalValMin -= valRange * 0.05;
+        globalValMax += valRange * 0.05;
+
+        // Compute series[1] range (right axis)
+        series1ValMin = Infinity;
+        series1ValMax = -Infinity;
+        for (const p of series[1].data) {
+            if (p.val < series1ValMin) {
+                series1ValMin = p.val;
+            }
+            if (p.val > series1ValMax) {
+                series1ValMax = p.val;
+            }
+        }
+        if (series1ValMin === Infinity) {
+            series1ValMin = 0;
+            series1ValMax = 1;
+        }
+        const range1 = series1ValMax - series1ValMin || 1;
+        series1ValMin -= range1 * 0.05;
+        series1ValMax += range1 * 0.05;
+    }
+
+    const marginRight = dualAxis ? 52 : MARGIN.right;
 
     // Pan/zoom state: visible time range
     const [viewStart, setViewStart] = useState(globalTsMin);
@@ -278,7 +327,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         [onViewSettle],
     );
 
-    const plotW = width - MARGIN.left - MARGIN.right;
+    const plotW = width - MARGIN.left - marginRight;
     const plotH = height - MARGIN.top - MARGIN.bottom;
 
     // Scales
@@ -289,6 +338,10 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     const valToY = useCallback(
         (val: number) => MARGIN.top + plotH - ((val - globalValMin) / (globalValMax - globalValMin)) * plotH,
         [globalValMin, globalValMax, plotH],
+    );
+    const valToY2 = useCallback(
+        (val: number) => MARGIN.top + plotH - ((val - series1ValMin) / (series1ValMax - series1ValMin)) * plotH,
+        [series1ValMin, series1ValMax, plotH],
     );
     const xToTs = useCallback(
         (x: number) => viewStart + ((x - MARGIN.left) / plotW) * (viewEnd - viewStart),
@@ -327,7 +380,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
                 const mx = e.clientX - rect.left;
                 const my = e.clientY - rect.top;
-                if (mx < MARGIN.left || mx > width - MARGIN.right || my < MARGIN.top || my > height - MARGIN.bottom) {
+                if (mx < MARGIN.left || mx > width - marginRight || my < MARGIN.top || my > height - MARGIN.bottom) {
                     setTooltip(null);
                     return;
                 }
@@ -346,10 +399,12 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
                 // Build entries for all series at bestTs (interpolate if needed)
                 const entries: { val: number; y: number; color: string; name?: string; unit?: string }[] = [];
-                for (const s of series) {
+                for (let si = 0; si < series.length; si++) {
+                    const s = series[si];
                     const val = interpolateAt(s.data, bestTs);
                     if (val != null) {
-                        entries.push({ val, y: valToY(val), color: s.color, name: s.name, unit: s.unit });
+                        const yFn = dualAxis && si === 1 ? valToY2 : valToY;
+                        entries.push({ val, y: yFn(val), color: s.color, name: s.name, unit: s.unit });
                     }
                 }
                 if (entries.length) {
@@ -357,7 +412,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
             }
         },
-        [series, plotW, width, height, xToTs, tsToX, valToY],
+        [series, plotW, width, height, xToTs, tsToX, valToY, dualAxis, valToY2, marginRight],
     );
 
     const handlePointerUp = useCallback(
@@ -412,7 +467,8 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             continue;
         }
         const smoothed = smoothing > 0 ? smoothData(visible, smoothing) : visible;
-        const points = smoothed.map(p => ({ x: tsToX(p.ts), y: valToY(p.val) }));
+        const yFn = dualAxis && i === 1 ? valToY2 : valToY;
+        const points = smoothed.map(p => ({ x: tsToX(p.ts), y: yFn(p.val) }));
         const d = buildLinePath(points, chartType);
         if (!d) {
             continue;
@@ -420,7 +476,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         // Area fill — need first/last X for closing the area path
         const firstX = points[0].x.toFixed(1);
         const lastX = points[points.length - 1].x.toFixed(1);
-        const baseY = valToY(globalValMin).toFixed(1);
+        const baseY = (MARGIN.top + plotH).toFixed(1);
         paths.push(
             <React.Fragment key={i}>
                 <path
@@ -448,12 +504,22 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         timeTicks.push(t);
     }
 
-    // Value axis ticks
+    // Value axis ticks (left axis)
     const valStep = niceStep(globalValMax - globalValMin, Math.max(3, Math.floor(plotH / 40)));
     const valTicks: number[] = [];
     const firstVal = Math.ceil(globalValMin / valStep) * valStep;
     for (let v = firstVal; v <= globalValMax; v += valStep) {
         valTicks.push(v);
+    }
+
+    // Right Y-axis ticks (dual-axis mode)
+    const val2Ticks: number[] = [];
+    if (dualAxis) {
+        const val2Step = niceStep(series1ValMax - series1ValMin, Math.max(3, Math.floor(plotH / 40)));
+        const firstVal2 = Math.ceil(series1ValMin / val2Step) * val2Step;
+        for (let v = firstVal2; v <= series1ValMax; v += val2Step) {
+            val2Ticks.push(v);
+        }
     }
 
     return (
@@ -484,7 +550,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                     <line
                         key={`vg${v}`}
                         x1={MARGIN.left}
-                        x2={width - MARGIN.right}
+                        x2={width - marginRight}
                         y1={y}
                         y2={y}
                         stroke="currentColor"
@@ -538,7 +604,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 );
             })}
 
-            {/* Value axis labels */}
+            {/* Value axis labels (left) */}
             {valTicks.map(v => {
                 const y = valToY(v);
                 return (
@@ -548,13 +614,32 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                         y={y + 4}
                         textAnchor="end"
                         fontSize={11}
-                        fill="currentColor"
-                        opacity={0.5}
+                        fill={dualAxis ? series[0].color : 'currentColor'}
+                        opacity={dualAxis ? 0.7 : 0.5}
                     >
                         {formatValue(v, isFloatComma)}
                     </text>
                 );
             })}
+
+            {/* Value axis labels (right, dual-axis mode) */}
+            {dualAxis &&
+                val2Ticks.map(v => {
+                    const y = valToY2(v);
+                    return (
+                        <text
+                            key={`vr${v}`}
+                            x={width - marginRight + 6}
+                            y={y + 4}
+                            textAnchor="start"
+                            fontSize={11}
+                            fill={series[1].color}
+                            opacity={0.7}
+                        >
+                            {formatValue(v, isFloatComma)}
+                        </text>
+                    );
+                })}
 
             {/* Tooltip crosshair + dots + label */}
             {tooltip
@@ -587,8 +672,8 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                       if (boxX < MARGIN.left) {
                           boxX = MARGIN.left;
                       }
-                      if (boxX + boxW > width - MARGIN.right) {
-                          boxX = width - MARGIN.right - boxW;
+                      if (boxX + boxW > width - marginRight) {
+                          boxX = width - marginRight - boxW;
                       }
 
                       return (
