@@ -1720,9 +1720,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({
             categorySettings,
             customWidgetDialogCategoryId: null,
-            // Open settings dialog for the newly added widget
-            customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
-            customWidgetSettingsWidgetId: id,
+            // Open settings dialog for the newly added widget (skip for newline — no settings)
+            customWidgetSettingsCategoryId: type !== 'newline' ? customWidgetDialogCategoryId : null,
+            customWidgetSettingsWidgetId: type !== 'newline' ? id : null,
         });
         this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
     };

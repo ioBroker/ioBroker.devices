@@ -3,11 +3,14 @@ import { Box, Typography } from '@mui/material';
 import { Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, isNeumorphicTheme, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import { SIZE_OPTIONS } from '../configUtils';
 
 interface ColorLevel {
     value: number;
@@ -49,6 +52,32 @@ interface WidgetGaugeState {
 }
 
 export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Gauge',
+            items: {
+                gaugeStateId: { type: 'objectId', label: 'wm_State ID' },
+                gaugeStateId2: { type: 'objectId', label: 'wm_Secondary value' },
+                gaugeName: { type: 'text', label: 'wm_Name', default: '' },
+                minValue: { type: 'number', label: 'wm_Min value', default: 0 },
+                maxValue: { type: 'number', label: 'wm_Max value', default: 100 },
+                gaugeUnit: { type: 'text', label: 'wm_Unit', default: '' },
+                usePercentage: { type: 'checkbox', label: 'wm_Color levels as percent', default: true },
+                colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+            },
+        };
+    }
+
     private handler: StateChangeListener | null = null;
     private handler2: StateChangeListener | null = null;
 

@@ -4,9 +4,12 @@ import { Settings, WbSunny, NightsStay } from '@mui/icons-material';
 // @ts-expect-error no types
 import { getTimes } from 'suncalc2';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import WidgetGeneric, { getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import type StateContext from '../StateContext';
+import { SIZE_OPTIONS } from '../configUtils';
 
 interface SunTimes {
     sunrise: Date;
@@ -70,6 +73,37 @@ interface WidgetClockState {
 }
 
 export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Clock',
+            items: {
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+                style: {
+                    type: 'select',
+                    label: 'wm_Style',
+                    options: [
+                        { value: 'digital', label: 'wm_Digital' },
+                        { value: 'analog', label: 'wm_Analog' },
+                    ],
+                    default: 'digital',
+                    format: 'radio',
+                },
+                showDate: { type: 'checkbox', label: 'wm_Show date', default: true },
+                showDow: { type: 'checkbox', label: 'wm_Show DOW', default: true },
+                showSeconds: { type: 'checkbox', label: 'wm_Show seconds', default: true },
+            },
+        };
+    }
+
     private timer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetClockProps) {

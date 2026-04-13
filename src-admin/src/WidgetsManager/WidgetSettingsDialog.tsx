@@ -82,7 +82,7 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
         },
         colorActive: {
             type: 'color',
-            label: 'wm_Color',
+            label: 'wm_Active color',
             sm: 6,
         },
         color: {
@@ -180,7 +180,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
 
     const schema = useMemo(
         () => buildSchema(props),
-        [props, props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
+        // eslint-disable-next-lin react-hooks/exhaustive-deps
+        [props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
     );
 
     useEffect(() => {
@@ -238,6 +239,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
+                        imagePrefix={props.admin ? '..' : '../..'}
                     />
                 ) : null}
 

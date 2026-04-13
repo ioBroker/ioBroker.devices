@@ -5,9 +5,12 @@ import { Close, OpenInNew, Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import type { Theme } from '@mui/material/styles';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import WidgetGeneric, { getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import type StateContext from '../StateContext';
+import { SIZE_OPTIONS } from '../configUtils';
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;
@@ -35,6 +38,43 @@ interface WidgetIframeState {
 }
 
 export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Iframe',
+            items: {
+                url: { type: 'text', label: 'URL', placeholder: 'wm_URL placeholder' },
+                refreshInterval: {
+                    type: 'number',
+                    label: 'wm_Refresh interval',
+                    default: 0,
+                    help: 'wm_Refresh interval help',
+                },
+                appendTimestamp: { type: 'checkbox', label: 'wm_Append timestamp', default: false },
+                clickAction: {
+                    type: 'select',
+                    label: 'wm_Click action',
+                    options: [
+                        { value: 'dialog', label: 'wm_Open in dialog' },
+                        { value: 'newTab', label: 'wm_Open in new tab' },
+                        { value: 'sameTab', label: 'wm_Open in same tab' },
+                    ],
+                    default: 'dialog',
+                    format: 'dropdown',
+                },
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '2x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+            },
+        };
+    }
+
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetIframeProps) {

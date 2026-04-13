@@ -39,7 +39,7 @@ import {
     type WidgetSettingsBase,
 } from '@iobroker/dm-widgets';
 import type StateContext from '../StateContext';
-import ChartDialog, { type ChartLineType } from './ChartDialog';
+import ChartDialog, { type ChartLineType, type SmoothingWindow, type SmoothingMethod, smoothData } from './ChartDialog';
 
 /** Generic settings used by WidgetGeneric base class */
 export interface WidgetGenericSettings extends WidgetSettingsBase {
@@ -120,6 +120,10 @@ export interface WidgetGenericState {
     trend: 'up' | 'down' | 'stable' | null;
     /** Chart line type synced from chart dialog settings */
     chartType: ChartLineType;
+    /** Smoothing window synced from chart dialog settings */
+    chartSmoothing: SmoothingWindow;
+    /** Smoothing method synced from chart dialog settings */
+    chartSmoothingMethod: SmoothingMethod;
     /** Extra info entry whose chart dialog is currently open */
     infoChartEntry: ExtraInfoEntry | null;
 }
@@ -242,6 +246,8 @@ export class WidgetGeneric<
             chartDialogOpen: props.openDialogId === `${props.widget.id}_chart`,
             trend: null,
             chartType: 'line',
+            chartSmoothing: 0,
+            chartSmoothingMethod: 'average' as SmoothingMethod,
             infoChartEntry: null,
         } as unknown as TState;
 
@@ -1203,9 +1209,22 @@ export class WidgetGeneric<
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
                     | Record<string, Record<string, unknown>>
                     | undefined;
-                const ct = custom?.[instanceId]?.chartType;
+                const settings = custom?.[instanceId];
+                const update: Partial<WidgetGenericState> = {};
+                const ct = settings?.chartType;
                 if (ct && ['line', 'step-start', 'step-end'].includes(ct as string)) {
-                    this.setState({ chartType: ct as ChartLineType } as Partial<TState> as TState);
+                    update.chartType = ct as ChartLineType;
+                }
+                const cs = settings?.chartSmoothing;
+                if (typeof cs === 'number' && [0, 30, 60, 300, 600].includes(cs)) {
+                    update.chartSmoothing = cs as SmoothingWindow;
+                }
+                const cm = settings?.chartSmoothingMethod;
+                if (cm && ['average', 'min', 'max', 'median'].includes(cm as string)) {
+                    update.chartSmoothingMethod = cm as SmoothingMethod;
+                }
+                if (Object.keys(update).length) {
+                    this.setState(update as Partial<TState> as TState);
                 }
             })
             .catch(() => {
@@ -1497,15 +1516,18 @@ export class WidgetGeneric<
         const W = 200;
         const H = 60;
 
+        const { chartSmoothing, chartSmoothingMethod } = this.state;
+
         const paths: React.JSX.Element[] = [];
         for (let i = 0; i < chartSeries.length; i++) {
             const s = chartSeries[i];
             if (s.data.length < 2) {
                 continue;
             }
+            const smoothed = chartSmoothing > 0 ? smoothData(s.data, chartSmoothing, chartSmoothingMethod) : s.data;
             let min = Infinity;
             let max = -Infinity;
-            for (const p of s.data) {
+            for (const p of smoothed) {
                 if (p.val < min) {
                     min = p.val;
                 }
@@ -1517,7 +1539,7 @@ export class WidgetGeneric<
             const padMin = min - range * 0.1;
             const padRange = max + range * 0.1 - padMin;
 
-            const pts = s.data.map(p => ({
+            const pts = smoothed.map(p => ({
                 x: ((p.ts - start) / (end - start)) * W,
                 y: H - ((p.val - padMin) / padRange) * H,
             }));

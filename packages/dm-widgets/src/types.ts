@@ -69,7 +69,16 @@ export interface WidgetInfo extends ItemInfo {
     };
 }
 
-export type CustomWidgetType = 'clock' | 'weather' | 'iframe' | 'wind' | 'gauge' | 'universal' | 'plugin';
+export type CustomWidgetType =
+    | 'clock'
+    | 'weather'
+    | 'iframe'
+    | 'wind'
+    | 'gauge'
+    | 'universal'
+    | 'plugin'
+    | 'newline'
+    | 'presence';
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';

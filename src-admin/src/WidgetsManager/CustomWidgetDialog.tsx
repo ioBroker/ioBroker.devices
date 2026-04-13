@@ -21,8 +21,10 @@ import {
     Dashboard,
     Extension,
     Language,
+    People,
     Speed,
     WbCloudy,
+    WrapText,
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
@@ -72,6 +74,18 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <Dashboard />,
         i18nKey: 'wm_Universal',
         descriptionKey: 'wm_Universal_desc',
+    },
+    {
+        type: 'presence',
+        icon: <People />,
+        i18nKey: 'wm_Presence',
+        descriptionKey: 'wm_Presence_desc',
+    },
+    {
+        type: 'newline',
+        icon: <WrapText />,
+        i18nKey: 'wm_New line',
+        descriptionKey: 'wm_New line_desc',
     },
 ];
 

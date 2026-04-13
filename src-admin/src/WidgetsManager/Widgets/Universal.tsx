@@ -13,10 +13,13 @@ import {
 import { Settings } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
+import { SIZE_OPTIONS } from '../configUtils';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 interface ColorLevel {
@@ -65,6 +68,7 @@ interface WidgetUniversalProps {
 interface WidgetUniversalState {
     value: number | null;
     unit: string;
+    commonType: ioBroker.CommonType;
     secondaryValue: number | null;
     secondaryUnit: string;
     opacity: number;
@@ -80,6 +84,111 @@ interface WidgetUniversalState {
 }
 
 export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUniversalState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Universal',
+            items: {
+                stateId: { type: 'objectId', label: 'wm_State ID' },
+                name: { type: 'text', label: 'wm_Name', default: '' },
+                digits: { type: 'number', label: 'wm_Digits after comma', default: 1, min: 0, max: 5 },
+                widgetIcon: { type: 'component', subType: 'iconSelect', label: 'wm_Icon', sm: 6 },
+                widgetIconActive: { type: 'component', subType: 'iconSelect', label: 'wm_Active icon', sm: 6 },
+                secondaryStateId: { type: 'objectId', label: 'wm_Secondary value' },
+                secondaryName: { type: 'text', label: 'wm_Secondary name', default: '' },
+                actionStateId: { type: 'objectId', label: 'wm_Action state' },
+                actionType: {
+                    type: 'select',
+                    label: 'wm_Action type',
+                    options: [
+                        { value: 'toggle', label: 'wm_Toggle' },
+                        { value: 'value', label: 'wm_Send value' },
+                    ],
+                    default: 'toggle',
+                    format: 'radio',
+                    hidden: '!data.actionStateId',
+                },
+                actionValue: {
+                    type: 'text',
+                    label: 'wm_Action value',
+                    help: 'wm_Action value help',
+                    default: '',
+                    hidden: "!data.actionStateId || data.actionType !== 'value'",
+                },
+                actionConfirm: {
+                    type: 'select',
+                    label: 'wm_Confirmation',
+                    options: [
+                        { value: 'none', label: 'wm_No confirmation' },
+                        { value: 'dialog', label: 'wm_Confirm dialog' },
+                        { value: 'pin', label: 'wm_PIN code' },
+                    ],
+                    default: 'none',
+                    format: 'dropdown',
+                    hidden: '!data.actionStateId',
+                },
+                actionConfirmText: {
+                    type: 'text',
+                    label: 'wm_Confirmation text',
+                    default: '',
+                    hidden: "!data.actionStateId || data.actionConfirm === 'none' || !data.actionConfirm",
+                },
+                actionPin: {
+                    type: 'text',
+                    label: 'wm_PIN',
+                    default: '',
+                    hidden: "!data.actionStateId || data.actionConfirm !== 'pin'",
+                },
+                colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
+                opacityStateId: { type: 'objectId', label: 'wm_Opacity state' },
+                opacityFalse: {
+                    type: 'number',
+                    label: 'wm_Opacity when false',
+                    default: 0,
+                    min: 0,
+                    max: 1,
+                    step: 0.1,
+                    hidden: '!data.opacityStateId',
+                },
+                opacityTrue: {
+                    type: 'number',
+                    label: 'wm_Opacity when true',
+                    default: 1,
+                    min: 0,
+                    max: 1,
+                    step: 0.1,
+                    hidden: '!data.opacityStateId',
+                },
+                _iconsPanel: {
+                    type: 'panel',
+                    label: 'wm_Indicator icons',
+                    collapsable: true,
+                    items: {
+                        icon1StateId: { type: 'objectId', label: 'wm_Icon 1 state', sm: 12 },
+                        icon1Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 1 name', sm: 6 },
+                        icon1Color: { type: 'color', label: 'wm_Icon 1 color', sm: 6 },
+                        icon2StateId: { type: 'objectId', label: 'wm_Icon 2 state', sm: 12 },
+                        icon2Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 2 name', sm: 6 },
+                        icon2Color: { type: 'color', label: 'wm_Icon 2 color', sm: 6 },
+                        icon3StateId: { type: 'objectId', label: 'wm_Icon 3 state', sm: 12 },
+                        icon3Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 3 name', sm: 6 },
+                        icon3Color: { type: 'color', label: 'wm_Icon 3 color', sm: 6 },
+                    },
+                },
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+                colorActive: { type: 'color', label: 'wm_Active color' },
+            },
+        };
+    }
+
     /** Build WidgetUniversalSettings from a flat CustomWidgetBase (resolves icon1StateId/icon1Name/icon1Color → icons[]) */
     static buildSettings(def: CustomWidgetBase): WidgetUniversalSettings {
         const d = def as Record<string, any>;
@@ -111,6 +220,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         this.state = {
             value: null,
             unit: '',
+            commonType: 'mixed',
             secondaryValue: null,
             secondaryUnit: '',
             opacity: 1,
@@ -177,7 +287,9 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             ctx.getState(this.props.settings.stateId, this.primaryHandler);
             void this.getCachedObject(this.props.settings.stateId).then(obj => {
                 if (obj?.common?.unit) {
-                    this.setState({ unit: obj.common.unit });
+                    this.setState({ unit: obj.common.unit, commonType: obj.common.type });
+                } else if (obj?.common?.type) {
+                    this.setState({ commonType: obj.common.type });
                 }
             });
         }
@@ -375,15 +487,9 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             return;
         }
         const socket = stateContext.getSocket();
-        if (actionType === 'toggle') {
-            void socket.getState(actionStateId).then(state => {
-                if (state) {
-                    void socket.setState(actionStateId, !state.val);
-                }
-            });
-        } else {
-            void this.getCachedObject(actionStateId).then(obj => {
-                const commonType = obj?.common?.type;
+        void this.getCachedObject(actionStateId).then(obj => {
+            const commonType = obj?.common?.type;
+            if (actionType === 'value') {
                 let val: ioBroker.StateValue;
                 if (commonType === 'boolean') {
                     val = actionValue === 'true' || actionValue === true || actionValue === 1;
@@ -393,8 +499,22 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                     val = actionValue != null ? String(actionValue) : '';
                 }
                 void socket.setState(actionStateId, val);
-            });
-        }
+            } else {
+                void socket.getState(actionStateId).then(state => {
+                    if (state) {
+                        if (commonType === 'boolean') {
+                            void socket.setState(actionStateId, !state.val);
+                        } else if (commonType === 'number') {
+                            const min = obj?.common.min ?? 0;
+                            const max = obj?.common.max ?? 100;
+                            void socket.setState(actionStateId, state.val === min ? max : min);
+                        } else {
+                            void socket.setState(actionStateId, !state.val);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private handleTileClick = (): void => {
@@ -487,28 +607,45 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
 
         const size = this.props.settings.size || '1x1';
         const isWide = size === '2x1' || size === '2x0.5';
+        const isWideTall = size === '2x1';
 
         return (
             <Box
                 sx={theme => ({
-                    ...(isWide ? WidgetGeneric.getStyleWide(theme) : WidgetGeneric.getStyleCompact(theme)),
-                    aspectRatio: size === '2x0.5' ? undefined : isWide ? '2' : '1',
+                    ...(isWideTall
+                        ? WidgetGeneric.getStyleWideTall(theme)
+                        : isWide
+                          ? WidgetGeneric.getStyleWide(theme)
+                          : WidgetGeneric.getStyleCompact(theme)),
+                    ...(!isWideTall && {
+                        aspectRatio: size === '2x0.5' ? undefined : '1',
+                    }),
                     ...(size === '2x0.5' && { height: 80 }),
                     opacity: displayOpacity < 1 ? displayOpacity : undefined,
                     transition: 'opacity 0.3s ease',
                 })}
             >
+                {/* Sizer: matches 1x1 tile height for 2x1 layout */}
+                {isWideTall && <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />}
                 <Box
                     onClick={clickable ? this.handleTileClick : undefined}
                     sx={(theme: Theme) => ({
-                        ...getTileStyles(theme, false, this.props.settings.color, clickable),
-                        position: 'relative',
+                        ...getTileStyles(
+                            theme,
+                            this.state.actionActive,
+                            this.state.actionActive
+                                ? this.props.settings.colorActive || this.props.settings.color
+                                : this.props.settings.color,
+                            clickable,
+                            this.props.settings.color,
+                        ),
+                        ...(isWideTall
+                            ? { position: 'absolute' as const, inset: 0 }
+                            : { width: '100%', height: '100%' }),
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
                         p: 1.5,
                         cursor: clickable ? 'pointer' : 'default',
                     })}
@@ -608,7 +745,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                                         }}
                                     />
                                 ) : null}
-                                {value != null ? (
+                                {this.state.commonType !== 'boolean' && value != null ? (
                                     <Typography
                                         sx={{
                                             fontSize: isWide ? 56 : 36,
@@ -627,9 +764,11 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                                         </Typography>
                                     </Typography>
                                 ) : (
-                                    <Typography sx={{ fontSize: isWide ? 48 : 32, color: 'text.disabled' }}>
-                                        —
-                                    </Typography>
+                                    this.state.commonType !== 'boolean' && (
+                                        <Typography sx={{ fontSize: isWide ? 48 : 32, color: 'text.disabled' }}>
+                                            —
+                                        </Typography>
+                                    )
                                 )}
                             </Box>
                         );

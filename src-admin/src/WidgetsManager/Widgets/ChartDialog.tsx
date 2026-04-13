@@ -41,6 +41,18 @@ export type ChartLineType = 'line' | 'step-start' | 'step-end';
 /** Smoothing window in seconds (0 = off) */
 export type SmoothingWindow = 0 | 30 | 60 | 300 | 600;
 
+/** Smoothing aggregation method */
+export type SmoothingMethod = 'average' | 'min' | 'max' | 'median';
+
+const SMOOTHING_METHOD_OPTIONS: { value: SmoothingMethod; label: string }[] = [
+    { value: 'average', label: 'wm_smooth_average' },
+    { value: 'min', label: 'wm_smooth_min' },
+    { value: 'max', label: 'wm_smooth_max' },
+    { value: 'median', label: 'wm_smooth_median' },
+];
+
+const VALID_SMOOTHING_METHODS = new Set<string>(['average', 'min', 'max', 'median']);
+
 const SMOOTHING_OPTIONS: { value: SmoothingWindow; label: string }[] = [
     { value: 0, label: 'wm_Off' },
     { value: 30, label: 'wm_smooth_30s' },
@@ -54,12 +66,14 @@ const VALID_SMOOTHING_VALUES = new Set<number>([0, 30, 60, 300, 600]);
 export interface ChartSettings {
     chartType: ChartLineType;
     smoothing: SmoothingWindow;
+    smoothingMethod: SmoothingMethod;
     rangeHours: number;
 }
 
 const DEFAULT_CHART_SETTINGS: ChartSettings = {
     chartType: 'line',
     smoothing: 0,
+    smoothingMethod: 'average',
     rangeHours: 24,
 };
 
@@ -100,8 +114,12 @@ function niceStep(range: number, ticks: number): number {
     return step * pow;
 }
 
-/** Apply sliding window average to time-series data */
-function smoothData(data: { ts: number; val: number }[], windowSec: number): { ts: number; val: number }[] {
+/** Apply sliding window aggregation to time-series data */
+export function smoothData(
+    data: { ts: number; val: number }[],
+    windowSec: number,
+    method: SmoothingMethod = 'average',
+): { ts: number; val: number }[] {
     if (windowSec <= 0 || data.length < 2) {
         return data;
     }
@@ -109,25 +127,67 @@ function smoothData(data: { ts: number; val: number }[], windowSec: number): { t
     const halfWindow = windowMs / 2;
     const result: { ts: number; val: number }[] = [];
 
-    let left = 0;
-    let right = 0; // exclusive upper bound
-    let sum = 0;
-
-    for (let i = 0; i < data.length; i++) {
-        const center = data[i].ts;
-        // Expand the right boundary
-        while (right < data.length && data[right].ts <= center + halfWindow) {
-            sum += data[right].val;
-            right++;
+    if (method === 'average') {
+        let left = 0;
+        let right = 0;
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+            const center = data[i].ts;
+            while (right < data.length && data[right].ts <= center + halfWindow) {
+                sum += data[right].val;
+                right++;
+            }
+            while (left < right && data[left].ts < center - halfWindow) {
+                sum -= data[left].val;
+                left++;
+            }
+            const count = right - left;
+            result.push({ ts: center, val: count > 0 ? sum / count : data[i].val });
         }
-        // Shrink left boundary
-        while (left < right && data[left].ts < center - halfWindow) {
-            sum -= data[left].val;
-            left++;
+    } else {
+        let left = 0;
+        let right = 0;
+        for (let i = 0; i < data.length; i++) {
+            const center = data[i].ts;
+            while (right < data.length && data[right].ts <= center + halfWindow) {
+                right++;
+            }
+            while (left < right && data[left].ts < center - halfWindow) {
+                left++;
+            }
+            if (left >= right) {
+                result.push({ ts: center, val: data[i].val });
+                continue;
+            }
+            let val: number;
+            if (method === 'min') {
+                val = data[left].val;
+                for (let j = left + 1; j < right; j++) {
+                    if (data[j].val < val) {
+                        val = data[j].val;
+                    }
+                }
+            } else if (method === 'max') {
+                val = data[left].val;
+                for (let j = left + 1; j < right; j++) {
+                    if (data[j].val > val) {
+                        val = data[j].val;
+                    }
+                }
+            } else {
+                // median
+                const window = [];
+                for (let j = left; j < right; j++) {
+                    window.push(data[j].val);
+                }
+                window.sort((a, b) => a - b);
+                const mid = window.length >> 1;
+                val = window.length % 2 ? window[mid] : (window[mid - 1] + window[mid]) / 2;
+            }
+            result.push({ ts: center, val });
         }
-        const count = right - left;
-        result.push({ ts: center, val: count > 0 ? sum / count : data[i].val });
     }
+
     return result;
 }
 
@@ -198,13 +258,25 @@ interface InteractiveChartProps {
     title?: string;
     chartType: ChartLineType;
     smoothing: SmoothingWindow;
+    smoothingMethod: SmoothingMethod;
     isFloatComma?: boolean;
     /** Called 400ms after the last pan/zoom interaction with the new visible time range */
     onViewSettle?: (startTs: number, endTs: number) => void;
 }
 
 function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
-    const { series, width, height, unit, title: chartTitle, chartType, smoothing, isFloatComma, onViewSettle } = props;
+    const {
+        series,
+        width,
+        height,
+        unit,
+        title: chartTitle,
+        chartType,
+        smoothing,
+        smoothingMethod,
+        isFloatComma,
+        onViewSettle,
+    } = props;
     const svgRef = useRef<SVGSVGElement>(null);
     const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -238,8 +310,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     globalValMax += valRange * 0.05;
 
     // Detect dual-axis mode: exactly 2 series with different, non-empty units
-    const dualAxis =
-        series.length === 2 && !!series[0]?.unit && !!series[1]?.unit && series[0].unit !== series[1].unit;
+    const dualAxis = series.length === 2 && !!series[0]?.unit && !!series[1]?.unit && series[0].unit !== series[1].unit;
 
     let series1ValMin = 0;
     let series1ValMax = 1;
@@ -466,7 +537,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         if (visible.length < 2) {
             continue;
         }
-        const smoothed = smoothing > 0 ? smoothData(visible, smoothing) : visible;
+        const smoothed = smoothing > 0 ? smoothData(visible, smoothing, smoothingMethod) : visible;
         const yFn = dualAxis && i === 1 ? valToY2 : valToY;
         const points = smoothed.map(p => ({ x: tsToX(p.ts), y: yFn(p.val) }));
         const d = buildLinePath(points, chartType);
@@ -605,8 +676,9 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             })}
 
             {/* Value axis labels (left) */}
-            {valTicks.map(v => {
+            {valTicks.map((v, vi) => {
                 const y = valToY(v);
+                const leftUnit = dualAxis ? series[0].unit : unit;
                 return (
                     <text
                         key={`vl${v}`}
@@ -618,13 +690,14 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                         opacity={dualAxis ? 0.7 : 0.5}
                     >
                         {formatValue(v, isFloatComma)}
+                        {vi === valTicks.length - 1 && leftUnit ? ` ${leftUnit}` : ''}
                     </text>
                 );
             })}
 
             {/* Value axis labels (right, dual-axis mode) */}
             {dualAxis &&
-                val2Ticks.map(v => {
+                val2Ticks.map((v, vi) => {
                     const y = valToY2(v);
                     return (
                         <text
@@ -637,6 +710,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                             opacity={0.7}
                         >
                             {formatValue(v, isFloatComma)}
+                            {vi === val2Ticks.length - 1 && series[1].unit ? ` ${series[1].unit}` : ''}
                         </text>
                     );
                 })}
@@ -780,6 +854,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
     const [rangeHours, setRangeHours] = useState(DEFAULT_CHART_SETTINGS.rangeHours);
     const [chartType, setChartType] = useState<ChartLineType>(DEFAULT_CHART_SETTINGS.chartType);
     const [smoothing, setSmoothing] = useState(DEFAULT_CHART_SETTINGS.smoothing);
+    const [smoothingMethod, setSmoothingMethod] = useState<SmoothingMethod>(DEFAULT_CHART_SETTINGS.smoothingMethod);
     const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dims, setDims] = useState({ w: 600, h: 350 });
@@ -805,6 +880,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         VALID_SMOOTHING_VALUES.has(custom.chartSmoothing)
                     ) {
                         setSmoothing(custom.chartSmoothing as SmoothingWindow);
+                    }
+                    if (custom.chartSmoothingMethod && VALID_SMOOTHING_METHODS.has(custom.chartSmoothingMethod)) {
+                        setSmoothingMethod(custom.chartSmoothingMethod as SmoothingMethod);
                     }
                     if (
                         typeof custom.chartRangeHours === 'number' &&
@@ -1113,6 +1191,29 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                                     </MenuItem>
                                 ))}
                             </TextField>
+                            {smoothing > 0 && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Smoothing method')}
+                                    value={smoothingMethod}
+                                    onChange={e => {
+                                        const val = e.target.value as SmoothingMethod;
+                                        setSmoothingMethod(val);
+                                        saveSetting('chartSmoothingMethod', val);
+                                    }}
+                                >
+                                    {SMOOTHING_METHOD_OPTIONS.map(opt => (
+                                        <MenuItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {I18n.t(opt.label)}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            )}
                         </Box>
                     </Popover>
                 </Box>
@@ -1145,6 +1246,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             title={title}
                             chartType={chartType}
                             smoothing={smoothing}
+                            smoothingMethod={smoothingMethod}
                             isFloatComma={isFloatComma}
                             onViewSettle={handleViewSettle}
                         />

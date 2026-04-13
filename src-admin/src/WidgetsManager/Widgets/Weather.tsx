@@ -14,9 +14,12 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import { formatFloat, getTileStyles, isNeumorphicTheme } from './Generic';
 import type StateContext from '../StateContext';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import { SIZE_OPTIONS } from '../configUtils';
 
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {
@@ -302,6 +305,47 @@ function yrSymbolToDescription(code: string): string {
 }
 
 export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Weather',
+            items: {
+                weatherSource: {
+                    type: 'select',
+                    label: 'wm_Weather source',
+                    options: [
+                        { value: 'adapter', label: 'wm_Adapter' },
+                        { value: 'openmeteo', label: 'Open-Meteo' },
+                        { value: 'yrno', label: 'yr.no' },
+                    ],
+                    default: 'adapter',
+                    format: 'radio',
+                },
+                adapterInstance: {
+                    type: 'instance',
+                    label: 'wm_Adapter instance',
+                    adapters: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
+                    hidden: "data.weatherSource !== 'adapter'",
+                },
+                cityName: {
+                    type: 'component',
+                    subType: 'citySearch',
+                    label: 'wm_City',
+                    hidden: "data.weatherSource === 'adapter'",
+                },
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '2x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+            },
+        };
+    }
+
     private subs: StateSub[] = [];
     /** Maps stateId → { target: 'current'|'forecast', key: string, dayIndex?: number } */
     private stateMap: Map<

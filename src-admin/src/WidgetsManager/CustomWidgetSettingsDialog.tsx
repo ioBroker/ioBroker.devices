@@ -36,6 +36,7 @@ interface CustomWidgetSettingsDialogProps {
     dateFormat: string;
     /** Adapter instance ID, e.g. "devices.0" */
     selectedInstance?: string;
+    admin: boolean;
 }
 
 /** Recursively collect all data-bearing items from a panel (flattening nested panels) */
@@ -194,6 +195,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
+                        imagePrefix={props.admin ? '..' : '../..'}
                     />
                 ) : null}
                 {props.availableGroups?.length ? (

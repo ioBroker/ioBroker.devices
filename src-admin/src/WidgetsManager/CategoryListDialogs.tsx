@@ -246,6 +246,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         ? categorySettings[customWidgetSettingsCategoryId]?.widgetGroups
                         : undefined
                 }
+                admin={admin}
                 currentGroupId={
                     customWidgetSettingsCategoryId &&
                     customWidgetSettingsWidgetId &&

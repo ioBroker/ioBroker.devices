@@ -1,4 +1,4 @@
-export { PluginWidget } from './PluginWidget';
+export { WidgetPlugin } from './WidgetPlugin';
 export { WidgetAirCondition } from './AirCondition';
 export { WidgetBlind } from './Blind';
 export { WidgetBlindButtons } from './BlindButtons';
@@ -26,6 +26,7 @@ export { WidgetTank } from './Tank';
 export { WidgetTemperature } from './Temperature';
 export { WidgetThermostat } from './Thermostat';
 export { WidgetUniversal, type WidgetUniversalSettings } from './Universal';
+export { WidgetPresence, type WidgetPresenceSettings } from './Presence';
 export { WidgetVolume } from './Volume';
 export { WidgetWarning } from './Warning';
 export { WidgetWeather, type WidgetWeatherSettings } from './Weather';

@@ -3,10 +3,13 @@ import { Box, Typography } from '@mui/material';
 import { Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
 import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import { SIZE_OPTIONS } from '../configUtils';
 
 export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;
@@ -36,6 +39,27 @@ function polar(cx: number, cy: number, r: number, angleDeg: number): { x: number
 }
 
 export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Wind',
+            items: {
+                directionStateId: { type: 'objectId', label: 'wm_Wind direction' },
+                speedStateId: { type: 'objectId', label: 'wm_Wind speed' },
+                gustsStateId: { type: 'objectId', label: 'wm_Wind gusts' },
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
+                color: { type: 'color', label: 'wm_Color' },
+            },
+        };
+    }
+
     private dirHandler: StateChangeListener | null = null;
     private speedHandler: StateChangeListener | null = null;
     private gustsHandler: StateChangeListener | null = null;
@@ -346,7 +370,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 />
                 {/* Cardinal labels */}
                 {labels.map(l => {
-                    const p = polar(cx, cy, 70, l.angle);
+                    const p = polar(cx, cy, 62, l.angle);
                     return (
                         <text
                             key={l.label}

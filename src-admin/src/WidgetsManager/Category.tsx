@@ -27,6 +27,7 @@ import {
     ViewModule,
     Star,
     StarBorder,
+    Close,
     Warning,
     WaterDamage,
     WaterDrop,
@@ -89,8 +90,10 @@ import {
     WidgetGauge,
     WidgetUniversal,
     type WidgetUniversalSettings,
+    WidgetPresence,
+    type WidgetPresenceSettings,
     WidgetGate,
-    PluginWidget,
+    WidgetPlugin,
     type WidgetWeatherSettings,
     type WidgetIframeSettings,
     type WidgetWindSettings,
@@ -111,7 +114,7 @@ import type {
     DevicesDetectorState,
     CustomWidgetPlugin,
 } from '@iobroker/dm-widgets';
-import type { WidgetGeneric } from './Widgets/Generic';
+import { WidgetGeneric } from './Widgets/Generic';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -223,9 +226,13 @@ type OrderedItem = {
     data: CategoryInfo | WidgetInfo | CustomWidgetBase;
 };
 
-function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettingsBase>): string | undefined {
+function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettingsBase>, editing?: boolean): string | undefined {
     if (item.type === 'category') {
         return '1 / -1';
+    }
+    if (item.type === 'custom' && (item.data as CustomWidgetBase).type === 'newline') {
+        // In edit mode: normal 1x1 grid item (draggable); play mode: full-row span for line break
+        return editing ? undefined : '1 / -1';
     }
     let size: '1x1' | '2x0.5' | '2x1';
     if (item.type === 'widget') {
@@ -482,6 +489,7 @@ function SortableGrid(props: {
 
     const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
     const activeItem = activeId ? itemMap.get(activeId) : null;
+    const draggingNewline = activeItem?.type === 'custom' && (activeItem.data as CustomWidgetBase).type === 'newline';
 
     const renderContent = (item: OrderedItem, isDropTarget?: boolean): React.ReactNode => {
         if (item.type === 'category') {
@@ -536,7 +544,7 @@ function SortableGrid(props: {
     }
 
     const parentCatId = category.props.category.parent ? String(category.props.category.parent) : null;
-    const showParentDrop = !!activeId && !!onMoveWidgetToCategory && !!parentCatId;
+    const showParentDrop = !!activeId && !draggingNewline && !!onMoveWidgetToCategory && !!parentCatId;
 
     return (
         <DndContext
@@ -587,14 +595,15 @@ function SortableGrid(props: {
                 >
                     {orderedItems.map(item => {
                         const isCw = item.type === 'custom';
+                        const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
                         const fav =
-                            item.type === 'category'
+                            item.type === 'category' || isNewline
                                 ? undefined
                                 : isCw
                                   ? (item.data as CustomWidgetBase).favorite
                                   : widgetSettings[item.id]?.favorite;
                         const toggleFav =
-                            item.type === 'category'
+                            item.type === 'category' || isNewline
                                 ? undefined
                                 : isCw
                                   ? category.props.onToggleCustomWidgetFavorite
@@ -603,7 +612,7 @@ function SortableGrid(props: {
                             <SortableItem
                                 key={item.id}
                                 id={item.id}
-                                gridColumn={getGridColumn(item, widgetSettings)}
+                                gridColumn={getGridColumn(item, widgetSettings, true)}
                                 isDragging={item.id === activeId}
                                 favorite={fav}
                                 onToggleFavorite={toggleFav}
@@ -686,14 +695,15 @@ function GroupSortableGrid(props: {
             >
                 {items.map(item => {
                     const isCw = item.type === 'custom';
+                    const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
                     const fav =
-                        item.type === 'category'
+                        item.type === 'category' || isNewline
                             ? undefined
                             : isCw
                               ? (item.data as CustomWidgetBase).favorite
                               : widgetSettings[item.id]?.favorite;
                     const toggleFav =
-                        item.type === 'category'
+                        item.type === 'category' || isNewline
                             ? undefined
                             : isCw
                               ? category.props.onToggleCustomWidgetFavorite
@@ -702,7 +712,7 @@ function GroupSortableGrid(props: {
                         <SortableItem
                             key={item.id}
                             id={item.id}
-                            gridColumn={getGridColumn(item, widgetSettings)}
+                            gridColumn={getGridColumn(item, widgetSettings, true)}
                             isDragging={item.id === activeId}
                             favorite={fav}
                             onToggleFavorite={toggleFav}
@@ -1979,9 +1989,20 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 );
                 break;
             }
+            case 'presence':
+                content = (
+                    <WidgetPresence
+                        key={def.id}
+                        settings={def as WidgetPresenceSettings}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onRemove={removeCb}
+                    />
+                );
+                break;
             case 'plugin':
                 content = (
-                    <PluginWidget
+                    <WidgetPlugin
                         key={def.id}
                         id={def.id}
                         stateContext={this.props.stateContext}
@@ -1992,6 +2013,60 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                         onCloseWidgetDialog={this.props.onCloseWidgetDialog}
                     />
+                );
+                break;
+            case 'newline':
+                content = removeCb ? (
+                    <Box
+                        key={def.id}
+                        sx={theme => WidgetGeneric.getStyleCompact(theme)}
+                    >
+                        <Box
+                            sx={theme => ({
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxSizing: 'border-box',
+                                width: '100%',
+                                aspectRatio: '1',
+                                border: '2px dashed',
+                                borderColor:
+                                    theme.palette.mode === 'dark'
+                                        ? 'rgba(255,255,255,0.2)'
+                                        : 'rgba(0,0,0,0.15)',
+                                borderRadius: 'inherit',
+                                gap: 0.5,
+                            })}
+                        >
+                            <Typography sx={{ fontSize: 'max(36px, 20cqi)', lineHeight: 1, opacity: 0.4 }}>
+                                ⏎
+                            </Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ opacity: 0.3, userSelect: 'none', fontSize: 'max(0.6rem, 3cqi)' }}
+                            >
+                                {I18n.t('wm_New line')}
+                            </Typography>
+                        </Box>
+                        <IconButton
+                            size="small"
+                            onClick={() => removeCb()}
+                            sx={{
+                                position: 'absolute',
+                                top: 6,
+                                right: 6,
+                                p: '3px',
+                                opacity: 0,
+                                '&:hover': { opacity: 1 },
+                                '.MuiBox-root:hover > &': { opacity: 0.7 },
+                            }}
+                        >
+                            <Close sx={{ fontSize: 16 }} />
+                        </IconButton>
+                    </Box>
+                ) : (
+                    <Box key={def.id} />
                 );
                 break;
             default:
