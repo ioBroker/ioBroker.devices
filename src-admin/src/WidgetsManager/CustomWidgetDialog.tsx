@@ -230,7 +230,7 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                                             src={
                                                                 props.admin
                                                                     ? `../adapter/${adapter}/dm-widgets/${comp.icon}`
-                                                                    : `../files/${adapter}.admin/dm-widgets/${comp.icon}`
+                                                                    : `../${adapter}.admin/dm-widgets/${comp.icon}`
                                                             }
                                                             alt=""
                                                             style={{ width: 24, height: 24 }}

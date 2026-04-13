@@ -85,7 +85,9 @@ export async function loadPluginComponent(
             registerRemotes([
                 {
                     name: uniqueName,
-                    entry: admin ? `../adapter/${adapterName}/dm-widgets/${url}` : `../${adapterName}/${url}`,
+                    entry: admin
+                        ? `../adapter/${adapterName}/dm-widgets/${url}`
+                        : `../${adapterName}.admin/dm-widgets/${url}`,
                     type: 'module',
                 },
             ]);
