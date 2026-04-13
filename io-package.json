@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.7",
+    "version": "2.0.8",
     "news": {
+      "2.0.8": {
+        "en": "Added presence widget",
+        "de": "Hinzugefügt Anwesenheit Widget",
+        "ru": "Добавлен виджет присутствия",
+        "pt": "Adicionado elemento de presença",
+        "nl": "Widget toegevoegd",
+        "fr": "Widget de présence ajouté",
+        "it": "Aggiunto widget di presenza",
+        "es": "Widget de presencia adicional",
+        "pl": "Dodano widżet obecności",
+        "uk": "Додано віджет присутність",
+        "zh-cn": "添加存在部件"
+      },
       "2.0.7": {
         "en": "Added new widgets",
         "de": "Neue Widgets hinzugefügt",
@@ -80,19 +93,6 @@
         "pl": "Pokaż kolor, jeśli fx nie jest pusty\nDodano dla wszystkich pól tekstowych czysty przycisk",
         "uk": "Показати в кольорі якщо fx не порожній\nДодано для всіх текстових полів чітку кнопку",
         "zh-cn": "如果 fx 不为空, 以颜色显示\n为所有文本字段添加了清晰的按钮"
-      },
-      "1.2.9": {
-        "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
-        "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
-        "ru": "Для новых состояний устройств создается полное имя, а не только последняя часть, например `ACTUAL`",
-        "pt": "Criado para novos estados criados de dispositivos o nome completo e não apenas a última parte, como `REAL`",
-        "nl": "Gemaakt voor nieuw aangemaakte toestanden van apparaten, de volledige naam en niet alleen het laatste deel, zoals `ACTUAL`",
-        "fr": "Créé pour les nouveaux états créés des appareils, le nom complet et pas seulement la dernière partie, comme « ACTUAL »",
-        "it": "Creato per i nuovi stati creati dei dispositivi il nome completo e non solo l'ultima parte, come `ATTUALE`",
-        "es": "Creado para nuevos estados creados de dispositivos, el nombre completo y no solo la última parte, como \"ACTUAL\"",
-        "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
-        "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
-        "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
       }
     },
     "titleLang": {
