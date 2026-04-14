@@ -31,6 +31,7 @@ export interface IStateContext {
     latitude: number | null;
     isFloatComma: boolean;
     dateFormat: string;
+    imagePrefix: string;
 }
 
 export default class StateContext implements IStateContext {
@@ -89,6 +90,7 @@ export default class StateContext implements IStateContext {
     latitude: number | null = null;
     isFloatComma = false;
     dateFormat = 'DD.MM.YYYY';
+    imagePrefix = '../../files/';
 
     destroy(): void {
         // stub

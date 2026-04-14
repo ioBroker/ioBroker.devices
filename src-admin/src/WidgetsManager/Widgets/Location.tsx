@@ -745,7 +745,8 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const showCoords = this.props.settings?.showCoordinates;
 
         return (
@@ -785,18 +786,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                     />
 
                     {/* Indicators top-right */}
-                    {indicators ? (
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                top: 'max(8px, 5cqi)',
-                                right: 'max(8px, 5cqi)',
-                                zIndex: 2,
-                            }}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name + optional coordinates at bottom */}
                     <Box
@@ -845,7 +835,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                         )}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
                 {this.renderMapDialog()}
             </Box>
         );

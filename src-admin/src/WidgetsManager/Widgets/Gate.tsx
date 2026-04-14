@@ -230,6 +230,8 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         const { name, position } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -254,6 +256,8 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                         ...getTileStyles(theme, isActive, accent),
                     })}
                 >
+                    {indicators}
+
                     {/* Gate visualization */}
                     <Box
                         sx={{
@@ -337,7 +341,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

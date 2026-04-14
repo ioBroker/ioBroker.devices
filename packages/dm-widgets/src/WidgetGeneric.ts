@@ -34,6 +34,8 @@ export interface WidgetGenericProps<TPluginWidgetSettings extends WidgetSettings
     onOpenWidgetDialog?: (dialogId: string) => void;
     /** Clear the dialog from the URL hash */
     onCloseWidgetDialog?: () => void;
+    /** Inform category about that widget must be hidden */
+    onHide: (id: string, hide: boolean) => void;
 }
 
 export interface IndicatorValues {
@@ -278,6 +280,38 @@ export class WidgetGeneric<
     }
 
     protected renderInfoDialog(): React.JSX.Element | null {
+        return null;
+    }
+
+    // --- PinPad ---
+
+    /** Open the PinPad dialog. On correct PIN, `onPinPadSuccess()` is called. */
+    protected showPinPad(_pin: string): void {
+        // Replaced at runtime by the host's real implementation
+    }
+
+    /** Called when the user enters the correct PIN. Override in subclass. */
+    protected onPinPadSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderPinPad(): React.JSX.Element | null {
+        return null;
+    }
+
+    // --- Confirmation Dialog ---
+
+    /** Open a confirmation dialog. On success, `onConfirmDialogSuccess()` is called. */
+    protected showConfirmDialog(_mode: 'dialog' | 'pin', _pin?: string, _text?: string): void {
+        // Replaced at runtime by the host's real implementation
+    }
+
+    /** Called after successful confirmation. Override in subclass. */
+    protected onConfirmDialogSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderConfirmDialog(): React.JSX.Element | null {
         return null;
     }
 

@@ -708,7 +708,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         const { name, brightness, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         // Circular progress parameters — fixed viewBox, sized by CSS percentage
         const vb = 100;
@@ -746,18 +747,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
                     <Box
                         sx={{
                             display: 'flex',
@@ -862,7 +852,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

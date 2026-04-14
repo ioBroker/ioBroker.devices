@@ -39,6 +39,7 @@ export default class StateContext {
     /** Longitude from system.config for sun calculations */
     private readonly _longitude: number | null = null;
     private readonly _defaultHistory: string | null = null;
+    private readonly _imagePrefix: string;
 
     constructor(props: {
         socket: Connection;
@@ -58,6 +59,7 @@ export default class StateContext {
         this._longitude = props.longitude ?? null;
         this._latitude = props.latitude ?? null;
         this._defaultHistory = props.defaultHistory;
+        this._imagePrefix = props.admin ? '../../files/' : '../';
     }
 
     public get language(): ioBroker.Languages {
@@ -89,6 +91,10 @@ export default class StateContext {
 
     public get latitude(): number | null {
         return this._latitude;
+    }
+
+    public get imagePrefix(): string {
+        return this._imagePrefix;
     }
 
     private onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {

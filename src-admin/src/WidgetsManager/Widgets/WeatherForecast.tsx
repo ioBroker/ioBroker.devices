@@ -355,7 +355,8 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -377,11 +378,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Weather icon + temp range */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -430,7 +427,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -513,7 +510,8 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         // Show up to 5 forecast days
         const visibleDays = forecastDays.filter(d => d.icon || d.tempMin != null || d.tempMax != null).slice(0, 5);
@@ -536,11 +534,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 4cqi)', right: 'max(12px, 4cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Top: today's forecast */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -608,7 +602,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

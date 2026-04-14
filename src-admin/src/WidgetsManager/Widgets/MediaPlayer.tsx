@@ -319,7 +319,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, playing, title, artist, cover, elapsed, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -388,18 +389,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         }}
                     />
 
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 8,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 8,
-                                zIndex: 2,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Play/Pause indicator */}
                     {cover ? (
@@ -494,7 +484,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -505,7 +495,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, title, artist, cover, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -624,13 +615,13 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                     {artist}
                                 </Typography>
                             ) : null}
-                            {indicators ? <Box sx={{ position: 'relative', zIndex: 1 }}>{indicators}</Box> : null}
+                            {indicators}
                         </Box>
                         {duration ? this.renderProgressBar(accent || '#1db954', 4) : null}
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -641,7 +632,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, playing, title, artist, cover, elapsed, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -728,9 +720,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                             )}
                         </Box>
 
-                        {indicators ? (
-                            <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>{indicators}</Box>
-                        ) : null}
+                        {indicators}
                     </Box>
 
                     {/* Info area (bottom) */}
@@ -800,7 +790,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import {
     Air,
@@ -6,7 +6,6 @@ import {
     ArrowUpward,
     Close,
     Opacity,
-    Settings,
     Speed,
     Thermostat,
     WaterDrop,
@@ -16,8 +15,13 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import { formatFloat, getTileStyles, isNeumorphicTheme } from './Generic';
-import type StateContext from '../StateContext';
+import WidgetGeneric, {
+    type WidgetGenericState,
+    type WidgetGenericProps,
+    formatFloat,
+    getTileStyles,
+    isNeumorphicTheme,
+} from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import { SIZE_OPTIONS } from '../configUtils';
 
@@ -158,14 +162,7 @@ export interface WidgetWeatherSettings extends CustomWidgetBase {
     cityName?: string;
 }
 
-interface WidgetWeatherProps {
-    settings: WidgetWeatherSettings;
-    stateContext: StateContext;
-    onOpenSettings?: () => void;
-    onRemove?: () => void;
-}
-
-interface WidgetWeatherState {
+interface WidgetWeatherState extends WidgetGenericState {
     loading: boolean;
     // Current weather
     icon: string | null;
@@ -304,7 +301,7 @@ function yrSymbolToDescription(code: string): string {
     return key ? I18n.t(key) : base;
 }
 
-export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherState> {
+export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeatherSettings> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -354,9 +351,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     > = new Map();
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetWeatherProps) {
+    constructor(props: WidgetGenericProps<WidgetWeatherSettings>) {
         super(props);
         this.state = {
+            ...this.state,
             loading: true,
             icon: null,
             temperature: null,
@@ -373,10 +371,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.startDataSource();
     }
 
-    componentDidUpdate(prevProps: WidgetWeatherProps): void {
+    componentDidUpdate(prevProps: WidgetGenericProps<WidgetWeatherSettings>): void {
         const sourceChanged = prevProps.settings.weatherSource !== this.props.settings.weatherSource;
         const adapterChanged = prevProps.settings.adapterInstance !== this.props.settings.adapterInstance;
         const coordsChanged =
@@ -390,6 +389,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.cleanup();
     }
 
@@ -874,47 +874,6 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         return <WbCloudy sx={{ fontSize: size, color: 'text.secondary' }} />;
     }
 
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!();
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!();
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 1,
-                    color: theme.palette.primary.main,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': { opacity: 1, backgroundColor: theme.palette.action.hover },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
-    }
-
     static renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
         const fontSize = compact ? '0.7rem' : '0.8rem';
         const iconSize = compact ? 22 : 28;
@@ -978,17 +937,12 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     renderCompact(): React.JSX.Element {
         const { icon, temperature, weatherState, loading, wmoCode } = this.state;
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         if (!this.isConfigured()) {
             return (
-                <Box
-                    sx={theme => ({
-                        position: 'relative',
-                        containerType: 'inline-size',
-                        overflow: 'hidden',
-                        borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                    })}
-                >
+                <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
                     <Box
                         sx={theme => ({
                             display: 'flex',
@@ -999,6 +953,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             ...getTileStyles(theme, false, color),
                         })}
                     >
+                        {indicators}
                         <Typography
                             variant="caption"
                             sx={{ color: 'text.secondary' }}
@@ -1006,20 +961,13 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             {I18n.t('wm_Not configured')}
                         </Typography>
                     </Box>
-                    {this.renderSettingsButton()}
+
                 </Box>
             );
         }
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -1036,6 +984,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -1093,7 +1042,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -1101,17 +1050,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     renderWide(): React.JSX.Element {
         const { icon, temperature, weatherState, humidity, windSpeed, pressure, loading, wmoCode } = this.state;
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWide(theme)}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -1125,6 +1068,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         ...getTileStyles(theme, false, color),
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Typography
                             variant="caption"
@@ -1198,7 +1142,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -1217,21 +1161,15 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             wmoCode,
         } = this.state;
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const visibleDays = forecastDays
             .filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null)
             .slice(0, 1);
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -1248,6 +1186,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -1369,7 +1308,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -1649,19 +1588,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     render(): React.JSX.Element {
-        const size = this.props.settings.size || '2x1';
-        let widget: React.JSX.Element;
-        if (size === '2x0.5') {
-            widget = this.renderWide();
-        } else if (size === '2x1') {
-            widget = this.renderWideTall();
-        } else {
-            widget = this.renderCompact();
-        }
-
         return (
             <>
-                {widget}
+                {super.render()}
                 {this.renderDetailDialog()}
             </>
         );

@@ -1,15 +1,14 @@
-import React, { Component } from 'react';
+import React from 'react';
 
 import { Box, Dialog, DialogContent, IconButton, Typography } from '@mui/material';
-import { Close, OpenInNew, Settings } from '@mui/icons-material';
+import { Close, OpenInNew } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 import type { Theme } from '@mui/material/styles';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import WidgetGeneric, { getTileStyles } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import type StateContext from '../StateContext';
 import { SIZE_OPTIONS } from '../configUtils';
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
@@ -19,25 +18,12 @@ export interface WidgetIframeSettings extends CustomWidgetBase {
     clickAction?: 'dialog' | 'newTab' | 'sameTab';
 }
 
-interface WidgetIframeProps {
-    settings: WidgetIframeSettings;
-    stateContext: StateContext;
-    onOpenSettings?: () => void;
-    onRemove?: () => void;
-    /** Widget dialog ID to auto-open (from hash) */
-    openDialogId?: string | null;
-    /** Persist opened dialog to the URL hash */
-    onOpenWidgetDialog?: (dialogId: string) => void;
-    /** Clear the dialog from the URL hash */
-    onCloseWidgetDialog?: () => void;
-}
-
-interface WidgetIframeState {
+interface WidgetIframeState extends WidgetGenericState {
     dialogOpen: boolean;
     ts: number;
 }
 
-export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState> {
+export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeSettings> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -77,22 +63,24 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
 
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetIframeProps) {
+    constructor(props: WidgetGenericProps<WidgetIframeSettings>) {
         super(props);
-        this.state = { dialogOpen: props.openDialogId === props.settings.id, ts: Date.now() };
+        this.state = { ...this.state, dialogOpen: props.openDialogId === String(props.widget.id), ts: Date.now() };
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.setupRefreshTimer();
     }
 
-    componentDidUpdate(prevProps: WidgetIframeProps): void {
+    componentDidUpdate(prevProps: WidgetGenericProps<WidgetIframeSettings>): void {
         if (prevProps.settings.refreshInterval !== this.props.settings.refreshInterval) {
             this.setupRefreshTimer();
         }
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         if (this.refreshTimer) {
             clearInterval(this.refreshTimer);
         }
@@ -131,38 +119,13 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
         }
         if (action === 'dialog') {
             this.setState({ dialogOpen: true });
-            this.props.onOpenWidgetDialog?.(this.props.settings.id);
+            this.props.onOpenWidgetDialog?.(String(this.props.widget.id));
         } else if (action === 'newTab') {
             window.open(url, '_blank', 'noopener');
         } else {
             window.location.href = url;
         }
     };
-
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <IconButton
-                size="small"
-                onClick={e => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!();
-                }}
-                sx={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    zIndex: 2,
-                    opacity: 0.4,
-                    '&:hover': { opacity: 1 },
-                }}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </IconButton>
-        );
-    }
 
     static renderIframe(url: string, interactive: boolean): React.JSX.Element {
         return (
@@ -184,6 +147,8 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     renderCompact(): React.JSX.Element {
         const url = this.getUrl();
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
@@ -200,6 +165,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         padding: 0,
                     })}
                 >
+                    {indicators}
                     {url ? (
                         WidgetIframe.renderIframe(url, false)
                     ) : (
@@ -213,7 +179,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         </Box>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -221,6 +187,8 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     renderWide(): React.JSX.Element {
         const url = this.getUrl();
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleWide(theme)}>
@@ -236,6 +204,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         padding: 0,
                     })}
                 >
+                    {indicators}
                     {url ? (
                         WidgetIframe.renderIframe(url, false)
                     ) : (
@@ -249,7 +218,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         </Box>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -257,6 +226,8 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     renderWideTall(): React.JSX.Element {
         const url = this.getUrl();
         const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
@@ -273,6 +244,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         padding: 0,
                     })}
                 >
+                    {indicators}
                     {url ? (
                         WidgetIframe.renderIframe(url, false)
                     ) : (
@@ -286,7 +258,7 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
                         </Box>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -352,19 +324,9 @@ export class WidgetIframe extends Component<WidgetIframeProps, WidgetIframeState
     }
 
     render(): React.JSX.Element {
-        const size = this.props.settings.size || '2x1';
-        let widget: React.JSX.Element;
-        if (size === '2x0.5') {
-            widget = this.renderWide();
-        } else if (size === '2x1') {
-            widget = this.renderWideTall();
-        } else {
-            widget = this.renderCompact();
-        }
-
         return (
             <>
-                {widget}
+                {super.render()}
                 {this.renderDialog()}
             </>
         );

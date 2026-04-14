@@ -594,7 +594,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const modeName = this.getCurrentModeName();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -618,18 +619,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -678,7 +668,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderModeDialog()}
             </Box>
         );
@@ -804,7 +794,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const { name, level, rawValue, unit, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
         const accentOrDefault = accent || '#1976d2';
 
@@ -852,18 +843,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         }}
                     />
 
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Center icon + value */}
                     <Box
@@ -919,7 +899,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -931,7 +911,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const { name, level, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -968,18 +949,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -1055,7 +1025,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

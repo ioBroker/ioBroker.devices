@@ -151,7 +151,8 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -202,9 +203,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Box>
                     )}
 
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>{indicators}</Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name overlay at bottom */}
                     <Box
@@ -241,7 +240,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -253,7 +252,8 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -317,7 +317,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Box>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -329,7 +329,8 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -379,9 +380,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Box>
                     )}
 
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name overlay at bottom */}
                     <Box
@@ -410,7 +409,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

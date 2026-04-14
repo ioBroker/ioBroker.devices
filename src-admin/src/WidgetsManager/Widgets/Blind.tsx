@@ -683,7 +683,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         const { name, position, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -713,18 +714,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -767,7 +757,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

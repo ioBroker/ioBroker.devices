@@ -463,8 +463,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
         const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -497,23 +498,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                 >
                     {this.renderFillBackground(fillColor)}
 
-                    {indicators || extraStates ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-end',
-                                gap: '2px',
-                            })}
-                        >
-                            {indicators}
-                            {extraStates}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Center: tank icon + value */}
                     <Box
@@ -574,7 +559,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -585,8 +570,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
         const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -646,7 +632,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -657,8 +643,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
         const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -694,23 +681,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                 >
                     {this.renderFillBackground(fillColor)}
 
-                    {indicators || extraStates ? (
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                top: 'max(16px, 5cqi)',
-                                right: 'max(16px, 5cqi)',
-                                zIndex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-end',
-                                gap: '2px',
-                            }}
-                        >
-                            {indicators}
-                            {extraStates}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -747,7 +718,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

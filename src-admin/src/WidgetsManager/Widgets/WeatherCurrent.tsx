@@ -286,7 +286,8 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -308,11 +309,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Weather icon */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -369,7 +366,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
                 {this.renderChart()}
             </Box>
         );
@@ -390,7 +387,8 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const details: { icon: React.JSX.Element; label: string }[] = [];
         if (humidity != null) {
@@ -448,11 +446,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 4cqi)', right: 'max(12px, 4cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Top: icon + temp + weather state */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -509,7 +503,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
                 {this.renderChart()}
             </Box>
         );

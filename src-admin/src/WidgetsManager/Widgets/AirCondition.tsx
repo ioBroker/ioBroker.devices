@@ -1125,7 +1125,8 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const displayTemp = actualTemp ?? setTemp;
         const poweredOff = this.isPoweredOff();
 
@@ -1161,18 +1162,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -1272,7 +1262,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );
@@ -1286,7 +1276,8 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         const speedLabel = this.getCurrentSpeedLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const poweredOff = this.isPoweredOff();
 
         return (
@@ -1315,11 +1306,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         padding: 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name */}
                     <Typography
@@ -1413,7 +1400,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );

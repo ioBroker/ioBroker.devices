@@ -1,18 +1,22 @@
 import React from 'react';
 import {
     Box,
+    Button,
     ButtonBase,
     Dialog,
+    DialogActions,
     DialogContent,
     DialogTitle,
     IconButton,
     type SxProps,
+    TextField,
     Tooltip,
     Typography,
 } from '@mui/material';
 import {
     ArrowDownward,
     ArrowUpward,
+    Backspace,
     BatteryAlert,
     Battery20,
     Battery50,
@@ -126,6 +130,14 @@ export interface WidgetGenericState {
     chartSmoothingMethod: SmoothingMethod;
     /** Extra info entry whose chart dialog is currently open */
     infoChartEntry: ExtraInfoEntry | null;
+    /** PinPad dialog state */
+    pinPadOpen: boolean;
+    pinPadPin: string;
+    /** Confirmation dialog state */
+    confirmDialogOpen: boolean;
+    confirmDialogMode: 'dialog' | 'pin';
+    confirmDialogPin: string;
+    confirmDialogText: string;
 }
 
 const INDICATOR_NAMES = [
@@ -207,6 +219,285 @@ export function getTileStyles(
     };
 }
 
+// --- Standalone dialog components (usable outside WidgetGeneric hierarchy) ---
+
+export interface PinPadDialogProps {
+    open: boolean;
+    pin: string;
+    onSuccess: () => void;
+    onClose: () => void;
+}
+
+/**
+ * PinPad dialog with numeric keypad for PIN entry.
+ * Can be used standalone in any widget.
+ */
+export function PinPadDialog(props: PinPadDialogProps): React.JSX.Element | null {
+    const { open, pin, onSuccess, onClose } = props;
+    const [pinInput, setPinInput] = React.useState('');
+    const [pinError, setPinError] = React.useState(false);
+
+    // Reset state when dialog opens
+    React.useEffect(() => {
+        if (open) {
+            setPinInput('');
+            setPinError(false);
+        }
+    }, [open]);
+
+    if (!open) {
+        return null;
+    }
+
+    const pinLength = pin.length || 4;
+    const dots = Array.from({ length: pinLength }, (_, i) => i < pinInput.length);
+
+    const onDigit = (digit: string): void => {
+        const next = pinInput + digit;
+        if (next.length >= pin.length) {
+            if (next === pin) {
+                setPinInput('');
+                setPinError(false);
+                onSuccess();
+            } else {
+                setPinInput('');
+                setPinError(true);
+                setTimeout(() => setPinError(false), 600);
+            }
+        } else {
+            setPinInput(next);
+            setPinError(false);
+        }
+    };
+
+    const onBackspace = (): void => {
+        setPinInput(prev => prev.slice(0, -1));
+        setPinError(false);
+    };
+
+    const keys = [
+        ['1', '2', '3'],
+        ['4', '5', '6'],
+        ['7', '8', '9'],
+        ['', '0', 'back'],
+    ];
+
+    return (
+        <Dialog
+            open
+            onClose={onClose}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            PaperProps={{
+                sx: {
+                    borderRadius: '24px',
+                    p: 3,
+                    minWidth: 280,
+                    maxWidth: 320,
+                },
+            }}
+        >
+            <Typography
+                variant="h6"
+                sx={{ textAlign: 'center', mb: 3, fontWeight: 600 }}
+            >
+                {I18n.t('wm_Enter PIN')}
+            </Typography>
+
+            {/* PIN dots */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 1.5,
+                    mb: 3,
+                    animation: pinError ? 'wmShake 0.4s ease' : undefined,
+                    '@keyframes wmShake': {
+                        '0%, 100%': { transform: 'translateX(0)' },
+                        '20%, 60%': { transform: 'translateX(-8px)' },
+                        '40%, 80%': { transform: 'translateX(8px)' },
+                    },
+                }}
+            >
+                {dots.map((filled, i) => (
+                    <Box
+                        key={i}
+                        sx={theme => ({
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            border: `2px solid ${pinError ? theme.palette.error.main : theme.palette.primary.main}`,
+                            backgroundColor: filled
+                                ? pinError
+                                    ? theme.palette.error.main
+                                    : theme.palette.primary.main
+                                : 'transparent',
+                            transition: 'all 0.15s ease',
+                        })}
+                    />
+                ))}
+            </Box>
+
+            {/* Keypad */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                {keys.map((row, ri) => (
+                    <Box
+                        key={ri}
+                        sx={{ display: 'flex', gap: 1 }}
+                    >
+                        {row.map((key, ki) => {
+                            if (key === '') {
+                                return (
+                                    <Box
+                                        key={ki}
+                                        sx={{ width: 64, height: 64 }}
+                                    />
+                                );
+                            }
+                            if (key === 'back') {
+                                return (
+                                    <IconButton
+                                        key={ki}
+                                        onClick={onBackspace}
+                                        disabled={pinInput.length === 0}
+                                        sx={theme => ({
+                                            width: 64,
+                                            height: 64,
+                                            color: theme.palette.text.secondary,
+                                        })}
+                                    >
+                                        <Backspace />
+                                    </IconButton>
+                                );
+                            }
+                            return (
+                                <Button
+                                    key={ki}
+                                    variant="text"
+                                    onClick={() => onDigit(key)}
+                                    sx={theme => ({
+                                        width: 64,
+                                        height: 64,
+                                        minWidth: 0,
+                                        borderRadius: '50%',
+                                        fontSize: '1.5rem',
+                                        fontWeight: 500,
+                                        color: theme.palette.text.primary,
+                                        backgroundColor: theme.palette.action.hover,
+                                        '&:hover': {
+                                            backgroundColor: theme.palette.action.selected,
+                                        },
+                                    })}
+                                >
+                                    {key}
+                                </Button>
+                            );
+                        })}
+                    </Box>
+                ))}
+            </Box>
+
+            <Button
+                variant="text"
+                onClick={onClose}
+                sx={{ mt: 2, alignSelf: 'center', textTransform: 'none' }}
+            >
+                {I18n.t('wm_Cancel')}
+            </Button>
+        </Dialog>
+    );
+}
+
+export interface ConfirmDialogProps {
+    open: boolean;
+    mode: 'dialog' | 'pin';
+    pin?: string;
+    text?: string;
+    onSuccess: () => void;
+    onClose: () => void;
+}
+
+/**
+ * Confirmation dialog — either a simple OK/Cancel or with PIN input.
+ * Can be used standalone in any widget.
+ */
+export function ConfirmDialog(props: ConfirmDialogProps): React.JSX.Element | null {
+    const { open, mode, pin = '', text, onSuccess, onClose } = props;
+    const [pinInput, setPinInput] = React.useState('');
+    const [pinError, setPinError] = React.useState(false);
+
+    React.useEffect(() => {
+        if (open) {
+            setPinInput('');
+            setPinError(false);
+        }
+    }, [open]);
+
+    if (!open) {
+        return null;
+    }
+
+    const title = text || I18n.t(mode === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure');
+
+    const handleConfirm = (): void => {
+        if (mode === 'pin') {
+            if (pinInput === pin) {
+                setPinInput('');
+                setPinError(false);
+                onSuccess();
+            } else {
+                setPinError(true);
+            }
+        } else {
+            onSuccess();
+        }
+    };
+
+    return (
+        <Dialog
+            open
+            onClose={onClose}
+            maxWidth="xs"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+            <DialogTitle>{title}</DialogTitle>
+            {mode === 'pin' ? (
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        type="password"
+                        inputMode="numeric"
+                        value={pinInput}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            setPinInput(e.target.value);
+                            setPinError(false);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter') {
+                                handleConfirm();
+                            }
+                        }}
+                        error={pinError}
+                        helperText={pinError ? I18n.t('wm_Wrong PIN') : undefined}
+                        fullWidth
+                        size="small"
+                        sx={{ mt: 1 }}
+                    />
+                </DialogContent>
+            ) : null}
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    onClick={handleConfirm}
+                    disabled={mode === 'pin' && !pinInput}
+                >
+                    {I18n.t('wm_OK')}
+                </Button>
+                <Button onClick={onClose}>{I18n.t('wm_Cancel')}</Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
 const DEFAULT_INDICATORS: IndicatorValues = {
     working: null,
     unreach: null,
@@ -249,6 +540,12 @@ export class WidgetGeneric<
             chartSmoothing: 0,
             chartSmoothingMethod: 'average' as SmoothingMethod,
             infoChartEntry: null,
+            pinPadOpen: false,
+            pinPadPin: '',
+            confirmDialogOpen: false,
+            confirmDialogMode: 'dialog' as const,
+            confirmDialogPin: '',
+            confirmDialogText: '',
         } as unknown as TState;
 
         // Collect indicator state IDs from control.states
@@ -1001,7 +1298,10 @@ export class WidgetGeneric<
 
     // --- Indicators ---
 
-    protected renderIndicators(): React.JSX.Element | null {
+    protected renderIndicators(
+        settingsButton?: React.JSX.Element | null,
+        extraStates?: React.JSX.Element | null,
+    ): React.JSX.Element | null {
         const { indicators } = this.state;
         const items: React.JSX.Element[] = [];
         const sz = INDICATOR_ICON_SIZE;
@@ -1042,7 +1342,7 @@ export class WidgetGeneric<
             );
         }
 
-        // Low battery indicator (boolean)
+        // Low-battery indicator (boolean)
         if (indicators.lowbat) {
             items.push(
                 <Tooltip
@@ -1136,20 +1436,26 @@ export class WidgetGeneric<
             );
         }
 
-        if (items.length === 0) {
+        if (!items.length && !extraStates && !settingsButton) {
             return null;
         }
 
         return (
             <Box
-                sx={{
+                sx={theme => ({
+                    position: 'absolute',
+                    top: isNeumorphicTheme(theme) ? 'max(4px, 2cqi)' : 'max(4px, 2cqi)',
+                    right: isNeumorphicTheme(theme) ? 'max(4px, 2cqi)' : 'max(4px, 2cqi)',
+                    zIndex: 1,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '3px',
                     flexWrap: 'wrap',
-                }}
+                })}
             >
                 {items}
+                {extraStates}
+                {settingsButton}
             </Box>
         );
     }
@@ -1607,11 +1913,78 @@ export class WidgetGeneric<
         );
     }
 
+    // --- PinPad ---
+
+    /**
+     * Open the PinPad dialog.
+     * On correct PIN entry, `onPinPadSuccess()` is called.
+     */
+    protected showPinPad(pin: string): void {
+        this.setState({ pinPadOpen: true, pinPadPin: pin } as Partial<TState> as TState);
+    }
+
+    /** Override in subclass to handle successful PIN entry */
+    // eslint-disable-next-line class-methods-use-this
+    protected onPinPadSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderPinPad(): React.JSX.Element | null {
+        return (
+            <PinPadDialog
+                open={this.state.pinPadOpen}
+                pin={this.state.pinPadPin}
+                onSuccess={() => {
+                    this.setState({ pinPadOpen: false } as Partial<TState> as TState);
+                    this.onPinPadSuccess();
+                }}
+                onClose={() => this.setState({ pinPadOpen: false } as Partial<TState> as TState)}
+            />
+        );
+    }
+
+    // --- Confirmation Dialog ---
+
+    /**
+     * Open a confirmation dialog.
+     * On success, `onConfirmDialogSuccess()` is called.
+     */
+    protected showConfirmDialog(mode: 'dialog' | 'pin', pin?: string, text?: string): void {
+        this.setState({
+            confirmDialogOpen: true,
+            confirmDialogMode: mode,
+            confirmDialogPin: pin || '',
+            confirmDialogText: text || '',
+        } as Partial<TState> as TState);
+    }
+
+    /** Override in subclass to handle successful confirmation */
+    // eslint-disable-next-line class-methods-use-this
+    protected onConfirmDialogSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderConfirmDialog(): React.JSX.Element | null {
+        return (
+            <ConfirmDialog
+                open={this.state.confirmDialogOpen}
+                mode={this.state.confirmDialogMode}
+                pin={this.state.confirmDialogPin}
+                text={this.state.confirmDialogText}
+                onSuccess={() => {
+                    this.setState({ confirmDialogOpen: false } as Partial<TState> as TState);
+                    this.onConfirmDialogSuccess();
+                }}
+                onClose={() => this.setState({ confirmDialogOpen: false } as Partial<TState> as TState)}
+            />
+        );
+    }
+
     // --- Settings button ---
 
     protected renderSettingsButton(): React.JSX.Element | null {
         const hasSettings = !!this.props.onOpenSettings;
-        const hasInfo = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
+        const hasInfo = this.state.extraInfo.length || this.hasIndicatorStates();
 
         if (!hasSettings && !hasInfo) {
             return null;
@@ -1619,6 +1992,41 @@ export class WidgetGeneric<
 
         return (
             <>
+                {hasInfo ? (
+                    <Box
+                        component="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            this.openWidgetDialog('info');
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                this.openWidgetDialog('info');
+                            }
+                        }}
+                        sx={theme => ({
+                            p: '3px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            zIndex: 1,
+                            color: theme.palette.info.main,
+                            opacity: 0.5,
+                            transition: 'opacity 0.2s, background-color 0.2s',
+                            '&:hover': {
+                                opacity: 1,
+                                backgroundColor: theme.palette.action.hover,
+                            },
+                        })}
+                    >
+                        <InfoOutlined sx={{ fontSize: 16 }} />
+                    </Box>
+                ) : null}
                 {hasSettings ? (
                     <Box
                         component="span"
@@ -1637,44 +2045,6 @@ export class WidgetGeneric<
                         sx={WidgetGeneric.getSettingButtonStyle()}
                     >
                         <Settings sx={{ fontSize: 16 }} />
-                    </Box>
-                ) : null}
-                {hasInfo ? (
-                    <Box
-                        component="span"
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            this.openWidgetDialog('info');
-                        }}
-                        onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.stopPropagation();
-                                this.openWidgetDialog('info');
-                            }
-                        }}
-                        sx={theme => ({
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
-                            p: '3px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            zIndex: 1,
-                            color: theme.palette.info.main,
-                            opacity: 0.5,
-                            transition: 'opacity 0.2s, background-color 0.2s',
-                            '&:hover': {
-                                opacity: 1,
-                                backgroundColor: theme.palette.action.hover,
-                            },
-                        })}
-                    >
-                        <InfoOutlined sx={{ fontSize: 16 }} />
                     </Box>
                 ) : null}
                 {this.renderInfoDialog()}
@@ -1703,9 +2073,6 @@ export class WidgetGeneric<
 
     static getSettingButtonStyle(): SxProps<Theme> {
         return (theme: Theme) => ({
-            position: 'absolute',
-            bottom: 6,
-            right: 6,
             p: '3px',
             borderRadius: '50%',
             display: 'flex',
@@ -1729,9 +2096,8 @@ export class WidgetGeneric<
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        // Skip tile indicators when info button is shown — they overlap in the same corner
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1770,16 +2136,7 @@ export class WidgetGeneric<
                         };
                     }}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => {
-                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)';
-                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
-                            }}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
                     {trendArrow ? (
                         <Box
                             sx={{
@@ -1835,7 +2192,6 @@ export class WidgetGeneric<
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1845,8 +2201,8 @@ export class WidgetGeneric<
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1920,7 +2276,6 @@ export class WidgetGeneric<
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1930,8 +2285,8 @@ export class WidgetGeneric<
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const inactiveColor = this.getInactiveColor();
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1970,16 +2325,7 @@ export class WidgetGeneric<
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => {
-                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)';
-                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
-                            }}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -2027,7 +2373,6 @@ export class WidgetGeneric<
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -2043,11 +2388,15 @@ export class WidgetGeneric<
             widget = this.renderCompact();
         }
         const chartDialog = this.renderChartDialog();
-        if (chartDialog) {
+        const pinPad = this.renderPinPad();
+        const confirmDialog = this.renderConfirmDialog();
+        if (chartDialog || pinPad || confirmDialog) {
             return (
                 <>
                     {widget}
                     {chartDialog}
+                    {pinPad}
+                    {confirmDialog}
                 </>
             );
         }

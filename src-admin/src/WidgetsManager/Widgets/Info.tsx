@@ -373,11 +373,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Table of all values */}
                     <Box

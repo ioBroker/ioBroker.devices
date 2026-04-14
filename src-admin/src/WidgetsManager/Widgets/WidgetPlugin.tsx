@@ -1,35 +1,21 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { Extension } from '@mui/icons-material';
-import { Types } from '@iobroker/type-detector';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import type StateContext from '../StateContext';
-import type { CustomWidgetPlugin, WidgetInfo } from '@iobroker/dm-widgets';
-import WidgetGeneric, { getTileStyles } from './Generic';
+import type { CustomWidgetPlugin } from '@iobroker/dm-widgets';
+import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 import { SIZE_OPTIONS } from '../configUtils';
 
-interface WidgetPluginProps {
-    id: string;
-    stateContext: StateContext;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
-    /** All custom widget definition fields — includes plugin-specific settings values */
-    settings: CustomWidgetPlugin;
-    openDialogId?: string | null;
-    onOpenWidgetDialog?: (widgetId: string) => void;
-    onCloseWidgetDialog?: () => void;
-}
-
-interface WidgetPluginState {
+interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
     loading: boolean;
     error: string | null;
 }
 
-export class WidgetPlugin extends Component<WidgetPluginProps, WidgetPluginState> {
+export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetPlugin> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -50,17 +36,18 @@ export class WidgetPlugin extends Component<WidgetPluginProps, WidgetPluginState
 
     private mounted = false;
 
-    constructor(props: WidgetPluginProps) {
+    constructor(props: WidgetGenericProps<CustomWidgetPlugin>) {
         super(props);
-        this.state = { PluginComp: null, loading: true, error: null };
+        this.state = { ...this.state, PluginComp: null, loading: true, error: null };
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.mounted = true;
         this.loadComponent();
     }
 
-    componentDidUpdate(prevProps: WidgetPluginProps): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<CustomWidgetPlugin>>): void {
         if (
             prevProps.settings.pluginAdapter !== this.props.settings.pluginAdapter ||
             prevProps.settings.pluginComponent !== this.props.settings.pluginComponent ||
@@ -71,6 +58,7 @@ export class WidgetPlugin extends Component<WidgetPluginProps, WidgetPluginState
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.mounted = false;
     }
 
@@ -98,7 +86,8 @@ export class WidgetPlugin extends Component<WidgetPluginProps, WidgetPluginState
 
     render(): React.JSX.Element {
         const { PluginComp, loading, error } = this.state;
-        const { id, pluginAdapter, pluginComponent } = this.props.settings;
+        const id = String(this.props.widget.id);
+        const { pluginAdapter, pluginComponent } = this.props.settings;
 
         // Loading or error state
         if (loading || error || !PluginComp) {
@@ -159,31 +148,17 @@ export class WidgetPlugin extends Component<WidgetPluginProps, WidgetPluginState
             );
         }
 
-        // Build a synthetic WidgetInfo so the plugin can use WidgetGeneric's full lifecycle
-        const widget: WidgetInfo = {
-            type: 'widget',
-            id,
-            name: { en: '' },
-            control: {
-                states: [],
-                type: Types.info,
-                storeId: '',
-                parentId: '',
-                deviceId: '',
-                channelId: '',
-            },
-        };
-
         // Render the loaded plugin component with full WidgetGenericProps
         const comp = (
             <PluginComp
-                widget={widget}
+                widget={this.props.widget}
                 stateContext={this.props.stateContext}
                 settings={this.props.settings}
-                onOpenSettings={this.props.onOpenSettings ? () => this.props.onOpenSettings!(id) : undefined}
+                onOpenSettings={this.props.onOpenSettings}
                 openDialogId={this.props.openDialogId}
                 onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                 onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                onHide={this.props.onHide}
             />
         );
 

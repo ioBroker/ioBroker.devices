@@ -906,7 +906,8 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(null, settingsButton);
         const displayTemp = actualTemp ?? setTemp;
         const poweredOff = this.isPoweredOff();
 
@@ -946,18 +947,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         };
                     }}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={theme => {
@@ -975,7 +965,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                               content: '""',
                                               position: 'absolute',
                                               width: '55%',
-                                              height: '55%',
+                                              aspectRatio: '1',
                                               borderRadius: '50%',
                                               background: 'radial-gradient(circle, #151517 0%, #1a1a1c 100%)',
                                               boxShadow:
@@ -988,7 +978,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     >
                         <svg
                             viewBox={`0 0 ${vb} ${vb}`}
-                            style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
+                            style={{ width: '55%', aspectRatio: '1', transform: 'rotate(135deg)' }}
                         >
                             <defs>
                                 <linearGradient
@@ -1121,7 +1111,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );
@@ -1132,7 +1122,8 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const poweredOff = this.isPoweredOff();
 
         return (
@@ -1161,11 +1152,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         padding: 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name — full width on its own line */}
                     <Typography
@@ -1252,7 +1239,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
 
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );

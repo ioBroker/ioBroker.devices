@@ -149,7 +149,7 @@ interface CategoryProps {
     onToggleFavorite?: (widgetId: string) => void;
     /** Toggle favorite on a custom widget */
     onToggleCustomWidgetFavorite?: (widgetId: string) => void;
-    /** Callback to go back to device list (admin split-screen narrow mode) */
+    /** Callback to go back to the device list (admin split-screen narrow mode) */
     onBackToDevices?: () => void;
     /** Widget dialog ID to auto-open (from hash) */
     openDialogId?: string | null;
@@ -195,6 +195,8 @@ interface CategoryState {
     subCategoryStatuses: Record<string, CategoryStatus>;
     /** Widget grid min-size scale (percent, from localStorage) */
     widgetScale: number;
+    /** IDs of widgets that are currently marked as hidden */
+    hidden: { [id: string]: boolean };
 }
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
@@ -226,7 +228,11 @@ type OrderedItem = {
     data: CategoryInfo | WidgetInfo | CustomWidgetBase;
 };
 
-function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettingsBase>, editing?: boolean): string | undefined {
+function getGridColumn(
+    item: OrderedItem,
+    widgetSettings: Record<string, WidgetSettingsBase>,
+    editing?: boolean,
+): string | undefined {
     if (item.type === 'category') {
         return '1 / -1';
     }
@@ -378,7 +384,7 @@ function SortableGrid(props: {
     const sourceItems = category.getOrderedItems();
     const sourceIds = useMemo(() => sourceItems.map(i => i.id), [sourceItems]);
 
-    // Local order kept in sync with props, but updated live during drag
+    // Local order kept in sync with props but updated live during drag
     const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
     const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -436,7 +442,7 @@ function SortableGrid(props: {
             const activeEl = itemMap.get(String(active.id));
             const overEl = itemMap.get(overId);
 
-            // Widget/custom dragged over a sub-category tile = move target (not reorder)
+            // Widget/custom dragged over a subcategory tile = move target (not reorder)
             if (activeEl && activeEl.type !== 'category' && overEl?.type === 'category' && onMoveWidgetToCategory) {
                 setDropCategoryId(overId);
                 return;
@@ -824,7 +830,7 @@ function LightsGroupControl(props: {
     );
 }
 
-// --- Grouped content: renders sub-categories + collapsible widget groups ---
+// --- Grouped content: renders subcategories + collapsible widget groups ---
 // Uses a single DndContext so widgets can be dragged between groups.
 
 function GroupedContent(props: {
@@ -1206,6 +1212,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             categoryStatus: { ...DEFAULT_CATEGORY_STATUS },
             subCategoryStatuses: {},
             widgetScale: Number(localStorage.getItem('wm_widgetScale')) || 100,
+            hidden: {},
         };
     }
 
@@ -1476,7 +1483,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const currentWidgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
         this.subscribeWidgetsForStatus(currentWidgets);
 
-        // Subscribe for each sub-category's widgets (tagged with sub-category ID)
+        // Subscribe for each subcategory's widgets (tagged with subcategory ID)
         for (const subCat of this.subCategories) {
             const subWidgets = this.props.widgets.filter(w => w.parent === subCat.id);
             this.subscribeWidgetsForStatus(subWidgets, String(subCat.id));
@@ -1889,6 +1896,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 openDialogId={this.props.openDialogId}
                 onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                 onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                onHide={this.hideCb}
             />
         );
     }
@@ -1906,11 +1914,35 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return String(this.props.category.id);
     }
 
+    hideCb = (id: string, hide: boolean): void => {
+        if (!!this.state.hidden[id] !== hide) {
+            this.setState({ hidden: { ...this.state.hidden, [id]: hide } });
+        }
+    };
+
+    /** Build a minimal WidgetInfo for a custom widget so it can use WidgetGeneric's lifecycle */
+    private static buildCustomWidgetInfo(def: CustomWidgetBase): WidgetInfo {
+        return {
+            type: 'widget',
+            id: def.id,
+            name: def.name || '',
+            control: {
+                states: [],
+                type: Types.info,
+                storeId: '',
+                parentId: '',
+                deviceId: '',
+                channelId: '',
+            },
+        };
+    }
+
     // eslint-disable-next-line react/no-unused-class-component-methods
     renderCustomWidget(def: CustomWidgetBase): React.JSX.Element | null {
         const ownerCategoryId = this.findCustomWidgetCategory(def.id);
+        // WidgetGenericProps-compatible callback (accepts widget id)
         const settingsCb = this.props.onOpenCustomWidgetSettings
-            ? () => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
+            ? (_widgetId: string | number) => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
             : undefined;
         const removeCb = this.props.onRemoveCustomWidget
             ? () => this.props.onRemoveCustomWidget!(ownerCategoryId, def.id)
@@ -1923,10 +1955,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetClock
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetClockSettings}
-                        onOpenSettings={settingsCb}
-                        onRemove={removeCb}
                         stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -1934,10 +1967,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetWeather
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetWeatherSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -1945,10 +1979,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetIframe
                         key={def.id}
-                        stateContext={this.props.stateContext}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetIframeSettings}
+                        stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                         openDialogId={this.props.openDialogId}
                         onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                         onCloseWidgetDialog={this.props.onCloseWidgetDialog}
@@ -1959,10 +1994,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetWind
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetWindSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -1970,10 +2006,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetGauge
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetGaugeSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -1981,10 +2018,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetUniversal
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetUniversalSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -1993,10 +2031,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetPresence
                         key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetPresenceSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;
@@ -2004,11 +2043,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 content = (
                     <WidgetPlugin
                         key={def.id}
-                        id={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def as CustomWidgetPlugin}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
-                        settings={def as CustomWidgetPlugin}
+                        onHide={this.hideCb}
                         openDialogId={this.props.openDialogId}
                         onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                         onCloseWidgetDialog={this.props.onCloseWidgetDialog}
@@ -2032,9 +2071,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 aspectRatio: '1',
                                 border: '2px dashed',
                                 borderColor:
-                                    theme.palette.mode === 'dark'
-                                        ? 'rgba(255,255,255,0.2)'
-                                        : 'rgba(0,0,0,0.15)',
+                                    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
                                 borderRadius: 'inherit',
                                 gap: 0.5,
                             })}
@@ -2075,10 +2112,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
         // Wrap in a div with "widget-custom" class so the GroupedContent CSS
         // :has([class^="widget-"]) selector finds it (otherwise the group is hidden in play mode)
-        return content ? <div className="widget-custom">{content}</div> : null;
+        return content ? (
+            <div
+                className="widget-custom"
+                style={this.state.hidden[def.id] && !this.props.configMode ? { display: 'none' } : undefined}
+            >
+                {content}
+            </div>
+        ) : null;
     }
 
-    /** Render small alarm/sensor widget icon previews for a sub-category tile (only active ones) */
+    /** Render small alarm/sensor widget icon previews for a subcategory tile (only active ones) */
     private renderWidgetIconPreviews(category: CategoryInfo): React.JSX.Element | null {
         // Only show alarm/sensor types NOT already covered by the status system
         // (window, door, motion are rendered separately via openings/motionActive)
@@ -2145,7 +2189,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
-    /** Render status summary for a sub-category tile (temperature, humidity, openings, motion) */
+    /** Render status summary for a subcategory tile (temperature, humidity, openings, motion) */
     private renderSubCategoryStatus(category: CategoryInfo, deviceCount: number): React.JSX.Element {
         const status = this.state.subCategoryStatuses[String(category.id)];
         const activeOpenings = status ? status.openings.filter(o => o.state !== 0) : [];

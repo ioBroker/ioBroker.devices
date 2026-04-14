@@ -1,13 +1,12 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { People, Settings } from '@mui/icons-material';
+import { People } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { getTileStyles } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 export interface WidgetPresenceSettings extends CustomWidgetBase {
@@ -21,19 +20,12 @@ export interface WidgetPresenceSettings extends CustomWidgetBase {
     absentMode?: 'hide' | 'dim';
 }
 
-interface WidgetPresenceProps {
-    settings: WidgetPresenceSettings;
-    stateContext: StateContext;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
-}
-
-interface WidgetPresenceState {
+interface WidgetPresenceState extends WidgetGenericState {
     present: boolean;
     lastChange: number | null;
 }
 
-export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenceState> {
+export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPresenceSettings> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -60,15 +52,17 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
     private presenceHandler: StateChangeListener | null = null;
     private timerInterval: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetPresenceProps) {
+    constructor(props: WidgetGenericProps<WidgetPresenceSettings>) {
         super(props);
         this.state = {
+            ...this.state,
             present: false,
             lastChange: null,
         };
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.subscribe();
         // Update "time ago" display every 60 seconds
         this.timerInterval = setInterval(() => {
@@ -78,7 +72,7 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
         }, 60_000);
     }
 
-    componentDidUpdate(prev: WidgetPresenceProps): void {
+    componentDidUpdate(prev: WidgetGenericProps<WidgetPresenceSettings>): void {
         if (prev.settings.presenceStateId !== this.props.settings.presenceStateId) {
             this.unsubscribe();
             this.subscribe();
@@ -86,6 +80,7 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.unsubscribe();
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
@@ -144,43 +139,17 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
         return `${diffDays}d`;
     }
 
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={e => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.settings.id);
-                }}
-                onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.settings.id);
-                    }
-                }}
-                sx={WidgetGeneric.getSettingButtonStyle()}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
-    }
-
-    render(): React.JSX.Element | null {
+    renderCompact(): React.JSX.Element {
         const { present, lastChange } = this.state;
         const { widgetIcon, absentMode, color } = this.props.settings;
         const isEditing = !!this.props.onOpenSettings;
-
-        // Hide completely if absent and mode is 'hide' (but always show in edit mode)
-        if (!present && absentMode === 'hide' && !isEditing) {
-            return null;
-        }
-
         const dimmed = !present && absentMode === 'dim';
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
+        let icon = widgetIcon;
+        if (icon && !icon.startsWith('http://') && !icon.startsWith('https://') && !icon.startsWith('data:image')) {
+            icon = this.props.stateContext.imagePrefix + (icon.startsWith('/') ? icon.substring(1) : icon);
+        }
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
@@ -207,6 +176,7 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
                             }),
                     })}
                 >
+                    {indicators}
                     {/* Icon */}
                     <Box
                         sx={{
@@ -220,15 +190,15 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
                     >
                         {widgetIcon ? (
                             <Icon
-                                src={widgetIcon}
+                                src={icon}
                                 style={{
                                     width: 'max(48px, 35cqi)',
                                     height: 'max(48px, 35cqi)',
-                                    color: present ? (color || '#4caf50') : '#888',
+                                    color: present ? color || '#4caf50' : '#888',
                                 }}
                             />
                         ) : (
-                            <People sx={{ fontSize: 'inherit', color: present ? (color || '#4caf50') : '#888' }} />
+                            <People sx={{ fontSize: 'inherit', color: present ? color || '#4caf50' : '#888' }} />
                         )}
                     </Box>
                     {/* Name + last change */}
@@ -258,9 +228,25 @@ export class WidgetPresence extends Component<WidgetPresenceProps, WidgetPresenc
                             </Typography>
                         )}
                     </Box>
-                    {this.renderSettingsButton()}
                 </Box>
+
             </Box>
         );
+    }
+
+    render(): React.JSX.Element {
+        const { present } = this.state;
+        const { absentMode } = this.props.settings;
+        const isEditing = !!this.props.onOpenSettings;
+        const id = String(this.props.widget.id);
+
+        // Hide completely if absent and mode is 'hide' (but always show in edit mode)
+        if (!present && absentMode === 'hide' && !isEditing) {
+            this.props.onHide(id, true);
+            return <></>;
+        }
+        this.props.onHide(id, false);
+
+        return super.render();
     }
 }

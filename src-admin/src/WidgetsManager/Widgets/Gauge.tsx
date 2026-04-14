@@ -1,13 +1,17 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { getTileStyles, isNeumorphicTheme, formatFloat } from './Generic';
+import WidgetGeneric, {
+    type WidgetGenericState,
+    type WidgetGenericProps,
+    getTileStyles,
+    isNeumorphicTheme,
+    formatFloat,
+} from './Generic';
 import ChartDialog from './ChartDialog';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import { SIZE_OPTIONS } from '../configUtils';
@@ -34,14 +38,7 @@ export interface WidgetGaugeSettings extends CustomWidgetBase {
     usePercentage?: boolean;
 }
 
-interface WidgetGaugeProps {
-    settings: WidgetGaugeSettings;
-    stateContext: StateContext;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
-}
-
-interface WidgetGaugeState {
+interface WidgetGaugeState extends WidgetGenericState {
     value: number | null;
     unit: string;
     value2: number | null;
@@ -51,7 +48,7 @@ interface WidgetGaugeState {
     historyInstance: string;
 }
 
-export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
+export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSettings> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -81,9 +78,10 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     private handler: StateChangeListener | null = null;
     private handler2: StateChangeListener | null = null;
 
-    constructor(props: WidgetGaugeProps) {
+    constructor(props: WidgetGenericProps<WidgetGaugeSettings>) {
         super(props);
         this.state = {
+            ...this.state,
             value: null,
             unit: '',
             value2: null,
@@ -95,12 +93,14 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.subscribe();
         this.subscribe2();
         this.resolveHistory();
     }
 
-    componentDidUpdate(prevProps: WidgetGaugeProps): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<WidgetGaugeSettings>>): void {
+        super.componentDidUpdate(prevProps);
         if (prevProps.settings.gaugeStateId !== this.props.settings.gaugeStateId) {
             this.unsubscribe();
             this.subscribe();
@@ -113,6 +113,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.unsubscribe();
         this.unsubscribe2();
     }
@@ -232,7 +233,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         })();
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────
+    // -- Helpers --
 
     private get min(): number {
         return this.props.settings.minValue ?? 0;
@@ -292,17 +293,17 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return formatFloat(raw, 1, isFloatComma);
     }
 
-    private onTileClick = (): void => {
+    protected onTileClick(): void {
         if (this.hasChart) {
             this.setState({ chartOpen: true });
         }
-    };
+    }
 
-    // ── Rendering ────────────────────────────────────────────────────
+    // -- Rendering --
 
     /** Convert a fraction (0..1) to a point on the arc circle */
     private static arcPoint(cx: number, cy: number, r: number, frac: number): { x: number; y: number } {
-        // Arc spans 270° starting at 135° rotation. Fraction 0 = start, 1 = end.
+        // Arc spans 270 deg starting at 135 deg rotation. Fraction 0 = start, 1 = end.
         const angleDeg = frac * 270;
         const rad = (angleDeg * Math.PI) / 180;
         return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
@@ -402,7 +403,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                             color: value != null ? color : 'text.disabled',
                         }}
                     >
-                        {value != null ? WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma) : '—'}
+                        {value != null ? WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma) : '\u2014'}
                     </Typography>
                     {this.displayUnit ? (
                         <Typography
@@ -476,7 +477,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
         return segments;
     }
 
-    private renderChartDialog(): React.JSX.Element | null {
+    protected renderChartDialog(): React.JSX.Element | null {
         const { chartOpen, historyId, historyInstance } = this.state;
         if (!chartOpen || !historyId || !historyInstance || !this.props.stateContext) {
             return null;
@@ -490,69 +491,27 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                 historyInstance={historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.displayUnit}
-                widgetId={this.props.settings.id}
+                widgetId={String(this.props.widget.id)}
                 instanceId={this.props.stateContext.instanceId}
             />
         );
     }
 
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.settings.id);
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.settings.id);
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    bottom: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 2,
-                    color: theme.palette.primary.main,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': {
-                        opacity: 1,
-                        backgroundColor: theme.palette.action.hover,
-                    },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
-    }
+    // -- 1x1 compact --
 
-    // ── 1x1 compact ──────────────────────────────────────────────────
-
-    private renderCompact(): React.JSX.Element {
+    renderCompact(): React.JSX.Element {
         const accent = this.props.settings.color;
         const clickable = this.hasChart;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.settings.id}
+                id={String(this.props.widget.id)}
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    onClick={clickable ? this.onTileClick : undefined}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -567,6 +526,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         ...getTileStyles(theme, this.state.value != null, accent, clickable),
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {this.renderArc(100)}
                     </Box>
@@ -593,27 +553,29 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
 
-    // ── 2x0.5 wide ──────────────────────────────────────────────────
+    // -- 2x0.5 wide --
 
-    private renderWide(): React.JSX.Element {
+    renderWide(): React.JSX.Element {
         const { value } = this.state;
         const accent = this.props.settings.color;
         const raw = value ?? this.min;
         const color = value != null ? this.getColor(raw) : undefined;
         const clickable = this.hasChart;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.settings.id}
+                id={String(this.props.widget.id)}
                 sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
-                    onClick={clickable ? this.onTileClick : undefined}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
@@ -626,6 +588,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         ...getTileStyles(theme, value != null, accent, clickable),
                     })}
                 >
+                    {indicators}
                     {this.renderArc(56)}
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -651,30 +614,32 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         >
                             {value != null
                                 ? `${WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma)} ${this.displayUnit}`
-                                : '—'}
+                                : '\u2014'}
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
 
-    // ── 2x1 wide tall ────────────────────────────────────────────────
+    // -- 2x1 wide tall --
 
-    private renderWideTall(): React.JSX.Element {
+    renderWideTall(): React.JSX.Element {
         const accent = this.props.settings.color;
         const clickable = this.hasChart;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.settings.id}
+                id={String(this.props.widget.id)}
                 sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
-                    onClick={clickable ? this.onTileClick : undefined}
+                    onClick={clickable ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,
@@ -687,6 +652,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {this.renderArc(120)}
                     </Box>
@@ -712,7 +678,7 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                         {this.renderLevelLegend()}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
@@ -747,29 +713,6 @@ export class WidgetGauge extends Component<WidgetGaugeProps, WidgetGaugeState> {
                 ))}
             </Box>
         );
-    }
-
-    render(): React.JSX.Element {
-        const size = this.props.settings.size || '1x1';
-        let widget: React.JSX.Element;
-        if (size === '2x0.5') {
-            widget = this.renderWide();
-        } else if (size === '2x1') {
-            widget = this.renderWideTall();
-        } else {
-            widget = this.renderCompact();
-        }
-
-        const chartDialog = this.renderChartDialog();
-        if (chartDialog) {
-            return (
-                <>
-                    {widget}
-                    {chartDialog}
-                </>
-            );
-        }
-        return widget;
     }
 }
 

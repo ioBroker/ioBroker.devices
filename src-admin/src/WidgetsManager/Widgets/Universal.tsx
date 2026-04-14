@@ -1,23 +1,17 @@
-import React, { Component } from 'react';
-import {
-    Box,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-    type Theme,
-    Typography,
-} from '@mui/material';
-import { Settings } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import React from 'react';
+import { Box, type Theme, Typography } from '@mui/material';
+import { Icon } from '@iobroker/adapter-react-v5';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import type StateContext from '../StateContext';
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { getTileStyles, formatFloat } from './Generic';
+import WidgetGeneric, {
+    type WidgetGenericState,
+    type WidgetGenericProps,
+    getTileStyles,
+    formatFloat,
+    ConfirmDialog,
+} from './Generic';
 import ChartDialog from './ChartDialog';
 import { SIZE_OPTIONS } from '../configUtils';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
@@ -58,14 +52,7 @@ export interface WidgetUniversalSettings extends CustomWidgetBase {
     actionPin?: string;
 }
 
-interface WidgetUniversalProps {
-    settings: WidgetUniversalSettings;
-    stateContext: StateContext;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
-}
-
-interface WidgetUniversalState {
+interface WidgetUniversalState extends WidgetGenericState {
     value: number | null;
     unit: string;
     commonType: ioBroker.CommonType;
@@ -76,14 +63,12 @@ interface WidgetUniversalState {
     /** Whether the action state is currently truthy (for active icon) */
     actionActive: boolean;
     confirmOpen: boolean;
-    pinInput: string;
-    pinError: boolean;
     chartOpen: boolean;
     historyId: string | null;
     historyInstance: string;
 }
 
-export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUniversalState> {
+export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetUniversalSettings> {
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -214,10 +199,11 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     /** Resolved settings with icons[] built from flat icon1/2/3 fields */
     private resolved: WidgetUniversalSettings;
 
-    constructor(props: WidgetUniversalProps) {
+    constructor(props: WidgetGenericProps<WidgetUniversalSettings>) {
         super(props);
         this.resolved = WidgetUniversal.buildSettings(props.settings);
         this.state = {
+            ...this.state,
             value: null,
             unit: '',
             commonType: 'mixed',
@@ -227,8 +213,6 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             iconStates: [false, false, false],
             actionActive: false,
             confirmOpen: false,
-            pinInput: '',
-            pinError: false,
             chartOpen: false,
             historyId: null,
             historyInstance: '',
@@ -236,10 +220,11 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.subscribe();
     }
 
-    componentDidUpdate(prev: WidgetUniversalProps): void {
+    componentDidUpdate(prev: WidgetGenericProps<WidgetUniversalSettings>): void {
         if (prev.settings !== this.props.settings) {
             this.resolved = WidgetUniversal.buildSettings(this.props.settings);
         }
@@ -256,6 +241,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.unsubscribe();
     }
 
@@ -522,7 +508,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
             // Action configured — execute (with confirmation if needed)
             const confirm = this.props.settings.actionConfirm || 'none';
             if (confirm === 'dialog' || confirm === 'pin') {
-                this.setState({ confirmOpen: true, pinInput: '', pinError: false });
+                this.setState({ confirmOpen: true });
             } else {
                 this.executeAction();
             }
@@ -532,49 +518,14 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         }
     };
 
-    private handleConfirm = (): void => {
-        if (this.props.settings.actionConfirm === 'pin') {
-            if (this.state.pinInput === (this.props.settings.actionPin || '')) {
-                this.setState({ confirmOpen: false, pinInput: '', pinError: false });
-                this.executeAction();
-            } else {
-                this.setState({ pinError: true });
-            }
-        } else {
-            this.setState({ confirmOpen: false });
-            this.executeAction();
-        }
+    private handleConfirmSuccess = (): void => {
+        this.setState({ confirmOpen: false });
+        this.executeAction();
     };
 
     private handleConfirmClose = (): void => {
-        this.setState({ confirmOpen: false, pinInput: '', pinError: false });
+        this.setState({ confirmOpen: false });
     };
-
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={e => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.settings.id);
-                }}
-                onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.settings.id);
-                    }
-                }}
-                sx={WidgetGeneric.getSettingButtonStyle()}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
-    }
 
     static renderIcon(iconDef: IconDef, active: boolean, iconSize = 18): React.JSX.Element | null {
         if (!active || !iconDef.icon) {
@@ -588,14 +539,10 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         );
     }
 
-    render(): React.JSX.Element | null {
+    /** Shared tile rendering used by renderCompact, renderWide, and renderWideTall */
+    private renderTile(isWide: boolean, isWideTall: boolean): React.JSX.Element {
         const { opacity, value, unit, secondaryValue, secondaryUnit, iconStates } = this.state;
         const isEditing = !!this.props.onOpenSettings;
-
-        // If opacity is 0, hide completely — but always show in edit mode
-        if (opacity <= 0 && !isEditing) {
-            return null;
-        }
 
         // In edit mode, ensure minimum visibility
         const displayOpacity = isEditing ? Math.max(opacity, 0.35) : opacity;
@@ -606,8 +553,8 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
         const clickable = !!this.props.settings.actionStateId || !!this.state.historyId;
 
         const size = this.props.settings.size || '1x1';
-        const isWide = size === '2x1' || size === '2x0.5';
-        const isWideTall = size === '2x1';
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
@@ -650,7 +597,7 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                         cursor: clickable ? 'pointer' : 'default',
                     })}
                 >
-                    {this.renderSettingsButton()}
+                    {indicators}
 
                     {/* Secondary value — upper right */}
                     {secondaryValue != null || this.props.settings.secondaryName ? (
@@ -720,10 +667,20 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
 
                     {/* Widget icon + Primary value — center */}
                     {(() => {
-                        const iconSrc =
+                        let iconSrc =
                             this.state.actionActive && this.props.settings.widgetIconActive
                                 ? this.props.settings.widgetIconActive
                                 : this.props.settings.widgetIcon;
+                        if (
+                            iconSrc &&
+                            !iconSrc.startsWith('http://') &&
+                            !iconSrc.startsWith('https://') &&
+                            !iconSrc.startsWith('data:image')
+                        ) {
+                            iconSrc =
+                                this.props.stateContext.imagePrefix +
+                                (iconSrc.startsWith('/') ? iconSrc.substring(1) : iconSrc);
+                        }
                         const iconSize = isWide ? 48 : 32;
                         return (
                             <Box
@@ -796,78 +753,70 @@ export class WidgetUniversal extends Component<WidgetUniversalProps, WidgetUnive
                 </Box>
 
                 {/* Confirmation / PIN dialog */}
-                {this.state.confirmOpen ? (
-                    <Dialog
-                        open
-                        onClose={this.handleConfirmClose}
-                        maxWidth="xs"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <DialogTitle>
-                            {this.props.settings.actionConfirmText ||
-                                I18n.t(
-                                    this.props.settings.actionConfirm === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure',
-                                )}
-                        </DialogTitle>
-                        {this.props.settings.actionConfirm === 'pin' ? (
-                            <DialogContent>
-                                <TextField
-                                    autoFocus
-                                    type="password"
-                                    inputMode="numeric"
-                                    value={this.state.pinInput}
-                                    onChange={e => this.setState({ pinInput: e.target.value, pinError: false })}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') {
-                                            this.handleConfirm();
-                                        }
-                                    }}
-                                    error={this.state.pinError}
-                                    helperText={this.state.pinError ? I18n.t('wm_Wrong PIN') : undefined}
-                                    fullWidth
-                                    size="small"
-                                    sx={{ mt: 1 }}
-                                />
-                            </DialogContent>
-                        ) : null}
-                        <DialogActions>
-                            <Button
-                                variant="contained"
-                                onClick={this.handleConfirm}
-                                disabled={this.props.settings.actionConfirm === 'pin' && !this.state.pinInput}
-                            >
-                                {I18n.t('wm_OK')}
-                            </Button>
-                            <Button onClick={this.handleConfirmClose}>{I18n.t('wm_Cancel')}</Button>
-                        </DialogActions>
-                    </Dialog>
-                ) : null}
+                <ConfirmDialog
+                    open={this.state.confirmOpen}
+                    mode={(this.props.settings.actionConfirm as 'dialog' | 'pin') || 'dialog'}
+                    pin={this.props.settings.actionPin || ''}
+                    text={this.props.settings.actionConfirmText}
+                    onSuccess={this.handleConfirmSuccess}
+                    onClose={this.handleConfirmClose}
+                />
 
-                {/* Chart dialog */}
-                {this.state.chartOpen &&
-                this.state.historyId &&
-                this.state.historyInstance &&
-                this.props.stateContext ? (
-                    <ChartDialog
-                        open
-                        onClose={() => this.setState({ chartOpen: false })}
-                        title={this.props.settings.name || this.props.settings.id}
-                        historyIds={[
-                            {
-                                id: this.state.historyId,
-                                color: this.props.settings.color || '#2196f3',
-                                name: this.props.settings.name || this.props.settings.id,
-                            },
-                        ]}
-                        historyInstance={this.state.historyInstance}
-                        socket={this.props.stateContext.getSocket()}
-                        unit={this.state.unit}
-                        isFloatComma={this.props.stateContext.isFloatComma}
-                        widgetId={this.props.settings.id}
-                        instanceId={this.props.stateContext.instanceId}
-                    />
-                ) : null}
             </Box>
+        );
+    }
+
+    renderCompact(): React.JSX.Element {
+        return this.renderTile(false, false);
+    }
+
+    renderWide(): React.JSX.Element {
+        return this.renderTile(true, false);
+    }
+
+    renderWideTall(): React.JSX.Element {
+        return this.renderTile(true, true);
+    }
+
+    private renderUniversalChartDialog(): React.JSX.Element | null {
+        if (!this.state.chartOpen || !this.state.historyId || !this.state.historyInstance || !this.props.stateContext) {
+            return null;
+        }
+        return (
+            <ChartDialog
+                open
+                onClose={() => this.setState({ chartOpen: false })}
+                title={this.props.settings.name || String(this.props.widget.id)}
+                historyIds={[
+                    {
+                        id: this.state.historyId,
+                        color: this.props.settings.color || '#2196f3',
+                        name: this.props.settings.name || String(this.props.widget.id),
+                    },
+                ]}
+                historyInstance={this.state.historyInstance}
+                socket={this.props.stateContext.getSocket()}
+                unit={this.state.unit}
+                isFloatComma={this.props.stateContext.isFloatComma}
+                widgetId={String(this.props.widget.id)}
+                instanceId={this.props.stateContext.instanceId}
+            />
+        );
+    }
+
+    render(): React.JSX.Element {
+        const isEditing = !!this.props.onOpenSettings;
+
+        // If opacity is 0, hide completely — but always show in edit mode
+        if (this.state.opacity <= 0 && !isEditing) {
+            return <></>;
+        }
+
+        return (
+            <>
+                {super.render()}
+                {this.renderUniversalChartDialog()}
+            </>
         );
     }
 }

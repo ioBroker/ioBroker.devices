@@ -145,4 +145,12 @@ export interface WidgetGenericState {
     chartSeries: ChartSeries[];
     chartDialogOpen: boolean;
     chartType: ChartLineType;
+    /** PinPad dialog state */
+    pinPadOpen: boolean;
+    pinPadPin: string;
+    /** Confirmation dialog state */
+    confirmDialogOpen: boolean;
+    confirmDialogMode: 'dialog' | 'pin';
+    confirmDialogPin: string;
+    confirmDialogText: string;
 }

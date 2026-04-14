@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Button, Dialog, IconButton, Tooltip, Typography } from '@mui/material';
-import { Backspace, Lock, LockOpen, MeetingRoom, SensorDoor } from '@mui/icons-material';
+import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
+import { Lock, LockOpen, MeetingRoom, SensorDoor } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
@@ -14,9 +14,6 @@ export interface LockWidgetSettings extends WidgetGenericSettings {
 interface WidgetLockState extends WidgetGenericState {
     isLocked: boolean;
     doorOpen: boolean | null;
-    showPinPad: boolean;
-    pinInput: string;
-    pinError: boolean;
     pendingAction: 'toggle' | 'open' | null;
 }
 
@@ -43,9 +40,6 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
             ...this.state,
             isLocked: true,
             doorOpen: null,
-            showPinPad: false,
-            pinInput: '',
-            pinError: false,
             pendingAction: null,
         };
     }
@@ -126,38 +120,21 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
 
     private requestAction = (action: 'toggle' | 'open'): void => {
         if (this.requirePin()) {
-            this.setState({ showPinPad: true, pinInput: '', pinError: false, pendingAction: action });
+            this.setState({ pendingAction: action });
+            this.showPinPad(this.props.settings?.pin || '');
         } else {
             this.executeAction(action);
         }
     };
 
-    private onPinDigit = (digit: string): void => {
-        const pinInput = this.state.pinInput + digit;
-        const pin = this.props.settings?.pin || '';
+    // --- PinPad callback ---
 
-        if (pinInput.length >= pin.length) {
-            if (pinInput === pin) {
-                this.setState({ showPinPad: false, pinInput: '', pinError: false });
-                if (this.state.pendingAction) {
-                    this.executeAction(this.state.pendingAction);
-                }
-            } else {
-                this.setState({ pinInput: '', pinError: true });
-                setTimeout(() => this.setState({ pinError: false }), 600);
-            }
-        } else {
-            this.setState({ pinInput, pinError: false });
+    protected onPinPadSuccess(): void {
+        if (this.state.pendingAction) {
+            this.executeAction(this.state.pendingAction);
+            this.setState({ pendingAction: null });
         }
-    };
-
-    private onPinBackspace = (): void => {
-        this.setState(prev => ({ pinInput: prev.pinInput.slice(0, -1), pinError: false }));
-    };
-
-    private onPinClose = (): void => {
-        this.setState({ showPinPad: false, pinInput: '', pinError: false, pendingAction: null });
-    };
+    }
 
     // --- Overrides ---
 
@@ -345,157 +322,6 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
                     </IconButton>
                 </Tooltip>
             </Box>
-        );
-    }
-
-    // --- Pin Pad ---
-
-    private renderPinPad(): React.JSX.Element | null {
-        if (!this.state.showPinPad) {
-            return null;
-        }
-
-        const { pinInput, pinError } = this.state;
-        const pinLength = this.props.settings?.pin?.length || 4;
-        const dots = Array.from({ length: pinLength }, (_, i) => i < pinInput.length);
-
-        const keys = [
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-            ['7', '8', '9'],
-            ['', '0', 'back'],
-        ];
-
-        return (
-            <Dialog
-                open
-                onClose={this.onPinClose}
-                PaperProps={{
-                    sx: {
-                        borderRadius: '24px',
-                        p: 3,
-                        minWidth: 280,
-                        maxWidth: 320,
-                    },
-                }}
-            >
-                <Typography
-                    variant="h6"
-                    sx={{ textAlign: 'center', mb: 3, fontWeight: 600 }}
-                >
-                    {I18n.t('wm_Enter PIN')}
-                </Typography>
-
-                {/* PIN dots */}
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: 1.5,
-                        mb: 3,
-                        animation: pinError ? 'wmShake 0.4s ease' : undefined,
-                        '@keyframes wmShake': {
-                            '0%, 100%': { transform: 'translateX(0)' },
-                            '20%, 60%': { transform: 'translateX(-8px)' },
-                            '40%, 80%': { transform: 'translateX(8px)' },
-                        },
-                    }}
-                >
-                    {dots.map((filled, i) => (
-                        <Box
-                            key={i}
-                            sx={theme => ({
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                border: `2px solid ${pinError ? theme.palette.error.main : theme.palette.primary.main}`,
-                                backgroundColor: filled
-                                    ? pinError
-                                        ? theme.palette.error.main
-                                        : theme.palette.primary.main
-                                    : 'transparent',
-                                transition: 'all 0.15s ease',
-                            })}
-                        />
-                    ))}
-                </Box>
-
-                {/* Keypad */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
-                    {keys.map((row, ri) => (
-                        <Box
-                            key={ri}
-                            sx={{ display: 'flex', gap: 1 }}
-                        >
-                            {row.map((key, ki) => {
-                                if (key === '') {
-                                    return (
-                                        <Box
-                                            key={ki}
-                                            sx={{ width: 64, height: 64 }}
-                                        />
-                                    );
-                                }
-                                if (key === 'back') {
-                                    return (
-                                        <IconButton
-                                            key={ki}
-                                            onClick={this.onPinBackspace}
-                                            disabled={pinInput.length === 0}
-                                            sx={theme => ({
-                                                width: 64,
-                                                height: 64,
-                                                color: theme.palette.text.secondary,
-                                            })}
-                                        >
-                                            <Backspace />
-                                        </IconButton>
-                                    );
-                                }
-                                return (
-                                    <Button
-                                        key={ki}
-                                        variant="text"
-                                        onClick={() => this.onPinDigit(key)}
-                                        sx={theme => ({
-                                            width: 64,
-                                            height: 64,
-                                            minWidth: 0,
-                                            borderRadius: '50%',
-                                            fontSize: '1.5rem',
-                                            fontWeight: 500,
-                                            color: theme.palette.text.primary,
-                                            backgroundColor: theme.palette.action.hover,
-                                            '&:hover': {
-                                                backgroundColor: theme.palette.action.selected,
-                                            },
-                                        })}
-                                    >
-                                        {key}
-                                    </Button>
-                                );
-                            })}
-                        </Box>
-                    ))}
-                </Box>
-
-                <Button
-                    variant="text"
-                    onClick={this.onPinClose}
-                    sx={{ mt: 2, alignSelf: 'center', textTransform: 'none' }}
-                >
-                    {I18n.t('wm_Cancel')}
-                </Button>
-            </Dialog>
-        );
-    }
-
-    render(): React.JSX.Element {
-        return (
-            <>
-                {super.render()}
-                {this.renderPinPad()}
-            </>
         );
     }
 }

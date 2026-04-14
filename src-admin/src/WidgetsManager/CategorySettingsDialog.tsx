@@ -32,20 +32,20 @@ export interface CategorySettings {
     color: string;
     backgroundColor: string;
     image: string;
-    /** 'header' = background only behind header, 'page' = background behind whole page */
+    /** 'header' = background only behind header, 'page' = background behind the whole page */
     imageScope: 'header' | 'page';
     customWidgets?: CustomWidgetBase[];
     widgetOrder?: string[];
     widgetGroups?: WidgetGroup[];
     /** Hide the config/play toggle button (root category only) */
     hideConfigButton?: boolean;
-    /** PWA / Chrome extension icon path — used as favicon in browser (root only) */
+    /** PWA / Chrome extension icon path — used as a favicon in browser (root only) */
     icon?: string;
     /** Icon shown in front of the root category name (root only) */
     rootIcon?: string;
     /** Widget theme preset (root category only). Default: 'auto' (follows admin theme) */
     wmTheme?: WmThemeId;
-    /** Default category ID to show when page loads without hash (root only) */
+    /** Default category ID to show when a page loads without hash (root only) */
     defaultCategory?: string;
 }
 

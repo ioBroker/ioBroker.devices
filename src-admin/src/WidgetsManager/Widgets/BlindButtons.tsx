@@ -143,7 +143,8 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
         const { name, direction } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const btnSx = (active: boolean) => (theme: IobTheme) => ({
             flex: 1,
@@ -174,11 +175,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Three buttons */}
                     <Box
@@ -234,7 +231,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }

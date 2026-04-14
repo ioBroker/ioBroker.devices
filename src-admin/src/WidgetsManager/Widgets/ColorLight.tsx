@@ -698,7 +698,8 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         const { name, brightness, dragging, color } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -736,18 +737,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -823,7 +813,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
 

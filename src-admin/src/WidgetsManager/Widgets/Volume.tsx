@@ -372,7 +372,8 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
         const { name, volume, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -409,18 +410,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -496,7 +486,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
+
             </Box>
         );
     }
