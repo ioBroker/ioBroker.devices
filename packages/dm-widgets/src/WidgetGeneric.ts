@@ -215,6 +215,12 @@ export class WidgetGeneric<
         return undefined;
     }
 
+    /** Format a timestamp as a localized "time ago" string using moment */
+    // eslint-disable-next-line class-methods-use-this
+    protected fromNow(_ts: number): string {
+        return '';
+    }
+
     // --- Override points ---
 
     protected isTileActive(): boolean {
@@ -259,7 +265,10 @@ export class WidgetGeneric<
         return null;
     }
 
-    protected renderIndicators(): React.JSX.Element | null {
+    protected renderIndicators(
+        settingsButton?: React.JSX.Element | null,
+        extraStates?: React.JSX.Element | null,
+    ): React.JSX.Element | null {
         return null;
     }
 

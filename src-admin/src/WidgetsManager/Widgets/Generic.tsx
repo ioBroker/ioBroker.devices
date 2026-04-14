@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import moment from 'moment/min/moment-with-locales';
 
 import {
     WidgetGeneric as WidgetGenericBase,
@@ -1239,6 +1240,11 @@ export class WidgetGeneric<
 
     protected getInactiveColor(): string | undefined {
         return this.props.settings?.color || undefined;
+    }
+
+    /** Format a timestamp as a localized "time ago" string using moment */
+    protected fromNow(ts: number): string {
+        return moment(ts).locale(this.props.stateContext.language).fromNow();
     }
 
     // eslint-disable-next-line class-methods-use-this

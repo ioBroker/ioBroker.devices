@@ -8,7 +8,14 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Lock widget */
 export interface LockWidgetSettings extends WidgetGenericSettings {
+    /** Confirmation mode: none, pin pad, or simple confirm dialog */
+    confirmMode?: 'none' | 'pin' | 'confirm';
+    /** When to require confirmation: only unlock, or both lock and unlock */
+    confirmScope?: 'unlock' | 'both';
+    /** PIN code (only used when confirmMode is 'pin') */
     pin?: string;
+    /** Custom confirmation text */
+    confirmText?: string;
 }
 
 interface WidgetLockState extends WidgetGenericState {
@@ -47,7 +54,10 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
     static getDefaultSettings(): LockWidgetSettings {
         return {
             ...WidgetGeneric.getDefaultSettings(),
+            confirmMode: 'none',
+            confirmScope: 'unlock',
             pin: '',
+            confirmText: '',
         };
     }
 
@@ -57,11 +67,39 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
             schema: {
                 type: 'panel',
                 items: {
+                    confirmMode: {
+                        type: 'select',
+                        label: 'wm_Confirmation',
+                        options: [
+                            { value: 'none', label: 'wm_No confirmation' },
+                            { value: 'pin', label: 'wm_PIN code' },
+                            { value: 'confirm', label: 'wm_Confirm dialog' },
+                        ],
+                        default: 'none',
+                        format: 'dropdown',
+                    },
+                    confirmScope: {
+                        type: 'select',
+                        label: 'wm_Confirm scope',
+                        options: [
+                            { value: 'unlock', label: 'wm_Unlock only' },
+                            { value: 'both', label: 'wm_Lock and unlock' },
+                        ],
+                        default: 'unlock',
+                        format: 'radio',
+                        hidden: "data.confirmMode === 'none' || !data.confirmMode",
+                    },
                     pin: {
                         type: 'text',
                         label: 'wm_PIN Code',
                         default: '',
-                        help: 'wm_PIN help',
+                        hidden: "data.confirmMode !== 'pin'",
+                    },
+                    confirmText: {
+                        type: 'text',
+                        label: 'wm_Confirmation text',
+                        default: '',
+                        hidden: "data.confirmMode === 'none' || !data.confirmMode",
                     },
                 },
             },
@@ -102,8 +140,19 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
         }
     };
 
-    private requirePin(): boolean {
-        return !!this.props.settings?.pin;
+    /** Check if the action needs confirmation based on settings and current state */
+    private needsConfirmation(action: 'toggle' | 'open'): boolean {
+        const mode = this.props.settings?.confirmMode || 'none';
+        if (mode === 'none') {
+            // Legacy: support old 'pin' field without confirmMode
+            return !!this.props.settings?.pin;
+        }
+        const scope = this.props.settings?.confirmScope || 'unlock';
+        if (scope === 'both') {
+            return true;
+        }
+        // scope === 'unlock': only confirm when unlocking or opening
+        return action === 'open' || this.state.isLocked;
     }
 
     private executeAction(action: 'toggle' | 'open'): void {
@@ -119,17 +168,31 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
     }
 
     private requestAction = (action: 'toggle' | 'open'): void => {
-        if (this.requirePin()) {
-            this.setState({ pendingAction: action });
-            this.showPinPad(this.props.settings?.pin || '');
-        } else {
+        if (!this.needsConfirmation(action)) {
             this.executeAction(action);
+            return;
+        }
+
+        this.setState({ pendingAction: action });
+
+        const mode = this.props.settings?.confirmMode || (this.props.settings?.pin ? 'pin' : 'none');
+        if (mode === 'pin') {
+            this.showPinPad(this.props.settings?.pin || '');
+        } else if (mode === 'confirm') {
+            this.showConfirmDialog('dialog', undefined, this.props.settings?.confirmText);
         }
     };
 
-    // --- PinPad callback ---
+    // --- Callbacks ---
 
     protected onPinPadSuccess(): void {
+        if (this.state.pendingAction) {
+            this.executeAction(this.state.pendingAction);
+            this.setState({ pendingAction: null });
+        }
+    }
+
+    protected onConfirmDialogSuccess(): void {
         if (this.state.pendingAction) {
             this.executeAction(this.state.pendingAction);
             this.setState({ pendingAction: null });

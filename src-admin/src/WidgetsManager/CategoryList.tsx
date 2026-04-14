@@ -952,6 +952,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 settings[key] = custom[key];
             }
         }
+        // Also extract widget-specific keys (e.g., pin, blindType) stored in custom
+        for (const key of Object.keys(custom)) {
+            if (key === 'enabled' || key === 'uiDisabled') {
+                continue; // internal custom fields, not widget settings
+            }
+            if (!(key in settings) && !(key in defaultSettings)) {
+                settings[key] = custom[key];
+            }
+        }
 
         if (!Object.keys(settings).length) {
             return null;
@@ -990,11 +999,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const common = obj.common as ioBroker.StateCommon;
             common.custom ||= {};
             const custom = { ...(common.custom[instanceId] || {}) };
-            // Wen want compare attribute by attribute
+            // Compare attribute by attribute — include both base keys and widget-specific keys
             const defaultSettings = WidgetGeneric.getDefaultSettings() as unknown as Record<string, unknown>;
             const settingsRecord = settings as unknown as Record<string, unknown>;
 
-            for (const key of Object.keys(defaultSettings)) {
+            // Collect all keys: base defaults + any extra keys from the settings object
+            const allKeys = new Set([...Object.keys(defaultSettings), ...Object.keys(settingsRecord)]);
+
+            for (const key of allKeys) {
                 if (key === 'name') {
                     if (settingsRecord.name) {
                         common.name = settingsRecord.name as string;

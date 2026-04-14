@@ -7,7 +7,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles, formatFloat } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;
@@ -38,15 +38,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                 directionStateId: { type: 'objectId', label: 'wm_Wind direction' },
                 speedStateId: { type: 'objectId', label: 'wm_Wind speed' },
                 gustsStateId: { type: 'objectId', label: 'wm_Wind gusts' },
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '1x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
             },
         };
     }

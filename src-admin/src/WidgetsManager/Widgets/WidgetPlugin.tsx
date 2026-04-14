@@ -7,7 +7,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 import type { CustomWidgetPlugin } from '@iobroker/dm-widgets';
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
@@ -20,17 +20,7 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
         return {
             type: 'panel',
             label: 'wm_Plugin',
-            items: {
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '1x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
-            },
+            items: {},
         };
     }
 

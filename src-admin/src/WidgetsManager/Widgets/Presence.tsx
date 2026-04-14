@@ -44,7 +44,6 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
                     ],
                     default: 'dim',
                 },
-                color: { type: 'color', label: 'wm_Active color' },
             },
         };
     }
@@ -114,29 +113,6 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
             ctx.removeState(this.props.settings.presenceStateId, this.presenceHandler);
             this.presenceHandler = null;
         }
-    }
-
-    static formatTimeAgo(lc: number): string {
-        const now = Date.now();
-        const diffMs = now - lc;
-        if (diffMs < 0) {
-            return I18n.t('wm_just_now');
-        }
-
-        const diffMin = Math.floor(diffMs / 60_000);
-        const diffHours = Math.floor(diffMin / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMin < 1) {
-            return I18n.t('wm_just_now');
-        }
-        if (diffMin < 60) {
-            return `${diffMin} min`;
-        }
-        if (diffHours < 24) {
-            return `${diffHours}h`;
-        }
-        return `${diffDays}d`;
     }
 
     renderCompact(): React.JSX.Element {
@@ -224,7 +200,7 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
                                     lineHeight: 1.2,
                                 }}
                             >
-                                {WidgetPresence.formatTimeAgo(lastChange)}
+                                {this.fromNow(lastChange)}
                             </Typography>
                         )}
                     </Box>

@@ -14,7 +14,7 @@ import WidgetGeneric, {
 } from './Generic';
 import ChartDialog from './ChartDialog';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 interface ColorLevel {
     value: number;
@@ -62,15 +62,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                 gaugeUnit: { type: 'text', label: 'wm_Unit', default: '' },
                 usePercentage: { type: 'checkbox', label: 'wm_Color levels as percent', default: true },
                 colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '1x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
             },
         };
     }

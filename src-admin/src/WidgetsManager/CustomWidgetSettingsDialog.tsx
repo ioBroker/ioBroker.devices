@@ -7,6 +7,7 @@ import type { AdminConnection } from '@iobroker/socket-client';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 import { getPluginConfigSchema } from './pluginLoader';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
+import { BASE_WIDGET_ITEMS } from './configUtils';
 import {
     type ConfigGeneric,
     type ConfigGenericProps,
@@ -70,25 +71,30 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
     const { open, widgetDef, onClose, onSave, onDelete, socket } = props;
     const [values, setValues] = useState<Record<string, any>>({});
 
-    // Normalize config to ConfigItemPanel
+    // Normalize config to ConfigItemPanel — base items (size, color) are prepended automatically
     const config: ConfigItemPanel | null = useMemo(() => {
         if (!widgetDef) {
             return null;
         }
+
+        // Newline has no settings at all
+        if (widgetDef.type === 'newline') {
+            return CUSTOM_WIDGET_CONFIGS.newline;
+        }
+
         const wd = widgetDef as any;
         if (widgetDef.type === 'plugin' && wd.pluginAdapter && wd.pluginComponent) {
             const pluginSchema = getPluginConfigSchema(wd.pluginAdapter, wd.pluginComponent);
             if (pluginSchema) {
-                const baseItems = CUSTOM_WIDGET_CONFIGS.plugin.items;
                 if (pluginSchema.schema.type === 'panel') {
                     return {
                         ...pluginSchema.schema,
-                        items: { ...baseItems, ...pluginSchema.schema.items },
+                        items: { ...BASE_WIDGET_ITEMS, ...pluginSchema.schema.items },
                         label: pluginSchema.name || pluginSchema.schema.label || wd.pluginAdapter,
                     };
                 }
                 // Tabs: flatten into a single panel
-                const allItems: Record<string, ConfigItemAny> = { ...baseItems };
+                const allItems: Record<string, ConfigItemAny> = { ...BASE_WIDGET_ITEMS };
                 for (const tabKey of Object.keys(pluginSchema.schema.items)) {
                     const tab = pluginSchema.schema.items[tabKey];
                     if (tab.items) {
@@ -98,7 +104,17 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 return { type: 'panel', label: pluginSchema.name, items: allItems };
             }
         }
-        return CUSTOM_WIDGET_CONFIGS[widgetDef.type];
+
+        // Built-in widgets: prepend base items to the widget's own schema
+        const widgetConfig = CUSTOM_WIDGET_CONFIGS[widgetDef.type];
+        if (widgetConfig) {
+            return {
+                ...widgetConfig,
+                items: { ...BASE_WIDGET_ITEMS, ...widgetConfig.items },
+            };
+        }
+
+        return null;
     }, [widgetDef]);
 
     // Initialize values from widgetDef when dialog opens

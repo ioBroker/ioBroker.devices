@@ -33,3 +33,17 @@ export const SIZE_OPTIONS: { value: string; label: string; icon?: string }[] = [
     { value: '2x1', label: '2\u00D71', icon: SIZE_ICON_2x1 },
     { value: '2x0.5', label: '2\u00D7\u00BD', icon: SIZE_ICON_2xHalf },
 ];
+
+/** Base config items (size + colors) automatically prepended to every custom widget schema */
+export const BASE_WIDGET_ITEMS: Record<string, ConfigItemAny> = {
+    size: {
+        type: 'select',
+        label: 'wm_Size',
+        options: SIZE_OPTIONS,
+        default: '1x1',
+        format: 'radio',
+        horizontal: true,
+    } as ConfigItemAny,
+    colorActive: { type: 'color', label: 'wm_Active color', sm: 6 } as ConfigItemAny,
+    color: { type: 'color', label: 'wm_Color inactive', sm: 6 } as ConfigItemAny,
+};

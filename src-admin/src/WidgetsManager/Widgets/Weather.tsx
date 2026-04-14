@@ -23,7 +23,7 @@ import WidgetGeneric, {
     isNeumorphicTheme,
 } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {
@@ -330,15 +330,6 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                     label: 'wm_City',
                     hidden: "data.weatherSource === 'adapter'",
                 },
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '2x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
             },
         };
     }

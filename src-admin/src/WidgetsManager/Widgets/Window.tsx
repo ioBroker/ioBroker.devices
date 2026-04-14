@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { SensorWindow, SensorWindowOutlined } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
-import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -45,7 +44,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onWindowChange);
         }
-        this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+        this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
     componentWillUnmount(): void {
@@ -57,10 +56,6 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
             clearInterval(this.agoTimer);
             this.agoTimer = null;
         }
-    }
-
-    private fromNow(ts: number): string {
-        return moment(ts).locale(this.props.stateContext.language).fromNow();
     }
 
     private updateAgo(): void {

@@ -11,6 +11,7 @@ import * as ReactDOM from 'react-dom';
 import * as IconsMaterial from '@mui/icons-material';
 import * as MuiMaterial from '@mui/material';
 import * as AdapterReact from '@iobroker/adapter-react-v5';
+import moment from 'moment/min/moment-with-locales';
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
@@ -28,6 +29,7 @@ type WidgetComponent = typeof WidgetGeneric<any, any>;
     '@mui/material': MuiMaterial,
     '@mui/icons-material': IconsMaterial,
     '@iobroker/adapter-react-v5': AdapterReact,
+    moment,
 };
 
 // Initialize Module Federation runtime for loading remote plugin widgets.

@@ -57,6 +57,8 @@ export const React = _shared.react;
 export const MuiMaterial = _shared['@mui/material'];
 /** Host's MUI Icons — use this instead of importing '@mui/icons-material' directly in plugins */
 export const MuiIcons = _shared['@mui/icons-material'];
+/** Host's moment instance — use this instead of importing 'moment' directly in plugins */
+export const moment = _shared.moment;
 
 // --- Type-only exports (no runtime presence needed) ---
 

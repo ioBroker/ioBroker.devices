@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { DirectionsRun, LightMode } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
-import moment from 'moment/min/moment-with-locales';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -55,8 +54,8 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSe
             this.props.stateContext.getState(this.brightnessId, this.onBrightnessChange);
             void this.loadBrightnessObject();
         }
-        // Update relative time every 30 seconds
-        this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+        // Update relative time every 60 seconds
+        this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
     private async loadBrightnessObject(): Promise<void> {
@@ -108,11 +107,6 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSe
             clearInterval(this.agoTimer);
             this.agoTimer = null;
         }
-    }
-
-    private fromNow(ts: number): string {
-        console.log(this.props.stateContext.language);
-        return moment(ts).locale(this.props.stateContext.language).fromNow();
     }
 
     private updateAgo(): void {

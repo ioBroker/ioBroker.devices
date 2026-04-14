@@ -13,7 +13,7 @@ import WidgetGeneric, {
     ConfirmDialog,
 } from './Generic';
 import ChartDialog from './ChartDialog';
-import { SIZE_OPTIONS } from '../configUtils';
+
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 interface ColorLevel {
@@ -160,15 +160,6 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                         icon3Color: { type: 'color', label: 'wm_Icon 3 color', sm: 6 },
                     },
                 },
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '1x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
                 colorActive: { type: 'color', label: 'wm_Active color' },
             },
         };

@@ -9,7 +9,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;
@@ -48,15 +48,6 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                     default: 'dialog',
                     format: 'dropdown',
                 },
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '2x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
             },
         };
     }

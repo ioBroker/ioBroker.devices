@@ -8,7 +8,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-import { SIZE_OPTIONS } from '../configUtils';
+
 
 interface SunTimes {
     sunrise: Date;
@@ -70,15 +70,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
             type: 'panel',
             label: 'wm_Clock',
             items: {
-                size: {
-                    type: 'select',
-                    label: 'wm_Size',
-                    options: SIZE_OPTIONS,
-                    default: '1x1',
-                    format: 'radio',
-                    horizontal: true,
-                },
-                color: { type: 'color', label: 'wm_Color' },
                 style: {
                     type: 'select',
                     label: 'wm_Style',
