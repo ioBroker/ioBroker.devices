@@ -10,7 +10,6 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     getTileStyles,
     formatFloat,
-    ConfirmDialog,
 } from './Generic';
 import ChartDialog from './ChartDialog';
 
@@ -46,6 +45,8 @@ export interface WidgetUniversalSettings extends CustomWidgetBase {
     actionValue?: string | number | boolean;
     /** Confirmation before executing action: 'none', 'dialog', or 'pin' */
     actionConfirm?: 'none' | 'dialog' | 'pin';
+    /** When to require confirmation: 'on' (turn on), 'off' (turn off), 'both' */
+    actionConfirmScope?: 'on' | 'off' | 'both';
     /** Custom confirmation dialog text */
     actionConfirmText?: string;
     /** PIN code required when actionConfirm is 'pin' */
@@ -62,7 +63,6 @@ interface WidgetUniversalState extends WidgetGenericState {
     iconStates: boolean[];
     /** Whether the action state is currently truthy (for active icon) */
     actionActive: boolean;
-    confirmOpen: boolean;
     chartOpen: boolean;
     historyId: string | null;
     historyInstance: string;
@@ -111,6 +111,18 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     default: 'none',
                     format: 'dropdown',
                     hidden: '!data.actionStateId',
+                },
+                actionConfirmScope: {
+                    type: 'select',
+                    label: 'wm_Confirm scope',
+                    options: [
+                        { value: 'both', label: 'wm_On and off' },
+                        { value: 'on', label: 'wm_On only' },
+                        { value: 'off', label: 'wm_Off only' },
+                    ],
+                    default: 'both',
+                    format: 'radio',
+                    hidden: "!data.actionStateId || data.actionConfirm === 'none' || !data.actionConfirm",
                 },
                 actionConfirmText: {
                     type: 'text',
@@ -203,7 +215,6 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             opacity: 1,
             iconStates: [false, false, false],
             actionActive: false,
-            confirmOpen: false,
             chartOpen: false,
             historyId: null,
             historyInstance: '',
@@ -457,66 +468,81 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
     }
 
     /** Execute the action (send value / toggle) — called after confirmation if needed */
-    private executeAction(): void {
+    private async executeAction(): Promise<void> {
         const { actionStateId, actionType, actionValue } = this.props.settings;
         const { stateContext } = this.props;
         if (!actionStateId || !stateContext) {
             return;
         }
         const socket = stateContext.getSocket();
-        void this.getCachedObject(actionStateId).then(obj => {
-            const commonType = obj?.common?.type;
-            if (actionType === 'value') {
-                let val: ioBroker.StateValue;
-                if (commonType === 'boolean') {
-                    val = actionValue === 'true' || actionValue === true || actionValue === 1;
-                } else if (commonType === 'number') {
-                    val = Number(actionValue);
-                } else {
-                    val = actionValue != null ? String(actionValue) : '';
-                }
-                void socket.setState(actionStateId, val);
+        const obj = await this.getCachedObject(actionStateId);
+        const commonType = obj?.common?.type;
+        if (actionType === 'value') {
+            let val: ioBroker.StateValue;
+            if (commonType === 'boolean') {
+                val = actionValue === 'true' || actionValue === true || actionValue === 1;
+            } else if (commonType === 'number') {
+                val = Number(actionValue);
             } else {
-                void socket.getState(actionStateId).then(state => {
-                    if (state) {
-                        if (commonType === 'boolean') {
-                            void socket.setState(actionStateId, !state.val);
-                        } else if (commonType === 'number') {
-                            const min = obj?.common.min ?? 0;
-                            const max = obj?.common.max ?? 100;
-                            void socket.setState(actionStateId, state.val === min ? max : min);
-                        } else {
-                            void socket.setState(actionStateId, !state.val);
-                        }
-                    }
-                });
+                val = actionValue != null ? String(actionValue) : '';
             }
-        });
+            await socket.setState(actionStateId, val);
+        } else {
+            const state = await socket.getState(actionStateId);
+            if (state) {
+                if (commonType === 'boolean') {
+                    void socket.setState(actionStateId, !state.val);
+                } else if (commonType === 'number') {
+                    const min = obj?.common.min ?? 0;
+                    const max = obj?.common.max ?? 100;
+                    void socket.setState(actionStateId, state.val === min ? max : min);
+                } else {
+                    void socket.setState(actionStateId, !state.val);
+                }
+            }
+        }
+    }
+
+    /** Check if confirmation is needed for the current action direction */
+    private needsConfirmation(): boolean {
+        const confirm = this.props.settings.actionConfirm || 'none';
+        if (confirm === 'none') {
+            return false;
+        }
+        const scope = this.props.settings.actionConfirmScope || 'both';
+        if (scope === 'both') {
+            return true;
+        }
+        // 'on' = confirm when turning on (currently off → will turn on)
+        // 'off' = confirm when turning off (currently on → will turn off)
+        const isCurrentlyActive = this.state.actionActive;
+        return scope === 'on' ? !isCurrentlyActive : isCurrentlyActive;
     }
 
     private handleTileClick = (): void => {
         if (this.props.settings.actionStateId && this.props.stateContext) {
-            // Action configured — execute (with confirmation if needed)
-            const confirm = this.props.settings.actionConfirm || 'none';
-            if (confirm === 'dialog' || confirm === 'pin') {
-                this.setState({ confirmOpen: true });
+            if (this.needsConfirmation()) {
+                const mode = this.props.settings.actionConfirm!;
+                if (mode === 'pin') {
+                    this.showPinPad(this.props.settings.actionPin || '');
+                } else {
+                    this.showConfirmDialog('dialog', undefined, this.props.settings.actionConfirmText);
+                }
             } else {
                 this.executeAction();
             }
         } else if (this.state.historyId) {
-            // No action but history available — open chart
             this.setState({ chartOpen: true });
         }
     };
 
-    private handleConfirmSuccess = (): void => {
-        this.setState({ confirmOpen: false });
+    protected onPinPadSuccess(): void {
         this.executeAction();
-    };
+    }
 
-    private handleConfirmClose = (): void => {
-        this.setState({ confirmOpen: false });
-    };
+    protected onConfirmDialogSuccess(): void {
+        this.executeAction();
+    }
 
     static renderIcon(iconDef: IconDef, active: boolean, iconSize = 18): React.JSX.Element | null {
         if (!active || !iconDef.icon) {
@@ -742,16 +768,6 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                         </Typography>
                     ) : null}
                 </Box>
-
-                {/* Confirmation / PIN dialog */}
-                <ConfirmDialog
-                    open={this.state.confirmOpen}
-                    mode={(this.props.settings.actionConfirm as 'dialog' | 'pin') || 'dialog'}
-                    pin={this.props.settings.actionPin || ''}
-                    text={this.props.settings.actionConfirmText}
-                    onSuccess={this.handleConfirmSuccess}
-                    onClose={this.handleConfirmClose}
-                />
 
             </Box>
         );

@@ -3,7 +3,7 @@ import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
-    AdminConnection,
+    Connection,
     Loader,
     GenericApp,
     type GenericAppProps,
@@ -43,7 +43,7 @@ export default class App extends GenericApp<GenericAppProps, AppState> {
         const extendedProps: GenericAppProps = { ...props };
         extendedProps.bottomButtons = false;
         // @ts-expect-error no idea how to fix it
-        extendedProps.Connection = AdminConnection;
+        extendedProps.Connection = Connection;
         extendedProps.adapterName = 'devices';
         extendedProps.sentryDSN = window.sentryDSN;
         extendedProps.translations = {
