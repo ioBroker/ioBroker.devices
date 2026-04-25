@@ -4,20 +4,20 @@
  * Each adapter that provides widgets exposes a federation remote entry URL.
  * We use registerRemotes / loadRemote from the MF runtime to load components.
  */
-import { registerRemotes, loadRemote, createInstance } from '@module-federation/runtime';
-
 import React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as IconsMaterial from '@mui/icons-material';
 import * as MuiMaterial from '@mui/material';
-import * as AdapterReact from '@iobroker/adapter-react-v5';
 import moment from 'moment/min/moment-with-locales';
-import * as DmWidgets from './Widgets/Generic';
-import StateContext from './StateContext';
+import { registerRemotes, loadRemote, createInstance } from '@module-federation/runtime';
+
+import * as AdapterReact from '@iobroker/adapter-react-v5';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
 import type WidgetGeneric from '@iobroker/dm-widgets';
 import { I18n } from '@iobroker/adapter-react-v5';
 
+import * as DmWidgets from './Widgets/Generic';
+import StateContext from './StateContext';
 type WidgetComponent = typeof WidgetGeneric<any, any>;
 
 // Expose the real modules on window so plugins can access them

@@ -28,17 +28,17 @@ export default class StateContext {
     private pendingObjPropIds: string[] = [];
     private objPropTimer: ReturnType<typeof setTimeout> | null = null;
 
-    private readonly _language = I18n.getLanguage();
-    private readonly _isFloatComma: boolean;
-    private readonly _dateFormat: string;
+    private _language = I18n.getLanguage();
+    private _isFloatComma: boolean;
+    private _dateFormat: string;
     private readonly _admin: boolean;
-    private readonly _instanceId: string;
+    private _instanceId: string;
     protected readonly socket: Connection;
     /** Latitude from system.config for sun calculations */
-    private readonly _latitude: number | null = null;
+    private _latitude: number | null = null;
     /** Longitude from system.config for sun calculations */
-    private readonly _longitude: number | null = null;
-    private readonly _defaultHistory: string | null = null;
+    private _longitude: number | null = null;
+    private _defaultHistory: string | null = null;
     private readonly _imagePrefix: string;
 
     constructor(props: {
@@ -65,12 +65,22 @@ export default class StateContext {
     public get language(): ioBroker.Languages {
         return this._language;
     }
+    public setLanguage(language: ioBroker.Languages): void {
+        this._language = language;
+    }
+
     public get isFloatComma(): boolean {
         return this._isFloatComma;
+    }
+    public setFloatComma(isFloatComma: boolean): void {
+        this._isFloatComma = isFloatComma;
     }
 
     public get dateFormat(): string {
         return this._dateFormat;
+    }
+    public setDateFormat(dateFormat: string): void {
+        this._dateFormat = dateFormat;
     }
 
     public get admin(): boolean {
@@ -81,6 +91,13 @@ export default class StateContext {
         return this._instanceId;
     }
 
+    public setInstanceId(instanceId: string): void {
+        this._instanceId = instanceId;
+    }
+
+    public setDefaultHistory(defaultHistory: string | null): void {
+        this._defaultHistory = defaultHistory;
+    }
     public get defaultHistory(): string | null {
         return this._defaultHistory;
     }
@@ -88,9 +105,12 @@ export default class StateContext {
     public get longitude(): number | null {
         return this._longitude;
     }
-
     public get latitude(): number | null {
         return this._latitude;
+    }
+    public setCoordinates(latitude: number | null, longitude: number | null): void {
+        this._latitude = latitude;
+        this._longitude = longitude;
     }
 
     public get imagePrefix(): string {

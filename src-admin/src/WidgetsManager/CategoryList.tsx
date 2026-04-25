@@ -24,6 +24,7 @@ import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
 import WidgetGeneric, { resolveTranslated } from './Widgets/Generic';
+import { loadPluginComponent, isPluginLoaded } from './pluginLoader';
 import type {
     WidgetSettingsBase,
     CustomWidgetBase,
@@ -50,11 +51,11 @@ interface GuiConfig {
         imageScope?: 'header' | 'page';
         /** PWA / Chrome extension icon path */
         icon?: string;
-        /** Icon shown before root name */
+        /** Icon shown before the root name */
         rootIcon?: string;
         /** Widget theme preset */
         wmTheme?: WmThemeId;
-        /** Default category ID to show when page is opened without hash */
+        /** Default category ID to show when a page is opened without hash */
         defaultCategory?: string;
         customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
@@ -81,7 +82,7 @@ interface CategoryListProps extends CommunicationProps {
     admin: boolean;
     /** Define an object that will store root settings of the GUI */
     rootSettingsStateId?: string | boolean;
-    /** Callback to go back to device list (shown in header when in admin split-screen narrow mode) */
+    /** Callback to go back to a device list (shown in the header when in admin split-screen narrow mode) */
     onBackToDevices?: () => void;
 }
 
@@ -108,14 +109,7 @@ interface CategoryListState extends CommunicationState {
     configMode: boolean;
     /** Side Panel install dialog open */
     sidePanelDialogOpen: boolean;
-    /** Coordinates from system.config for sun calculations */
-    latitude: number | null;
-    longitude: number | null;
-    /** Decimal separator is comma (from system.config) */
-    isFloatComma: boolean;
-    /** Date format string (from system.config) */
-    dateFormat: string;
-    /** Widget dialog to auto-open on load (from hash, e.g. "alias.0.Kitchen.Light_chart") */
+    /** Widget dialog to auto-open on a load (from hash, e.g. "alias.0.Kitchen.Light_chart") */
     openDialogId: string | null;
     /** Plugin widgets available from adapter instances */
     adapterWidgets: Record<string, ioBroker.DevicesWidgets>;
@@ -124,7 +118,7 @@ interface CategoryListState extends CommunicationState {
 const ROOT_CATEGORY = '__root__';
 const FAVORITES_CATEGORY = '__favorites__';
 
-/** Widget types where icon is stored in `common.icon` and iconActive in `common.custom` */
+/** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([
     Types.floodAlarm,
     Types.fireAlarm,
@@ -226,13 +220,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         admin: this.props.admin,
         dateFormat: this.props.dateFormat,
         isFloatComma: this.props.isFloatComma,
-        instanceId: this.state.selectedInstance,
+        instanceId: '',
         latitude: null,
         longitude: null,
         defaultHistory: null,
     });
-
-    private defaultHistory: string | undefined;
 
     private lastAliveSubscribe = '';
 
@@ -242,8 +234,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     private loadingInProgress = false;
 
     private filterTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    private readonly language: ioBroker.Languages = I18n.getLanguage();
 
     private widgetTheme: Theme | null = null;
 
@@ -295,15 +285,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             customWidgetSettingsWidgetId: null,
             configMode: !!this.props.showSettingsButton && CategoryList.loadConfigMode(this.props.admin),
             sidePanelDialogOpen: false,
-            latitude: null,
-            longitude: null,
-            isFloatComma: false,
-            dateFormat: 'DD.MM.YYYY',
             openDialogId: null,
             adapterWidgets: {},
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
+        this.stateContext.setInstanceId(this.state.selectedInstance);
     }
 
     // --- Hash routing ---
@@ -314,7 +301,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return String(category.id).split('.').pop() || '';
         }
         return (
-            resolveTranslated(category.name as ioBroker.StringOrTranslated, this.language) ||
+            resolveTranslated(category.name as ioBroker.StringOrTranslated, this.stateContext.language) ||
             String(category.id).split('.').pop() ||
             ''
         );
@@ -348,19 +335,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             id: FAVORITES_CATEGORY,
             type: 'category',
             parent: ROOT_CATEGORY,
-            name: {
-                en: 'Favorites',
-                de: 'Favoriten',
-                ru: 'Избранное',
-                pt: 'Favoritos',
-                nl: 'Favorieten',
-                fr: 'Favoris',
-                it: 'Preferiti',
-                es: 'Favoritos',
-                pl: 'Ulubione',
-                uk: 'Обрані',
-                'zh-cn': '收藏夹',
-            } as ioBroker.Translated,
+            name: I18n.t('wm_Favorites'),
             icon: '⭐',
         };
     }
@@ -408,7 +383,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (window.location.hash !== newHash) {
             window.location.hash = newHash;
         }
-        // Persist to localStorage so Android WebView can restore on reopen
+        // Persist to localStorage so Android WebView can restore on reopening
         try {
             localStorage.setItem('wm_lastHash', newHash);
         } catch {
@@ -534,14 +509,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 const common = sysConfig.common;
                 const update: Partial<CategoryListState> = {};
                 if (common.latitude != null && common.longitude != null) {
-                    update.latitude = common.latitude;
-                    update.longitude = common.longitude;
+                    this.stateContext.setCoordinates(common.latitude, common.longitude);
                 }
                 if (common.isFloatComma != null) {
-                    update.isFloatComma = !!common.isFloatComma;
+                    this.stateContext.setFloatComma(!!common.isFloatComma);
                 }
                 if (common.dateFormat) {
-                    update.dateFormat = common.dateFormat;
+                    this.stateContext.setDateFormat(common.dateFormat);
                 }
                 this.setState(update as CategoryListState);
             }
@@ -648,6 +622,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.lastAliveSubscribe = this.state.selectedInstance;
 
                 if (this.state.selectedInstance) {
+                    this.stateContext.setInstanceId(this.state.selectedInstance);
                     try {
                         // check if the instance is alive
                         const stateAlive = await this.props.socket.getState(
@@ -676,7 +651,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
 
                         // In admin mode, always start at root (ignore hash and favorites).
-                        // In web mode, restore from hash or fall back to default category.
+                        // In web mode, restore from hash or fall back to the default category.
                         let currentCategory: CategoryInfo | undefined;
                         let openDialogId: string | null = null;
 
@@ -826,7 +801,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         try {
             const obj = await this.stateContext.getObject<ioBroker.Object>(String(widgetId));
             if (obj?.common) {
-                const name = resolveTranslated(obj.common.name, this.language);
+                const name = resolveTranslated(obj.common.name, this.stateContext.language);
                 const color = (obj.common.color as string) || '';
                 this.setState({ settingsObjectName: name, settingsObjectColor: color });
             }
@@ -841,16 +816,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return;
         }
 
-        if (this.defaultHistory === undefined) {
+        if (!this.stateContext.defaultHistory) {
             try {
                 const sysConfig = await this.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
-                this.defaultHistory = sysConfig?.common?.defaultHistory || '';
+                this.stateContext.setDefaultHistory(sysConfig?.common?.defaultHistory || '');
             } catch {
-                this.defaultHistory = '';
+                this.stateContext.setDefaultHistory('');
             }
         }
 
-        if (!this.defaultHistory) {
+        if (!this.stateContext.defaultHistory) {
             return;
         }
 
@@ -879,7 +854,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (!obj) {
             return false;
         }
-        if (obj.common?.custom?.[this.defaultHistory!]?.enabled) {
+        if (obj.common?.custom?.[this.stateContext.defaultHistory!]?.enabled) {
             return true;
         }
         // Follow alias to the target and check there
@@ -889,7 +864,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             if (targetId && targetId !== stateId) {
                 try {
                     const targetObj = await this.stateContext.getObject<ioBroker.StateObject>(targetId);
-                    if (targetObj?.common?.custom?.[this.defaultHistory!]?.enabled) {
+                    if (targetObj?.common?.custom?.[this.stateContext.defaultHistory!]?.enabled) {
                         return true;
                     }
                 } catch {
@@ -1652,13 +1627,32 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             ...this.state.categorySettings,
             [customWidgetDialogCategoryId]: { ...settings, customWidgets },
         };
-        this.setState({
-            categorySettings,
-            customWidgetDialogCategoryId: null,
-            customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
-            customWidgetSettingsWidgetId: id,
-        });
         this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
+
+        // Ensure the plugin component is loaded before opening the settings dialog,
+        // otherwise the config schema is not yet in cache and the dialog would show
+        // only the base items (size/color) on first open.
+        const openSettings = (): void => {
+            this.setState({
+                categorySettings,
+                customWidgetDialogCategoryId: null,
+                customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
+                customWidgetSettingsWidgetId: id,
+            });
+        };
+
+        if (isPluginLoaded(adapter, component)) {
+            openSettings();
+        } else {
+            // Persist widget list + close picker immediately; open settings after load.
+            this.setState({ categorySettings, customWidgetDialogCategoryId: null });
+            loadPluginComponent(url, adapter, component, this.props.admin)
+                .then(openSettings)
+                .catch(err => {
+                    console.error(`Cannot load plugin ${adapter}/${component}: ${err}`);
+                    openSettings();
+                });
+        }
     };
 
     private onCloseCustomWidgetDialog = (): void => {
@@ -1671,7 +1665,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             return;
         }
         // Build the new folder object ID under the current category
-        // Root category → alias.0.{name}, sub-category → {parentId}.{name}
+        // Root category → alias.0.{name}, subcategory → {parentId}.{name}
         const parentId =
             customWidgetDialogCategoryId === ROOT_CATEGORY ? `alias.0` : String(customWidgetDialogCategoryId);
         // Sanitize name for object ID (replace spaces/special chars)
@@ -1852,7 +1846,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private getWidgetName(widget: WidgetInfo): string {
-        return resolveTranslated(widget.name as ioBroker.StringOrTranslated, this.language) || String(widget.id);
+        return resolveTranslated(widget.name as ioBroker.StringOrTranslated, this.stateContext.language) || String(widget.id);
     }
 
     private cachedWmThemeId: WmThemeId | undefined;
@@ -2020,7 +2014,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         // Create a virtual favorites category as a child of root
         const favoritesCategory: CategoryInfo | null = hasFavorites ? this.buildFavoritesCategory() : null;
 
-        // Virtual widget copies: set parent to favorites category so Category.widgets getter picks them up
+        // Virtual widget copies: set parent to favorite category so Category.widgets getter picks them up
         const favoriteWidgets: WidgetInfo[] = favoriteWidgetIds.length
             ? this.state.widgets
                   .filter(w => favoriteWidgetIds.includes(String(w.id)))
@@ -2031,7 +2025,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const categories = favoritesCategory ? [...this.state.categories, favoritesCategory] : this.state.categories;
         const widgets = favoriteWidgets.length ? [...this.state.widgets, ...favoriteWidgets] : this.state.widgets;
 
-        // Add favorited custom widgets to the favorites category settings
+        // Add favorited custom widgets to the favorite category settings
         const categorySettings =
             favoriteCustomWidgets.length && favoritesCategory
                 ? {
@@ -2105,7 +2099,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onCloseSettings={this.onCloseSettings}
                             onSaveSettings={this.onSaveSettings}
                             onDeleteWidget={this.onDeleteWidget}
-                            defaultHistory={this.defaultHistory || undefined}
                             categorySettingsCategoryId={this.state.categorySettingsCategoryId}
                             categories={this.state.categories}
                             currentCategory={currentCategory}
@@ -2113,7 +2106,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             rootCategory={ROOT_CATEGORY}
                             onCloseCategorySettings={this.onCloseCategorySettings}
                             onSaveCategorySettings={this.onSaveCategorySettings}
-                            selectedInstance={this.state.selectedInstance}
                             customWidgetDialogCategoryId={this.state.customWidgetDialogCategoryId}
                             onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
                             onAddCustomWidget={this.onAddCustomWidget}
@@ -2127,15 +2119,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onDeleteCustomWidgetFromSettings={this.onDeleteCustomWidgetFromSettings}
                             sidePanelDialogOpen={this.state.sidePanelDialogOpen}
                             onCloseSidePanel={() => this.setState({ sidePanelDialogOpen: false })}
-                            admin={this.props.admin}
-                            socket={this.props.socket}
                             theme={this.props.theme}
                             settingsWidgetId={this.state.settingsWidgetId}
                             onWidgetGroupMove={this.onWidgetGroupMove}
                             getCategoryName={this.getCategoryName}
-                            language={this.language}
-                            isFloatComma={this.state.isFloatComma}
-                            dateFormat={this.state.dateFormat}
+                            stateContext={this.stateContext}
                         />
                     </div>
                 </ThemeProvider>

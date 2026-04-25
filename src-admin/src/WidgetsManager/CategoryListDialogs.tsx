@@ -17,8 +17,9 @@ import type {
     WidgetInfo,
 } from '@iobroker/dm-widgets';
 import WidgetGeneric from './Widgets/Generic';
+import StateContext from './StateContext';
 
-/** Widget types where icon is stored in `common.icon` and iconActive in `common.custom` */
+/** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([
     Types.floodAlarm,
     Types.fireAlarm,
@@ -50,7 +51,6 @@ export interface CategoryListDialogsProps {
     rootCategory: string;
     onCloseCategorySettings: () => void;
     onSaveCategorySettings: (settings: CategorySettings) => void;
-    selectedInstance: string;
 
     // --- Custom widget dialog ---
     customWidgetDialogCategoryId: string | null;
@@ -70,17 +70,13 @@ export interface CategoryListDialogsProps {
     // --- Side panel dialog ---
     sidePanelDialogOpen: boolean;
     onCloseSidePanel: () => void;
-    admin: boolean;
 
     // --- Shared ---
-    socket: Connection;
     theme: IobTheme;
     settingsWidgetId: string | number | null;
     onWidgetGroupMove: (categoryId: string, widgetId: string, groupId: string) => void;
     getCategoryName: (category: CategoryInfo) => string;
-    language: ioBroker.Languages;
-    isFloatComma: boolean;
-    dateFormat: string;
+    stateContext: StateContext;
 }
 
 function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element {
@@ -101,7 +97,6 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         rootCategory,
         onCloseCategorySettings,
         onSaveCategorySettings,
-        selectedInstance,
         customWidgetDialogCategoryId,
         onCloseCustomWidgetDialog,
         onAddCustomWidget,
@@ -112,12 +107,11 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         onDeleteCustomWidgetFromSettings,
         sidePanelDialogOpen,
         onCloseSidePanel,
-        admin,
-        socket,
         theme,
         settingsWidgetId,
         onWidgetGroupMove,
         getCategoryName,
+        stateContext,
     } = props;
 
     // Build category options for default-category picker (root settings only)
@@ -153,7 +147,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                           WidgetGeneric.getDefaultSettings()
                         : WidgetGeneric.getDefaultSettings()
                 }
-                instance={props.selectedInstance}
+                instance={stateContext.instanceId}
                 onClose={onCloseSettings}
                 onSave={onSaveSettings}
                 onDelete={onDeleteWidget}
@@ -161,8 +155,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 showChart={chartAvailable}
                 showAlarmFields={isAlarmType}
                 showIcon={!!settingsWidget?.control?.type && !isAlarmType}
-                isFloatComma={props.isFloatComma}
-                dateFormat={props.dateFormat}
+                isFloatComma={stateContext.isFloatComma}
+                dateFormat={stateContext.dateFormat}
                 primaryStateId={
                     settingsWidget?.control?.states
                         ? settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
@@ -171,9 +165,9 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         : undefined
                 }
                 defaultHistory={props.defaultHistory}
-                socket={socket}
+                socket={stateContext.getSocket()}
                 theme={theme}
-                admin={admin}
+                admin={stateContext.admin}
                 objectName={settingsObjectName}
                 objectColor={settingsObjectColor}
                 availableGroups={categorySettings[String(currentCategory.id)]?.widgetGroups}
@@ -211,21 +205,21 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 }
                 onClose={onCloseCategorySettings}
                 onSave={onSaveCategorySettings}
-                socket={socket}
-                instance={selectedInstance}
+                socket={stateContext.getSocket()}
+                instance={stateContext.instanceId}
                 theme={theme}
-                admin={admin}
+                admin={stateContext.admin}
                 categoryOptions={categoryOptions}
             />
             <CustomWidgetDialog
-                admin={admin}
+                admin={stateContext.admin}
                 open={customWidgetDialogCategoryId != null}
                 onClose={onCloseCustomWidgetDialog}
                 onAdd={onAddCustomWidget}
                 onCreateCategory={props.onCreateCategory}
                 adapterWidgets={props.adapterWidgets}
                 onAddPlugin={props.onAddPluginWidget}
-                language={props.language}
+                language={stateContext.language}
             />
             <CustomWidgetSettingsDialog
                 open={customWidgetSettingsCategoryId != null}
@@ -239,14 +233,12 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onClose={onCloseCustomWidgetSettings}
                 onSave={onSaveCustomWidgetSettings}
                 onDelete={onDeleteCustomWidgetFromSettings}
-                socket={socket}
                 theme={theme}
                 availableGroups={
                     customWidgetSettingsCategoryId
                         ? categorySettings[customWidgetSettingsCategoryId]?.widgetGroups
                         : undefined
                 }
-                admin={admin}
                 currentGroupId={
                     customWidgetSettingsCategoryId &&
                     customWidgetSettingsWidgetId &&
@@ -263,16 +255,13 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                               onWidgetGroupMove(customWidgetSettingsCategoryId, customWidgetSettingsWidgetId, groupId)
                         : undefined
                 }
-                language={props.language}
-                isFloatComma={props.isFloatComma}
-                dateFormat={props.dateFormat}
-                selectedInstance={selectedInstance}
+                stateContext={stateContext}
             />
             <SidePanelInstallDialog
                 open={sidePanelDialogOpen}
                 onClose={onCloseSidePanel}
-                admin={admin}
-                socket={socket}
+                admin={stateContext.admin}
+                socket={stateContext.getSocket()}
             />
         </>
     );

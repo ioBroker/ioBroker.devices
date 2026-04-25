@@ -234,6 +234,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             prev.settings.stateId !== this.props.settings.stateId ||
             prev.settings.secondaryStateId !== this.props.settings.secondaryStateId ||
             prev.settings.opacityStateId !== this.props.settings.opacityStateId ||
+            prev.settings.actionStateId !== this.props.settings.actionStateId ||
             prev.settings.icons !== this.props.settings.icons
         ) {
             this.unsubscribe();
@@ -337,15 +338,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             return handler;
         });
 
-        // Subscribe to action state for active icon + pre-fetch object
+        // Subscribe to action state for active tile color / active icon + pre-fetch object
         if (this.props.settings.actionStateId) {
             void this.getCachedObject(this.props.settings.actionStateId);
-            if (this.props.settings.widgetIconActive) {
-                this.actionHandler = (_id, state) => {
-                    this.setState({ actionActive: !!state?.val });
-                };
-                ctx.getState(this.props.settings.actionStateId, this.actionHandler);
-            }
+            this.actionHandler = (_id, state) => {
+                this.setState({ actionActive: !!state?.val });
+            };
+            ctx.getState(this.props.settings.actionStateId, this.actionHandler);
         }
 
         // Resolve history for chart

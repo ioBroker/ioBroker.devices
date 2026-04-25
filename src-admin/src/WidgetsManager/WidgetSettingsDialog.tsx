@@ -239,7 +239,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
-                        imagePrefix={props.admin ? '..' : '../..'}
+                        imagePrefix={props.admin ? '../..' : '../..'}
                     />
                 ) : null}
 

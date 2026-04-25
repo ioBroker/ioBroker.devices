@@ -29,6 +29,7 @@ export interface IStateContext {
     language: ioBroker.Languages;
     longitude: number | null;
     latitude: number | null;
+    setCoordinates(latitude: number | null, longitude: number | null): void;
     isFloatComma: boolean;
     dateFormat: string;
     imagePrefix: string;
@@ -88,6 +89,11 @@ export default class StateContext implements IStateContext {
     language: ioBroker.Languages = 'en';
     longitude: number | null = null;
     latitude: number | null = null;
+
+    setCoordinates(latitude: number | null, longitude: number | null): void {
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
     isFloatComma = false;
     dateFormat = 'DD.MM.YYYY';
     imagePrefix = '../../files/';

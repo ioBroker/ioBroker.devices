@@ -20,6 +20,7 @@ import GroupSelector from './GroupSelector';
 import ConfigCitySearch from './Components/ConfigCitySearch';
 import ConfigColorLevels from './Components/ConfigColorLevels';
 import ConfigIconSelect from './Components/ConfigIconSelect';
+import type StateContext from './StateContext';
 
 interface CustomWidgetSettingsDialogProps {
     open: boolean;
@@ -27,17 +28,11 @@ interface CustomWidgetSettingsDialogProps {
     onClose: () => void;
     onSave: (def: CustomWidgetBase) => void;
     onDelete: () => void;
-    socket?: Connection;
     theme?: IobTheme;
     availableGroups?: WidgetGroup[];
     currentGroupId?: string;
     onGroupChange?: (groupId: string) => void;
-    language: ioBroker.Languages;
-    isFloatComma: boolean;
-    dateFormat: string;
-    /** Adapter instance ID, e.g. "devices.0" */
-    selectedInstance?: string;
-    admin: boolean;
+    stateContext: StateContext;
 }
 
 /** Recursively collect all data-bearing items from a panel (flattening nested panels) */
@@ -68,7 +63,7 @@ const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps,
 // --- Dialog ---
 
 export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDialogProps): React.JSX.Element | null {
-    const { open, widgetDef, onClose, onSave, onDelete, socket } = props;
+    const { open, widgetDef, onClose, onSave, onDelete, stateContext } = props;
     const [values, setValues] = useState<Record<string, any>>({});
 
     // Normalize config to ConfigItemPanel — base items (size, color) are prepended automatically
@@ -185,6 +180,8 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         onSave(newDef as unknown as CustomWidgetBase);
     };
 
+    const socket = stateContext.getSocket() as unknown as AdminConnection;
+
     return (
         <Dialog
             open={open}
@@ -197,13 +194,13 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             <DialogContent dividers>
                 {socket && props.theme ? (
                     <JsonConfigComponent
-                        socket={socket as unknown as AdminConnection}
+                        socket={socket}
                         themeName={props.theme.name}
                         themeType={props.theme.palette.mode as 'dark' | 'light'}
-                        adapterName={props.selectedInstance?.replace(/\.\d+$/, '') || 'devices'}
-                        instance={parseInt(props.selectedInstance?.match(/\.(\d+)$/)?.[1] || '0', 10)}
-                        isFloatComma={props.isFloatComma}
-                        dateFormat={props.dateFormat}
+                        adapterName={stateContext.instanceId?.replace(/\.\d+$/, '') || 'devices'}
+                        instance={parseInt(stateContext.instanceId?.match(/\.(\d+)$/)?.[1] || '0', 10)}
+                        isFloatComma={stateContext.isFloatComma}
+                        dateFormat={stateContext.dateFormat}
                         schema={config}
                         data={values}
                         onError={() => {}}
@@ -211,7 +208,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
-                        imagePrefix={props.admin ? '..' : '../..'}
+                        imagePrefix={stateContext.admin ? '../..' : '../..'}
                     />
                 ) : null}
                 {props.availableGroups?.length ? (

@@ -50,6 +50,8 @@ export interface WidgetClockSettings extends CustomWidgetBase {
     showDow?: boolean;
     /** Show seconds. Default: true */
     showSeconds?: boolean;
+    /** Show sunrise/sunset. Default: true */
+    showSun?: boolean;
 }
 
 interface WidgetClockState extends WidgetGenericState {
@@ -83,6 +85,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                 showDate: { type: 'checkbox', label: 'wm_Show date', default: true },
                 showDow: { type: 'checkbox', label: 'wm_Show DOW', default: true },
                 showSeconds: { type: 'checkbox', label: 'wm_Show seconds', default: true },
+                showSun: { type: 'checkbox', label: 'wm_Show sunrise/sunset', default: true },
             },
         };
     }
@@ -118,7 +121,11 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
 
         let sunrise = '';
         let sunset = '';
-        if (this.props.stateContext.latitude != null && this.props.stateContext.longitude != null) {
+        if (
+            this.props.settings.showSun !== false &&
+            this.props.stateContext.latitude != null &&
+            this.props.stateContext.longitude != null
+        ) {
             try {
                 const times = getTimesTypes(now, this.props.stateContext.latitude, this.props.stateContext.longitude);
                 sunrise = times.sunrise.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
@@ -273,6 +280,9 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
     }
 
     private renderSunInfo(fontSize?: string): React.JSX.Element | null {
+        if (this.props.settings.showSun === false) {
+            return null;
+        }
         const { sunrise, sunset } = this.state;
         if (!sunrise || !sunset) {
             return null;
