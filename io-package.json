@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.9",
+    "version": "2.0.10",
     "news": {
+      "2.0.10": {
+        "en": "Working on the new GUI",
+        "de": "Arbeiten an der neuen GUI",
+        "ru": "Работа над новым GUI",
+        "pt": "Trabalhando na nova GUI",
+        "nl": "Werken aan de nieuwe GUI",
+        "fr": "Travailler sur le nouveau GUI",
+        "it": "Lavorare sulla nuova GUI",
+        "es": "Trabajando en la nueva GUI",
+        "pl": "Praca nad nowym GUI",
+        "uk": "Робота над новим інтерфейсом",
+        "zh-cn": "关于新的图形界面的工作"
+      },
       "2.0.9": {
         "en": "Fixing runtime mode",
         "de": "Laufzeitmodus fixieren",
@@ -80,19 +93,6 @@
         "pl": "Dodano wizualizację widżetów. Teraz jest możliwe stworzenie GUI w adapterze",
         "uk": "Додано візуалізацію віджетів. Тепер можна створювати GUI в адаптері",
         "zh-cn": "添加部件的可视化 。 现在可以在适配器内创建图形界面"
-      },
-      "1.2.14": {
-        "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state\nCorrecting the hover effect under safari",
-        "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben\nKorrektur der Hover-Effekt unter Safari",
-        "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием\nКоррекция эффекта парения под сафари",
-        "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'\nCorrigindo o efeito hover sob safari",
-        "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"\nCorrigeren van het zweefeffect onder safari",
-        "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`\nCorrection de l'effet hover sous safari",
-        "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`\nCorreggere l'effetto hover sotto safari",
-        "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"\nCorregir el efecto del tubo bajo safari",
-        "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'\nKorekta efektu unoszenia się pod safari",
-        "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'\nКорекція ефекту конюшини під сафарі",
-        "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题\n校正 Safari 下的悬浮效应"
       }
     },
     "titleLang": {
