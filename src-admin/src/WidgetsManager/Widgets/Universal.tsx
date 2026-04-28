@@ -8,10 +8,20 @@ import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, {
     type WidgetGenericState,
     type WidgetGenericProps,
+    type ChartSeries,
     getTileStyles,
     formatFloat,
 } from './Generic';
 import ChartDialog from './ChartDialog';
+
+/** Maximum number of samples kept in the QuickChart rolling buffer */
+const QUICK_CHART_MAX_SAMPLES = 2000;
+/** Minimum visible time window for QuickChart (seconds) */
+const QUICK_CHART_MIN_WINDOW_SEC = 10;
+/** Default visible time window for QuickChart (seconds) */
+const QUICK_CHART_DEFAULT_WINDOW_SEC = 60;
+/** Internal sampling rate (ms). Independent of the visible window. */
+const QUICK_CHART_SAMPLE_MS = 1000;
 
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
@@ -51,6 +61,10 @@ export interface WidgetUniversalSettings extends CustomWidgetBase {
     actionConfirmText?: string;
     /** PIN code required when actionConfirm is 'pin' */
     actionPin?: string;
+    /** Enable an in-memory chart sampled in real time (works without a history adapter) */
+    quickChart?: boolean;
+    /** Visible QuickChart time window in seconds (minimum 10) */
+    quickChartInterval?: number;
 }
 
 interface WidgetUniversalState extends WidgetGenericState {
@@ -66,6 +80,8 @@ interface WidgetUniversalState extends WidgetGenericState {
     chartOpen: boolean;
     historyId: string | null;
     historyInstance: string;
+    /** Rolling buffer of samples collected when quickChart is enabled */
+    quickSamples: { ts: number; val: number }[];
 }
 
 export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetUniversalSettings> {
@@ -137,6 +153,20 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     hidden: "!data.actionStateId || data.actionConfirm !== 'pin'",
                 },
                 colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
+                quickChart: {
+                    type: 'checkbox',
+                    label: 'wm_Quick chart',
+                    help: 'wm_Quick chart help',
+                    default: false,
+                },
+                quickChartInterval: {
+                    type: 'number',
+                    label: 'wm_Quick chart window',
+                    default: QUICK_CHART_DEFAULT_WINDOW_SEC,
+                    min: QUICK_CHART_MIN_WINDOW_SEC,
+                    step: 1,
+                    hidden: '!data.quickChart',
+                },
                 opacityStateId: { type: 'objectId', label: 'wm_Opacity state' },
                 opacityFalse: {
                     type: 'number',
@@ -218,12 +248,14 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             chartOpen: false,
             historyId: null,
             historyInstance: '',
+            quickSamples: [],
         };
     }
 
     componentDidMount(): void {
         super.componentDidMount();
         this.subscribe();
+        this.startQuickChartSampling();
     }
 
     componentDidUpdate(prev: WidgetGenericProps<WidgetUniversalSettings>): void {
@@ -241,11 +273,158 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             this.objectCache.clear();
             this.subscribe();
         }
+        if (
+            prev.settings.quickChart !== this.props.settings.quickChart ||
+            prev.settings.quickChartInterval !== this.props.settings.quickChartInterval ||
+            prev.settings.stateId !== this.props.settings.stateId
+        ) {
+            this.startQuickChartSampling();
+        }
     }
 
     componentWillUnmount(): void {
         super.componentWillUnmount();
         this.unsubscribe();
+        this.stopQuickChartSampling();
+    }
+
+    private quickChartTimer: ReturnType<typeof setInterval> | null = null;
+    /** Forces a re-render every 1s so the locked window keeps scrolling even when the value doesn't change. */
+    private quickChartTickTimer: ReturnType<typeof setInterval> | null = null;
+
+    private stopQuickChartSampling(): void {
+        if (this.quickChartTimer) {
+            clearInterval(this.quickChartTimer);
+            this.quickChartTimer = null;
+        }
+        if (this.quickChartTickTimer) {
+            clearInterval(this.quickChartTickTimer);
+            this.quickChartTickTimer = null;
+        }
+    }
+
+    /** Start (or restart) periodic sampling of the primary value into the quick-chart buffer */
+    private startQuickChartSampling(): void {
+        this.stopQuickChartSampling();
+        if (!this.props.settings.quickChart || !this.props.settings.stateId) {
+            this.setState({ quickSamples: [] });
+            return;
+        }
+        // Sample at a fixed internal rate so the chart scrolls smoothly. The
+        // user-configured `quickChartInterval` is the visible WINDOW size, not
+        // the sampling rate.
+        this.captureQuickSample();
+        this.quickChartTimer = setInterval(() => this.captureQuickSample(), QUICK_CHART_SAMPLE_MS);
+        // Independent ticker — guarantees the chart re-renders (and the
+        // window slides) even if no new sample arrives (e.g. value is null).
+        this.quickChartTickTimer = setInterval(() => this.forceUpdate(), 1000);
+    }
+
+    /** Maximum buffer time-span we ever keep — derived from the configured window. */
+    private getQuickBufferKeepMs(): number {
+        const windowSec = Math.max(
+            QUICK_CHART_MIN_WINDOW_SEC,
+            Number(this.props.settings.quickChartInterval) || QUICK_CHART_DEFAULT_WINDOW_SEC,
+        );
+        return Math.ceil(windowSec * 1000 * 1.2);
+    }
+
+    private captureQuickSample(value?: number): void {
+        const val = value ?? this.state.value;
+        if (val == null || !Number.isFinite(val)) {
+            return;
+        }
+        const now = Date.now();
+        const sample = { ts: now, val };
+        const cutoff = now - this.getQuickBufferKeepMs();
+        this.setState(prev => {
+            // Drop anything older than 1.2× the window; also enforce the hard
+            // sample-count cap as a safety net.
+            let next = prev.quickSamples.filter(p => p.ts >= cutoff);
+            if (next.length >= QUICK_CHART_MAX_SAMPLES) {
+                next = next.slice(next.length - QUICK_CHART_MAX_SAMPLES + 1);
+            }
+            next.push(sample);
+            return { quickSamples: next };
+        });
+    }
+
+    /**
+     * Mini sparkline drawn at the bottom of the tile when QuickChart is on.
+     * The x-axis is locked to a fixed window of `quickChartInterval` seconds
+     * ending at "now" — when there is less data than the window, the line
+     * stays on the right edge and the left side is empty.
+     */
+    private renderQuickChart(): React.JSX.Element | null {
+        if (!this.props.settings.quickChart || this.state.historyId) {
+            return null;
+        }
+        const windowSec = Math.max(
+            QUICK_CHART_MIN_WINDOW_SEC,
+            Number(this.props.settings.quickChartInterval) || QUICK_CHART_DEFAULT_WINDOW_SEC,
+        );
+        const now = Date.now();
+        const tsMin = now - windowSec * 1000;
+        const visible = this.state.quickSamples.filter(p => p.ts >= tsMin && p.ts <= now);
+        if (visible.length < 2) {
+            return null;
+        }
+        const W = 200;
+        const H = 60;
+        const tsRange = windowSec * 1000;
+        let valMin = Infinity;
+        let valMax = -Infinity;
+        for (const p of visible) {
+            if (p.val < valMin) {
+                valMin = p.val;
+            }
+            if (p.val > valMax) {
+                valMax = p.val;
+            }
+        }
+        const valRange = valMax - valMin || 1;
+        const padMin = valMin - valRange * 0.1;
+        const padRange = valMax + valRange * 0.1 - padMin;
+        const pts = visible.map(p => ({
+            x: ((p.ts - tsMin) / tsRange) * W,
+            y: H - ((p.val - padMin) / padRange) * H,
+        }));
+        const line = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('');
+        const lastX = pts[pts.length - 1].x.toFixed(1);
+        const firstX = pts[0].x.toFixed(1);
+        const color = this.getValueColor() || this.props.settings.color || '#2196f3';
+        return (
+            <Box
+                sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: '40%',
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
+                }}
+            >
+                <svg
+                    viewBox={`0 0 ${W} ${H}`}
+                    preserveAspectRatio="none"
+                    style={{ width: '100%', height: '100%', display: 'block' }}
+                >
+                    <path
+                        d={`${line} L${lastX},${H} L${firstX},${H} Z`}
+                        fill={color}
+                        opacity={0.15}
+                    />
+                    <path
+                        d={line}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth="1.5"
+                        opacity={0.5}
+                    />
+                </svg>
+            </Box>
+        );
     }
 
     /** Get a StateObject from cache or fetch it once */
@@ -271,7 +450,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         if (this.props.settings.stateId) {
             this.primaryHandler = (_id, state) => {
                 const val = state?.val;
-                this.setState({ value: val != null ? Number(val) : null });
+                const num = val != null ? Number(val) : null;
+                this.setState({ value: num });
+                // Capture immediately on every state change when QuickChart is on,
+                // so the chart populates without waiting for the next interval tick.
+                if (this.props.settings.quickChart && num != null && Number.isFinite(num)) {
+                    this.captureQuickSample(num);
+                }
             };
             ctx.getState(this.props.settings.stateId, this.primaryHandler);
             void this.getCachedObject(this.props.settings.stateId).then(obj => {
@@ -530,7 +715,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             } else {
                 this.executeAction();
             }
-        } else if (this.state.historyId) {
+        } else if (this.state.historyId || this.props.settings.quickChart) {
             this.setState({ chartOpen: true });
         }
     };
@@ -566,7 +751,8 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         const valueColor = this.getValueColor();
         const icons = (this.resolved.icons || []).slice(0, 3);
         const activeIcons = icons.filter((_, i) => iconStates[i]);
-        const clickable = !!this.props.settings.actionStateId || !!this.state.historyId;
+        const chartAvailable = !!this.state.historyId || !!this.props.settings.quickChart;
+        const clickable = !!this.props.settings.actionStateId || chartAvailable;
 
         const size = this.props.settings.size || '1x1';
         const settingsButton = this.renderSettingsButton();
@@ -613,6 +799,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                         cursor: clickable ? 'pointer' : 'default',
                     })}
                 >
+                    {this.renderQuickChart()}
                     {indicators}
 
                     {/* Secondary value — upper right */}
@@ -767,7 +954,6 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                         </Typography>
                     ) : null}
                 </Box>
-
             </Box>
         );
     }
@@ -785,27 +971,37 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
     }
 
     private renderUniversalChartDialog(): React.JSX.Element | null {
-        if (!this.state.chartOpen || !this.state.historyId || !this.state.historyInstance || !this.props.stateContext) {
+        if (!this.state.chartOpen || !this.props.stateContext) {
             return null;
         }
+        const hasHistory = !!this.state.historyId && !!this.state.historyInstance;
+        const useQuick = !hasHistory && !!this.props.settings.quickChart;
+        if (!hasHistory && !useQuick) {
+            return null;
+        }
+        const title = this.props.settings.name || String(this.props.widget.id);
+        const color = this.props.settings.color || '#2196f3';
+        const quickData: ChartSeries[] | undefined = useQuick
+            ? [{ data: this.state.quickSamples, color, name: title, unit: this.state.unit }]
+            : undefined;
+        const windowSec = Math.max(
+            QUICK_CHART_MIN_WINDOW_SEC,
+            Number(this.props.settings.quickChartInterval) || QUICK_CHART_DEFAULT_WINDOW_SEC,
+        );
         return (
             <ChartDialog
                 open
                 onClose={() => this.setState({ chartOpen: false })}
-                title={this.props.settings.name || String(this.props.widget.id)}
-                historyIds={[
-                    {
-                        id: this.state.historyId,
-                        color: this.props.settings.color || '#2196f3',
-                        name: this.props.settings.name || String(this.props.widget.id),
-                    },
-                ]}
+                title={title}
+                historyIds={hasHistory ? [{ id: this.state.historyId!, color, name: title }] : []}
                 historyInstance={this.state.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.state.unit}
                 isFloatComma={this.props.stateContext.isFloatComma}
                 widgetId={String(this.props.widget.id)}
                 instanceId={this.props.stateContext.instanceId}
+                quickData={quickData}
+                lockedWindowMs={useQuick ? windowSec * 1000 : undefined}
             />
         );
     }

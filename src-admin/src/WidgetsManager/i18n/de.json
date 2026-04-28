@@ -394,5 +394,8 @@
     "wm_Confirmation text": "Bestätigungstext",
     "wm_Select icon": "Icon auswählen",
     "wm_Icon": "Icon",
-    "wm_Active icon": "Aktives Icon"
+    "wm_Active icon": "Aktives Icon",
+    "wm_Quick chart": "Schnellchart",
+    "wm_Quick chart help": "Aktuelle Werte in einem speicherinternen Diagramm aufzeichnen, auch ohne Verlaufs-Adapter",
+    "wm_Quick chart window": "Schnellchart-Zeitfenster (Sek.)"
 }

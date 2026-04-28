@@ -364,5 +364,8 @@
     "wm_Icon 3 name": "Icon 3 name",
     "wm_Icon 3 color": "Icon 3 color",
     "wm_Icon name help": "Material icon name, e.g. Warning, Water, Bolt",
-    "wm_Close preview": "Close preview"
+    "wm_Close preview": "Close preview",
+    "wm_Quick chart": "Швидкий графік",
+    "wm_Quick chart help": "Збирати поточні значення в графік у пам'яті, навіть без адаптера історії",
+    "wm_Quick chart window": "Вікно швидкого графіка (сек.)"
 }

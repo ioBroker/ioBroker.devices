@@ -149,10 +149,11 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
             if (structure[key].length) {
                 return true;
             }
-            // Include empty folders marked with showEmpty
+            // Include empty folders marked with showEmpty, or that hold plugin/custom widgets
             if (key !== ROOT_CATEGORY && this.objects[key]) {
                 const custom = this.objects[key].common?.custom;
-                if (custom && Object.values(custom).some(c => c?.showEmpty)) {
+                if (custom &&
+                    Object.values(custom).some(c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0))) {
                     return true;
                 }
             }
@@ -653,11 +654,13 @@ class DevicesWidgetsManagement extends widget_utils_1.WidgetsManagement {
                     }
                 });
                 if (empty) {
-                    // Keep categories marked with showEmpty in custom settings
+                    // Keep categories marked with showEmpty in custom settings,
+                    // or that contain plugin / custom widgets.
                     const obj = this.objects[id];
                     const custom = obj?.common?.custom;
-                    const hasShowEmpty = custom && Object.values(custom).some(c => c?.showEmpty);
-                    if (!hasShowEmpty) {
+                    const keep = custom &&
+                        Object.values(custom).some(c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0));
+                    if (!keep) {
                         this.categories?.delete(id);
                     }
                 }

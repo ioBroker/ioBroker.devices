@@ -364,5 +364,8 @@
     "wm_Icon 3 name": "Icon 3 name",
     "wm_Icon 3 color": "Icon 3 color",
     "wm_Icon name help": "Material icon name, e.g. Warning, Water, Bolt",
-    "wm_Close preview": "Close preview"
+    "wm_Close preview": "Close preview",
+    "wm_Quick chart": "快速图表",
+    "wm_Quick chart help": "即使没有历史适配器，也将当前值采样到内存图表中",
+    "wm_Quick chart window": "快速图表窗口（秒）"
 }

@@ -262,6 +262,11 @@ interface InteractiveChartProps {
     isFloatComma?: boolean;
     /** Called 400ms after the last pan/zoom interaction with the new visible time range */
     onViewSettle?: (startTs: number, endTs: number) => void;
+    /**
+     * When set, the visible time range is locked to `[Date.now() - lockedWindowMs, Date.now()]`
+     * and updates once per second (live-scrolling). Pan, zoom and view-settle are disabled.
+     */
+    lockedWindowMs?: number;
 }
 
 function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
@@ -276,9 +281,20 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         smoothingMethod,
         isFloatComma,
         onViewSettle,
+        lockedWindowMs,
     } = props;
     const svgRef = useRef<SVGSVGElement>(null);
     const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Live "now" — only ticks when the view is locked to a sliding window.
+    const [nowTs, setNowTs] = useState(() => Date.now());
+    useEffect(() => {
+        if (!lockedWindowMs) {
+            return;
+        }
+        const id = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [lockedWindowMs]);
 
     // Compute global time & value range from data
     let globalTsMin = Infinity;
@@ -358,19 +374,48 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     const marginRight = dualAxis ? 52 : MARGIN.right;
 
     // Pan/zoom state: visible time range
-    const [viewStart, setViewStart] = useState(globalTsMin);
-    const [viewEnd, setViewEnd] = useState(globalTsMax);
+    const [viewStartState, setViewStart] = useState(globalTsMin);
+    const [viewEndState, setViewEnd] = useState(globalTsMax);
+    const viewStart = lockedWindowMs ? nowTs - lockedWindowMs : viewStartState;
+    const viewEnd = lockedWindowMs ? nowTs : viewEndState;
     const [tooltip, setTooltip] = useState<{
         x: number;
         ts: number;
         entries: { val: number; y: number; color: string; name?: string; unit?: string }[];
     } | null>(null);
 
-    // Reset view when data changes
+    // When locked, fit the y-axis to the points actually visible in the window
+    if (lockedWindowMs && !dualAxis) {
+        let visMin = Infinity;
+        let visMax = -Infinity;
+        for (const s of series) {
+            for (const p of s.data) {
+                if (p.ts < viewStart || p.ts > viewEnd) {
+                    continue;
+                }
+                if (p.val < visMin) {
+                    visMin = p.val;
+                }
+                if (p.val > visMax) {
+                    visMax = p.val;
+                }
+            }
+        }
+        if (visMin !== Infinity) {
+            const r = visMax - visMin || 1;
+            globalValMin = visMin - r * 0.05;
+            globalValMax = visMax + r * 0.05;
+        }
+    }
+
+    // Reset view when data changes — skipped while the view is locked.
     useEffect(() => {
+        if (lockedWindowMs) {
+            return;
+        }
         setViewStart(globalTsMin);
         setViewEnd(globalTsMax);
-    }, [globalTsMin, globalTsMax]);
+    }, [globalTsMin, globalTsMax, lockedWindowMs]);
 
     // Cleanup settle timer on unmount
     useEffect(
@@ -424,20 +469,20 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
 
     const handlePointerDown = useCallback(
         (e: React.PointerEvent) => {
-            if (e.button !== 0) {
+            if (e.button !== 0 || lockedWindowMs) {
                 return;
             }
             (e.target as SVGSVGElement).setPointerCapture(e.pointerId);
             panRef.current = { startX: e.clientX, startViewStart: viewStart, startViewEnd: viewEnd };
             setTooltip(null);
         },
-        [viewStart, viewEnd],
+        [viewStart, viewEnd, lockedWindowMs],
     );
 
     const handlePointerMove = useCallback(
         (e: React.PointerEvent) => {
             const pan = panRef.current;
-            if (pan) {
+            if (pan && !lockedWindowMs) {
                 const dx = e.clientX - pan.startX;
                 const dtPerPx = (pan.startViewEnd - pan.startViewStart) / plotW;
                 const dt = -dx * dtPerPx;
@@ -483,7 +528,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
             }
         },
-        [series, plotW, width, height, xToTs, tsToX, valToY, dualAxis, valToY2, marginRight],
+        [series, plotW, width, height, xToTs, tsToX, valToY, dualAxis, valToY2, marginRight, lockedWindowMs],
     );
 
     const handlePointerUp = useCallback(
@@ -500,6 +545,9 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
 
     const handleWheel = useCallback(
         (e: React.WheelEvent) => {
+            if (lockedWindowMs) {
+                return;
+            }
             e.preventDefault();
             const rect = svgRef.current?.getBoundingClientRect();
             if (!rect) {
@@ -518,7 +566,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             }
             setTooltip(null);
         },
-        [viewStart, viewEnd, xToTs, scheduleSettle],
+        [viewStart, viewEnd, xToTs, scheduleSettle, lockedWindowMs],
     );
 
     const handlePointerLeave = useCallback(() => {
@@ -598,7 +646,11 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             ref={svgRef}
             width={width}
             height={height}
-            style={{ touchAction: 'none', userSelect: 'none', cursor: panRef.current ? 'grabbing' : 'crosshair' }}
+            style={{
+                touchAction: 'none',
+                userSelect: 'none',
+                cursor: lockedWindowMs ? 'default' : panRef.current ? 'grabbing' : 'crosshair',
+            }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -830,6 +882,17 @@ export interface ChartDialogProps {
     widgetId?: string;
     /** Adapter instance ID, e.g. "devices.0" */
     instanceId?: string;
+    /**
+     * In-memory series data. When provided, the dialog renders this data directly
+     * and skips history loading. Used by the "Quick chart" mode for states that
+     * have no history adapter.
+     */
+    quickData?: ChartSeries[];
+    /**
+     * When set together with `quickData`, the visible time range is locked to
+     * `[Date.now() - lockedWindowMs, Date.now()]` and updates live. Pan/zoom is disabled.
+     */
+    lockedWindowMs?: number;
 }
 
 function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
@@ -844,7 +907,10 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         isFloatComma,
         widgetId,
         instanceId,
+        quickData,
+        lockedWindowMs,
     } = props;
+    const isQuick = !!quickData;
     // Stabilize historyIds so that a new array reference with the same content doesn't trigger re-fetches
     const historyIdsKey = JSON.stringify(historyIdsProp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1037,10 +1103,16 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
 
     // Load data when the dialog opens or range changes
     useEffect(() => {
-        if (open) {
-            void loadData(rangeHours, true);
+        if (!open) {
+            return;
         }
-    }, [open, rangeHours, loadData]);
+        if (quickData) {
+            setSeries(quickData);
+            setLoading(false);
+            return;
+        }
+        void loadData(rangeHours, true);
+    }, [open, rangeHours, loadData, quickData]);
 
     // Auto-detect units for each history state
     useEffect(() => {
@@ -1121,23 +1193,25 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
             >
                 {/* Time range buttons + settings */}
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                    <ButtonGroup
-                        size="small"
-                        variant="outlined"
-                    >
-                        {RANGE_OPTIONS.map(opt => (
-                            <Button
-                                key={opt.hours}
-                                variant={rangeHours === opt.hours ? 'contained' : 'outlined'}
-                                onClick={() => {
-                                    setRangeHours(opt.hours);
-                                    saveSetting('chartRangeHours', opt.hours);
-                                }}
-                            >
-                                {rangeLabel(opt)}
-                            </Button>
-                        ))}
-                    </ButtonGroup>
+                    {!isQuick && (
+                        <ButtonGroup
+                            size="small"
+                            variant="outlined"
+                        >
+                            {RANGE_OPTIONS.map(opt => (
+                                <Button
+                                    key={opt.hours}
+                                    variant={rangeHours === opt.hours ? 'contained' : 'outlined'}
+                                    onClick={() => {
+                                        setRangeHours(opt.hours);
+                                        saveSetting('chartRangeHours', opt.hours);
+                                    }}
+                                >
+                                    {rangeLabel(opt)}
+                                </Button>
+                            ))}
+                        </ButtonGroup>
+                    )}
                     <Tooltip title={I18n.t('wm_Settings')}>
                         <IconButton
                             size="small"
@@ -1248,7 +1322,8 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             smoothing={smoothing}
                             smoothingMethod={smoothingMethod}
                             isFloatComma={isFloatComma}
-                            onViewSettle={handleViewSettle}
+                            onViewSettle={isQuick ? undefined : handleViewSettle}
+                            lockedWindowMs={lockedWindowMs}
                         />
                     ) : (
                         <Typography

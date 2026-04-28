@@ -388,5 +388,8 @@
     "wm_Enter PIN": "Введите PIN",
     "wm_Wrong PIN": "Неверный PIN",
     "wm_OK": "OK",
-    "wm_Confirmation text": "Текст подтверждения"
+    "wm_Confirmation text": "Текст подтверждения",
+    "wm_Quick chart": "Быстрый график",
+    "wm_Quick chart help": "Записывать текущие значения в график в памяти, даже без адаптера истории",
+    "wm_Quick chart window": "Окно быстрого графика (сек.)"
 }

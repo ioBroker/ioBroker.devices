@@ -178,12 +178,17 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             if (structure[key].length) {
                 return true;
             }
-            // Include empty folders marked with showEmpty
+            // Include empty folders marked with showEmpty, or that hold plugin/custom widgets
             if (key !== ROOT_CATEGORY && this.objects[key]) {
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
                     | Record<string, Record<string, unknown>>
                     | undefined;
-                if (custom && Object.values(custom).some(c => c?.showEmpty)) {
+                if (
+                    custom &&
+                    Object.values(custom).some(
+                        c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
+                    )
+                ) {
                     return true;
                 }
             }
@@ -737,13 +742,18 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     }
                 });
                 if (empty) {
-                    // Keep categories marked with showEmpty in custom settings
+                    // Keep categories marked with showEmpty in custom settings,
+                    // or that contain plugin / custom widgets.
                     const obj = this.objects[id];
                     const custom = (obj?.common as Record<string, unknown>)?.custom as
                         | Record<string, Record<string, unknown>>
                         | undefined;
-                    const hasShowEmpty = custom && Object.values(custom).some(c => c?.showEmpty);
-                    if (!hasShowEmpty) {
+                    const keep =
+                        custom &&
+                        Object.values(custom).some(
+                            c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
+                        );
+                    if (!keep) {
                         this.categories?.delete(id);
                     }
                 }

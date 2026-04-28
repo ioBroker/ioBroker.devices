@@ -394,5 +394,8 @@
     "wm_Confirmation text": "Confirmation text",
     "wm_Select icon": "Select icon",
     "wm_Icon": "Icon",
-    "wm_Active icon": "Active icon"
+    "wm_Active icon": "Active icon",
+    "wm_Quick chart": "Quick chart",
+    "wm_Quick chart help": "Sample current values into an in-memory chart, even without a history adapter",
+    "wm_Quick chart window": "Quick chart window (sec)"
 }
