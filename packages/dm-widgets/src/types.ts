@@ -78,7 +78,8 @@ export type CustomWidgetType =
     | 'universal'
     | 'plugin'
     | 'newline'
-    | 'presence';
+    | 'presence'
+    | 'energyFlow';
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';

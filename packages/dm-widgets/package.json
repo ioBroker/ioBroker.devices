@@ -1,6 +1,6 @@
 {
     "name": "@iobroker/dm-widgets",
-    "version": "0.3.1",
+    "version": "0.3.3",
     "description": "Types and base class for ioBroker Device Manager widget plugins",
     "main": "build/index.js",
     "types": "build/index.d.ts",

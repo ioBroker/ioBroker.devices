@@ -27,6 +27,32 @@ const DEFAULT_LEVELS: ColorLevel[] = [
     { value: 100, color: '#f44336' },
 ];
 
+const GRADIENT_SEGMENTS = 60;
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const m = hex.replace('#', '');
+    const v = m.length === 3 ? m.split('').map(c => c + c).join('') : m;
+    return {
+        r: parseInt(v.slice(0, 2), 16) || 0,
+        g: parseInt(v.slice(2, 4), 16) || 0,
+        b: parseInt(v.slice(4, 6), 16) || 0,
+    };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+    const h = (n: number): string =>
+        Math.max(0, Math.min(255, Math.round(n)))
+            .toString(16)
+            .padStart(2, '0');
+    return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+function lerpColor(a: string, b: string, t: number): string {
+    const ca = hexToRgb(a);
+    const cb = hexToRgb(b);
+    return rgbToHex(ca.r + (cb.r - ca.r) * t, ca.g + (cb.g - ca.g) * t, ca.b + (cb.b - ca.b) * t);
+}
+
 export interface WidgetGaugeSettings extends CustomWidgetBase {
     gaugeStateId?: string;
     minValue?: number;
@@ -36,6 +62,7 @@ export interface WidgetGaugeSettings extends CustomWidgetBase {
     gaugeStateId2?: string;
     colorLevels?: ColorLevel[];
     usePercentage?: boolean;
+    smoothGradient?: boolean;
 }
 
 interface WidgetGaugeState extends WidgetGenericState {
@@ -61,6 +88,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                 maxValue: { type: 'number', label: 'wm_Max value', default: 100 },
                 gaugeUnit: { type: 'text', label: 'wm_Unit', default: '' },
                 usePercentage: { type: 'checkbox', label: 'wm_Color levels as percent', default: true },
+                smoothGradient: { type: 'checkbox', label: 'wm_Smooth gradient', default: false },
                 colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
             },
         };
@@ -262,16 +290,54 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
 
     private getColor(raw: number): string {
         const levels = this.levels;
-        const { usePercentage } = this.props.settings;
+        const { usePercentage, smoothGradient } = this.props.settings;
         const frac = this.toFraction(raw);
-        const cmp = usePercentage ? frac * 100 : raw;
 
+        if (smoothGradient) {
+            return this.getInterpolatedColor(frac);
+        }
+
+        const cmp = usePercentage ? frac * 100 : raw;
         for (const lvl of levels) {
             if (cmp <= lvl.value) {
                 return lvl.color;
             }
         }
         return levels[levels.length - 1]?.color || '#2196f3';
+    }
+
+    /** Sorted color stops as fractions [0..1], used for smooth-gradient interpolation */
+    private getStops(): { frac: number; color: string }[] {
+        const { usePercentage } = this.props.settings;
+        return this.levels
+            .map(lvl => ({
+                frac: usePercentage ? Math.max(0, Math.min(1, lvl.value / 100)) : this.toFraction(lvl.value),
+                color: lvl.color,
+            }))
+            .sort((a, b) => a.frac - b.frac);
+    }
+
+    private getInterpolatedColor(frac: number): string {
+        const stops = this.getStops();
+        if (!stops.length) {
+            return '#2196f3';
+        }
+        if (frac <= stops[0].frac) {
+            return stops[0].color;
+        }
+        if (frac >= stops[stops.length - 1].frac) {
+            return stops[stops.length - 1].color;
+        }
+        for (let i = 0; i < stops.length - 1; i++) {
+            const a = stops[i];
+            const b = stops[i + 1];
+            if (frac <= b.frac) {
+                const range = b.frac - a.frac;
+                const t = range > 0 ? (frac - a.frac) / range : 0;
+                return lerpColor(a.color, b.color, t);
+            }
+        }
+        return stops[stops.length - 1].color;
     }
 
     static formatValue(raw: number, isFloatComma?: boolean): string {
@@ -346,7 +412,9 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         opacity={0.12}
                     />
                     {/* Colored segments clipped to current value */}
-                    {this.renderColoredSegments(vb, r, sw, circumference, arcLength, frac)}
+                    {this.props.settings.smoothGradient
+                        ? this.renderSmoothSegments(vb, r, sw, circumference, arcLength, frac)
+                        : this.renderColoredSegments(vb, r, sw, circumference, arcLength, frac)}
                     {/* Indicator dot at current position */}
                     {dot ? (
                         <circle
@@ -463,6 +531,57 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
             if (levelFrac >= valueFrac) {
                 break;
             }
+        }
+
+        return segments;
+    }
+
+    /** Render the arc as many small segments with interpolated colors for a smooth gradient (no fixed boundaries) */
+    private renderSmoothSegments(
+        vb: number,
+        r: number,
+        sw: number,
+        circumference: number,
+        arcLength: number,
+        valueFrac: number,
+    ): React.JSX.Element[] {
+        if (valueFrac <= 0) {
+            return [];
+        }
+        const segments: React.JSX.Element[] = [];
+        const totalSegments = Math.max(1, Math.ceil(GRADIENT_SEGMENTS * valueFrac));
+        const cx = vb / 2;
+        const cy = vb / 2;
+
+        for (let i = 0; i < totalSegments; i++) {
+            const startFrac = (i / GRADIENT_SEGMENTS) * 1;
+            const endFrac = Math.min((i + 1) / GRADIENT_SEGMENTS, valueFrac);
+            if (endFrac <= startFrac) {
+                continue;
+            }
+            const midFrac = (startFrac + endFrac) / 2;
+            const color = this.getInterpolatedColor(midFrac);
+            const segStart = startFrac * arcLength;
+            // Slight overlap (0.5) to hide seams between adjacent segments
+            const segLen = (endFrac - startFrac) * arcLength + 0.5;
+            const isFirst = i === 0;
+            const isLast = i === totalSegments - 1;
+
+            segments.push(
+                <circle
+                    key={i}
+                    cx={cx}
+                    cy={cy}
+                    r={r}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={sw}
+                    strokeDasharray={`${segLen} ${circumference}`}
+                    strokeDashoffset={-segStart}
+                    strokeLinecap={isFirst || isLast ? 'round' : 'butt'}
+                    opacity={0.85}
+                />,
+            );
         }
 
         return segments;

@@ -6,6 +6,7 @@ export { WidgetClock, type WidgetClockSettings } from './Clock';
 export { WidgetColorLight } from './ColorLight';
 export { WidgetDimmer } from './Dimmer';
 export { WidgetDoor } from './Door';
+export { WidgetEnergyFlow, type WidgetEnergyFlowSettings } from './EnergyFlow';
 export { WidgetFireAlarm } from './FireAlarm';
 export { WidgetFloodAlarm } from './FloodAlarm';
 export { WidgetGate } from './Gate';

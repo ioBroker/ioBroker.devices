@@ -14,7 +14,6 @@ import { registerRemotes, loadRemote, createInstance } from '@module-federation/
 import * as AdapterReact from '@iobroker/adapter-react-v5';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
 import type WidgetGeneric from '@iobroker/dm-widgets';
-import { I18n } from '@iobroker/adapter-react-v5';
 
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';
@@ -101,7 +100,7 @@ export async function loadPluginComponent(
                         };
                     }>
                 )
-                    .then(translations => I18n.extendTranslations(translations.default))
+                    .then(translations => AdapterReact.I18n.extendTranslations(translations.default))
                     .catch(error => console.error(`Cannot load translations for ${uniqueName}: ${error}`))
                     .then(
                         () =>

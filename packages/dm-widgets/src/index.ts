@@ -53,17 +53,21 @@ export const StateContext = _host.StateContext || _StateContextStub;
 
 /** Host's React instance — use this instead of importing 'react' directly in plugins */
 export const React = _shared.react;
+/** Host's RactDom instance — use this instead of importing 'react-dom' directly in plugins */
+export const ReactDom = _shared['react-dom'];
 /** Host's MUI Material — use this instead of importing '@mui/material' directly in plugins */
 export const MuiMaterial = _shared['@mui/material'];
 /** Host's MUI Icons — use this instead of importing '@mui/icons-material' directly in plugins */
 export const MuiIcons = _shared['@mui/icons-material'];
 /** Host's moment instance — use this instead of importing 'moment' directly in plugins */
 export const moment = _shared.moment;
+/** Host's adapter-react-v5 instance — use this instead of importing '@iobroker/adapter-react-v5' directly in plugins */
+export const AdapterReact = _shared['@iobroker/adapter-react-v5'];
 
 // --- Type-only exports (no runtime presence needed) ---
 
 export type { WidgetGenericProps, IndicatorValues, ChartSeries, ExtraInfoEntry } from './WidgetGeneric';
-export type { StateChangeListener, ObjectChangeListener } from './StateContext';
+export type { StateChangeListener, ObjectChangeListener, IStateContext } from './StateContext';
 export type {
     CategoryInfo,
     CustomWidgetBase,

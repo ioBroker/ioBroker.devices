@@ -143,7 +143,7 @@ export class WidgetGeneric<
      * Base fields (size, color) are automatically prepended by the host —
      * only add plugin-specific fields here.
      *
-     * Supported item types (see `@iobroker/json-config` docs for full list):
+     * Supported item types (see `@iobroker/json-config` docs for the full list):
      * - `text`, `number`, `checkbox`, `color`, `select` — standard inputs
      * - `objectId` — ioBroker state picker with browse dialog
      * - `instance` — adapter instance selector (`adapters: ['adapterName']`)
@@ -215,8 +215,7 @@ export class WidgetGeneric<
         return undefined;
     }
 
-    /** Format a timestamp as a localized "time ago" string using moment */
-    // eslint-disable-next-line class-methods-use-this
+    /** Format a timestamp as a localized "time ago" string using "moment" */
     protected fromNow(_ts: number): string {
         return '';
     }
@@ -266,8 +265,8 @@ export class WidgetGeneric<
     }
 
     protected renderIndicators(
-        settingsButton?: React.JSX.Element | null,
-        extraStates?: React.JSX.Element | null,
+        _settingsButton?: React.JSX.Element | null,
+        _extraStates?: React.JSX.Element | null,
     ): React.JSX.Element | null {
         return null;
     }
@@ -294,7 +293,7 @@ export class WidgetGeneric<
 
     // --- PinPad ---
 
-    /** Open the PinPad dialog. On correct PIN, `onPinPadSuccess()` is called. */
+    /** Open the PinPad dialog. On the correct PIN, `onPinPadSuccess()` is called. */
     protected showPinPad(_pin: string): void {
         // Replaced at runtime by the host's real implementation
     }

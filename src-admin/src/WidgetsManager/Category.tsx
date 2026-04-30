@@ -92,6 +92,8 @@ import {
     type WidgetUniversalSettings,
     WidgetPresence,
     type WidgetPresenceSettings,
+    WidgetEnergyFlow,
+    type WidgetEnergyFlowSettings,
     WidgetGate,
     WidgetPlugin,
     type WidgetWeatherSettings,
@@ -2033,6 +2035,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
                         settings={def as WidgetPresenceSettings}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                    />
+                );
+                break;
+            case 'energyFlow':
+                content = (
+                    <WidgetEnergyFlow
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def as WidgetEnergyFlowSettings}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}

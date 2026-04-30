@@ -16,6 +16,7 @@ import {
 import {
     AccessTime,
     Air,
+    Bolt,
     Close,
     CreateNewFolder,
     Dashboard,
@@ -80,6 +81,12 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         icon: <People />,
         i18nKey: 'wm_Presence',
         descriptionKey: 'wm_Presence_desc',
+    },
+    {
+        type: 'energyFlow',
+        icon: <Bolt />,
+        i18nKey: 'wm_EnergyFlow',
+        descriptionKey: 'wm_EnergyFlow_desc',
     },
     {
         type: 'newline',
