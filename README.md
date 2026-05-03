@@ -293,6 +293,8 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 ### 0.1.0 (2019-08-31)
 * (bluefox) initial release
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 MIT License
 
