@@ -9,7 +9,6 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
-
 interface SunTimes {
     sunrise: Date;
     sunset: Date;
@@ -411,7 +410,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         </Typography>
                     ) : null}
                 </Box>
-
             </Box>
         );
     }
@@ -484,7 +482,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         {this.renderSunInfo('0.7rem')}
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -559,7 +556,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                     ) : null}
                     {this.renderSunInfo('max(0.75rem, 4cqi)')}
                 </Box>
-
             </Box>
         );
     }
@@ -614,7 +610,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         </Typography>
                     ) : null}
                 </Box>
-
             </Box>
         );
     }
@@ -696,7 +691,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         {this.renderSunInfo('0.7rem')}
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -765,7 +759,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         {this.renderSunInfo('max(0.85rem, 4.5cqi)')}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

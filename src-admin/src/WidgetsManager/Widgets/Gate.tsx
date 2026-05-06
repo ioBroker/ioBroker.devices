@@ -341,7 +341,6 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }

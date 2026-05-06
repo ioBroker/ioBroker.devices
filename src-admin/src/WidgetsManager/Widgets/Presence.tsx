@@ -205,7 +205,6 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
                         )}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

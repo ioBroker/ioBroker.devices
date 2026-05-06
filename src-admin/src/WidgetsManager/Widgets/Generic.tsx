@@ -2077,6 +2077,14 @@ export class WidgetGeneric<
         return WidgetGeneric.getStyleWide(theme);
     }
 
+    /** 2×2: spans 2 columns AND 2 rows so the tile occupies a square double-cell area. */
+    static getStyleHuge(theme: Theme): React.CSSProperties {
+        const style = WidgetGeneric.getStyleCompact(theme);
+        style.gridColumn = 'span 2';
+        style.gridRow = 'span 2';
+        return style;
+    }
+
     static getSettingButtonStyle(): SxProps<Theme> {
         return (theme: Theme) => ({
             p: '3px',
@@ -2383,6 +2391,15 @@ export class WidgetGeneric<
         );
     }
 
+    /**
+     * Override in subclasses that opt into the 2×2 size. Defaults to renderWideTall (2×1) so widgets
+     *  that don't customize 2×2 don't blow up if they ever receive that size — but normally only
+     *  iFrame and EnergyFlow expose this option in their schema.
+     */
+    renderHuge(): React.JSX.Element {
+        return this.renderWideTall();
+    }
+
     render(): React.JSX.Element {
         const size = this.props.settings?.size || '1x1';
         let widget: React.JSX.Element;
@@ -2390,6 +2407,8 @@ export class WidgetGeneric<
             widget = this.renderWide();
         } else if (size === '2x1') {
             widget = this.renderWideTall();
+        } else if (size === '2x2') {
+            widget = this.renderHuge();
         } else {
             widget = this.renderCompact();
         }

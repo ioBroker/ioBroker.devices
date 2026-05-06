@@ -757,7 +757,6 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

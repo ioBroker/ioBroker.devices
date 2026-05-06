@@ -427,7 +427,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-
             </Box>
         );
     }
@@ -602,7 +601,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-
             </Box>
         );
     }

@@ -15,10 +15,15 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import type { ConfigItemAny, ConfigItemPanel, ConfigItemTable } from '@iobroker/json-config';
+// xyflow's bezier-path helper — gives us nicely shaped, position-aware Bezier curves with proper
+// handle tangents. We don't pull in the full <ReactFlow> component (too heavy + unwanted pan/zoom),
+// just the path-string utility so we keep our own SVG / dot-animation rendering.
+import { getBezierPath, Position } from '@xyflow/react';
 
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
 import type { StateChangeListener } from '../StateContext';
+import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
 
@@ -27,6 +32,8 @@ interface EnergyEntry {
     /** Stable id for React keys (auto-generated if missing) */
     id?: string;
     stateId?: string;
+    /** Optional state for today's total (kWh, daily counter). Shown as small badge top-right. */
+    todayStateId?: string;
     name?: string;
     color?: string;
     icon?: string;
@@ -53,6 +60,10 @@ interface EntryRuntime {
     historyId: string | null;
     historyInstance: string;
     bars: { ts: number; val: number }[];
+    /** Today's total (live value of `todayStateId` if configured). null = not configured / no data. */
+    todayVal: number | null;
+    /** Unit for today's total — typically kWh, falls back to "" if not set on the object. */
+    todayUnit: string;
 }
 
 /** Identifies the tile clicked → which state to show in the chart dialog */
@@ -63,6 +74,24 @@ interface ChartTarget {
     name: string;
     color: string;
     unit: string;
+}
+
+/** A single endpoint position in the flow container's local pixel coordinates. */
+interface ConnectorEnd {
+    x: number;
+    y: number;
+}
+
+/** Geometry needed by the SVG connector layer: tile attach points + battery rect, all relative
+ *  to the flow container's top-left corner. Recomputed on resize / layout change via ResizeObserver. */
+interface FlowGeometry {
+    cw: number;
+    ch: number;
+    /** Right-edge midpoint of each producer tile */
+    producers: ConnectorEnd[];
+    /** Left-edge midpoint of each consumer tile */
+    consumers: ConnectorEnd[];
+    battery: { topY: number; leftX: number; rightX: number } | null;
 }
 
 interface WidgetEnergyFlowState extends WidgetGenericState {
@@ -77,6 +106,8 @@ interface WidgetEnergyFlowState extends WidgetGenericState {
     chartTarget: ChartTarget | null;
     /** Energy-flow detail dialog (the full producers/consumers/battery layout) */
     flowDialogOpen: boolean;
+    /** Measured layout geometry for drawing per-tile connectors (null until first measure) */
+    flowGeom: FlowGeometry | null;
 }
 
 const PRODUCER_TYPES = [
@@ -151,7 +182,10 @@ function entryColor(entry: EnergyEntry, fallbackMap: Record<string, string>): st
 
 export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, WidgetEnergyFlowSettings> {
     static getConfigSchema(): ConfigItemPanel {
-        const tableColumns = (typeOptions: { value: string; label: string }[]): ConfigItemTable['items'] => [
+        const tableColumns = (
+            typeOptions: { value: string; label: string }[],
+            todayLabel: string,
+        ): ConfigItemTable['items'] => [
             { attr: 'stateId', type: 'objectId', title: 'wm_State ID', filter: false, sort: false },
             { attr: 'name', type: 'text', title: 'wm_Name', filter: false, sort: false },
             {
@@ -161,6 +195,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                 options: typeOptions,
                 default: typeOptions[0].value,
             },
+            { attr: 'todayStateId', type: 'objectId', title: todayLabel, filter: false, sort: false },
             { attr: 'color', type: 'color', title: 'wm_Color' },
             { attr: 'icon', type: 'component', subType: 'iconSelect', title: 'wm_Icon' },
         ];
@@ -173,7 +208,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             attr: 'producers',
             titleAttribute: 'name',
             useCardFor: ['xs', 'sm'],
-            items: tableColumns(PRODUCER_TYPES),
+            items: tableColumns(PRODUCER_TYPES, 'wm_Today produced'),
         };
         const consumerTable: ConfigItemTable & { attr: string } = {
             type: 'table',
@@ -182,7 +217,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             help: 'wm_Consumers help',
             titleAttribute: 'name',
             useCardFor: ['xs', 'sm'],
-            items: tableColumns(CONSUMER_TYPES),
+            items: tableColumns(CONSUMER_TYPES, 'wm_Today consumed'),
         };
         const batteryPanel: ConfigItemAny = {
             type: 'panel',
@@ -202,6 +237,15 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             type: 'panel',
             label: 'wm_EnergyFlow',
             items: {
+                // Override base size dropdown so EnergyFlow exposes the 2×2 tile (square, double).
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS_WITH_2X2,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
                 _producers: {
                     type: 'panel',
                     collapsable: true,
@@ -238,6 +282,15 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
     /** Pending history-load promises to allow cancellation on unmount */
     private mounted = false;
 
+    /** Refs for measuring connector endpoints in the dialog's flow layout. Re-attached every render
+     *  via callback refs, so they automatically follow the live producer/consumer arrays. */
+    private flowContainerEl: HTMLDivElement | null = null;
+    private producerEls: (HTMLDivElement | null)[] = [];
+    private consumerEls: (HTMLDivElement | null)[] = [];
+    private batteryEl: HTMLDivElement | null = null;
+    private flowResizeObserver: ResizeObserver | null = null;
+    private flowMeasureRaf: number | null = null;
+
     constructor(props: WidgetGenericProps<WidgetEnergyFlowSettings>) {
         super(props);
         this.state = {
@@ -252,6 +305,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             batterySocHistoryInstance: '',
             chartTarget: null,
             flowDialogOpen: false,
+            flowGeom: null,
         };
     }
 
@@ -275,12 +329,127 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             this.unsubscribeAll();
             this.subscribeAll();
         }
+        // Layout may have shifted (tile counts, dialog open/close, resize) — re-measure connectors.
+        if (this.state.flowDialogOpen) {
+            this.scheduleFlowMeasure();
+        }
     }
 
     componentWillUnmount(): void {
         super.componentWillUnmount();
         this.mounted = false;
         this.unsubscribeAll();
+        this.flowResizeObserver?.disconnect();
+        this.flowResizeObserver = null;
+        if (this.flowMeasureRaf !== null) {
+            cancelAnimationFrame(this.flowMeasureRaf);
+            this.flowMeasureRaf = null;
+        }
+    }
+
+    /** Coalesce multiple measure requests within a single frame */
+    private scheduleFlowMeasure = (): void => {
+        if (this.flowMeasureRaf !== null) {
+            return;
+        }
+        this.flowMeasureRaf = requestAnimationFrame(() => {
+            this.flowMeasureRaf = null;
+            this.measureFlow();
+        });
+    };
+
+    /** Container ref callback: also attaches a ResizeObserver so the SVG redraws on layout changes
+     *  (window resize, dialog resize, group expansion, etc.). */
+    private setFlowContainerRef = (el: HTMLDivElement | null): void => {
+        this.flowContainerEl = el;
+        if (el) {
+            if (!this.flowResizeObserver) {
+                this.flowResizeObserver = new ResizeObserver(() => this.scheduleFlowMeasure());
+            }
+            this.flowResizeObserver.observe(el);
+            this.scheduleFlowMeasure();
+        } else if (this.flowResizeObserver) {
+            this.flowResizeObserver.disconnect();
+            this.flowResizeObserver = null;
+        }
+    };
+
+    private measureFlow(): void {
+        if (!this.mounted || !this.flowContainerEl) {
+            return;
+        }
+        const cRect = this.flowContainerEl.getBoundingClientRect();
+        const cx = cRect.left;
+        const cy = cRect.top;
+
+        // Connection point = bottom-center of each tile so the connector exits vertically and the
+        // S-curve has well-behaved tangents regardless of horizontal offset to the battery attach.
+        const producers: ConnectorEnd[] = [];
+        for (const el of this.producerEls) {
+            if (!el) {
+                continue;
+            }
+            const r = el.getBoundingClientRect();
+            producers.push({ x: r.left - cx + r.width / 2, y: r.bottom - cy });
+        }
+        const consumers: ConnectorEnd[] = [];
+        for (const el of this.consumerEls) {
+            if (!el) {
+                continue;
+            }
+            const r = el.getBoundingClientRect();
+            consumers.push({ x: r.left - cx + r.width / 2, y: r.bottom - cy });
+        }
+        let battery: FlowGeometry['battery'] = null;
+        if (this.batteryEl) {
+            const r = this.batteryEl.getBoundingClientRect();
+            battery = {
+                topY: r.top - cy,
+                leftX: r.left - cx,
+                rightX: r.right - cx,
+            };
+        }
+
+        const next: FlowGeometry = { cw: cRect.width, ch: cRect.height, producers, consumers, battery };
+        if (WidgetEnergyFlow.flowGeomEqual(this.state.flowGeom, next)) {
+            return;
+        }
+        this.setState({ flowGeom: next });
+    }
+
+    private static flowGeomEqual(a: FlowGeometry | null, b: FlowGeometry | null): boolean {
+        if (!a || !b) {
+            return a === b;
+        }
+        if (a.cw !== b.cw || a.ch !== b.ch) {
+            return false;
+        }
+        if (a.producers.length !== b.producers.length || a.consumers.length !== b.consumers.length) {
+            return false;
+        }
+        for (let i = 0; i < a.producers.length; i++) {
+            if (a.producers[i].x !== b.producers[i].x || a.producers[i].y !== b.producers[i].y) {
+                return false;
+            }
+        }
+        for (let i = 0; i < a.consumers.length; i++) {
+            if (a.consumers[i].x !== b.consumers[i].x || a.consumers[i].y !== b.consumers[i].y) {
+                return false;
+            }
+        }
+        if (!!a.battery !== !!b.battery) {
+            return false;
+        }
+        if (a.battery && b.battery) {
+            if (
+                a.battery.topY !== b.battery.topY ||
+                a.battery.leftX !== b.battery.leftX ||
+                a.battery.rightX !== b.battery.rightX
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private unsubscribeAll(): void {
@@ -317,21 +486,18 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         }
 
         // Init runtime arrays sized to the entry lists, then patch values via setState.
+        const emptyRt = (): EntryRuntime => ({
+            val: null,
+            unit: '',
+            historyId: null,
+            historyInstance: '',
+            bars: [],
+            todayVal: null,
+            todayUnit: '',
+        });
         this.setState({
-            producerRt: producers.map(() => ({
-                val: null,
-                unit: '',
-                historyId: null,
-                historyInstance: '',
-                bars: [],
-            })),
-            consumerRt: consumers.map(() => ({
-                val: null,
-                unit: '',
-                historyId: null,
-                historyInstance: '',
-                bars: [],
-            })),
+            producerRt: producers.map(emptyRt),
+            consumerRt: consumers.map(emptyRt),
             batterySoc: null,
             batteryVoltage: null,
             batteryCurrent: null,
@@ -341,23 +507,37 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         });
 
         const subscribeEntry = (kind: 'p' | 'c', idx: number, entry: EnergyEntry): void => {
-            if (!entry.stateId) {
-                return;
+            if (entry.stateId) {
+                this.subscribeOne(`${kind}:${idx}`, entry.stateId, val =>
+                    this.setState(prev => {
+                        const arr = (kind === 'p' ? prev.producerRt : prev.consumerRt).slice();
+                        if (arr[idx]) {
+                            arr[idx] = { ...arr[idx], val };
+                        }
+                        return (kind === 'p' ? { producerRt: arr } : { consumerRt: arr }) as unknown as Pick<
+                            WidgetEnergyFlowState,
+                            'producerRt' | 'consumerRt'
+                        >;
+                    }),
+                );
+                // Lazily fetch the unit + resolve history.
+                void this.resolveEntryMeta(kind, idx, entry.stateId);
             }
-            this.subscribeOne(`${kind}:${idx}`, entry.stateId, val =>
-                this.setState(prev => {
-                    const arr = (kind === 'p' ? prev.producerRt : prev.consumerRt).slice();
-                    if (arr[idx]) {
-                        arr[idx] = { ...arr[idx], val };
-                    }
-                    return (kind === 'p' ? { producerRt: arr } : { consumerRt: arr }) as unknown as Pick<
-                        WidgetEnergyFlowState,
-                        'producerRt' | 'consumerRt'
-                    >;
-                }),
-            );
-            // Lazily fetch the unit + resolve history.
-            void this.resolveEntryMeta(kind, idx, entry.stateId);
+            if (entry.todayStateId) {
+                this.subscribeOne(`${kind}:${idx}:today`, entry.todayStateId, val =>
+                    this.setState(prev => {
+                        const arr = (kind === 'p' ? prev.producerRt : prev.consumerRt).slice();
+                        if (arr[idx]) {
+                            arr[idx] = { ...arr[idx], todayVal: val };
+                        }
+                        return (kind === 'p' ? { producerRt: arr } : { consumerRt: arr }) as unknown as Pick<
+                            WidgetEnergyFlowState,
+                            'producerRt' | 'consumerRt'
+                        >;
+                    }),
+                );
+                void this.resolveTodayUnit(kind, idx, entry.todayStateId);
+            }
         };
 
         producers.forEach((p, i) => subscribeEntry('p', i, p));
@@ -451,6 +631,30 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         if (historyId && historyInstance) {
             await this.loadBars(kind, idx, historyId, historyInstance);
         }
+    }
+
+    /** Resolve and cache only the unit for the today-counter state. We don't load history bars
+     *  here — the today value is shown as a small text badge and doesn't need a chart. */
+    private async resolveTodayUnit(kind: 'p' | 'c', idx: number, stateId: string): Promise<void> {
+        const ctx = this.props.stateContext;
+        if (!ctx) {
+            return;
+        }
+        const obj = await ctx.getSocket().getObject(stateId).catch(() => null);
+        if (!this.mounted) {
+            return;
+        }
+        const unit = (obj as ioBroker.StateObject | null)?.common?.unit || '';
+        this.setState(prev => {
+            const arr = (kind === 'p' ? prev.producerRt : prev.consumerRt).slice();
+            if (arr[idx]) {
+                arr[idx] = { ...arr[idx], todayUnit: unit };
+            }
+            return (kind === 'p' ? { producerRt: arr } : { consumerRt: arr }) as unknown as Pick<
+                WidgetEnergyFlowState,
+                'producerRt' | 'consumerRt'
+            >;
+        });
     }
 
     private async resolveBatterySocHistory(stateId: string): Promise<void> {
@@ -628,12 +832,22 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         );
     }
 
-    private renderEntryTile(entry: EnergyEntry, rt: EntryRuntime, kind: 'p' | 'c'): React.JSX.Element {
+    private renderEntryTile(
+        entry: EnergyEntry,
+        rt: EntryRuntime,
+        kind: 'p' | 'c',
+        refCb?: (el: HTMLDivElement | null) => void,
+    ): React.JSX.Element {
         const color = entryColor(entry, kind === 'p' ? PRODUCER_DEFAULT_COLOR : CONSUMER_DEFAULT_COLOR);
         const name = entry.name || '';
         const clickable = !!rt.historyId && !!rt.historyInstance;
+        // Show today badge only when the user actually configured a state. Renders "–" while the
+        // first value is loading so the layout doesn't shift when the value arrives.
+        const showTodayBadge = !!entry.todayStateId;
+        const todayLabel = kind === 'p' ? I18n.t('wm_Today produced') : I18n.t('wm_Today consumed');
         return (
             <Box
+                ref={refCb}
                 onClick={
                     clickable
                         ? () =>
@@ -662,8 +876,70 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     '&:hover': clickable ? { borderColor: color, transform: 'translateY(-1px)' } : {},
                 })}
             >
-                {/* Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 14, opacity: 0.9 }}>
+                {/* Today badge — top-right corner. Two-line: tiny label on top, value below. */}
+                {showTodayBadge ? (
+                    <Box
+                        title={todayLabel}
+                        sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 10,
+                            textAlign: 'right',
+                            zIndex: 1,
+                            // Cap width so long labels truncate instead of pushing into the header.
+                            maxWidth: '45%',
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        <Typography
+                            sx={{
+                                fontSize: 9,
+                                lineHeight: 1,
+                                opacity: 0.55,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                            }}
+                        >
+                            {todayLabel}
+                        </Typography>
+                        <Typography
+                            sx={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                lineHeight: 1.15,
+                                color,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {rt.todayVal == null
+                                ? '–'
+                                : formatFloat(
+                                      rt.todayVal,
+                                      Math.abs(rt.todayVal) >= 100 ? 0 : 1,
+                                      this.props.stateContext.isFloatComma,
+                                  )}
+                            <Typography
+                                component="span"
+                                sx={{ fontSize: '0.78em', fontWeight: 400, ml: 0.25, opacity: 0.7 }}
+                            >
+                                {rt.todayUnit || 'kWh'}
+                            </Typography>
+                        </Typography>
+                    </Box>
+                ) : null}
+
+                {/* Header — reserves right padding when the today badge is shown so name doesn't overlap. */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        fontSize: 14,
+                        opacity: 0.9,
+                        pr: showTodayBadge ? '50%' : 0,
+                    }}
+                >
                     <Box sx={{ color, fontSize: 18, display: 'flex', alignItems: 'center' }}>
                         {this.renderEntryIcon(entry, kind)}
                     </Box>
@@ -749,6 +1025,9 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
 
         return (
             <Box
+                ref={(el: HTMLDivElement | null) => {
+                    this.batteryEl = el;
+                }}
                 onClick={
                     clickable
                         ? () =>
@@ -838,50 +1117,156 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         );
     }
 
-    /** SVG connector lines: producers → battery (from left), consumers ← battery (from right). */
-    private static renderConnectors(
-        producers: number,
-        consumers: number,
-        hasBattery: boolean,
-    ): React.JSX.Element | null {
-        if (!hasBattery || (producers === 0 && consumers === 0)) {
+    /** Per-tile dotted connector overlay (Victron-style). Each line carries circular dots that flow
+     *  producer→battery and battery→consumer at a speed proportional to that entry's power; idle
+     *  entries get a faded static line. Geometry comes from `flowGeom` (measured via refs).
+     *
+     *  Path geometry is delegated to xyflow's `getBezierPath` — it produces nicely tuned, position-
+     *  aware Bezier curves with smooth handle tangents (Bottom→Top for producer→battery, Top→Bottom
+     *  for battery→consumer). Animation uses inline SMIL per element so we avoid cross-SVG
+     *  `@keyframes` conflicts with the launcher tile. */
+    private renderConnectors(): React.JSX.Element | null {
+        const geom = this.state.flowGeom;
+        if (!geom || !geom.battery || (geom.producers.length === 0 && geom.consumers.length === 0)) {
             return null;
         }
+        const battery = geom.battery;
+        const accent = ACCENT;
+        const batteryW = battery.rightX - battery.leftX;
+        const halfW = batteryW / 2;
+        // Keep attach points away from the battery's outer edges so the endpoint dots sit inside.
+        const SIDE_MARGIN = 16;
+        const STROKE_WIDTH = 2;
+        const DASH_GAP = 9; // px between consecutive dot centres
+        const dasharray = `0 ${DASH_GAP}`;
+        const elements: React.JSX.Element[] = [];
+
+        // Spread n attach points evenly across [base, base + dir*span]; handles n===1 naturally.
+        const fanX = (i: number, n: number, base: number, span: number, dir: 1 | -1): number => {
+            const t = n === 1 ? 0.5 : (i + 0.5) / n;
+            return base + dir * Math.max(0, span) * t;
+        };
+
+        const drawConnector = (
+            key: string,
+            sourceX: number,
+            sourceY: number,
+            sourcePosition: Position,
+            targetX: number,
+            targetY: number,
+            targetPosition: Position,
+            duration: number,
+        ): void => {
+            const [d] = getBezierPath({
+                sourceX,
+                sourceY,
+                sourcePosition,
+                targetX,
+                targetY,
+                targetPosition,
+                // Slightly stiffer than the default 0.25 so multi-row stacks still curve clearly
+                // without producing hairpin overshoots when source/target are close in Y.
+                curvature: 0.35,
+            });
+            const flowing = duration > 0;
+            elements.push(
+                <path
+                    key={`${key}-l`}
+                    d={d}
+                    stroke={accent}
+                    strokeWidth={STROKE_WIDTH}
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray={dasharray}
+                    opacity={flowing ? 0.95 : 0.35}
+                >
+                    {flowing ? (
+                        <animate
+                            attributeName="stroke-dashoffset"
+                            from={0}
+                            to={-DASH_GAP}
+                            dur={`${duration}s`}
+                            repeatCount="indefinite"
+                        />
+                    ) : null}
+                </path>,
+                <circle
+                    key={`${key}-s`}
+                    cx={sourceX}
+                    cy={sourceY}
+                    r={2.5}
+                    fill={accent}
+                    opacity={0.9}
+                />,
+                <circle
+                    key={`${key}-e`}
+                    cx={targetX}
+                    cy={targetY}
+                    r={2.5}
+                    fill={accent}
+                    opacity={0.9}
+                />,
+            );
+        };
+
+        // Producer connectors: drawn FROM producer TO battery (dots flow producer → battery).
+        // Source = tile bottom (Position.Bottom), target = battery top (Position.Top). Battery
+        // attach points fan across the LEFT half of the battery's top edge so multiple producers
+        // each get their own clean lane.
+        const N = geom.producers.length;
+        geom.producers.forEach((p, i) => {
+            const power = this.state.producerRt[i]?.val ?? 0;
+            const duration = WidgetEnergyFlow.flowDuration(Math.abs(power));
+            const ax = fanX(i, N, battery.leftX + SIDE_MARGIN, halfW - SIDE_MARGIN, 1);
+            drawConnector(
+                `p${i}`,
+                p.x,
+                p.y,
+                Position.Bottom,
+                ax,
+                battery.topY,
+                Position.Top,
+                duration,
+            );
+        });
+
+        // Consumer connectors: drawn FROM battery TO consumer (dots flow battery → consumer).
+        // Source = battery top (Position.Top exits upward), target = consumer bottom (enters from
+        // below). Path direction is what drives the SMIL flow direction.
+        const M = geom.consumers.length;
+        geom.consumers.forEach((c, j) => {
+            const power = this.state.consumerRt[j]?.val ?? 0;
+            const duration = WidgetEnergyFlow.flowDuration(Math.abs(power));
+            const ax = fanX(j, M, battery.rightX - SIDE_MARGIN, halfW - SIDE_MARGIN, -1);
+            drawConnector(
+                `c${j}`,
+                ax,
+                battery.topY,
+                Position.Top,
+                c.x,
+                c.y,
+                Position.Bottom,
+                duration,
+            );
+        });
+
         return (
             <Box
                 sx={{
                     position: 'absolute',
                     inset: 0,
                     pointerEvents: 'none',
+                    zIndex: 0,
                 }}
             >
                 <svg
                     width="100%"
                     height="100%"
-                    viewBox="0 0 100 100"
+                    viewBox={`0 0 ${geom.cw} ${geom.ch}`}
                     preserveAspectRatio="none"
                     style={{ position: 'absolute', inset: 0 }}
                 >
-                    {/* Producer connector — single curve from left edge down to battery centre */}
-                    {producers > 0 ? (
-                        <path
-                            d="M 0 50 C 25 50, 25 92, 50 92"
-                            stroke={ACCENT}
-                            strokeWidth="0.4"
-                            fill="none"
-                            opacity={0.6}
-                        />
-                    ) : null}
-                    {/* Consumer connector — single curve from right edge down to battery centre */}
-                    {consumers > 0 ? (
-                        <path
-                            d="M 100 50 C 75 50, 75 92, 50 92"
-                            stroke={ACCENT}
-                            strokeWidth="0.4"
-                            fill="none"
-                            opacity={0.6}
-                        />
-                    ) : null}
+                    {elements}
                 </svg>
             </Box>
         );
@@ -918,8 +1303,13 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             this.props.settings.batteryPowerStateId
         );
 
+        // Reset ref arrays each render so removed tiles don't leave dangling refs that confuse measurement.
+        this.producerEls = [];
+        this.consumerEls = [];
+
         return (
             <Box
+                ref={this.setFlowContainerRef}
                 sx={(theme: Theme) => ({
                     width: '100%',
                     height: '100%',
@@ -942,11 +1332,11 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                             'producers consumers'
                             'producers consumers'
                           `,
-                    gap: 1.25,
+                    gap: 6,
                     boxSizing: 'border-box',
                 })}
             >
-                {WidgetEnergyFlow.renderConnectors(producers.length, consumers.length, hasBattery)}
+                {this.renderConnectors()}
 
                 <Box
                     sx={{
@@ -966,7 +1356,9 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                         producers.map((p, i) =>
                             this.state.producerRt[i] ? (
                                 <React.Fragment key={p.id || `p${i}`}>
-                                    {this.renderEntryTile(p, this.state.producerRt[i], 'p')}
+                                    {this.renderEntryTile(p, this.state.producerRt[i], 'p', el => {
+                                        this.producerEls[i] = el;
+                                    })}
                                 </React.Fragment>
                             ) : null,
                         )
@@ -991,7 +1383,9 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                         consumers.map((c, i) =>
                             this.state.consumerRt[i] ? (
                                 <React.Fragment key={c.id || `c${i}`}>
-                                    {this.renderEntryTile(c, this.state.consumerRt[i], 'c')}
+                                    {this.renderEntryTile(c, this.state.consumerRt[i], 'c', el => {
+                                        this.consumerEls[i] = el;
+                                    })}
                                 </React.Fragment>
                             ) : null,
                         )
@@ -1148,7 +1542,19 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     '&:hover': { borderColor: accent, transform: 'translateY(-1px)' },
                 })}
             >
-                {indicators}
+                {/* Indicators (incl. settings gear) need to sit above title/central/bottom (zIndex 2)
+                    or their click target is covered and bubbles to the tile's onClick. */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 3,
+                        pointerEvents: 'none',
+                        '& > *': { pointerEvents: 'auto' },
+                    }}
+                >
+                    {indicators}
+                </Box>
 
                 {/* Title row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, position: 'relative', zIndex: 2 }}>
@@ -1166,73 +1572,92 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     </Typography>
                 </Box>
 
-                {/* SVG flow lines — animated dash-offset gives a "running arrows" effect.
-                    Speed scales inversely with current power; zero/idle power = static line. */}
+                {/* SVG flow lines — circular dots flow along the line, speed scales inversely with
+                    current power. Zero/idle power = static dotted line. SMIL `<animate>` keeps the
+                    animation per-element so it doesn't collide with the dialog's connectors. */}
                 {bottomCols.length > 0 ? (
                     <svg
                         viewBox="0 0 100 100"
                         preserveAspectRatio="none"
                         style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}
                     >
-                        <defs>
-                            <marker
-                                id="ef-arrow"
-                                markerWidth="6"
-                                markerHeight="6"
-                                refX="5"
-                                refY="3"
-                                orient="auto"
-                                markerUnits="userSpaceOnUse"
-                            >
-                                <path
-                                    d="M0,0 L6,3 L0,6 Z"
-                                    fill={accent}
-                                />
-                            </marker>
-                            <style>{`
-                                @keyframes ef-flow-fwd { to { stroke-dashoffset: -7; } }
-                                .ef-flow-line { stroke-dasharray: 4 3; }
-                            `}</style>
-                        </defs>
                         {hasProducers ? (
-                            <line
-                                className="ef-flow-line"
-                                x1={centerX.p}
-                                y1={ARROW_TIP_Y}
-                                x2={NODE_X}
-                                y2={NODE_Y_BOTTOM}
-                                stroke={accent}
-                                strokeWidth="0.7"
-                                opacity={producerDuration > 0 ? 0.95 : 0.5}
-                                markerEnd="url(#ef-arrow)"
-                                style={
-                                    producerDuration > 0
-                                        ? {
-                                              animation: `ef-flow-fwd ${producerDuration}s linear infinite`,
-                                          }
-                                        : undefined
-                                }
-                            />
+                            <>
+                                <line
+                                    x1={centerX.p}
+                                    y1={ARROW_TIP_Y}
+                                    x2={NODE_X}
+                                    y2={NODE_Y_BOTTOM}
+                                    stroke={accent}
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeDasharray="0 5"
+                                    opacity={producerDuration > 0 ? 0.95 : 0.4}
+                                >
+                                    {producerDuration > 0 ? (
+                                        <animate
+                                            attributeName="stroke-dashoffset"
+                                            from={0}
+                                            to={-5}
+                                            dur={`${producerDuration}s`}
+                                            repeatCount="indefinite"
+                                        />
+                                    ) : null}
+                                </line>
+                                <circle
+                                    cx={centerX.p}
+                                    cy={ARROW_TIP_Y}
+                                    r={1.5}
+                                    fill={accent}
+                                    opacity={0.9}
+                                />
+                                <circle
+                                    cx={NODE_X}
+                                    cy={NODE_Y_BOTTOM}
+                                    r={1.5}
+                                    fill={accent}
+                                    opacity={0.9}
+                                />
+                            </>
                         ) : null}
                         {hasConsumers ? (
-                            <line
-                                className="ef-flow-line"
-                                x1={NODE_X}
-                                y1={NODE_Y_BOTTOM}
-                                x2={centerX.c}
-                                y2={ARROW_TIP_Y}
-                                stroke={accent}
-                                strokeWidth="0.7"
-                                opacity={consumerDuration > 0 ? 0.95 : 0.5}
-                                markerEnd="url(#ef-arrow)"
-                                style={
-                                    consumerDuration > 0
-                                        ? {
-                                              animation: `ef-flow-fwd ${consumerDuration}s linear infinite`,
-                                          }
-                                        : undefined
-                                }
-                            />
+                            <>
+                                <line
+                                    x1={NODE_X}
+                                    y1={NODE_Y_BOTTOM}
+                                    x2={centerX.c}
+                                    y2={ARROW_TIP_Y}
+                                    stroke={accent}
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeDasharray="0 5"
+                                    opacity={consumerDuration > 0 ? 0.95 : 0.4}
+                                >
+                                    {consumerDuration > 0 ? (
+                                        <animate
+                                            attributeName="stroke-dashoffset"
+                                            from={0}
+                                            to={-5}
+                                            dur={`${consumerDuration}s`}
+                                            repeatCount="indefinite"
+                                        />
+                                    ) : null}
+                                </line>
+                                <circle
+                                    cx={NODE_X}
+                                    cy={NODE_Y_BOTTOM}
+                                    r={1.5}
+                                    fill={accent}
+                                    opacity={0.9}
+                                />
+                                <circle
+                                    cx={centerX.c}
+                                    cy={ARROW_TIP_Y}
+                                    r={1.5}
+                                    fill={accent}
+                                    opacity={0.9}
+                                />
+                            </>
                         ) : null}
                     </svg>
                 ) : null}
@@ -1298,7 +1723,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                         bottom: 8,
                         display: 'grid',
                         gridTemplateColumns: `repeat(${Math.max(1, bottomCols.length)}, 1fr)`,
-                        gap: 0.75,
+                        gap: 3,
                         zIndex: 2,
                     }}
                 >
@@ -1361,6 +1786,10 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
     }
 
     renderWideTall(): React.JSX.Element {
+        return this.renderLauncherTile(true);
+    }
+
+    renderHuge(): React.JSX.Element {
         return this.renderLauncherTile(true);
     }
 

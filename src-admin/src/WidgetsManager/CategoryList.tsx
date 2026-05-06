@@ -36,7 +36,7 @@ import type {
 
 interface SpecialTile {
     type: 'clock';
-    size: '1x1' | '2x0.5' | '2x1';
+    size: '1x1' | '2x0.5' | '2x1' | '2x2';
 }
 
 interface GuiConfig {
@@ -1846,7 +1846,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private getWidgetName(widget: WidgetInfo): string {
-        return resolveTranslated(widget.name as ioBroker.StringOrTranslated, this.stateContext.language) || String(widget.id);
+        return (
+            resolveTranslated(widget.name as ioBroker.StringOrTranslated, this.stateContext.language) ||
+            String(widget.id)
+        );
     }
 
     private cachedWmThemeId: WmThemeId | undefined;

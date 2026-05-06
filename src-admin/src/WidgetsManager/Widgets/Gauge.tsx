@@ -15,7 +15,6 @@ import WidgetGeneric, {
 import ChartDialog from './ChartDialog';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
-
 interface ColorLevel {
     value: number;
     color: string;
@@ -31,7 +30,13 @@ const GRADIENT_SEGMENTS = 60;
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
     const m = hex.replace('#', '');
-    const v = m.length === 3 ? m.split('').map(c => c + c).join('') : m;
+    const v =
+        m.length === 3
+            ? m
+                  .split('')
+                  .map(c => c + c)
+                  .join('')
+            : m;
     return {
         r: parseInt(v.slice(0, 2), 16) || 0,
         g: parseInt(v.slice(2, 4), 16) || 0,
@@ -663,7 +668,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         </Typography>
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -728,7 +732,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         </Typography>
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -788,7 +791,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         {this.renderLevelLegend()}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

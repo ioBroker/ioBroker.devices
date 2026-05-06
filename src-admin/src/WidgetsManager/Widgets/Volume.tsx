@@ -486,7 +486,6 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }

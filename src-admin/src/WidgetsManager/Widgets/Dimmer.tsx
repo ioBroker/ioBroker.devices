@@ -852,7 +852,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

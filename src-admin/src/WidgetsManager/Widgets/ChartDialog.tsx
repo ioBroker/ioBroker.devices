@@ -924,13 +924,16 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
     const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dims, setDims] = useState({ w: 600, h: 350 });
-    const [autoUnits, setAutoUnits] = useState<Record<string, string>>({});
     const unit = unitProp || '';
-    const settingsLoadedRef = useRef(false);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     // Load chart settings from custom['devices.0'] on the widget object
     useEffect(() => {
-        if (!open || !widgetId || !instanceId || settingsLoadedRef.current) {
+        if (!open || settingsLoaded) {
+            return;
+        }
+        if (!widgetId || !instanceId) {
+            setSettingsLoaded(true);
             return;
         }
         void (async () => {
@@ -957,17 +960,18 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         setRangeHours(custom.chartRangeHours);
                     }
                 }
-                settingsLoadedRef.current = true;
             } catch {
                 // ignore
+            } finally {
+                setSettingsLoaded(true);
             }
         })();
-    }, [open, widgetId, instanceId, socket]);
+    }, [open, widgetId, instanceId, socket, settingsLoaded]);
 
     // Reset loaded flag when dialog closes
     useEffect(() => {
         if (!open) {
-            settingsLoadedRef.current = false;
+            setSettingsLoaded(false);
         }
     }, [open]);
 
@@ -997,6 +1001,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
 
     // Resolve alias history IDs (cache)
     const resolvedRef = useRef<Record<string, string | null>>({});
+    const unitRef = useRef<Record<string, string>>({});
 
     const resolveHistoryId = useCallback(
         async (stateId: string): Promise<string | null> => {
@@ -1009,6 +1014,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     resolvedRef.current[stateId] = null;
                     return null;
                 }
+                if (obj.common?.unit) {
+                    unitRef.current[stateId] = obj.common.unit;
+                }
                 if (obj.common?.custom?.[historyInstance]?.enabled) {
                     resolvedRef.current[stateId] = stateId;
                     return stateId;
@@ -1018,6 +1026,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
                     if (targetId && targetId !== stateId) {
                         const targetObj = (await socket.getObject(targetId)) as ioBroker.StateObject | null;
+                        if (targetObj?.common?.unit && !unitRef.current[stateId]) {
+                            unitRef.current[stateId] = targetObj.common.unit;
+                        }
                         if (targetObj?.common?.custom?.[historyInstance]?.enabled) {
                             resolvedRef.current[stateId] = targetId;
                             return targetId;
@@ -1043,7 +1054,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                 setLoading(true);
             }
             const rangeMs = end - start;
-            const aggregate = rangeMs > 6 * 3_600_000 ? 'minmax' : 'none';
+            const aggregate = rangeMs > 3_600_000 ? 'minmax' : 'none';
 
             const result: ChartSeries[] = [];
             for (const { id, color, name } of historyIds) {
@@ -1061,6 +1072,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         q: false,
                         addId: false,
                         aggregate,
+                        count: 2000,
                         returnNewestEntries: true,
                     });
                     const data: { ts: number; val: number }[] = [];
@@ -1071,7 +1083,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             }
                         }
                     }
-                    result.push({ data, color, name, unit: autoUnits[id] });
+                    result.push({ data, color, name, unit: unitRef.current[id] });
                 } catch (e) {
                     console.warn(`ChartDialog: failed to load history for ${id}:`, e);
                 }
@@ -1081,7 +1093,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                 setLoading(false);
             }
         },
-        [historyIds, historyInstance, socket, resolveHistoryId, autoUnits],
+        [historyIds, historyInstance, socket, resolveHistoryId],
     );
 
     const loadData = useCallback(
@@ -1103,7 +1115,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
 
     // Load data when the dialog opens or range changes
     useEffect(() => {
-        if (!open) {
+        if (!open || !settingsLoaded) {
             return;
         }
         if (quickData) {
@@ -1112,28 +1124,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
             return;
         }
         void loadData(rangeHours, true);
-    }, [open, rangeHours, loadData, quickData]);
-
-    // Auto-detect units for each history state
-    useEffect(() => {
-        if (!open || unitProp || !historyIds.length) {
-            return;
-        }
-        void (async () => {
-            const units: Record<string, string> = {};
-            for (const { id } of historyIds) {
-                try {
-                    const obj = (await socket.getObject(id)) as ioBroker.StateObject | null;
-                    if (obj?.common?.unit) {
-                        units[id] = obj.common.unit;
-                    }
-                } catch {
-                    // ignore
-                }
-            }
-            setAutoUnits(units);
-        })();
-    }, [open, unitProp, historyIds, socket]);
+    }, [open, settingsLoaded, rangeHours, loadData, quickData]);
 
     // Measure container size
     useEffect(() => {

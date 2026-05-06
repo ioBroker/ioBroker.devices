@@ -17,7 +17,7 @@ import type {
     WidgetInfo,
 } from '@iobroker/dm-widgets';
 import WidgetGeneric from './Widgets/Generic';
-import StateContext from './StateContext';
+import type StateContext from './StateContext';
 
 /** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
 const ALARM_ICON_TYPES = new Set([

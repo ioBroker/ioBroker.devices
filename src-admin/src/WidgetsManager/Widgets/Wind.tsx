@@ -8,7 +8,6 @@ import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles, formatFloat } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
-
 export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;
     speedStateId?: string;
@@ -451,7 +450,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         </Typography>
                     )}
                 </Box>
-
             </Box>
         );
     }
@@ -531,7 +529,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         ) : null}
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -663,7 +660,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         ) : null}
                     </Box>
                 </Box>
-
             </Box>
         );
     }

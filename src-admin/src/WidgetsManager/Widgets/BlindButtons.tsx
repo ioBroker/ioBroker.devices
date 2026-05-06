@@ -231,7 +231,6 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         </Typography>
                     </Box>
                 </Box>
-
             </Box>
         );
     }

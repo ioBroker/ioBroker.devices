@@ -238,6 +238,8 @@
     "wm_Text inactive": "Текст (неактивно)",
     "wm_Theme": "Тема",
     "wm_Tilted": "Приоткрыто",
+    "wm_Today consumed": "Сегодня потреблено",
+    "wm_Today produced": "Сегодня произведено",
     "wm_Toggle": "Переключить",
     "wm_Transition time": "Время перехода",
     "wm_Trend arrow": "Стрелка тренда",

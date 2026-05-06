@@ -899,7 +899,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }
@@ -1025,7 +1024,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }

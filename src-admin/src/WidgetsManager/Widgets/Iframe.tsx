@@ -8,8 +8,8 @@ import type { Theme } from '@mui/material/styles';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
+import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
-
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;
@@ -29,6 +29,15 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
             type: 'panel',
             label: 'wm_Iframe',
             items: {
+                // Override the base size dropdown to also offer 2×2 for the iFrame's web view.
+                size: {
+                    type: 'select',
+                    label: 'wm_Size',
+                    options: SIZE_OPTIONS_WITH_2X2,
+                    default: '1x1',
+                    format: 'radio',
+                    horizontal: true,
+                },
                 url: { type: 'text', label: 'URL', placeholder: 'wm_URL placeholder' },
                 refreshInterval: {
                     type: 'number',
@@ -170,7 +179,6 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         </Box>
                     )}
                 </Box>
-
             </Box>
         );
     }
@@ -209,7 +217,45 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         </Box>
                     )}
                 </Box>
+            </Box>
+        );
+    }
 
+    renderHuge(): React.JSX.Element {
+        const url = this.getUrl();
+        const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
+
+        return (
+            <Box sx={theme => WidgetGeneric.getStyleHuge(theme)}>
+                <Box
+                    onClick={this.handleClick}
+                    sx={(theme: Theme) => ({
+                        width: '100%',
+                        aspectRatio: '1',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        ...getTileStyles(theme, false, color),
+                        padding: 0,
+                    })}
+                >
+                    {indicators}
+                    {url ? (
+                        WidgetIframe.renderIframe(url, false)
+                    ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                {I18n.t('wm_Not configured')}
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
             </Box>
         );
     }
@@ -249,7 +295,6 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         </Box>
                     )}
                 </Box>
-
             </Box>
         );
     }

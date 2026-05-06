@@ -813,7 +813,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
 

@@ -559,7 +559,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-
             </Box>
         );
     }
@@ -632,7 +631,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
-
             </Box>
         );
     }
@@ -718,7 +716,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
-
             </Box>
         );
     }

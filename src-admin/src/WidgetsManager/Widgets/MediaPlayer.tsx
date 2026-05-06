@@ -484,7 +484,6 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }
@@ -621,7 +620,6 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }
@@ -790,7 +788,6 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-
             </Box>
         );
     }

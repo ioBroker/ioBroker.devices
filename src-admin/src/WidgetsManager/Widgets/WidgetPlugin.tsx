@@ -8,7 +8,6 @@ import type { CustomWidgetPlugin } from '@iobroker/dm-widgets';
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 
-
 interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
     loading: boolean;

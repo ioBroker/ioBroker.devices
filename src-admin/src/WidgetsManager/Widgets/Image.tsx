@@ -240,7 +240,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Typography>
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -317,7 +316,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Box>
                     </Box>
                 </Box>
-
             </Box>
         );
     }
@@ -409,7 +407,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         </Typography>
                     </Box>
                 </Box>
-
             </Box>
         );
     }

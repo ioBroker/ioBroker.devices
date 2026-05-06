@@ -230,19 +230,24 @@ type OrderedItem = {
     data: CategoryInfo | WidgetInfo | CustomWidgetBase;
 };
 
+interface GridSpan {
+    gridColumn?: string;
+    gridRow?: string;
+}
+
 function getGridColumn(
     item: OrderedItem,
     widgetSettings: Record<string, WidgetSettingsBase>,
     editing?: boolean,
-): string | undefined {
+): GridSpan | undefined {
     if (item.type === 'category') {
-        return '1 / -1';
+        return { gridColumn: '1 / -1' };
     }
     if (item.type === 'custom' && (item.data as CustomWidgetBase).type === 'newline') {
         // In edit mode: normal 1x1 grid item (draggable); play mode: full-row span for line break
-        return editing ? undefined : '1 / -1';
+        return editing ? undefined : { gridColumn: '1 / -1' };
     }
-    let size: '1x1' | '2x0.5' | '2x1';
+    let size: '1x1' | '2x0.5' | '2x1' | '2x2';
     if (item.type === 'widget') {
         size = widgetSettings[item.id]?.size || '1x1';
     } else {
@@ -250,10 +255,14 @@ function getGridColumn(
         // Fall back to the config default when size wasn't persisted (older widgets)
         const configDefault = CUSTOM_WIDGET_CONFIGS[def.type]?.items.size;
         size =
-            def.size || (configDefault ? (String(getConfigDefault(configDefault)) as '1x1' | '2x0.5' | '2x1') : '1x1');
+            def.size ||
+            (configDefault ? (String(getConfigDefault(configDefault)) as '1x1' | '2x0.5' | '2x1' | '2x2') : '1x1');
+    }
+    if ((size as string) === '2x2') {
+        return { gridColumn: 'span 2', gridRow: 'span 2' };
     }
     if (size === '2x0.5' || size === '2x1') {
-        return 'span 2';
+        return { gridColumn: 'span 2' };
     }
     return undefined;
 }
@@ -261,18 +270,19 @@ function getGridColumn(
 /** Thin wrapper so each grid cell is a valid droppable/draggable for dnd-kit */
 function SortableItem(props: {
     id: string;
-    gridColumn?: string;
+    gridSpan?: GridSpan;
     isDragging: boolean;
     favorite?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
     children: React.ReactNode;
 }): React.JSX.Element {
-    const { id, gridColumn, isDragging, favorite, onToggleFavorite, children } = props;
+    const { id, gridSpan, isDragging, favorite, onToggleFavorite, children } = props;
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id });
 
     const style: React.CSSProperties = {
         position: 'relative',
-        gridColumn: gridColumn || undefined,
+        gridColumn: gridSpan?.gridColumn || undefined,
+        gridRow: gridSpan?.gridRow || undefined,
         opacity: isDragging ? 0.25 : 1,
         transform: CSS.Transform.toString(transform),
         transition: transition || undefined,
@@ -531,15 +541,16 @@ function SortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: 'dense',
                     gap: 1.5,
                 }}
             >
                 {orderedItems.map(item => {
-                    const gridColumn = getGridColumn(item, widgetSettings);
-                    return gridColumn ? (
+                    const gridSpan = getGridColumn(item, widgetSettings);
+                    return gridSpan ? (
                         <div
                             key={item.id}
-                            style={{ gridColumn }}
+                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
                         >
                             {renderContent(item)}
                         </div>
@@ -598,6 +609,7 @@ function SortableGrid(props: {
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: category.gridColumns,
+                        gridAutoFlow: 'dense',
                         gap: 1.5,
                     }}
                 >
@@ -620,7 +632,7 @@ function SortableGrid(props: {
                             <SortableItem
                                 key={item.id}
                                 id={item.id}
-                                gridColumn={getGridColumn(item, widgetSettings, true)}
+                                gridSpan={getGridColumn(item, widgetSettings, true)}
                                 isDragging={item.id === activeId}
                                 favorite={fav}
                                 onToggleFavorite={toggleFav}
@@ -669,15 +681,16 @@ function GroupSortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: 'dense',
                     gap: 1.5,
                 }}
             >
                 {items.map(item => {
-                    const gridColumn = getGridColumn(item, widgetSettings);
-                    return gridColumn ? (
+                    const gridSpan = getGridColumn(item, widgetSettings);
+                    return gridSpan ? (
                         <div
                             key={item.id}
-                            style={{ gridColumn }}
+                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
                         >
                             {renderContent(item)}
                         </div>
@@ -698,6 +711,7 @@ function GroupSortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: 'dense',
                     gap: 1.5,
                 }}
             >
@@ -720,7 +734,7 @@ function GroupSortableGrid(props: {
                         <SortableItem
                             key={item.id}
                             id={item.id}
-                            gridColumn={getGridColumn(item, widgetSettings, true)}
+                            gridSpan={getGridColumn(item, widgetSettings, true)}
                             isDragging={item.id === activeId}
                             favorite={fav}
                             onToggleFavorite={toggleFav}
@@ -1002,6 +1016,7 @@ function GroupedContent(props: {
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: category.gridColumns,
+                        gridAutoFlow: 'dense',
                         gap: 1.5,
                         mb: 2,
                     }}

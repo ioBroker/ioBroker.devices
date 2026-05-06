@@ -24,7 +24,6 @@ import WidgetGeneric, {
 } from './Generic';
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';
 
-
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {
     0: 'wm_w_Clear sky',
@@ -952,7 +951,6 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                             {I18n.t('wm_Not configured')}
                         </Typography>
                     </Box>
-
                 </Box>
             );
         }
@@ -1033,7 +1031,6 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         </>
                     )}
                 </Box>
-
             </Box>
         );
     }
@@ -1133,7 +1130,6 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         </>
                     )}
                 </Box>
-
             </Box>
         );
     }
@@ -1299,7 +1295,6 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         </>
                     )}
                 </Box>
-
             </Box>
         );
     }

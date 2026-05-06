@@ -103,7 +103,7 @@ export interface CategoryInfo extends ItemInfo {
 }
 
 export interface WidgetSettingsBase {
-    size: '1x1' | '2x0.5' | '2x1';
+    size: '1x1' | '2x0.5' | '2x1' | '2x2';
     name: string;
     favorite: boolean;
 
