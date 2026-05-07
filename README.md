@@ -133,6 +133,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### 2.0.12 (2026-05-13)
 * (@GermanBluefox) Corrected icons for rooms
+* (@GermanBluefox) Added 2x2 for iFrame
 
 ### 2.0.10 (2026-04-25)
 * (@GermanBluefox) Working on the new GUI

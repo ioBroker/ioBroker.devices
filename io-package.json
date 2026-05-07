@@ -28,6 +28,19 @@
         "pl": "Dodano wiele nowych widżetów.",
         "uk": "Додайте багато нових віджетів.",
         "zh-cn": "添加了许多新部件 ."
+      },
+      "2.0.3": {
+        "en": "Added widgets' visualisation. Now it is possible to create a GUI within the adapter",
+        "de": "Die Visualisierung von Widgets wurde hinzugefügt. Jetzt ist es möglich, eine GUI innerhalb des Adapters zu erstellen",
+        "ru": "Добавлена визуализация виджетов. Теперь можно создать GUI внутри адаптера",
+        "pt": "Visualização de widgets adicionados. Agora é possível criar uma GUI dentro do adaptador",
+        "nl": "Toegevoegd widgets visualisatie. Nu is het mogelijk om een GUI te maken binnen de adapter",
+        "fr": "Ajout de la visualisation des widgets. Maintenant il est possible de créer une interface graphique dans l'adaptateur",
+        "it": "Aggiunta visualizzazione dei widget. Ora è possibile creare una GUI all'interno dell'adattatore",
+        "es": "Visualización de widgets añadidos. Ahora es posible crear un GUI dentro del adaptador",
+        "pl": "Dodano wizualizację widżetów. Teraz jest możliwe stworzenie GUI w adapterze",
+        "uk": "Додано візуалізацію віджетів. Тепер можна створювати GUI в адаптері",
+        "zh-cn": "添加部件的可视化 。 现在可以在适配器内创建图形界面"
       }
     },
     "titleLang": {
