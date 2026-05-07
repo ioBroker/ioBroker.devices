@@ -15,7 +15,7 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import type { ConfigItemAny, ConfigItemPanel, ConfigItemTable } from '@iobroker/json-config';
-// xyflow's bezier-path helper — gives us nicely shaped, position-aware Bezier curves with proper
+// xyflow's bezier-path helper — gives us nicely shaped, position-aware Bézier curves with proper
 // handle tangents. We don't pull in the full <ReactFlow> component (too heavy + unwanted pan/zoom),
 // just the path-string utility so we keep our own SVG / dot-animation rendering.
 import { getBezierPath, Position } from '@xyflow/react';
@@ -295,6 +295,19 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
     private flowResizeObserver: ResizeObserver | null = null;
     private flowMeasureRaf: number | null = null;
 
+    /**
+     * Per-connector animation state, kept OUTSIDE React state so re-renders (caused by power
+     *  value updates) don't restart the dot animation. The single rAF loop walks this map and
+     *  writes `stroke-dashoffset` directly to the SVG element. Speed is updated in render based
+     *  on current power, but offset is preserved → dots continue smoothly across value updates.
+     */
+    private connectorAnims = new Map<
+        string,
+        { el: SVGPathElement | null; speed: number; period: number; offset: number }
+    >();
+    private connectorAnimRaf: number | null = null;
+    private connectorAnimLast = 0;
+
     constructor(props: WidgetGenericProps<WidgetEnergyFlowSettings>) {
         super(props);
         this.state = {
@@ -349,6 +362,71 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             cancelAnimationFrame(this.flowMeasureRaf);
             this.flowMeasureRaf = null;
         }
+        if (this.connectorAnimRaf !== null) {
+            cancelAnimationFrame(this.connectorAnimRaf);
+            this.connectorAnimRaf = null;
+        }
+        this.connectorAnims.clear();
+    }
+
+    /**
+     * Get-or-create the persistent animation entry for a connector path. Called during render so
+     *  the entry exists by the time the callback ref fires. The `period` lets us wrap `offset` to
+     *  avoid floating-point drift over long sessions.
+     */
+    private getConnectorAnim(
+        key: string,
+        period: number,
+    ): { el: SVGPathElement | null; speed: number; period: number; offset: number } {
+        let a = this.connectorAnims.get(key);
+        if (!a) {
+            a = { el: null, speed: 0, period, offset: 0 };
+            this.connectorAnims.set(key, a);
+        }
+        a.period = period;
+        return a;
+    }
+
+    /**
+     * Single rAF loop that advances `stroke-dashoffset` for every registered connector.
+     *  Continues running while at least one connector exists; auto-stops when the map is empty
+     *  (e.g. dialog closed AND launcher tile detached). Writes via setAttribute, not React state,
+     *  so power-value updates don't disturb the running animation.
+     */
+    private connectorAnimTick = (now: number): void => {
+        const dt = Math.min(0.1, (now - this.connectorAnimLast) / 1000);
+        this.connectorAnimLast = now;
+        let needsNextFrame = false;
+        for (const a of this.connectorAnims.values()) {
+            if (!a.el) {
+                continue;
+            }
+            needsNextFrame = true;
+            if (a.speed === 0) {
+                continue;
+            }
+            a.offset += a.speed * dt;
+            // Wrap into [-period, 0] so the value stays small over time.
+            if (a.offset <= -a.period) {
+                a.offset += a.period;
+            } else if (a.offset >= a.period) {
+                a.offset -= a.period;
+            }
+            a.el.setAttribute('stroke-dashoffset', a.offset.toFixed(3));
+        }
+        if (this.mounted && needsNextFrame) {
+            this.connectorAnimRaf = requestAnimationFrame(this.connectorAnimTick);
+        } else {
+            this.connectorAnimRaf = null;
+        }
+    };
+
+    private ensureConnectorAnimLoop(): void {
+        if (this.connectorAnimRaf !== null || !this.mounted) {
+            return;
+        }
+        this.connectorAnimLast = performance.now();
+        this.connectorAnimRaf = requestAnimationFrame(this.connectorAnimTick);
     }
 
     /** Coalesce multiple measure requests within a single frame */
@@ -745,13 +823,6 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         }
     }
 
-    private formatPower(val: number | null, unit: string): string {
-        if (val == null) {
-            return '–';
-        }
-        return `${formatFloat(val, 0, this.props.stateContext.isFloatComma)}${unit ? '' : ''}`;
-    }
-
     private renderEntryIcon(entry: EnergyEntry, kind: 'p' | 'c'): React.JSX.Element {
         if (entry.icon) {
             let src = entry.icon;
@@ -887,26 +958,27 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     '&:hover': clickable ? { borderColor: color, transform: 'translateY(-1px)' } : {},
                 })}
             >
-                {/* Today badge — top-right corner. Two-line: tiny label on top, value below. */}
+                {/* Today badge — top-right corner. Two-line: small label on top, larger value below.
+                 *  Sized to be readable at a glance from across the room. */}
                 {showTodayBadge ? (
                     <Box
                         title={todayLabel}
                         sx={{
                             position: 'absolute',
-                            top: 8,
-                            right: 10,
+                            top: 10,
+                            right: 12,
                             textAlign: 'right',
                             zIndex: 1,
                             // Cap width so long labels truncate instead of pushing into the header.
-                            maxWidth: '45%',
+                            maxWidth: '55%',
                             pointerEvents: 'none',
                         }}
                     >
                         <Typography
                             sx={{
-                                fontSize: 9,
+                                fontSize: 12,
                                 lineHeight: 1,
-                                opacity: 0.55,
+                                opacity: 0.7,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -916,9 +988,10 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                         </Typography>
                         <Typography
                             sx={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                lineHeight: 1.15,
+                                fontSize: 22,
+                                fontWeight: 700,
+                                lineHeight: 1.1,
+                                mt: 0.25,
                                 color,
                                 whiteSpace: 'nowrap',
                             }}
@@ -932,7 +1005,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                                   )}
                             <Typography
                                 component="span"
-                                sx={{ fontSize: '0.78em', fontWeight: 400, ml: 0.25, opacity: 0.7 }}
+                                sx={{ fontSize: '0.55em', fontWeight: 400, ml: 0.4, opacity: 0.6 }}
                             >
                                 {rt.todayUnit || 'kWh'}
                             </Typography>
@@ -948,7 +1021,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                         gap: 0.75,
                         fontSize: 14,
                         opacity: 0.9,
-                        pr: showTodayBadge ? '50%' : 0,
+                        pr: showTodayBadge ? '60%' : 0,
                     }}
                 >
                     <Box sx={{ color, fontSize: 18, display: 'flex', alignItems: 'center' }}>
@@ -1134,7 +1207,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
      *  entries get a faded static line. Geometry comes from `flowGeom` (measured via refs).
      *
      *  Path geometry is delegated to xyflow's `getBezierPath` — it produces nicely tuned, position-
-     *  aware Bezier curves with smooth handle tangents (Bottom→Top for producer→battery, Top→Bottom
+     *  aware Bézier curves with smooth handle tangents (Bottom→Top for producer→battery, Top→Bottom
      *  for battery→consumer). Animation uses inline SMIL per element so we avoid cross-SVG
      *  `@keyframes` conflicts with the launcher tile.
      */
@@ -1149,7 +1222,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         const halfW = batteryW / 2;
         // Keep attach points away from the battery's outer edges so the endpoint dots sit inside.
         const SIDE_MARGIN = 16;
-        const STROKE_WIDTH = 2;
+        const STROKE_WIDTH = 4;
         const DASH_GAP = 9; // px between consecutive dot centres
         const dasharray = `0 ${DASH_GAP}`;
         const elements: React.JSX.Element[] = [];
@@ -1159,6 +1232,9 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             const t = n === 1 ? 0.5 : (i + 0.5) / n;
             return base + dir * Math.max(0, span) * t;
         };
+
+        // Track which animation keys we're using this render so stale entries get pruned at the end.
+        const seenAnimKeys = new Set<string>();
 
         const drawConnector = (
             key: string,
@@ -1182,9 +1258,21 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                 curvature: 0.35,
             });
             const flowing = duration > 0;
+            // Persistent animation entry — `speed` updates on every render but `offset` survives,
+            // so dots keep moving smoothly when power values update mid-animation.
+            const animKey = `dialog:${key}`;
+            seenAnimKeys.add(animKey);
+            const anim = this.getConnectorAnim(animKey, DASH_GAP);
+            anim.speed = flowing ? -DASH_GAP / duration : 0;
             elements.push(
                 <path
                     key={`${key}-l`}
+                    ref={(el: SVGPathElement | null) => {
+                        anim.el = el;
+                        // Restore the preserved offset immediately so the very first paint
+                        // doesn't snap to 0 before the rAF tick runs.
+                        el?.setAttribute('stroke-dashoffset', anim.offset.toFixed(3));
+                    }}
                     d={d}
                     stroke={accent}
                     strokeWidth={STROKE_WIDTH}
@@ -1192,17 +1280,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     fill="none"
                     strokeDasharray={dasharray}
                     opacity={flowing ? 0.95 : 0.35}
-                >
-                    {flowing ? (
-                        <animate
-                            attributeName="stroke-dashoffset"
-                            from={0}
-                            to={-DASH_GAP}
-                            dur={`${duration}s`}
-                            repeatCount="indefinite"
-                        />
-                    ) : null}
-                </path>,
+                />,
                 <circle
                     key={`${key}-s`}
                     cx={sourceX}
@@ -1244,6 +1322,15 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             const ax = fanX(j, M, battery.rightX - SIDE_MARGIN, halfW - SIDE_MARGIN, -1);
             drawConnector(`c${j}`, ax, battery.topY, Position.Top, c.x, c.y, Position.Bottom, duration);
         });
+
+        // Prune stale dialog animation entries (e.g. producer count was reduced); keep launcher
+        // entries (`launcher:*` prefix) untouched so they don't pause if the dialog is open.
+        for (const k of Array.from(this.connectorAnims.keys())) {
+            if (k.startsWith('dialog:') && !seenAnimKeys.has(k)) {
+                this.connectorAnims.delete(k);
+            }
+        }
+        this.ensureConnectorAnimLoop();
 
         return (
             <Box
@@ -1496,16 +1583,12 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         const centerX: Record<'p' | 'c', number> = { p: 50, c: 50 };
         if (bottomCols.length > 0) {
             const step = 100 / bottomCols.length;
-            bottomCols.forEach((c, i) => {
-                centerX[c] = step * (i + 0.5);
-            });
+            bottomCols.forEach((c, i) => (centerX[c] = step * (i + 0.5)));
         }
 
         // Layout in viewBox 0..100. The bottom-row container is positioned at a
         // matching `top` percentage so the arrow tip always lands just above it,
         // not inside it.
-        const NODE_X = 50;
-        const NODE_Y_BOTTOM = 42; // bottom of the central battery node
         const BOTTOM_ROW_TOP_PCT = 64; // top of the bottom-row metric boxes (% of tile)
         const ARROW_TIP_Y = BOTTOM_ROW_TOP_PCT - 4; // a touch above the row
 
@@ -1567,95 +1650,138 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     </Typography>
                 </Box>
 
-                {/* SVG flow lines — circular dots flow along the line, speed scales inversely with
-                    current power. Zero/idle power = static dotted line. SMIL `<animate>` keeps the
-                    animation per-element so it doesn't collide with the dialog's connectors. */}
-                {bottomCols.length > 0 ? (
-                    <svg
-                        viewBox="0 0 100 100"
-                        preserveAspectRatio="none"
-                        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}
-                    >
-                        {hasProducers ? (
-                            <>
-                                <line
-                                    x1={centerX.p}
-                                    y1={ARROW_TIP_Y}
-                                    x2={NODE_X}
-                                    y2={NODE_Y_BOTTOM}
-                                    stroke={accent}
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeDasharray="0 5"
-                                    opacity={producerDuration > 0 ? 0.95 : 0.4}
-                                >
-                                    {producerDuration > 0 ? (
-                                        <animate
-                                            attributeName="stroke-dashoffset"
-                                            from={0}
-                                            to={-5}
-                                            dur={`${producerDuration}s`}
-                                            repeatCount="indefinite"
-                                        />
-                                    ) : null}
-                                </line>
-                                <circle
-                                    cx={centerX.p}
-                                    cy={ARROW_TIP_Y}
-                                    r={1.5}
-                                    fill={accent}
-                                    opacity={0.9}
-                                />
-                                <circle
-                                    cx={NODE_X}
-                                    cy={NODE_Y_BOTTOM}
-                                    r={1.5}
-                                    fill={accent}
-                                    opacity={0.9}
-                                />
-                            </>
-                        ) : null}
-                        {hasConsumers ? (
-                            <>
-                                <line
-                                    x1={NODE_X}
-                                    y1={NODE_Y_BOTTOM}
-                                    x2={centerX.c}
-                                    y2={ARROW_TIP_Y}
-                                    stroke={accent}
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeDasharray="0 5"
-                                    opacity={consumerDuration > 0 ? 0.95 : 0.4}
-                                >
-                                    {consumerDuration > 0 ? (
-                                        <animate
-                                            attributeName="stroke-dashoffset"
-                                            from={0}
-                                            to={-5}
-                                            dur={`${consumerDuration}s`}
-                                            repeatCount="indefinite"
-                                        />
-                                    ) : null}
-                                </line>
-                                <circle
-                                    cx={NODE_X}
-                                    cy={NODE_Y_BOTTOM}
-                                    r={1.5}
-                                    fill={accent}
-                                    opacity={0.9}
-                                />
-                                <circle
-                                    cx={centerX.c}
-                                    cy={ARROW_TIP_Y}
-                                    r={1.5}
-                                    fill={accent}
-                                    opacity={0.9}
-                                />
-                            </>
-                        ) : null}
-                    </svg>
-                ) : null}
+                {/* SVG flow lines — Battery side-edges connect outward and curve down to the
+                 *  producer/consumer box tops, forming a wide-shoulder arch on each side. Dots flow
+                 *  along the curve; speed scales inversely with current power. Animation is driven
+                 *  by a shared rAF loop (see `connectorAnimTick`) writing `stroke-dashoffset`
+                 *  directly to the DOM — survives React re-renders triggered by power updates. */}
+                {size !== '2x0.5' && bottomCols.length > 0
+                    ? (() => {
+                          // Battery node geometry. The central-node Box is at left:50%, top:30%,
+                          // translate(-50%,-50%), width:34% → its bordered rectangle sits roughly at
+                          // x=33..67, y=22..38 in viewBox units. Anchor the connectors just BELOW
+                          // the battery (under its bottom-left and bottom-right corners) and use
+                          // sourcePosition=Bottom so the curves drop straight DOWN to the
+                          // producer/consumer tops — no horizontal overshoot, regardless of tile
+                          // aspect (1x1, 2x1, 2x0.5, 2x2).
+                          const BATTERY_BOTTOM_Y = size === '2x1' ? 15 : 30;
+                          const BATTERY_LEFT_ATTACH_X = 30;
+                          const BATTERY_RIGHT_ATTACH_X = 70;
+                          const LAUNCHER_PERIOD = 5;
+                          // xyflow's getBezierPath with Bottom→Top gives a clean S-curve down: cp1
+                          // pushes the curve straight down from the source, cp2 pulls it straight
+                          // down into the target. No lateral bow, so the line stays in the vertical
+                          // corridor between battery and the box top.
+                          const [pPath] = hasProducers
+                              ? getBezierPath({
+                                    sourceX: BATTERY_LEFT_ATTACH_X,
+                                    sourceY: BATTERY_BOTTOM_Y,
+                                    sourcePosition: Position.Bottom,
+                                    targetX: centerX.p,
+                                    targetY: ARROW_TIP_Y,
+                                    targetPosition: Position.Top,
+                                })
+                              : ['', 0, 0, 0, 0];
+                          const [cPath] = hasConsumers
+                              ? getBezierPath({
+                                    sourceX: BATTERY_RIGHT_ATTACH_X,
+                                    sourceY: BATTERY_BOTTOM_Y,
+                                    sourcePosition: Position.Bottom,
+                                    targetX: centerX.c,
+                                    targetY: ARROW_TIP_Y,
+                                    targetPosition: Position.Top,
+                                })
+                              : ['', 0, 0, 0, 0];
+                          // Persistent animation entries — speed is updated each render, offset
+                          // survives so dots don't restart when power values update.
+                          const pAnim = hasProducers ? this.getConnectorAnim('launcher:p', LAUNCHER_PERIOD) : null;
+                          if (pAnim) {
+                              pAnim.speed = producerDuration > 0 ? LAUNCHER_PERIOD / producerDuration : 0;
+                          }
+                          const cAnim = hasConsumers ? this.getConnectorAnim('launcher:c', LAUNCHER_PERIOD) : null;
+                          if (cAnim) {
+                              cAnim.speed = consumerDuration > 0 ? -LAUNCHER_PERIOD / consumerDuration : 0;
+                          }
+                          // Drop launcher entries that were just removed (e.g. producers config emptied).
+                          if (!hasProducers) {
+                              this.connectorAnims.delete('launcher:p');
+                          }
+                          if (!hasConsumers) {
+                              this.connectorAnims.delete('launcher:c');
+                          }
+                          this.ensureConnectorAnimLoop();
+                          return (
+                              <svg
+                                  viewBox="0 0 100 100"
+                                  preserveAspectRatio="none"
+                                  style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}
+                              >
+                                  {hasProducers && pAnim ? (
+                                      <>
+                                          <path
+                                              ref={(el: SVGPathElement | null) => {
+                                                  pAnim.el = el;
+                                                  el?.setAttribute('stroke-dashoffset', pAnim.offset.toFixed(3));
+                                              }}
+                                              d={pPath}
+                                              stroke={accent}
+                                              strokeWidth="2"
+                                              strokeLinecap="round"
+                                              strokeDasharray="0 5"
+                                              fill="none"
+                                              opacity={producerDuration > 0 ? 0.95 : 0.4}
+                                          />
+                                          <circle
+                                              cx={centerX.p}
+                                              cy={ARROW_TIP_Y}
+                                              r={1.5}
+                                              fill={'blue'}
+                                              opacity={0.9}
+                                          />
+                                          <circle
+                                              cx={BATTERY_LEFT_ATTACH_X}
+                                              cy={BATTERY_BOTTOM_Y}
+                                              r={1.5}
+                                              fill={'red'}
+                                              opacity={0.9}
+                                          />
+                                      </>
+                                  ) : null}
+                                  {hasConsumers && cAnim ? (
+                                      <>
+                                          <path
+                                              ref={(el: SVGPathElement | null) => {
+                                                  cAnim.el = el;
+                                                  el?.setAttribute('stroke-dashoffset', cAnim.offset.toFixed(3));
+                                              }}
+                                              d={cPath}
+                                              stroke={accent}
+                                              strokeWidth="2"
+                                              strokeLinecap="round"
+                                              strokeDasharray="0 5"
+                                              fill="none"
+                                              opacity={consumerDuration > 0 ? 0.95 : 0.4}
+                                          />
+                                          <circle
+                                              cx={BATTERY_RIGHT_ATTACH_X}
+                                              cy={BATTERY_BOTTOM_Y}
+                                              r={1.5}
+                                              fill={accent}
+                                              opacity={0.9}
+                                          />
+                                          <circle
+                                              cx={centerX.c}
+                                              cy={ARROW_TIP_Y}
+                                              r={1.5}
+                                              fill={accent}
+                                              opacity={0.9}
+                                          />
+                                      </>
+                                  ) : null}
+                              </svg>
+                          );
+                      })()
+                    : null}
 
                 {/* Central node — battery (when configured) or just the widget icon.
                     Sized in % so it scales with the tile and never overlaps the
