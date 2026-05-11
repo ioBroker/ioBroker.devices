@@ -1273,7 +1273,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 );
             }
         } else if (typeof category.icon === 'string') {
-            state.icons[category.id] = category.icon;
+            if (category.icon.startsWith('data:image') || category.icon.match(/^https?:\/\//)) {
+                state.icons[category.id] = category.icon;
+            } else {
+                state.icons[category.id] = this.props.stateContext.imagePrefix + category.icon.replace(/^\//, '');
+            }
         }
 
         if (category.color && typeof category.color === 'object') {
@@ -2353,7 +2357,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
         const tileStoredImage = tileCatSettings?.image;
         const tileImage = tileStoredImage
-            ? `/${this.props.stateContext.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
+            ? `/${this.props.stateContext.imagePrefix}${tileStoredImage.replace(/^\//, '')}`
             : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
         const scale = this.state.widgetScale / 100;
@@ -2629,9 +2633,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
         const storedImage = categorySettings?.image;
         // Stored path has no prefix; add files/ prefix for admin
-        const catImage = storedImage
-            ? `${this.props.stateContext.admin ? '../../files/' : '../'}${storedImage.replace(/^\//, '')}`
-            : '';
+        const catImage = storedImage ? `${this.props.stateContext.imagePrefix}${storedImage.replace(/^\//, '')}` : '';
         const imageScope = categorySettings?.imageScope || 'header';
         const catColor = categorySettings?.color;
         const catBgColor = categorySettings?.backgroundColor;
@@ -2797,7 +2799,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     {(() => {
                                         const rootIconRaw = categorySettings?.rootIcon;
                                         const rootIcon = rootIconRaw
-                                            ? `${this.props.stateContext.admin ? '../../files/' : '../'}${rootIconRaw.replace(/^\//, '')}`
+                                            ? `${this.props.stateContext.imagePrefix}${rootIconRaw.replace(/^\//, '')}`
                                             : '';
                                         const headerIcon = rootIcon || this.state.icons[this.props.category.id];
                                         return headerIcon ? (

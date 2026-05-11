@@ -10,7 +10,7 @@ import {
     Switch,
 } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
-import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 import type { AdminConnection } from '@iobroker/socket-client';
 
 import { type WidgetSettingsBase } from '@iobroker/dm-widgets';
@@ -26,6 +26,7 @@ import {
     JsonConfigComponent,
     type ConfigItemTabs,
 } from '@iobroker/json-config';
+import type StateContext from './StateContext';
 
 interface WidgetSettingsDialogProps {
     open: boolean;
@@ -36,10 +37,8 @@ interface WidgetSettingsDialogProps {
     onDelete?: () => void;
     /** Widget-specific schema items from Widget.getConfigSchema() */
     configSchema?: { name: string; schema: ConfigItemPanel | ConfigItemTabs } | null;
-    socket: Connection;
+    stateContext: StateContext;
     theme: IobTheme;
-    admin: boolean;
-    instance: string;
     objectName?: string;
     objectColor?: string;
     availableGroups?: WidgetGroup[];
@@ -55,8 +54,6 @@ interface WidgetSettingsDialogProps {
     showAlarmFields?: boolean;
     /** Show icon picker for non-alarm widgets */
     showIcon?: boolean;
-    isFloatComma?: boolean;
-    dateFormat?: string;
 }
 
 /** Custom component registry */
@@ -192,12 +189,11 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                 colorActive: settings.colorActive || objectColor || '',
             });
             // Load history enabled state
-            if (props.primaryStateId && props.defaultHistory && props.socket) {
-                void props.socket
-                    .getObject(props.primaryStateId)
+            if (props.primaryStateId && props.defaultHistory) {
+                void props.stateContext
+                    .getObject<ioBroker.StateObject>(props.primaryStateId)
                     .then(obj => {
-                        const enabled = !!(obj as ioBroker.StateObject)?.common?.custom?.[props.defaultHistory!]
-                            ?.enabled;
+                        const enabled = !!obj?.common?.custom?.[props.defaultHistory!]?.enabled;
                         setHistoryEnabled(enabled);
                     })
                     .catch(() => setHistoryEnabled(false));
@@ -210,8 +206,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         return (values as Record<string, any>)[key] !== (settings as Record<string, any>)[key];
     });
 
-    const adapterName = props.instance?.replace(/\.\d+$/, '') || 'devices';
-    const instanceNum = parseInt(props.instance?.match(/\.(\d+)$/)?.[1] || '0', 10);
+    const adapterName = props.stateContext.instanceId?.replace(/\.\d+$/, '') || 'devices';
+    const instanceNum = parseInt(props.stateContext.instanceId?.match(/\.(\d+)$/)?.[1] || '0', 10);
 
     return (
         <Dialog
@@ -223,15 +219,15 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         >
             <DialogTitle>{props.configSchema?.name ? I18n.t(props.configSchema.name) : widgetName}</DialogTitle>
             <DialogContent dividers>
-                {props.socket && props.theme ? (
+                {props.theme ? (
                     <JsonConfigComponent
-                        socket={props.socket as unknown as AdminConnection}
+                        socket={props.stateContext.getSocket() as unknown as AdminConnection}
                         themeName={props.theme.name}
                         themeType={props.theme.palette.mode as 'dark' | 'light'}
                         adapterName={adapterName}
                         instance={instanceNum}
-                        isFloatComma={props.isFloatComma ?? false}
-                        dateFormat={props.dateFormat || 'DD.MM.YYYY'}
+                        isFloatComma={props.stateContext.isFloatComma ?? false}
+                        dateFormat={props.stateContext.dateFormat || 'DD.MM.YYYY'}
                         schema={schema}
                         data={values}
                         onError={() => {}}
@@ -239,7 +235,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
-                        imagePrefix={props.admin ? '../..' : '../..'}
+                        imagePrefix={props.stateContext.admin ? '../..' : '../..'}
                     />
                 ) : null}
 
@@ -253,7 +249,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 onChange={async (_e, checked) => {
                                     setHistoryLoading(true);
                                     try {
-                                        const obj = await props.socket.getObject(props.primaryStateId!);
+                                        const obj = await props.stateContext.getObject<ioBroker.StateObject>(
+                                            props.primaryStateId!,
+                                        );
                                         if (obj) {
                                             const common = (obj as ioBroker.StateObject).common;
                                             common.custom ||= {};
@@ -265,7 +263,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                             } else if (common.custom[props.defaultHistory!]) {
                                                 common.custom[props.defaultHistory!].enabled = false;
                                             }
-                                            await props.socket.setObject(obj._id, obj);
+                                            await props.stateContext.getSocket().setObject(obj._id, obj);
                                             setHistoryEnabled(checked);
                                         }
                                     } catch (err) {

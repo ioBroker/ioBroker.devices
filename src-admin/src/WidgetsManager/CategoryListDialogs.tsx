@@ -1,5 +1,5 @@
 import React from 'react';
-import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import Category from './Category';
@@ -147,7 +147,6 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                           WidgetGeneric.getDefaultSettings()
                         : WidgetGeneric.getDefaultSettings()
                 }
-                instance={stateContext.instanceId}
                 onClose={onCloseSettings}
                 onSave={onSaveSettings}
                 onDelete={onDeleteWidget}
@@ -155,8 +154,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 showChart={chartAvailable}
                 showAlarmFields={isAlarmType}
                 showIcon={!!settingsWidget?.control?.type && !isAlarmType}
-                isFloatComma={stateContext.isFloatComma}
-                dateFormat={stateContext.dateFormat}
+                stateContext={stateContext}
                 primaryStateId={
                     settingsWidget?.control?.states
                         ? settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
@@ -165,9 +163,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                         : undefined
                 }
                 defaultHistory={props.defaultHistory}
-                socket={stateContext.getSocket()}
                 theme={theme}
-                admin={stateContext.admin}
                 objectName={settingsObjectName}
                 objectColor={settingsObjectColor}
                 availableGroups={categorySettings[String(currentCategory.id)]?.widgetGroups}
@@ -188,6 +184,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
             />
             <CategorySettingsDialog
                 open={categorySettingsCategoryId != null}
+                stateContext={stateContext}
                 categoryName={
                     categorySettingsCategoryId === rootCategory
                         ? categorySettings[rootCategory]?.name || I18n.t('wm_Settings')
@@ -205,10 +202,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 }
                 onClose={onCloseCategorySettings}
                 onSave={onSaveCategorySettings}
-                socket={stateContext.getSocket()}
-                instance={stateContext.instanceId}
                 theme={theme}
-                admin={stateContext.admin}
                 categoryOptions={categoryOptions}
             />
             <CustomWidgetDialog
