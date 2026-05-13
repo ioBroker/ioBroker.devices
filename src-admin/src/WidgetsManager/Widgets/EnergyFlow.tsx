@@ -82,8 +82,10 @@ interface ConnectorEnd {
     y: number;
 }
 
-/** Geometry needed by the SVG connector layer: tile attach points + battery rect, all relative
- *  to the flow container's top-left corner. Recomputed on resize / layout change via ResizeObserver. */
+/**
+ * Geometry needed by the SVG connector layer: tile attach points + battery rect, all relative
+ *  to the flow container's top-left corner. Recomputed on resize / layout change via ResizeObserver.
+ */
 interface FlowGeometry {
     cw: number;
     ch: number;
@@ -282,8 +284,10 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
     /** Pending history-load promises to allow cancellation on unmount */
     private mounted = false;
 
-    /** Refs for measuring connector endpoints in the dialog's flow layout. Re-attached every render
-     *  via callback refs, so they automatically follow the live producer/consumer arrays. */
+    /**
+     * Refs for measuring connector endpoints in the dialog's flow layout. Re-attached every render
+     *  via callback refs, so they automatically follow the live producer/consumer arrays.
+     */
     private flowContainerEl: HTMLDivElement | null = null;
     private producerEls: (HTMLDivElement | null)[] = [];
     private consumerEls: (HTMLDivElement | null)[] = [];
@@ -358,8 +362,10 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         });
     };
 
-    /** Container ref callback: also attaches a ResizeObserver so the SVG redraws on layout changes
-     *  (window resize, dialog resize, group expansion, etc.). */
+    /**
+     * Container ref callback: also attaches a ResizeObserver so the SVG redraws on layout changes
+     *  (window resize, dialog resize, group expansion, etc.).
+     */
     private setFlowContainerRef = (el: HTMLDivElement | null): void => {
         this.flowContainerEl = el;
         if (el) {
@@ -633,14 +639,19 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         }
     }
 
-    /** Resolve and cache only the unit for the today-counter state. We don't load history bars
-     *  here — the today value is shown as a small text badge and doesn't need a chart. */
+    /**
+     * Resolve and cache only the unit for the today-counter state. We don't load history bars
+     *  here — the today value is shown as a small text badge and doesn't need a chart.
+     */
     private async resolveTodayUnit(kind: 'p' | 'c', idx: number, stateId: string): Promise<void> {
         const ctx = this.props.stateContext;
         if (!ctx) {
             return;
         }
-        const obj = await ctx.getSocket().getObject(stateId).catch(() => null);
+        const obj = await ctx
+            .getSocket()
+            .getObject(stateId)
+            .catch(() => null);
         if (!this.mounted) {
             return;
         }
@@ -1117,14 +1128,16 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         );
     }
 
-    /** Per-tile dotted connector overlay (Victron-style). Each line carries circular dots that flow
+    /**
+     * Per-tile dotted connector overlay (Victron-style). Each line carries circular dots that flow
      *  producer→battery and battery→consumer at a speed proportional to that entry's power; idle
      *  entries get a faded static line. Geometry comes from `flowGeom` (measured via refs).
      *
      *  Path geometry is delegated to xyflow's `getBezierPath` — it produces nicely tuned, position-
      *  aware Bezier curves with smooth handle tangents (Bottom→Top for producer→battery, Top→Bottom
      *  for battery→consumer). Animation uses inline SMIL per element so we avoid cross-SVG
-     *  `@keyframes` conflicts with the launcher tile. */
+     *  `@keyframes` conflicts with the launcher tile.
+     */
     private renderConnectors(): React.JSX.Element | null {
         const geom = this.state.flowGeom;
         if (!geom || !geom.battery || (geom.producers.length === 0 && geom.consumers.length === 0)) {
@@ -1218,16 +1231,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             const power = this.state.producerRt[i]?.val ?? 0;
             const duration = WidgetEnergyFlow.flowDuration(Math.abs(power));
             const ax = fanX(i, N, battery.leftX + SIDE_MARGIN, halfW - SIDE_MARGIN, 1);
-            drawConnector(
-                `p${i}`,
-                p.x,
-                p.y,
-                Position.Bottom,
-                ax,
-                battery.topY,
-                Position.Top,
-                duration,
-            );
+            drawConnector(`p${i}`, p.x, p.y, Position.Bottom, ax, battery.topY, Position.Top, duration);
         });
 
         // Consumer connectors: drawn FROM battery TO consumer (dots flow battery → consumer).
@@ -1238,16 +1242,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             const power = this.state.consumerRt[j]?.val ?? 0;
             const duration = WidgetEnergyFlow.flowDuration(Math.abs(power));
             const ax = fanX(j, M, battery.rightX - SIDE_MARGIN, halfW - SIDE_MARGIN, -1);
-            drawConnector(
-                `c${j}`,
-                ax,
-                battery.topY,
-                Position.Top,
-                c.x,
-                c.y,
-                Position.Bottom,
-                duration,
-            );
+            drawConnector(`c${j}`, ax, battery.topY, Position.Top, c.x, c.y, Position.Bottom, duration);
         });
 
         return (

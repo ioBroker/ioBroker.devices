@@ -713,7 +713,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     this.showConfirmDialog('dialog', undefined, this.props.settings.actionConfirmText);
                 }
             } else {
-                this.executeAction();
+                void this.executeAction();
             }
         } else if (this.state.historyId || this.props.settings.quickChart) {
             this.setState({ chartOpen: true });
@@ -721,11 +721,11 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
     };
 
     protected onPinPadSuccess(): void {
-        this.executeAction();
+        void this.executeAction();
     }
 
     protected onConfirmDialogSuccess(): void {
-        this.executeAction();
+        void this.executeAction();
     }
 
     static renderIcon(iconDef: IconDef, active: boolean, iconSize = 18): React.JSX.Element | null {

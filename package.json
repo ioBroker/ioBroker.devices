@@ -20,6 +20,7 @@
     "url": "https://github.com/ioBroker/ioBroker.devices"
   },
   "dependencies": {
+    "@iobroker/adapter-core": "^3.3.2",
     "@iobroker/dm-utils": "^3.0.19",
     "@iobroker/dm-widgets": "file:./packages/dm-widgets",
     "@iobroker/type-detector": "^5.0.11",
@@ -33,7 +34,7 @@
     "@iobroker/eslint-config": "^2.2.0",
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.2.2",
-    "@iobroker/types": "^7.1.2-alpha.0-20260409-feacb179d",
+    "@iobroker/types": "^7.1.2",
     "@types/node": "^25.3.5",
     "colorette": "^2.0.20",
     "puppeteer": "^24.38.0"

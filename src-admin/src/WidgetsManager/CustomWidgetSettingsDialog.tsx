@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
-import { I18n, type Connection, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 import type { AdminConnection } from '@iobroker/socket-client';
 
 import type { CustomWidgetBase } from '@iobroker/dm-widgets';

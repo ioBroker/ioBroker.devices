@@ -148,7 +148,8 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 console.error('Failed to upload category image:', err);
             }
         },
-        [categoryId, stateContext.instanceId, stateContext.imagePrefix],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [categoryId, stateContext, stateContext.instanceId],
     );
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -202,6 +203,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 console.error('Failed to upload icon:', err);
             }
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [stateContext, stateContext.imagePrefix],
     );
 
@@ -851,7 +853,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     onClose={() => setRootIconPickerOpen(false)}
                     onSelect={iconValue => {
                         setLocal(prev => ({ ...prev, rootIcon: iconValue }));
-                        const displayPath = iconValue ? `/${stateContext.imagePrefix}${iconValue.replace(/^\//, '')}` : '';
+                        const displayPath = iconValue
+                            ? `/${stateContext.imagePrefix}${iconValue.replace(/^\//, '')}`
+                            : '';
                         setRootIconPreview(displayPath);
                         if (iconValue) {
                             setRootIconPickerOpen(false);

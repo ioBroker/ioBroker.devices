@@ -177,8 +177,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
 
     const schema = useMemo(
         () => buildSchema(props),
-        // eslint-disable-next-lin react-hooks/exhaustive-deps
-        [props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [props, props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
     );
 
     useEffect(() => {
@@ -252,8 +252,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                         const obj = await props.stateContext.getObject<ioBroker.StateObject>(
                                             props.primaryStateId!,
                                         );
-                                        if (obj) {
-                                            const common = (obj as ioBroker.StateObject).common;
+                                        if (obj?.common) {
+                                            const common = obj.common;
                                             common.custom ||= {};
                                             if (checked) {
                                                 common.custom[props.defaultHistory!] = {
