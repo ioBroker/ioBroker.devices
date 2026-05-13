@@ -1,4 +1,4 @@
-import type { CategoryInfo, WidgetInfo } from '@iobroker/dm-widgets';
+import type { CategoryInfo, WidgetInfo } from '../../../packages/dm-widgets/src/index';
 
 export type RetVal<T> = T | Promise<T>;
 
