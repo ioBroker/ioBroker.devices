@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.11",
+    "version": "2.0.12",
     "news": {
+      "2.0.12": {
+        "en": "Corrected icons for rooms",
+        "de": "Korrigierte Symbole für Zimmer",
+        "ru": "Исправленные иконки для комнат",
+        "pt": "Ícones corrigidos para quartos",
+        "nl": "Gecorrigeerde iconen voor kamers",
+        "fr": "Des icônes corrigées pour les chambres",
+        "it": "Icone corrette per le camere",
+        "es": "Iconos corregidos para habitaciones",
+        "pl": "Poprawione ikony pokoi",
+        "uk": "Правильні іконки для кімнат",
+        "zh-cn": "修改房间图标"
+      },
       "2.0.5": {
         "en": "Added many new widgets.",
         "de": "Viele neue Widgets hinzugefügt.",
