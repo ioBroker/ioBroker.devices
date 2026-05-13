@@ -4,7 +4,7 @@ import { Extension } from '@mui/icons-material';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import type { CustomWidgetPlugin } from '@iobroker/dm-widgets';
+import type { CustomWidgetPlugin } from '../../../../packages/dm-widgets/src/index';
 import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 

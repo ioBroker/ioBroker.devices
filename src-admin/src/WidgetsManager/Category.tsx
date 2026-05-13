@@ -115,7 +115,7 @@ import type {
     WidgetInfo,
     DevicesDetectorState,
     CustomWidgetPlugin,
-} from '@iobroker/dm-widgets';
+} from '../../../packages/dm-widgets/src/index';
 import { WidgetGeneric } from './Widgets/Generic';
 
 interface CategoryProps {

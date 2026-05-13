@@ -20,7 +20,7 @@ import {
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
 import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
 import type StateContext from './StateContext';

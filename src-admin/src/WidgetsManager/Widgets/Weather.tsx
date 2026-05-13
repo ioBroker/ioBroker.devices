@@ -22,7 +22,7 @@ import WidgetGeneric, {
     getTileStyles,
     isNeumorphicTheme,
 } from './Generic';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {

@@ -7,7 +7,7 @@ import { getTimes } from 'suncalc2';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface SunTimes {
     sunrise: Date;

@@ -32,7 +32,7 @@ import type {
     WidgetInfo,
     CustomWidgetType,
     ItemInfo,
-} from '@iobroker/dm-widgets';
+} from '../../../packages/dm-widgets/src/index';
 
 interface SpecialTile {
     type: 'clock';

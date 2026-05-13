@@ -23,7 +23,7 @@ const QUICK_CHART_DEFAULT_WINDOW_SEC = 60;
 /** Internal sampling rate (ms). Independent of the visible window. */
 const QUICK_CHART_SAMPLE_MS = 1000;
 
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface ColorLevel {
     value: number;

@@ -13,7 +13,7 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 import type { AdminConnection } from '@iobroker/socket-client';
 
-import { type WidgetSettingsBase } from '@iobroker/dm-widgets';
+import { type WidgetSettingsBase } from '../../../packages/dm-widgets/src/index';
 import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';

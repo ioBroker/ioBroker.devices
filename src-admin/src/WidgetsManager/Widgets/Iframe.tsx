@@ -9,7 +9,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
 import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;

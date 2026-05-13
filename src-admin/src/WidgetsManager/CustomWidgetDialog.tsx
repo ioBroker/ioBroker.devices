@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetType } from '@iobroker/dm-widgets';
+import type { CustomWidgetType } from '../../../packages/dm-widgets/src/index';
 import { resolveTranslated } from './Widgets';
 
 interface CustomWidgetOption {

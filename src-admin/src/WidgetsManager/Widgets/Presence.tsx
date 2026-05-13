@@ -7,7 +7,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetPresenceSettings extends CustomWidgetBase {
     /** Icon URL/data-URI (from icon picker) */

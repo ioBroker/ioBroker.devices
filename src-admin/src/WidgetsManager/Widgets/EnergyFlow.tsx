@@ -20,7 +20,7 @@ import type { ConfigItemAny, ConfigItemPanel, ConfigItemTable } from '@iobroker/
 // just the path-string utility so we keep our own SVG / dot-animation rendering.
 import { getBezierPath, Position } from '@xyflow/react';
 
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 import type { StateChangeListener } from '../StateContext';
 import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';

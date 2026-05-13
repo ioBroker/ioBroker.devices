@@ -15,7 +15,7 @@ import type {
     CategoryInfo,
     CustomWidgetType,
     WidgetInfo,
-} from '@iobroker/dm-widgets';
+} from '../../../packages/dm-widgets/src/index';
 import WidgetGeneric from './Widgets/Generic';
 import type StateContext from './StateContext';
 

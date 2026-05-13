@@ -6,7 +6,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles, formatFloat } from './Generic';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;

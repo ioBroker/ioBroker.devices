@@ -1,6 +1,6 @@
 import { Types } from '@iobroker/type-detector';
 
-import type { WidgetInfo } from '@iobroker/dm-widgets';
+import type { WidgetInfo } from '../../../packages/dm-widgets/src/index';
 
 export interface WidgetGroup {
     id: string;

@@ -13,7 +13,7 @@ import { registerRemotes, loadRemote, createInstance } from '@module-federation/
 
 import * as AdapterReact from '@iobroker/adapter-react-v5';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
-import type WidgetGeneric from '@iobroker/dm-widgets';
+import type WidgetGeneric from '../../../packages/dm-widgets/src/index';
 
 import * as DmWidgets from './Widgets/Generic';
 import StateContext from './StateContext';

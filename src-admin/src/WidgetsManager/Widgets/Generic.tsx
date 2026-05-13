@@ -42,7 +42,7 @@ import {
     WidgetGeneric as WidgetGenericBase,
     type WidgetGenericProps as WidgetGenericPropsBase,
     type WidgetSettingsBase,
-} from '@iobroker/dm-widgets';
+} from '../../../../packages/dm-widgets/src/index';
 import type StateContext from '../StateContext';
 import ChartDialog, { type ChartLineType, type SmoothingWindow, type SmoothingMethod, smoothData } from './ChartDialog';
 

@@ -4,7 +4,7 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 import type { AdminConnection } from '@iobroker/socket-client';
 
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
 import { getPluginConfigSchema } from './pluginLoader';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { BASE_WIDGET_ITEMS } from './configUtils';

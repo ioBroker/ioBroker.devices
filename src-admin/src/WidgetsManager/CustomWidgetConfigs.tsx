@@ -1,4 +1,4 @@
-import type { CustomWidgetType } from '@iobroker/dm-widgets';
+import type { CustomWidgetType } from '../../../packages/dm-widgets/src/index';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import { WidgetClock } from './Widgets/Clock';

@@ -13,7 +13,7 @@ import WidgetGeneric, {
     formatFloat,
 } from './Generic';
 import ChartDialog from './ChartDialog';
-import type { CustomWidgetBase } from '@iobroker/dm-widgets';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface ColorLevel {
     value: number;
