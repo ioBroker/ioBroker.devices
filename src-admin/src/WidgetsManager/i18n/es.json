@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Apagado",
     "wm_On": "Encendido",
+    "wm_On/Off": "Encendido/Apagado",
     "wm_On brightness": "Brillo de encendido",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

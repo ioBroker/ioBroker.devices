@@ -874,16 +874,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                             this.state.actionActive && this.props.settings.widgetIconActive
                                 ? this.props.settings.widgetIconActive
                                 : this.props.settings.widgetIcon;
-                        if (
-                            iconSrc &&
-                            !iconSrc.startsWith('http://') &&
-                            !iconSrc.startsWith('https://') &&
-                            !iconSrc.startsWith('data:image')
-                        ) {
-                            iconSrc =
-                                this.props.stateContext.imagePrefix +
-                                (iconSrc.startsWith('/') ? iconSrc.substring(1) : iconSrc);
-                        }
+                        iconSrc = this.props.stateContext.getImagePath(iconSrc) || undefined;
                         const iconSize = isWide ? 48 : 32;
                         return (
                             <Box

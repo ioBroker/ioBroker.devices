@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Вимк",
     "wm_On": "Увімк",
+    "wm_On/Off": "Увімк/Вимк",
     "wm_On brightness": "Яскравість увімкнення",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

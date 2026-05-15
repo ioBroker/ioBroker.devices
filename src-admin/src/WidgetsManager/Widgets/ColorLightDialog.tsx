@@ -329,7 +329,7 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                             variant="body2"
                             sx={{ fontWeight: 500 }}
                         >
-                            {I18n.t('wm_Power')}
+                            {I18n.t('wm_On/Off')}
                         </Typography>
                         <MuiSwitch
                             checked={isOn}

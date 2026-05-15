@@ -93,6 +93,8 @@ export interface CategoryInfo extends ItemInfo {
         noWindows?: boolean;
         customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
+        /** Explicit toggle for groups-vs-sorted-list view. */
+        widgetsGrouped?: boolean;
         widgetGroups?: Array<{
             id: string;
             name: string;

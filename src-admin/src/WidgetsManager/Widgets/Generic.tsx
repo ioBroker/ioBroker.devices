@@ -2124,7 +2124,6 @@ export class WidgetGeneric<
             >
                 <ButtonBase
                     component="div"
-                    disabled={!clickable}
                     disableRipple={!clickable}
                     onClick={
                         clickable
@@ -2150,7 +2149,6 @@ export class WidgetGeneric<
                         };
                     }}
                 >
-                    {indicators}
                     {trendArrow ? (
                         <Box
                             sx={{
@@ -2206,6 +2204,9 @@ export class WidgetGeneric<
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
+                {/* Indicators rendered OUTSIDE the ButtonBase so they remain clickable even when
+                    ButtonBase is disabled (which applies `pointer-events: none` to all descendants). */}
+                {indicators}
             </Box>
         );
     }
@@ -2315,7 +2316,6 @@ export class WidgetGeneric<
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
-                    disabled={!clickable}
                     disableRipple={!clickable}
                     onClick={
                         clickable
@@ -2339,8 +2339,6 @@ export class WidgetGeneric<
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators}
-
                     <Box
                         sx={{
                             display: 'flex',
@@ -2387,6 +2385,9 @@ export class WidgetGeneric<
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </ButtonBase>
+                {/* Indicators rendered OUTSIDE the ButtonBase so they remain clickable even when
+                    ButtonBase is disabled (which applies `pointer-events: none` to all descendants). */}
+                {indicators}
             </Box>
         );
     }

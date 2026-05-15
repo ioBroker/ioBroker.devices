@@ -39,6 +39,9 @@ class StateContext {
         void id;
         void handler;
     }
+    getImagePath(fileName) {
+        return null;
+    }
     getSocket() {
         return this.socket;
     }

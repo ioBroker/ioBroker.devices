@@ -22,6 +22,7 @@ export interface IStateContext {
     removeObject(id: string, cb: ObjectChangeListener): Promise<void>;
     removeState(id: string, handler: StateChangeListener): void;
     getSocket(): Connection;
+    getImagePath(fileName: string | null | undefined): string | null;
     destroy(): void;
     defaultHistory: string | null;
     instanceId: string;
@@ -76,6 +77,10 @@ export default class StateContext implements IStateContext {
     removeState(id: string, handler: StateChangeListener): void {
         void id;
         void handler;
+    }
+
+    getImagePath(fileName: string | null | undefined): string | null {
+        return null;
     }
 
     getSocket(): Connection {

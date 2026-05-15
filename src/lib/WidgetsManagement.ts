@@ -214,8 +214,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 color: this.objects[category] ? this.objects[category].common.color : undefined,
                 parent: category === ROOT_CATEGORY ? undefined : parentId !== 'alias.0' ? parentId : ROOT_CATEGORY,
                 custom:
-                    category !== ROOT_CATEGORY && this.objects[category]
-                        ? this.objects[category].common.custom?.[this.adapter.namespace]
+                    category !== ROOT_CATEGORY
+                        ? this.objects[category]?.common?.custom?.[this.adapter.namespace]
                         : undefined,
             });
         }
@@ -617,11 +617,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         // Case 1: Enum changed — rebuild enum member IDs + alias IDs, detect only the diff
         if (oldObj?.type === 'enum' || obj?.type === 'enum' || obj?.type === 'folder' || oldObj?.type === 'folder') {
             const oldIds = [...this.idsInEnums];
-            this.rebuildEnumMemberIds();
-            if (obj?.type === 'folder' || oldObj?.type === 'folder') {
-                this.rebuildCategories();
-            }
-            this.rebuildAliasIds();
+            this.rebuildIdsInEnums();
 
             const removed = oldIds.filter(x => !this.idsInEnums.includes(x));
             const added = this.idsInEnums.filter(x => !oldIds.includes(x));

@@ -10,6 +10,7 @@ import WidgetGeneric, {
     type WidgetGenericState,
     type WidgetGenericSettings,
 } from './Generic';
+import { ICON_BLINDS, ICON_CURTAINS } from './configIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Blind widget */
@@ -350,8 +351,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         type: 'select',
                         label: 'wm_BlindType',
                         options: [
-                            { value: 'shutter', label: 'wm_Shutter', icon: 'Blinds' },
-                            { value: 'curtain', label: 'wm_Curtain', icon: 'CurtainsClosed' },
+                            { value: 'shutter', label: 'wm_Shutter', icon: ICON_BLINDS },
+                            { value: 'curtain', label: 'wm_Curtain', icon: ICON_CURTAINS },
                         ],
                         default: 'shutter',
                         format: 'radio',

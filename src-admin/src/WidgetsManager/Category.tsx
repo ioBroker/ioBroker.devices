@@ -6,37 +6,34 @@ import {
     ArrowBack,
     BatteryAlert,
     Build,
-    LocalFireDepartment,
     ChevronRight,
-    DirectionsRun,
+    Close,
     Delete,
+    DirectionsRun,
     DragIndicator,
     ErrorOutline,
     ExpandMore,
     Lightbulb,
     LightbulbOutlined,
+    LocalFireDepartment,
     MeetingRoom,
     PlayArrow,
     SensorDoor,
     SensorWindow,
     Settings,
-    Thermostat,
     SplitscreenOutlined,
+    Star,
+    StarBorder,
+    Thermostat,
     UnfoldLess,
     UnfoldMore,
     ViewModule,
-    Star,
-    StarBorder,
-    Close,
     Warning,
     WaterDamage,
     WaterDrop,
     Workspaces,
 } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { alpha } from '@mui/material/styles';
-import { detectBrowser } from './SidePanelInstallDialog';
-import { Types } from '@iobroker/type-detector';
 import {
     DndContext,
     DragOverlay,
@@ -53,6 +50,10 @@ import {
 import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+import { Types } from '@iobroker/type-detector';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
+
+import { detectBrowser } from './SidePanelInstallDialog';
 import {
     formatFloat,
     resolveTranslated,
@@ -106,7 +107,14 @@ import {
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import { moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
+import {
+    moveWidgetToGroup,
+    findWidgetGroup,
+    setGroupCollapsed,
+    setAllGroupsCollapsed,
+    applyCollapsedFromStorage,
+    type WidgetGroup,
+} from './groupUtils';
 import { getGroupIcon } from './groupIcons';
 import type {
     WidgetSettingsBase,
@@ -199,6 +207,11 @@ interface CategoryState {
     widgetScale: number;
     /** IDs of widgets that are currently marked as hidden */
     hidden: { [id: string]: boolean };
+    /**
+     * Bumped when expand-all / collapse-all is clicked to signal GroupedContent to re-read
+     *  collapsed state from localStorage.
+     */
+    collapseVersion: number;
 }
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
@@ -859,6 +872,8 @@ function GroupedContent(props: {
     widgetSettings: Record<string, WidgetSettingsBase>;
     configMode?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
+    /** Bumped by parent on expand-all/collapse-all to trigger re-sync from localStorage. */
+    collapseVersion?: number;
 }): React.JSX.Element {
     const {
         category,
@@ -870,6 +885,7 @@ function GroupedContent(props: {
         widgetSettings,
         configMode,
         onToggleFavorite,
+        collapseVersion,
     } = props;
     const allItems = category.getOrderedItems();
     const itemMap = useMemo(() => {
@@ -887,27 +903,37 @@ function GroupedContent(props: {
     const dropCategoryRef = useRef<string | null>(null);
     dropCategoryRef.current = dropCategoryId;
 
-    // Keep a live copy of groups for cross-group moves during drag
-    const [liveGroups, setLiveGroups] = useState(groups);
+    // Keep a live copy of groups for cross-group moves during drag. Collapsed state is read
+    // from localStorage (not the object), so we layer it on top of incoming groups here.
+    const [liveGroups, setLiveGroups] = useState(() => applyCollapsedFromStorage(categoryId, groups));
     const prevGroupsRef = useRef(groups);
     if (prevGroupsRef.current !== groups) {
         prevGroupsRef.current = groups;
-        setLiveGroups(groups);
+        setLiveGroups(applyCollapsedFromStorage(categoryId, groups));
     }
     const liveGroupsRef = useRef(liveGroups);
     liveGroupsRef.current = liveGroups;
+
+    // Re-sync collapsed state from localStorage when parent signals expand-all / collapse-all.
+    // The version is bumped by the parent; the groups data itself does not change.
+    const lastCollapseVersionRef = useRef(collapseVersion);
+    if (collapseVersion !== undefined && lastCollapseVersionRef.current !== collapseVersion) {
+        lastCollapseVersionRef.current = collapseVersion;
+        setLiveGroups(prev => applyCollapsedFromStorage(categoryId, prev));
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     );
 
+    // Collapsed state is persisted in localStorage, not in the object. We update liveGroups
+    // locally and skip onGroupsChange so the object is not written for this UI-only preference.
     const handleToggleCollapse = (groupId: string): void => {
-        if (!onGroupsChange) {
-            return;
-        }
-        const updated = groups.map(g => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g));
-        onGroupsChange(categoryId, updated);
+        const target = liveGroupsRef.current.find(g => g.id === groupId);
+        const newCollapsed = !target?.collapsed;
+        setGroupCollapsed(categoryId, groupId, newCollapsed);
+        setLiveGroups(prev => prev.map(g => (g.id === groupId ? { ...g, collapsed: newCollapsed } : g)));
     };
 
     // Collect any widgets not in any group
@@ -1230,6 +1256,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             subCategoryStatuses: {},
             widgetScale: Number(localStorage.getItem('wm_widgetScale')) || 100,
             hidden: {},
+            collapseVersion: 0,
         };
     }
 
@@ -1245,7 +1272,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         category: CategoryInfo,
         state: {
             names: { [categoryId: string]: string };
-            icons: { [categoryId: string]: string };
+            icons: { [categoryId: string]: string | null };
             colors: { [categoryId: string]: string };
         },
     ): void {
@@ -1272,12 +1299,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     this.onIconChange,
                 );
             }
-        } else if (typeof category.icon === 'string') {
-            if (category.icon.startsWith('data:image') || category.icon.match(/^https?:\/\//)) {
-                state.icons[category.id] = category.icon;
-            } else {
-                state.icons[category.id] = this.props.stateContext.imagePrefix + category.icon.replace(/^\//, '');
-            }
+        } else {
+            state.icons[category.id] = this.props.stateContext.getImagePath(category.icon);
         }
 
         if (category.color && typeof category.color === 'object') {
@@ -1700,7 +1723,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             const struct = this.props.category.icon as { stateId?: string; mapping?: Record<string | number, string> };
             if (struct.stateId === id) {
                 let iconValue = '';
-                if (struct.mapping && struct.mapping[state.val as string]) {
+                if (struct.mapping?.[state.val as string]) {
                     iconValue = struct.mapping[state.val as string];
                 } else if (state.val !== undefined && state.val !== null) {
                     iconValue = (state.val as string) || '';
@@ -2624,7 +2647,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0 || customWidgets.length > 0;
         const categoryId = String(this.props.category.id);
         const categorySettings = this.props.categorySettings[categoryId];
-        const widgetGroups = categorySettings?.widgetGroups;
+        // Use the explicit `widgetsGrouped` flag as the source of truth. Fall back to checking
+        // widgetGroups for legacy data saved before the flag existed.
+        const isGrouped = categorySettings?.widgetsGrouped ?? !!categorySettings?.widgetGroups?.length;
+        const widgetGroups = isGrouped ? categorySettings?.widgetGroups : undefined;
         const hasHeader = !!(
             parentCategory ||
             this.state.names[this.props.category.id] ||
@@ -2651,14 +2677,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             <Box
                 id={String(this.props.category.id)}
                 key={this.props.category.id}
-                sx={{
+                sx={theme => ({
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
-                    ...(catBgColor ? { backgroundColor: catBgColor } : {}),
+                    // Per-category override wins; otherwise use the widget theme's bgDefault so
+                    // the GUI doesn't fall through to the admin's underlying background.
+                    backgroundColor: catBgColor || theme.palette.background.default,
                     position: 'relative',
-                }}
+                })}
             >
                 {/* Parallax background layer for page-scope images */}
                 {catImage && imageScope === 'page' ? (
@@ -2833,15 +2861,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {this.props.onToggleGrouping ? (
-                                <Tooltip
-                                    title={I18n.t(widgetGroups?.length ? 'wm_Ungroup widgets' : 'wm_Group by type')}
-                                >
+                                <Tooltip title={I18n.t(isGrouped ? 'wm_Ungroup widgets' : 'wm_Group by type')}>
                                     <IconButton
                                         size="small"
                                         onClick={() => this.props.onToggleGrouping!(categoryId, this.getOrderedItems())}
-                                        sx={{ opacity: widgetGroups?.length ? 0.7 : 0.5, '&:hover': { opacity: 1 } }}
+                                        sx={{ opacity: isGrouped ? 0.7 : 0.5, '&:hover': { opacity: 1 } }}
                                     >
-                                        {widgetGroups?.length ? (
+                                        {isGrouped ? (
                                             <ViewModule fontSize="small" />
                                         ) : (
                                             <Workspaces sx={{ fontSize: 18 }} />
@@ -2914,14 +2940,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         {/* Room status summary */}
                         <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ flex: 1 }}>{this.renderCategoryStatus()}</Box>
-                            {widgetGroups?.length && this.props.onWidgetGroupsChange ? (
+                            {widgetGroups?.length ? (
                                 <Box sx={{ display: 'flex', ml: 'auto' }}>
                                     <Tooltip title={I18n.t('wm_Expand all')}>
                                         <IconButton
                                             size="small"
                                             onClick={() => {
-                                                const expanded = widgetGroups.map(g => ({ ...g, collapsed: false }));
-                                                this.props.onWidgetGroupsChange!(categoryId, expanded);
+                                                setAllGroupsCollapsed(
+                                                    categoryId,
+                                                    widgetGroups.map(g => g.id),
+                                                    false,
+                                                );
+                                                this.setState({ collapseVersion: this.state.collapseVersion + 1 });
                                             }}
                                             sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                         >
@@ -2932,8 +2962,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                         <IconButton
                                             size="small"
                                             onClick={() => {
-                                                const collapsed = widgetGroups.map(g => ({ ...g, collapsed: true }));
-                                                this.props.onWidgetGroupsChange!(categoryId, collapsed);
+                                                setAllGroupsCollapsed(
+                                                    categoryId,
+                                                    widgetGroups.map(g => g.id),
+                                                    true,
+                                                );
+                                                this.setState({ collapseVersion: this.state.collapseVersion + 1 });
                                             }}
                                             sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                         >
@@ -2971,6 +3005,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 widgetSettings={this.props.widgetSettings}
                                 configMode={this.props.configMode}
                                 onToggleFavorite={this.props.onToggleFavorite}
+                                collapseVersion={this.state.collapseVersion}
                             />
                         ) : (
                             <SortableGrid

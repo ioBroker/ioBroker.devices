@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Éteint",
     "wm_On": "Allumé",
+    "wm_On/Off": "Marche/Arrêt",
     "wm_On brightness": "Luminosité d'allumage",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

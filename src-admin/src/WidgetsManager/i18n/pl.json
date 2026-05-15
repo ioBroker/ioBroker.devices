@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Wyłączony",
     "wm_On": "Włączony",
+    "wm_On/Off": "Wł./Wył.",
     "wm_On brightness": "Jasność włączenia",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

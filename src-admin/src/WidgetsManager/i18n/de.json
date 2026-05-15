@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Aus",
     "wm_On": "An",
+    "wm_On/Off": "An/Aus",
     "wm_On brightness": "Ein-Helligkeit",
     "wm_Opacity state": "Transparenz-State",
     "wm_Opacity when false": "Transparenz bei false",

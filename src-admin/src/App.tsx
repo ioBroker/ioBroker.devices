@@ -55,7 +55,7 @@ export default class App extends GenericApp {
         extendedProps.sentryDSN = window.sentryDSN;
         if (window.location.port === '3000') {
             extendedProps.socket = {
-                host: '192.168.1.129',
+                host: '192.168.1.119',
             };
         }
         super(props, extendedProps);

@@ -13,6 +13,7 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { ICON_MAP, ICON_DARK_MODE, ICON_SATELLITE } from './configIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Location widget */
@@ -208,9 +209,9 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                         type: 'select',
                         label: 'wm_Map theme',
                         options: [
-                            { value: 'standard', label: 'wm_map_standard', icon: 'Map' },
-                            { value: 'dark', label: 'wm_map_dark', icon: 'DarkMode' },
-                            { value: 'satellite', label: 'wm_map_satellite', icon: 'Satellite' },
+                            { value: 'standard', label: 'wm_map_standard', icon: ICON_MAP },
+                            { value: 'dark', label: 'wm_map_dark', icon: ICON_DARK_MODE },
+                            { value: 'satellite', label: 'wm_map_satellite', icon: ICON_SATELLITE },
                         ],
                         default: 'standard',
                         format: 'radio',

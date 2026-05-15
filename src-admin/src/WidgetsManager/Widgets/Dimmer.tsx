@@ -27,6 +27,8 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 interface SliderWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     wideSliderStyle?: string;
+    useValueByOn?: boolean;
+    valueByOn?: number;
 }
 
 interface WidgetDimmerState extends WidgetGenericState {
@@ -100,6 +102,20 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         default: 'horizontal',
                         format: 'radio',
                         hidden: "data.size === '1x1'",
+                    },
+                    useValueByOn: {
+                        newLine: true,
+                        type: 'checkbox',
+                        label: 'wm_Set specific value, when activating',
+                        xs: 12,
+                    },
+                    valueByOn: {
+                        newLine: true,
+                        type: 'slider',
+                        label: 'wm_Value by activating',
+                        default: 100,
+                        xs: 12,
+                        hidden: '!data.useValueByOn',
                     },
                 },
             },
@@ -286,9 +302,18 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         if (this.onSetId) {
             void this.props.stateContext.getSocket().setState(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
-            void this.props.stateContext
-                .getSocket()
-                .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
+            if (
+                !this.state.isOn &&
+                this.props.settings.useValueByOn &&
+                this.props.settings.valueByOn !== undefined &&
+                this.props.settings.valueByOn !== null
+            ) {
+                void this.props.stateContext.getSocket().setState(this.setId, this.props.settings.valueByOn);
+            } else {
+                void this.props.stateContext
+                    .getSocket()
+                    .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
+            }
         }
     };
 

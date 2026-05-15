@@ -126,6 +126,16 @@ export default class StateContext {
         }
     };
 
+    getImagePath(fileName: string | null | undefined): string | null {
+        if (typeof fileName === 'string') {
+            if (fileName.startsWith('data:image') || fileName.match(/^https?:\/\//) || fileName.length < 4) {
+                return fileName;
+            }
+            return this._imagePrefix + fileName.replace(/^\//, '');
+        }
+        return null;
+    }
+
     static extractProperty<T>(obj: ioBroker.Object, property: string): T {
         const parts = property.split('.');
         let current: any = obj;

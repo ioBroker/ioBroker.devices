@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Uit",
     "wm_On": "Aan",
+    "wm_On/Off": "Aan/Uit",
     "wm_On brightness": "Aan-helderheid",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

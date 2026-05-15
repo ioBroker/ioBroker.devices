@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box } from '@mui/material';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import { I18n } from '@iobroker/adapter-react-v5';
@@ -21,7 +22,7 @@ import StateContext from './StateContext';
 import Category from './Category';
 import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings, type WmThemeId } from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import { autoGroupItems, flattenGroups, moveWidgetToGroup, type WidgetGroup } from './groupUtils';
+import { autoGroupItems, flattenGroups, moveWidgetToGroup, stripCollapsed, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
 import WidgetGeneric, { resolveTranslated } from './Widgets/Generic';
 import { loadPluginComponent, isPluginLoaded } from './pluginLoader';
@@ -57,6 +58,10 @@ interface GuiConfig {
         wmTheme?: WmThemeId;
         /** Default category ID to show when a page is opened without hash */
         defaultCategory?: string;
+        /** Hide the config/play toggle button in play mode (root only) */
+        hideConfigButton?: boolean;
+        /** Explicit grouping toggle. true = render grouped list, false/undefined = sorted list. */
+        widgetsGrouped?: boolean;
         customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
         widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
@@ -144,12 +149,15 @@ interface WmThemePreset {
     textDisabled: string;
 }
 
+// Default GUI background: pure black for dark themes, pure white for light. If the user
+// sets a per-category backgroundColor that takes precedence; otherwise this is the page bg.
+// Default text colour mirrors that: pure white on dark themes, pure black on light.
 const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
     dark: {
         mode: 'dark',
         primary: '#90caf9',
         secondary: '#ce93d8',
-        bgDefault: '#121212',
+        bgDefault: '#000000',
         bgPaper: '#1e1e1e',
         textPrimary: '#ffffff',
         textSecondary: 'rgba(255,255,255,0.7)',
@@ -159,9 +167,9 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         mode: 'light',
         primary: '#1976d2',
         secondary: '#9c27b0',
-        bgDefault: '#f5f5f5',
+        bgDefault: '#ffffff',
         bgPaper: '#ffffff',
-        textPrimary: 'rgba(0,0,0,0.87)',
+        textPrimary: '#000000',
         textSecondary: 'rgba(0,0,0,0.6)',
         textDisabled: 'rgba(0,0,0,0.38)',
     },
@@ -169,7 +177,7 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         mode: 'dark',
         primary: '#f5a623',
         secondary: '#ff7043',
-        bgDefault: '#1a1a1a',
+        bgDefault: '#000000',
         bgPaper: '#2c2c2e',
         textPrimary: '#f5f5f5',
         textSecondary: 'rgba(245,245,245,0.65)',
@@ -179,7 +187,7 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         mode: 'dark',
         primary: '#5eb8ff',
         secondary: '#82b1ff',
-        bgDefault: '#0d1b2a',
+        bgDefault: '#000000',
         bgPaper: '#1b2838',
         textPrimary: '#e0e6ed',
         textSecondary: 'rgba(224,230,237,0.65)',
@@ -189,7 +197,7 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         mode: 'dark',
         primary: '#a0a0a0',
         secondary: '#78909c',
-        bgDefault: '#111113',
+        bgDefault: '#000000',
         bgPaper: '#1c1c1e',
         textPrimary: '#e8e8e8',
         textSecondary: 'rgba(232,232,232,0.55)',
@@ -570,6 +578,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             rootIcon: guiConfig.root.rootIcon || '',
                             wmTheme: guiConfig.root.wmTheme,
                             defaultCategory: guiConfig.root.defaultCategory || '',
+                            hideConfigButton: guiConfig.root.hideConfigButton,
+                            widgetsGrouped: guiConfig.root.widgetsGrouped,
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
                             widgetGroups: guiConfig.root.widgetGroups,
@@ -1127,6 +1137,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 rootIcon: rootConfig.rootIcon || '',
                 wmTheme: rootConfig.wmTheme,
                 defaultCategory: rootConfig.defaultCategory || '',
+                hideConfigButton: rootConfig.hideConfigButton,
+                widgetsGrouped: rootConfig.widgetsGrouped,
                 customWidgets: rootConfig.customWidgets,
                 widgetOrder: rootConfig.widgetOrder,
                 widgetGroups: rootConfig.widgetGroups,
@@ -1148,6 +1160,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
             const widgetOrder = cat.custom?.widgetOrder;
             const widgetGroups = cat.custom?.widgetGroups;
+            const widgetsGrouped = cat.custom?.widgetsGrouped;
             const icon = typeof cat.icon === 'string' ? cat.icon : '';
             categorySettings[id] = {
                 name,
@@ -1158,6 +1171,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 customWidgets,
                 widgetOrder,
                 widgetGroups,
+                widgetsGrouped,
                 icon,
             };
         }
@@ -1207,7 +1221,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     void this.saveWidgetOrderToObject(catId, cs.widgetOrder);
                 }
                 if (cs.widgetGroups) {
-                    void this.saveWidgetGroupsToObject(catId, cs.widgetGroups);
+                    void this.saveWidgetGroupsToObject(catId, stripCollapsed(cs.widgetGroups));
                 }
             }
         }
@@ -1239,6 +1253,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         rootIcon: settings.rootIcon || '',
                         wmTheme: settings.wmTheme || undefined,
                         defaultCategory: settings.defaultCategory || undefined,
+                        hideConfigButton: settings.hideConfigButton || undefined,
                     },
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
@@ -1433,8 +1448,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     // --- Widget groups ---
 
     private onWidgetGroupsChange = (categoryId: string, widgetGroups: WidgetGroup[]): void => {
+        // Strip the `collapsed` field — it lives in localStorage now, not in the object.
+        const persistedGroups = stripCollapsed(widgetGroups) || widgetGroups;
         const existing = this.state.categorySettings[categoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
-        const updatedSettings: CategorySettings = { ...existing, widgetGroups };
+        const updatedSettings: CategorySettings = { ...existing, widgetGroups: persistedGroups };
         const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
 
         if (categoryId === ROOT_CATEGORY) {
@@ -1442,7 +1459,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 ...this.state.guiConfig,
                 root: {
                     ...this.state.guiConfig?.root,
-                    widgetGroups,
+                    widgetGroups: persistedGroups,
                 },
             };
             this.setState({ categorySettings, guiConfig });
@@ -1450,12 +1467,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         } else {
             const categories = this.state.categories.map(cat => {
                 if (String(cat.id) === categoryId) {
-                    return { ...cat, custom: { ...cat.custom, widgetGroups } };
+                    return { ...cat, custom: { ...cat.custom, widgetGroups: persistedGroups } };
                 }
                 return cat;
             });
             this.setState({ categorySettings, categories });
-            void this.saveWidgetGroupsToObject(categoryId, widgetGroups);
+            void this.saveWidgetGroupsToObject(categoryId, persistedGroups);
         }
     };
 
@@ -1464,38 +1481,121 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         orderedItems: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: unknown }>,
     ): void => {
         const existing = this.state.categorySettings[categoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        // Source of truth is the explicit `widgetsGrouped` boolean. Fall back to checking widgetGroups
+        // for legacy data that was saved before the flag existed.
+        const isCurrentlyGrouped = existing.widgetsGrouped ?? !!existing.widgetGroups?.length;
 
-        if (existing.widgetGroups?.length) {
-            // Disable grouping: flatten groups back to widgetOrder
-            const widgetOrder = flattenGroups(existing.widgetGroups);
-            const updatedSettings: CategorySettings = { ...existing, widgetGroups: undefined, widgetOrder };
-            this.onWidgetOrderChange(categoryId, widgetOrder);
+        if (isCurrentlyGrouped) {
+            // Disable grouping. Prefer the user's last sorted-view order if it was preserved;
+            // otherwise reconstruct from the current groups.
+            const widgetOrder =
+                existing.widgetOrder && existing.widgetOrder.length
+                    ? existing.widgetOrder
+                    : existing.widgetGroups?.length
+                      ? flattenGroups(existing.widgetGroups)
+                      : [];
+            const updatedSettings: CategorySettings = {
+                ...existing,
+                widgetsGrouped: false,
+                widgetGroups: undefined,
+                widgetOrder,
+            };
             const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
-            this.setState({ categorySettings });
 
             if (categoryId === ROOT_CATEGORY) {
                 const guiConfig: GuiConfig = {
                     ...this.state.guiConfig,
-                    root: { ...this.state.guiConfig?.root, widgetGroups: undefined, widgetOrder },
+                    root: {
+                        ...this.state.guiConfig?.root,
+                        widgetsGrouped: false,
+                        widgetGroups: undefined,
+                        widgetOrder,
+                    },
                 };
-                this.setState({ guiConfig });
+                this.setState({ categorySettings, guiConfig });
                 void this.saveRootSettings(guiConfig);
             } else {
                 const categories = this.state.categories.map(cat => {
                     if (String(cat.id) === categoryId) {
-                        return { ...cat, custom: { ...cat.custom, widgetGroups: undefined, widgetOrder } };
+                        return {
+                            ...cat,
+                            custom: { ...cat.custom, widgetsGrouped: false, widgetGroups: undefined, widgetOrder },
+                        };
                     }
                     return cat;
                 });
-                this.setState({ categories });
-                void this.saveWidgetGroupsToObject(categoryId, undefined);
+                this.setState({ categorySettings, categories });
+                void this.saveGroupingToggleToObject(categoryId, false, widgetOrder, undefined);
             }
         } else {
-            // Enable grouping: auto-group
+            // Enable grouping: auto-group. Preserve the existing widgetOrder so the user gets it
+            // back when they toggle off again.
             const widgetGroups = autoGroupItems(orderedItems);
-            this.onWidgetGroupsChange(categoryId, widgetGroups);
+            const updatedSettings: CategorySettings = {
+                ...existing,
+                widgetsGrouped: true,
+                widgetGroups,
+                // existing.widgetOrder is kept by the spread above
+            };
+            const categorySettings = { ...this.state.categorySettings, [categoryId]: updatedSettings };
+
+            if (categoryId === ROOT_CATEGORY) {
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: {
+                        ...this.state.guiConfig?.root,
+                        widgetsGrouped: true,
+                        widgetGroups,
+                        // widgetOrder kept via spread
+                    },
+                };
+                this.setState({ categorySettings, guiConfig });
+                void this.saveRootSettings(guiConfig);
+            } else {
+                const categories = this.state.categories.map(cat => {
+                    if (String(cat.id) === categoryId) {
+                        return { ...cat, custom: { ...cat.custom, widgetsGrouped: true, widgetGroups } };
+                    }
+                    return cat;
+                });
+                this.setState({ categorySettings, categories });
+                // Pass existing.widgetOrder so it stays in the object (not overwritten with null).
+                void this.saveGroupingToggleToObject(categoryId, true, existing.widgetOrder, widgetGroups);
+            }
         }
     };
+
+    /**
+     * Single object write that updates widgetsGrouped + widgetOrder + widgetGroups atomically.
+     *  `widgetOrder` is preserved (left untouched) when undefined — we never want to wipe it,
+     *  because it represents the user's sorted-view choice.
+     */
+    private async saveGroupingToggleToObject(
+        categoryId: string,
+        widgetsGrouped: boolean,
+        widgetOrder: string[] | undefined,
+        widgetGroups: WidgetGroup[] | undefined,
+    ): Promise<void> {
+        const instanceId = this.state.selectedInstance;
+        try {
+            const obj = (await this.props.socket.getObject(categoryId)) as ioBroker.StateObject | null | undefined;
+            if (obj) {
+                const common = obj.common || {};
+                common.custom ||= {};
+                const prev = common.custom[instanceId] || {};
+                common.custom[instanceId] = {
+                    ...prev,
+                    widgetsGrouped,
+                    // Only overwrite widgetOrder when caller supplied one; otherwise keep prev.
+                    ...(widgetOrder !== undefined ? { widgetOrder } : {}),
+                    widgetGroups: widgetGroups || null,
+                };
+                await this.props.socket.setObject(categoryId, obj);
+            }
+        } catch (err) {
+            console.error('Failed to save grouping toggle:', err);
+        }
+    }
 
     private onWidgetGroupMove = (categoryId: string, widgetId: string, targetGroupId: string): void => {
         const existing = this.state.categorySettings[categoryId];
@@ -1993,7 +2093,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
         // Editing callbacks are enabled only when showSettingsButton AND configMode are both true
         const editing = !!this.props.showSettingsButton && this.state.configMode;
-        const hideConfigButton = this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton;
+        const hideConfigButton =
+            this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton && !this.stateContext.admin;
 
         // Build virtual favorites category with widgets that have favorite=true
         const favoriteWidgetIds = Object.entries(this.state.widgetSettings)
@@ -2046,7 +2147,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (currentCategory) {
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
-                    <div style={{ width: '100%', height: '100%' }}>
+                    {/* The outer admin/GenericApp theme leaks `color` and `background-color`
+                        onto this subtree via CSS inheritance — MUI's inner ThemeProvider only
+                        re-styles styled components, not the wrapping div. Paint the box
+                        explicitly so e.g. Hell theme on a dark-mode admin still shows black text. */}
+                    <Box
+                        sx={theme => ({
+                            width: '100%',
+                            height: '100%',
+                            color: theme.palette.text.primary,
+                            backgroundColor: theme.palette.background.default,
+                        })}
+                    >
                         <Category
                             key={currentCategory.id}
                             category={currentCategory}
@@ -2128,7 +2240,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             getCategoryName={this.getCategoryName}
                             stateContext={this.stateContext}
                         />
-                    </div>
+                    </Box>
                 </ThemeProvider>
             );
         }

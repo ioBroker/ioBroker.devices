@@ -495,7 +495,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     ) : null}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 14, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_Power')}>
+                        <Tooltip title={I18n.t('wm_On/Off')}>
                             <PowerSettingsNew sx={{ fontSize: 14, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
@@ -556,7 +556,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     </Tooltip>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_Power')}>
+                        <Tooltip title={I18n.t('wm_On/Off')}>
                             <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
@@ -830,7 +830,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     size="small"
                                     sx={{ textTransform: 'none', borderRadius: '20px' }}
                                 >
-                                    {I18n.t('wm_Power')}
+                                    {I18n.t('wm_On/Off')}
                                 </Button>
                             ) : null}
                             {this.partyId ? (

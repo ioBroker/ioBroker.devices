@@ -825,13 +825,9 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
 
     private renderEntryIcon(entry: EnergyEntry, kind: 'p' | 'c'): React.JSX.Element {
         if (entry.icon) {
-            let src = entry.icon;
-            if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:image')) {
-                src = this.props.stateContext.imagePrefix + (src.startsWith('/') ? src.substring(1) : src);
-            }
             return (
                 <Icon
-                    src={src}
+                    src={this.props.stateContext.getImagePath(entry.icon)}
                     style={{ width: '1em', height: '1em' }}
                 />
             );
@@ -1089,16 +1085,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             !!settings.batterySocStateId && !!this.state.batterySocHistoryId && !!this.state.batterySocHistoryInstance;
         const iconNode = settings.batteryIcon ? (
             <Icon
-                src={
-                    settings.batteryIcon.startsWith('http://') ||
-                    settings.batteryIcon.startsWith('https://') ||
-                    settings.batteryIcon.startsWith('data:image')
-                        ? settings.batteryIcon
-                        : this.props.stateContext.imagePrefix +
-                          (settings.batteryIcon.startsWith('/')
-                              ? settings.batteryIcon.substring(1)
-                              : settings.batteryIcon)
-                }
+                src={this.props.stateContext.getImagePath(settings.batteryIcon)}
                 style={{ width: '1em', height: '1em' }}
             />
         ) : (this.state.batterySoc ?? 0) >= 95 ? (

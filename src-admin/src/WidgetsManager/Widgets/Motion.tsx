@@ -189,7 +189,8 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSe
 
     protected renderTileStatus(): React.JSX.Element | null {
         const size = this.props.settings?.size || '1x1';
-        if (size === '2x0.5') {
+        if (size === '2x0.5' || size === '2x1') {
+            // 2x0.5 has no status row; 2x1 already shows motion text + brightness in renderTileAction
             return null;
         }
 
@@ -227,7 +228,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSe
                         </Typography>
                     ) : null}
                 </Box>
-                {size !== '2x1' && !motion && lastMotionAgo ? (
+                {!motion && lastMotionAgo ? (
                     <Typography
                         variant="caption"
                         sx={{ fontSize: '0.65rem', color: 'text.disabled', lineHeight: 1.2 }}

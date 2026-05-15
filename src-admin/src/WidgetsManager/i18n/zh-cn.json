@@ -171,6 +171,7 @@
     "wm_OK": "正常",
     "wm_Off": "关",
     "wm_On": "开",
+    "wm_On/Off": "开/关",
     "wm_On brightness": "开启亮度",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

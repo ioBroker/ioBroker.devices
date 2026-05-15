@@ -171,6 +171,7 @@
     "wm_OK": "OK",
     "wm_Off": "Desligado",
     "wm_On": "Ligado",
+    "wm_On/Off": "Ligado/Desligado",
     "wm_On brightness": "Brilho ao ligar",
     "wm_Opacity state": "Opacity state",
     "wm_Opacity when false": "Opacity when false",

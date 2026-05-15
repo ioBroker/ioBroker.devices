@@ -122,10 +122,7 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
         const dimmed = !present && absentMode === 'dim';
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
-        let icon = widgetIcon;
-        if (icon && !icon.startsWith('http://') && !icon.startsWith('https://') && !icon.startsWith('data:image')) {
-            icon = this.props.stateContext.imagePrefix + (icon.startsWith('/') ? icon.substring(1) : icon);
-        }
+        const icon = this.props.stateContext.getImagePath(widgetIcon);
 
         return (
             <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>

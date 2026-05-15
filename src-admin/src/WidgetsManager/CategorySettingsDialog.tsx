@@ -38,6 +38,8 @@ export interface CategorySettings {
     customWidgets?: CustomWidgetBase[];
     widgetOrder?: string[];
     widgetGroups?: WidgetGroup[];
+    /** Explicit toggle: true = render grouped, false/undefined = sorted list. */
+    widgetsGrouped?: boolean;
     /** Hide the config/play toggle button (root category only) */
     hideConfigButton?: boolean;
     /** PWA / Chrome extension icon path — used as a favicon in browser (root only) */
@@ -332,11 +334,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         (local.icon || '') !== (settings.icon || '') ||
         (local.rootIcon || '') !== (settings.rootIcon || '');
 
-    const icon = local.icon
-        ? local.icon?.match(/^https?:\/\//) || local.icon?.startsWith('data:image')
-            ? local.icon
-            : stateContext.imagePrefix + local.icon.replace(/^\//, '')
-        : undefined;
+    const icon = stateContext.getImagePath(local.icon);
 
     return (
         <>

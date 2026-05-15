@@ -21,6 +21,7 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { ICON_TUNE, ICON_VALVE, ICON_AIR, ICON_SPEED } from './configIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider, Dimmer, Volume widgets */
@@ -132,10 +133,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         type: 'select',
                         label: 'wm_Slider type',
                         options: [
-                            { value: 'normal', label: 'wm_slider_normal', icon: 'Tune' },
-                            { value: 'valve', label: 'wm_slider_valve', icon: 'Valve' },
-                            { value: 'fan', label: 'wm_slider_fan', icon: 'Air' },
-                            { value: 'gauge', label: 'wm_slider_gauge', icon: 'Speed' },
+                            { value: 'normal', label: 'wm_slider_normal', icon: ICON_TUNE },
+                            { value: 'valve', label: 'wm_slider_valve', icon: ICON_VALVE },
+                            { value: 'fan', label: 'wm_slider_fan', icon: ICON_AIR },
+                            { value: 'gauge', label: 'wm_slider_gauge', icon: ICON_SPEED },
                         ],
                         default: 'normal',
                         format: 'radio',
