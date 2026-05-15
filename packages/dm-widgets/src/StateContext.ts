@@ -80,6 +80,7 @@ export default class StateContext implements IStateContext {
     }
 
     getImagePath(fileName: string | null | undefined): string | null {
+        void fileName;
         return null;
     }
 
