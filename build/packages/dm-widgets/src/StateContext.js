@@ -40,6 +40,7 @@ class StateContext {
         void handler;
     }
     getImagePath(fileName) {
+        void fileName;
         return null;
     }
     getSocket() {
