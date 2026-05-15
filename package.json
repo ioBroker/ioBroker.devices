@@ -50,7 +50,7 @@
     "scripts": {
         "prepublishOnly": "node tasks",
         "build:backend": "tsc -p tsconfig.build.json",
-        "build:dm-widgets": "cd packages/dm-widgets && npm run build",
+        "build:dm-widgets": "cd packages/dm-widgets && npm ci && npm run build",
         "build": "npm run build:dm-widgets && npm run build:backend && node tasks",
         "lint": "eslint -c eslint.config.mjs && cd src-admin && npm run lint && cd ../packages/dm-widgets && npm run lint",
         "test:package": "mocha test/package.test.js --exit",
