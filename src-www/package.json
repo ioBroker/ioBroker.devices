@@ -3,6 +3,7 @@
     "version": "1.1.5",
     "private": true,
     "dependencies": {
+        "@emotion/styled": "^11.14.1",
         "@iobroker/adapter-react-v5": "^8.2.4",
         "@iobroker/json-config": "^8.3.12",
         "@iobroker/type-detector": "^5.0.13",
