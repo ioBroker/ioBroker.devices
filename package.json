@@ -36,7 +36,7 @@
     "@iobroker/types": "^7.1.2",
     "@types/node": "^25.8.0",
     "colorette": "^2.0.20",
-    "puppeteer": "^24.38.0"
+    "puppeteer": "^25.0.2"
   },
   "main": "build/main.js",
   "files": [
