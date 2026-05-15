@@ -32,7 +32,7 @@ jobs:
       - uses: ioBroker/testing-action-check@v1
         with:
           node-version: '22.x'
-          install-command: 'npm ci && cd src-admin && npm ci && cd ../src-www && npm ci'
+          install-command: 'npm ci && cd src-admin && npm ci && cd ../src-www && npm ci && cd ../packages/dm-widgets && npm ci'
           lint: true
 
   # Runs adapter tests on all supported node versions and OSes
