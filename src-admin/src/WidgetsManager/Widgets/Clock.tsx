@@ -375,7 +375,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}
@@ -440,7 +440,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}
@@ -514,7 +514,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}
@@ -588,7 +588,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         padding: 'max(8px, 5cqi)',
                     })}
                 >
@@ -641,7 +641,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}
@@ -722,7 +722,7 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                         justifyContent: 'center',
                         gap: 'max(8px, 3cqi)',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         padding: 'max(8px, 3cqi)',
                     })}
                 >

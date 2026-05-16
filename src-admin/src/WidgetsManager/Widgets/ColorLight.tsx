@@ -5,7 +5,6 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -733,7 +732,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >

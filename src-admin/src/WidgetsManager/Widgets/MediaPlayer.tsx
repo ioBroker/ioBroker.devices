@@ -16,7 +16,6 @@ import {
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -341,7 +340,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         cursor: 'pointer',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -514,7 +513,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         position: 'relative',
                         cursor: 'pointer',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                     })}
                 >
                     {/* Cover as full blurred background */}
@@ -650,7 +649,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         flexDirection: 'column',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >

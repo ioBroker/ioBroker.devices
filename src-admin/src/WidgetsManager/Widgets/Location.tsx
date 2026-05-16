@@ -6,7 +6,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     formatFloat,
     type WidgetGenericSettings,
@@ -14,13 +13,31 @@ import WidgetGeneric, {
     type WidgetGenericState,
 } from './Generic';
 import { ICON_MAP, ICON_DARK_MODE, ICON_SATELLITE } from './configIcons';
+import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
 import type { ConfigItemPanel } from '@iobroker/json-config';
+
+const EXTRA_POSITIONS = [1, 2, 3] as const;
+type ExtraIndex = (typeof EXTRA_POSITIONS)[number];
 
 /** Settings for Location widget */
 export interface LocationWidgetSettings extends WidgetGenericSettings {
     showCoordinates?: boolean;
     markerIcon?: string;
     mapTheme?: string;
+    extraPosition1Id?: string;
+    extraPosition1Name?: string;
+    extraPosition1Icon?: string;
+    extraPosition2Id?: string;
+    extraPosition2Name?: string;
+    extraPosition2Icon?: string;
+    extraPosition3Id?: string;
+    extraPosition3Name?: string;
+    extraPosition3Icon?: string;
+}
+
+interface ExtraPosition {
+    latitude: number | null;
+    longitude: number | null;
 }
 
 interface WidgetLocationState extends WidgetGenericState {
@@ -31,6 +48,7 @@ interface WidgetLocationState extends WidgetGenericState {
     accuracy: number | null;
     gpsString: string | null;
     dialogOpen: boolean;
+    extras: Record<ExtraIndex, ExtraPosition>;
 }
 
 // --- Map tile themes ---
@@ -57,6 +75,19 @@ const MAP_THEMES: Record<string, MapTheme> = {
         attribution: '&copy; Esri',
         maxZoom: 18,
     },
+};
+
+// --- Predefined marker icon options (also used in settings dropdown) ---
+
+const MARKER_ICON_KEYS = ['', 'person', 'car', 'moped', 'bicycle', 'boat', 'yacht'] as const;
+const MARKER_ICON_LABELS: Record<string, string> = {
+    '': 'wm_marker_dot',
+    person: 'wm_marker_person',
+    car: 'wm_marker_car',
+    moped: 'wm_marker_moped',
+    bicycle: 'wm_marker_bicycle',
+    boat: 'wm_marker_boat',
+    yacht: 'wm_marker_yacht',
 };
 
 // --- Predefined marker icon SVG paths (Material Design) ---
@@ -145,11 +176,14 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     private tileLayer: L.TileLayer | null = null;
     private marker: L.Marker | null = null;
     private circle: L.Circle | null = null;
+    private extraMarkers: Partial<Record<ExtraIndex, L.Marker>> = {};
     private lastLat: number | null = null;
     private lastLng: number | null = null;
     private lastRadius: number | null = null;
     private lastMapTheme: string = '';
     private lastMarkerIcon: string = '';
+    /** Cache of subscribed extra-position state IDs (so we unsubscribe on settings change). */
+    private extraSubscriptions: Partial<Record<ExtraIndex, string>> = {};
 
     /** Dialog map */
     private dialogMapContainer: HTMLDivElement | null = null;
@@ -157,6 +191,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     private dialogTileLayer: L.TileLayer | null = null;
     private dialogMarker: L.Marker | null = null;
     private dialogCircle: L.Circle | null = null;
+    private dialogExtraMarkers: Partial<Record<ExtraIndex, L.Marker>> = {};
 
     constructor(props: WidgetGenericProps<LocationWidgetSettings>) {
         super(props);
@@ -182,6 +217,11 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
             accuracy: null,
             gpsString: null,
             dialogOpen: false,
+            extras: {
+                1: { latitude: null, longitude: null },
+                2: { latitude: null, longitude: null },
+                3: { latitude: null, longitude: null },
+            },
         };
     }
 
@@ -195,29 +235,63 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     }
 
     static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        const iconOptions = MARKER_ICON_KEYS.map(k => ({ value: k, label: MARKER_ICON_LABELS[k] }));
+        const items: ConfigItemPanel['items'] = {
+            // Override base size to also expose 2x2
+            size: {
+                type: 'select',
+                label: 'wm_Size',
+                options: SIZE_OPTIONS_WITH_2X2,
+                default: '1x1',
+                format: 'radio',
+                horizontal: true,
+            },
+            showCoordinates: {
+                type: 'checkbox',
+                label: 'wm_Show coordinates',
+                default: false,
+            },
+            mapTheme: {
+                type: 'select',
+                label: 'wm_Map theme',
+                options: [
+                    { value: 'standard', label: 'wm_map_standard', icon: ICON_MAP },
+                    { value: 'dark', label: 'wm_map_dark', icon: ICON_DARK_MODE },
+                    { value: 'satellite', label: 'wm_map_satellite', icon: ICON_SATELLITE },
+                ],
+                default: 'standard',
+                format: 'radio',
+            },
+            markerIcon: {
+                type: 'select',
+                label: 'wm_Marker icon',
+                options: iconOptions,
+                default: '',
+            },
+        };
+        // Extra positions 1..3 — each has a GPS state ID ("lat,lng"), an optional name, and its own icon
+        for (const i of EXTRA_POSITIONS) {
+            items[`extraPosition${i}Id`] = {
+                type: 'objectId',
+                label: `wm_Additional position ${i}`,
+                newLine: true,
+            };
+            items[`extraPosition${i}Name`] = {
+                type: 'text',
+                label: 'wm_Position name',
+                hidden: `!data.extraPosition${i}Id`,
+            };
+            items[`extraPosition${i}Icon`] = {
+                type: 'select',
+                label: 'wm_Marker icon',
+                options: iconOptions,
+                default: '',
+                hidden: `!data.extraPosition${i}Id`,
+            };
+        }
         return {
             name: 'Location',
-            schema: {
-                type: 'panel',
-                items: {
-                    showCoordinates: {
-                        type: 'checkbox',
-                        label: 'wm_Show coordinates',
-                        default: false,
-                    },
-                    mapTheme: {
-                        type: 'select',
-                        label: 'wm_Map theme',
-                        options: [
-                            { value: 'standard', label: 'wm_map_standard', icon: ICON_MAP },
-                            { value: 'dark', label: 'wm_map_dark', icon: ICON_DARK_MODE },
-                            { value: 'satellite', label: 'wm_map_satellite', icon: ICON_SATELLITE },
-                        ],
-                        default: 'standard',
-                        format: 'radio',
-                    },
-                },
-            },
+            schema: { type: 'panel', items },
         };
     }
 
@@ -241,6 +315,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         if (this.accuracyId) {
             this.props.stateContext.getState(this.accuracyId, this.onAccuracyChange);
         }
+        this.syncExtraSubscriptions();
     }
 
     componentWillUnmount(): void {
@@ -263,8 +338,69 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         if (this.accuracyId) {
             this.props.stateContext.removeState(this.accuracyId, this.onAccuracyChange);
         }
+        // Unsubscribe extras
+        for (const i of EXTRA_POSITIONS) {
+            const id = this.extraSubscriptions[i];
+            if (id) {
+                this.props.stateContext.removeState(id, this.makeExtraHandler(i));
+            }
+        }
         this.destroyMap();
         this.destroyDialogMap();
+    }
+
+    /** Subscribe/unsubscribe extra-position states based on current settings. Called on mount + componentDidUpdate. */
+    private syncExtraSubscriptions(): void {
+        for (const i of EXTRA_POSITIONS) {
+            const settingsKey = `extraPosition${i}Id` as const;
+            const newId = this.props.settings?.[settingsKey] || '';
+            const oldId = this.extraSubscriptions[i] || '';
+            if (newId === oldId) {
+                continue;
+            }
+            const handler = this.makeExtraHandler(i);
+            if (oldId) {
+                this.props.stateContext.removeState(oldId, handler);
+            }
+            if (newId) {
+                this.extraSubscriptions[i] = newId;
+                this.props.stateContext.getState(newId, handler);
+            } else {
+                delete this.extraSubscriptions[i];
+                // Clear coordinates if id removed
+                this.setState(prev => ({
+                    extras: { ...prev.extras, [i]: { latitude: null, longitude: null } },
+                }));
+            }
+        }
+    }
+
+    /** Memoized per-index handler so add/removeState match. */
+    private extraHandlers: Partial<Record<ExtraIndex, (id: string, state: ioBroker.State) => void>> = {};
+    private makeExtraHandler(i: ExtraIndex): (id: string, state: ioBroker.State) => void {
+        this.extraHandlers[i] ||= (_id: string, state: ioBroker.State): void => {
+            const parsed = WidgetLocation.parseLatLng(state?.val);
+            this.setState(prev => ({
+                extras: { ...prev.extras, [i]: parsed },
+            }));
+        };
+        return this.extraHandlers[i];
+    }
+
+    private static parseLatLng(raw: unknown): ExtraPosition {
+        if (typeof raw !== 'string' || !raw) {
+            return { latitude: null, longitude: null };
+        }
+        const parts = raw.split(/[,;]/);
+        if (parts.length < 2) {
+            return { latitude: null, longitude: null };
+        }
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (isNaN(lat) || isNaN(lng)) {
+            return { latitude: null, longitude: null };
+        }
+        return { latitude: lat, longitude: lng };
     }
 
     componentDidUpdate(prevProps: Readonly<WidgetGenericProps<LocationWidgetSettings>>): void {
@@ -295,6 +431,27 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
             this.lastMarkerIcon = newMarker;
             this.updateMarkerIcons();
         }
+
+        // Extra-position settings change → re-subscribe and refresh markers
+        let extrasChanged = false;
+        for (const i of EXTRA_POSITIONS) {
+            const idKey = `extraPosition${i}Id` as const;
+            const iconKey = `extraPosition${i}Icon` as const;
+            const nameKey = `extraPosition${i}Name` as const;
+            if (
+                this.props.settings?.[idKey] !== prevProps.settings?.[idKey] ||
+                this.props.settings?.[iconKey] !== prevProps.settings?.[iconKey] ||
+                this.props.settings?.[nameKey] !== prevProps.settings?.[nameKey]
+            ) {
+                extrasChanged = true;
+            }
+        }
+        if (extrasChanged) {
+            this.syncExtraSubscriptions();
+        }
+        // Always refresh extra markers (positions change frequently, settings change rarely — both go here)
+        this.updateExtraMarkers(this.map, this.extraMarkers, 'small');
+        this.updateExtraMarkers(this.dialogMap, this.dialogExtraMarkers, 'large');
     }
 
     // --- State handlers ---
@@ -394,6 +551,53 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         }
     }
 
+    /**
+     * Sync extra-position markers onto a map. For each configured position:
+     * - If it has valid coordinates, add/update the marker (with current icon + tooltip).
+     * - Otherwise, remove the existing marker.
+     * Called on every componentDidUpdate so positions/icons stay live.
+     */
+    private updateExtraMarkers(
+        map: L.Map | null,
+        markers: Partial<Record<ExtraIndex, L.Marker>>,
+        size: 'small' | 'large',
+    ): void {
+        if (!map) {
+            return;
+        }
+        const color = this.getMarkerColor();
+        for (const i of EXTRA_POSITIONS) {
+            const pos = this.state.extras[i];
+            const idKey = `extraPosition${i}Id` as const;
+            const id = this.props.settings?.[idKey];
+            const hasValidPos = id && pos.latitude != null && pos.longitude != null;
+
+            if (!hasValidPos) {
+                if (markers[i]) {
+                    markers[i].remove();
+                    delete markers[i];
+                }
+                continue;
+            }
+            const iconKey = `extraPosition${i}Icon` as const;
+            const nameKey = `extraPosition${i}Name` as const;
+            const icon = createMarkerIcon((this.props.settings?.[iconKey] as string) || '', size, color);
+            const name = (this.props.settings?.[nameKey] as string) || '';
+            const latlng: L.LatLngExpression = [pos.latitude!, pos.longitude!];
+            if (markers[i]) {
+                markers[i].setLatLng(latlng);
+                markers[i].setIcon(icon);
+            } else {
+                markers[i] = L.marker(latlng, { icon, interactive: !!name }).addTo(map);
+            }
+            // Refresh tooltip
+            markers[i].unbindTooltip();
+            if (name) {
+                markers[i].bindTooltip(name, { direction: 'top', offset: [0, size === 'large' ? -40 : -28] });
+            }
+        }
+    }
+
     // --- Tile map (non-interactive) ---
 
     private initMap(): void {
@@ -441,6 +645,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                 weight: 1,
             }).addTo(this.map);
         }
+        this.updateExtraMarkers(this.map, this.extraMarkers, 'small');
     }
 
     private updateMap(): void {
@@ -484,6 +689,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
             this.tileLayer = null;
             this.marker = null;
             this.circle = null;
+            this.extraMarkers = {};
         }
     }
 
@@ -539,6 +745,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                 weight: 1.5,
             }).addTo(this.dialogMap);
         }
+        this.updateExtraMarkers(this.dialogMap, this.dialogExtraMarkers, 'large');
     }
 
     private updateDialogMap(): void {
@@ -581,6 +788,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
             this.dialogTileLayer = null;
             this.dialogMarker = null;
             this.dialogCircle = null;
+            this.dialogExtraMarkers = {};
         }
     }
 
@@ -742,7 +950,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
 
     // --- Render: always map background ---
 
-    private renderMapTile(isWide: boolean, aspectRatio?: string): React.JSX.Element {
+    private renderMapTile(isWide: boolean, aspectRatio?: string, huge?: boolean): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
@@ -754,7 +962,13 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={theme => (isWide ? WidgetGeneric.getStyleCompact(theme) : WidgetGeneric.getStyleWide(theme))}
+                sx={theme =>
+                    huge
+                        ? WidgetGeneric.getStyleHuge(theme)
+                        : isWide
+                          ? WidgetGeneric.getStyleCompact(theme)
+                          : WidgetGeneric.getStyleWide(theme)
+                }
             >
                 <Box
                     onClick={() => this.onTileClick()}
@@ -767,7 +981,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive, accent, false),
+                        ...this.applyTileStyles(theme, isActive, { interactive: false }),
                         padding: 0,
                         position: 'relative',
                     })}
@@ -854,6 +1068,10 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         return this.renderMapTile(true, '1');
     }
 
+    renderHuge(): React.JSX.Element {
+        return this.renderMapTile(true, '1', true);
+    }
+
     render(): React.JSX.Element {
         const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
@@ -861,6 +1079,9 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
         }
         if (size === '2x1') {
             return this.renderWideTall();
+        }
+        if (size === '2x2') {
+            return this.renderHuge();
         }
         return this.renderCompact();
     }

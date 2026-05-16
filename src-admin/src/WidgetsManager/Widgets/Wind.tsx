@@ -5,7 +5,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles, formatFloat } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, formatFloat } from './Generic';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetWindSettings extends CustomWidgetBase {
@@ -414,7 +414,7 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         p: 0,
                     })}
                 >
@@ -476,7 +476,7 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         height: 80,
                         overflow: 'hidden',
                         px: 0.5,
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}
@@ -556,7 +556,7 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         gap: 1.5,
                         overflow: 'hidden',
                         px: 0.5,
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
                     {indicators}

@@ -8,7 +8,6 @@ import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, {
     type WidgetGenericState,
     type WidgetGenericProps,
-    getTileStyles,
     isNeumorphicTheme,
     formatFloat,
 } from './Generic';
@@ -638,7 +637,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         position: 'relative',
                         textAlign: 'left',
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, this.state.value != null, accent, clickable),
+                        ...this.applyTileStyles(theme, this.state.value != null, { interactive: clickable }),
                     })}
                 >
                     {indicators}
@@ -699,7 +698,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         position: 'relative',
                         overflow: 'hidden',
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, value != null, accent, clickable),
+                        ...this.applyTileStyles(theme, value != null, { interactive: clickable }),
                     })}
                 >
                     {indicators}
@@ -761,7 +760,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                         gap: 2,
                         overflow: 'hidden',
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, this.state.value != null, accent, clickable),
+                        ...this.applyTileStyles(theme, this.state.value != null, { interactive: clickable }),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >

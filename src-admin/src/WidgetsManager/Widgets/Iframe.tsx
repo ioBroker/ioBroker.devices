@@ -161,7 +161,7 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         padding: 0,
                     })}
                 >
@@ -199,7 +199,7 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         overflow: 'hidden',
                         cursor: 'pointer',
                         display: 'flex',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         padding: 0,
                     })}
                 >
@@ -238,7 +238,7 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         padding: 0,
                     })}
                 >
@@ -277,7 +277,7 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         overflow: 'hidden',
                         cursor: 'pointer',
                         display: 'flex',
-                        ...getTileStyles(theme, false, color, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false, accent: color, inactiveColor: color }),
                         padding: 0,
                     })}
                 >

@@ -15,7 +15,6 @@ import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericSettings,
     type WidgetGenericProps,
@@ -616,7 +615,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
@@ -825,7 +824,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         touchAction: 'none',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
@@ -945,7 +944,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >

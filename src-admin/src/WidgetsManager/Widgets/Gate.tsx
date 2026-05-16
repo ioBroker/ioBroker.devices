@@ -4,7 +4,6 @@ import { Garage, KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-mat
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -253,7 +252,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                         cursor: 'pointer',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                     })}
                 >
                     {indicators}

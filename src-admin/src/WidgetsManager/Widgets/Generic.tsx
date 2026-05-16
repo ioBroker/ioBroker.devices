@@ -44,6 +44,7 @@ import {
     type WidgetSettingsBase,
 } from '../../../../packages/dm-widgets/src/index';
 import type StateContext from '../StateContext';
+import { normalizeColor } from '../Utils';
 import ChartDialog, { type ChartLineType, type SmoothingWindow, type SmoothingMethod, smoothData } from './ChartDialog';
 
 /** Generic settings used by WidgetGeneric base class */
@@ -230,7 +231,7 @@ export interface PinPadDialogProps {
 }
 
 /**
- * PinPad dialog with numeric keypad for PIN entry.
+ * PinPad dialog with a numeric keypad for PIN entry.
  * Can be used standalone in any widget.
  */
 export function PinPadDialog(props: PinPadDialogProps): React.JSX.Element | null {
@@ -1235,11 +1236,31 @@ export class WidgetGeneric<
     }
 
     protected getAccentColor(): string | undefined {
-        return this.props.settings?.colorActive || this.state.color || undefined;
+        return normalizeColor(this.props.settings?.colorActive || this.state.color || undefined);
     }
 
     protected getInactiveColor(): string | undefined {
-        return this.props.settings?.color || undefined;
+        return normalizeColor(this.props.settings?.color || undefined);
+    }
+
+    /**
+     * Canonical wrapper around `getTileStyles`. Widgets should call this instead of the raw
+     * `getTileStyles` function — changes to the call signature (extra theming params, different
+     * defaults, etc.) propagate everywhere automatically. Overrides only what the widget needs.
+     */
+    protected applyTileStyles(
+        theme: Theme,
+        isActive: boolean,
+        opts: { interactive?: boolean; accent?: string; inactiveColor?: string } = {},
+    ): Record<string, unknown> {
+        const { interactive = true, accent, inactiveColor } = opts;
+        return getTileStyles(
+            theme,
+            isActive,
+            accent !== undefined ? accent : this.getAccentColor(),
+            interactive,
+            inactiveColor !== undefined ? inactiveColor : this.getInactiveColor(),
+        );
     }
 
     /** Format a timestamp as a localized "time ago" string using moment */
@@ -2077,7 +2098,7 @@ export class WidgetGeneric<
         return WidgetGeneric.getStyleWide(theme);
     }
 
-    /** 2×2: spans 2 columns AND 2 rows so the tile occupies a square double-cell area. */
+    /** 2×2: spans 2 columns AND 2 rows, so the tile occupies a square double-cell area. */
     static getStyleHuge(theme: Theme): React.CSSProperties {
         const style = WidgetGeneric.getStyleCompact(theme);
         style.gridColumn = 'span 2';
@@ -2143,7 +2164,7 @@ export class WidgetGeneric<
                             textAlign: 'left',
                             overflow: 'hidden',
                             cursor: clickable ? 'pointer' : 'default',
-                            ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                            ...this.applyTileStyles(theme, isActive),
                             ...(!clickable && { '&:active': { transform: 'none' } }),
                             padding: pad,
                         };
@@ -2243,7 +2264,7 @@ export class WidgetGeneric<
                         position: 'relative',
                         cursor: clickable ? 'pointer' : 'default',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
                 >
@@ -2334,7 +2355,7 @@ export class WidgetGeneric<
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}

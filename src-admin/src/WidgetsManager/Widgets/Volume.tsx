@@ -5,7 +5,6 @@ import { VolumeUp, VolumeDown, VolumeMute, VolumeOff } from '@mui/icons-material
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericSettings,
     type WidgetGenericProps,
@@ -406,7 +405,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >

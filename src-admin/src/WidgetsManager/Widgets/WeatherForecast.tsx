@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -374,7 +373,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
@@ -529,7 +528,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >

@@ -4,7 +4,6 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
     formatFloat,
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericSettings,
     type WidgetGenericProps,
@@ -490,7 +489,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         overflow: 'hidden',
                         position: 'relative',
                         cursor: chartAction ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!chartAction && { '&:active': { transform: 'none' } }),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
@@ -593,7 +592,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         position: 'relative',
                         overflow: 'hidden',
                         cursor: chartAction ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!chartAction && { '&:active': { transform: 'none' } }),
                     })}
                 >
@@ -669,7 +668,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: chartAction ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!chartAction && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 5cqi)',
                     })}

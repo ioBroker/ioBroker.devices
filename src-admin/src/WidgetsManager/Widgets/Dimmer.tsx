@@ -14,7 +14,6 @@ import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-materia
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     formatFloat,
     type WidgetGenericSettings,
@@ -768,7 +767,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >

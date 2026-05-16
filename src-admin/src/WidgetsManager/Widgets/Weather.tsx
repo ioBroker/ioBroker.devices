@@ -19,7 +19,6 @@ import WidgetGeneric, {
     type WidgetGenericState,
     type WidgetGenericProps,
     formatFloat,
-    getTileStyles,
     isNeumorphicTheme,
 } from './Generic';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
@@ -940,7 +939,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                             justifyContent: 'center',
                             width: '100%',
                             aspectRatio: '1',
-                            ...getTileStyles(theme, false, color),
+                            ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         })}
                     >
                         {indicators}
@@ -969,7 +968,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
@@ -1053,7 +1052,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         height: 80,
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                     })}
                 >
                     {indicators}
@@ -1169,7 +1168,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         justifyContent: 'space-between',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false, accent: color, inactiveColor: color }),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >

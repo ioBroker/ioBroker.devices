@@ -18,7 +18,6 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
     formatFloat,
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -1158,7 +1157,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive && !poweredOff, accent),
+                        ...this.applyTileStyles(theme, isActive && !poweredOff),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
@@ -1302,7 +1301,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive && !poweredOff, accent),
+                        ...this.applyTileStyles(theme, isActive && !poweredOff),
                         padding: 'max(16px, 5cqi)',
                     })}
                 >

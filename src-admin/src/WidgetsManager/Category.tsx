@@ -106,6 +106,7 @@ import {
 
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
+import { normalizeColor } from './Utils';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import {
     moveWidgetToGroup,
@@ -2377,7 +2378,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
         const tileCatSettings = this.props.categorySettings[String(category.id)];
-        const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
+        const tileColor = normalizeColor(this.state.colors[category.id] || tileCatSettings?.color);
         const tileStoredImage = tileCatSettings?.image;
         const tileImage = tileStoredImage
             ? `/${this.props.stateContext.imagePrefix}${tileStoredImage.replace(/^\//, '')}`
@@ -2661,8 +2662,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         // Stored path has no prefix; add files/ prefix for admin
         const catImage = storedImage ? `${this.props.stateContext.imagePrefix}${storedImage.replace(/^\//, '')}` : '';
         const imageScope = categorySettings?.imageScope || 'header';
-        const catColor = categorySettings?.color;
-        const catBgColor = categorySettings?.backgroundColor;
+        const catColor = normalizeColor(categorySettings?.color);
+        const catBgColor = normalizeColor(categorySettings?.backgroundColor);
         const displayName = categorySettings?.name || this.state.names[this.props.category.id] || (isRoot ? '' : '...');
 
         const bgImageSx = catImage

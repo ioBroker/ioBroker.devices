@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material';
 import { Air, Opacity, Speed, Thermostat, WaterDrop, WbSunny, WbCloudy } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     formatFloat,
     type WidgetGenericProps,
@@ -305,7 +304,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
@@ -442,7 +441,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >

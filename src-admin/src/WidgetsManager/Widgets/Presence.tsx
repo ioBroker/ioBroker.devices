@@ -136,7 +136,7 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
                         aspectRatio: '1',
                         position: 'relative',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, present, color, false),
+                        ...this.applyTileStyles(theme, present, { interactive: false, accent: color, inactiveColor: color }),
                         ...(dimmed && {
                             opacity: 0.35,
                             filter: 'grayscale(100%)',

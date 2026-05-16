@@ -4,7 +4,6 @@ import { KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -171,7 +170,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >

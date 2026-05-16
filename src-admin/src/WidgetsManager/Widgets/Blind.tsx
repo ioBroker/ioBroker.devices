@@ -4,7 +4,6 @@ import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-m
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -711,7 +710,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         cursor: this.props.settings?.blindType === 'curtain' ? 'ew-resize' : 'ns-resize',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >

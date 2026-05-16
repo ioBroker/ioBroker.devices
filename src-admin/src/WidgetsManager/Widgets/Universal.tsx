@@ -9,7 +9,6 @@ import WidgetGeneric, {
     type WidgetGenericState,
     type WidgetGenericProps,
     type ChartSeries,
-    getTileStyles,
     formatFloat,
 } from './Generic';
 import ChartDialog from './ChartDialog';
@@ -779,15 +778,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                 <Box
                     onClick={clickable ? this.handleTileClick : undefined}
                     sx={(theme: Theme) => ({
-                        ...getTileStyles(
-                            theme,
-                            this.state.actionActive,
-                            this.state.actionActive
+                        ...this.applyTileStyles(theme, this.state.actionActive, {
+                            interactive: clickable,
+                            accent: this.state.actionActive
                                 ? this.props.settings.colorActive || this.props.settings.color
                                 : this.props.settings.color,
-                            clickable,
-                            this.props.settings.color,
-                        ),
+                            inactiveColor: this.props.settings.color,
+                        }),
                         ...(isWideTall
                             ? { position: 'absolute' as const, inset: 0 }
                             : { width: '100%', height: '100%' }),

@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material';
 import { BrokenImage } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -171,7 +170,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         textAlign: 'left',
                         overflow: 'hidden',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -269,7 +268,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -346,7 +345,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >

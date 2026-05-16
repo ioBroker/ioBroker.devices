@@ -66,6 +66,18 @@ interface GuiConfig {
         widgetOrder?: string[];
         widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
     };
+    /** Settings for the virtual Favorites category (no real ioBroker object exists). */
+    favorites?: {
+        name?: string;
+        color?: string;
+        backgroundColor?: string;
+        image?: string;
+        imageScope?: 'header' | 'page';
+        icon?: string;
+        widgetsGrouped?: boolean;
+        widgetOrder?: string[];
+        widgetGroups?: Array<{ id: string; name: string; collapsed?: boolean; widgetIds: string[] }>;
+    };
 }
 
 interface CategoryListProps extends CommunicationProps {
@@ -583,6 +595,19 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
                             widgetGroups: guiConfig.root.widgetGroups,
+                        };
+                    }
+                    if (guiConfig.favorites) {
+                        categorySettings[FAVORITES_CATEGORY] = {
+                            name: guiConfig.favorites.name || '',
+                            color: guiConfig.favorites.color || '',
+                            backgroundColor: guiConfig.favorites.backgroundColor || '',
+                            image: guiConfig.favorites.image || '',
+                            imageScope: guiConfig.favorites.imageScope || 'header',
+                            icon: guiConfig.favorites.icon || '',
+                            widgetsGrouped: guiConfig.favorites.widgetsGrouped,
+                            widgetOrder: guiConfig.favorites.widgetOrder,
+                            widgetGroups: guiConfig.favorites.widgetGroups,
                         };
                     }
                     return { guiConfig, categorySettings };
@@ -1145,6 +1170,22 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             };
         }
 
+        // Favorites settings from guiConfig (virtual category — no real ioBroker object)
+        const favConfig = this.state.guiConfig?.favorites;
+        if (favConfig) {
+            categorySettings[FAVORITES_CATEGORY] = {
+                name: favConfig.name || '',
+                color: favConfig.color || '',
+                backgroundColor: favConfig.backgroundColor || '',
+                image: favConfig.image || '',
+                imageScope: favConfig.imageScope || 'header',
+                icon: favConfig.icon || '',
+                widgetsGrouped: favConfig.widgetsGrouped,
+                widgetOrder: favConfig.widgetOrder,
+                widgetGroups: favConfig.widgetGroups,
+            };
+        }
+
         for (const cat of categories) {
             const id = String(cat.id);
             if (id === ROOT_CATEGORY) {
@@ -1262,6 +1303,23 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 if (settings.icon) {
                     CategoryList.applyPwaIcon(settings.icon, this.props.admin);
                 }
+            } else if (categorySettingsCategoryId === FAVORITES_CATEGORY) {
+                // Favorites is virtual — persist in guiConfig.favorites alongside root
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: this.state.guiConfig?.root || {},
+                    favorites: {
+                        ...this.state.guiConfig?.favorites,
+                        name: settings.name || '',
+                        color: settings.color || '',
+                        backgroundColor: settings.backgroundColor || '',
+                        image: settings.image || '',
+                        imageScope: settings.imageScope || 'header',
+                        icon: settings.icon || '',
+                    },
+                };
+                this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
+                void this.saveRootSettings(guiConfig);
             } else {
                 // Update local category: name/color on the category itself, image/imageScope in custom
                 const categories = this.state.categories.map(cat => {
@@ -1414,6 +1472,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             };
             this.setState({ categorySettings, guiConfig });
             void this.saveRootSettings(guiConfig);
+        } else if (categoryId === FAVORITES_CATEGORY) {
+            const guiConfig: GuiConfig = {
+                ...this.state.guiConfig,
+                root: this.state.guiConfig?.root || {},
+                favorites: { ...this.state.guiConfig?.favorites, widgetOrder },
+            };
+            this.setState({ categorySettings, guiConfig });
+            void this.saveRootSettings(guiConfig);
         } else {
             // Update local category custom
             const categories = this.state.categories.map(cat => {
@@ -1464,6 +1530,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             };
             this.setState({ categorySettings, guiConfig });
             void this.saveRootSettings(guiConfig);
+        } else if (categoryId === FAVORITES_CATEGORY) {
+            const guiConfig: GuiConfig = {
+                ...this.state.guiConfig,
+                root: this.state.guiConfig?.root || {},
+                favorites: { ...this.state.guiConfig?.favorites, widgetGroups: persistedGroups },
+            };
+            this.setState({ categorySettings, guiConfig });
+            void this.saveRootSettings(guiConfig);
         } else {
             const categories = this.state.categories.map(cat => {
                 if (String(cat.id) === categoryId) {
@@ -1481,7 +1555,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         orderedItems: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: unknown }>,
     ): void => {
         const existing = this.state.categorySettings[categoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
-        // Source of truth is the explicit `widgetsGrouped` boolean. Fall back to checking widgetGroups
+        // The source of truth is the explicit `widgetsGrouped` boolean. Fall back to checking widgetGroups
         // for legacy data that was saved before the flag existed.
         const isCurrentlyGrouped = existing.widgetsGrouped ?? !!existing.widgetGroups?.length;
 
@@ -1507,6 +1581,19 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     ...this.state.guiConfig,
                     root: {
                         ...this.state.guiConfig?.root,
+                        widgetsGrouped: false,
+                        widgetGroups: undefined,
+                        widgetOrder,
+                    },
+                };
+                this.setState({ categorySettings, guiConfig });
+                void this.saveRootSettings(guiConfig);
+            } else if (categoryId === FAVORITES_CATEGORY) {
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: this.state.guiConfig?.root || {},
+                    favorites: {
+                        ...this.state.guiConfig?.favorites,
                         widgetsGrouped: false,
                         widgetGroups: undefined,
                         widgetOrder,
@@ -1547,6 +1634,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         widgetsGrouped: true,
                         widgetGroups,
                         // widgetOrder kept via spread
+                    },
+                };
+                this.setState({ categorySettings, guiConfig });
+                void this.saveRootSettings(guiConfig);
+            } else if (categoryId === FAVORITES_CATEGORY) {
+                const guiConfig: GuiConfig = {
+                    ...this.state.guiConfig,
+                    root: this.state.guiConfig?.root || {},
+                    favorites: {
+                        ...this.state.guiConfig?.favorites,
+                        widgetsGrouped: true,
+                        widgetGroups,
                     },
                 };
                 this.setState({ categorySettings, guiConfig });
@@ -2147,16 +2246,34 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         if (currentCategory) {
             return (
                 <ThemeProvider theme={this.getWidgetTheme()}>
-                    {/* The outer admin/GenericApp theme leaks `color` and `background-color`
-                        onto this subtree via CSS inheritance — MUI's inner ThemeProvider only
-                        re-styles styled components, not the wrapping div. Paint the box
-                        explicitly so e.g. Hell theme on a dark-mode admin still shows black text. */}
+                    {/* The outer admin/GenericApp theme leaks colours into this subtree via
+                        CSS inheritance — MUI's inner ThemeProvider only re-styles styled
+                        components, not the wrapping div or things behind transparent widget
+                        backgrounds. Paint the box explicitly AND force the common MUI surface
+                        colours (paper / text.secondary) on every descendant so e.g. Hell theme
+                        on a dark-mode admin doesn't show through transparent tile overlays. */}
                     <Box
                         sx={theme => ({
                             width: '100%',
                             height: '100%',
                             color: theme.palette.text.primary,
                             backgroundColor: theme.palette.background.default,
+                            // Repaint paper-backed surfaces (Cards, Menus inline, etc.) so widget
+                            // backgrounds that use `background.paper` don't leak the outer dark
+                            // shade through. Limited to children of this container, so dialogs
+                            // rendered in a Portal at the document root are unaffected.
+                            '& .MuiPaper-root': {
+                                backgroundColor: theme.palette.background.paper,
+                                color: theme.palette.text.primary,
+                            },
+                            // CSS custom properties — picked up by MUI 5 when CssVarsProvider is
+                            // active and by any consumer that reads them directly.
+                            '--mui-palette-mode': theme.palette.mode,
+                            '--mui-palette-background-default': theme.palette.background.default,
+                            '--mui-palette-background-paper': theme.palette.background.paper,
+                            '--mui-palette-text-primary': theme.palette.text.primary,
+                            '--mui-palette-text-secondary': theme.palette.text.secondary,
+                            '--mui-palette-divider': theme.palette.divider,
                         })}
                     >
                         <Category

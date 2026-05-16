@@ -24,7 +24,6 @@ import {
 import WidgetGeneric, {
     formatFloat,
     resolveTranslated,
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -369,7 +368,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >

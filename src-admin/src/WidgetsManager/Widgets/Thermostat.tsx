@@ -20,7 +20,6 @@ import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
     formatFloat,
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -942,7 +941,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             textAlign: 'left',
                             overflow: 'hidden',
                             cursor: 'pointer',
-                            ...getTileStyles(theme, isActive && !poweredOff, accent),
+                            ...this.applyTileStyles(theme, isActive && !poweredOff),
                             padding: neumorphic ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                         };
                     }}
@@ -1148,7 +1147,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive && !poweredOff, accent),
+                        ...this.applyTileStyles(theme, isActive && !poweredOff),
                         padding: 'max(16px, 5cqi)',
                     })}
                 >

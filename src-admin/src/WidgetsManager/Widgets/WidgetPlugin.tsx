@@ -5,7 +5,7 @@ import { Extension } from '@mui/icons-material';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { CustomWidgetPlugin } from '../../../../packages/dm-widgets/src/index';
-import WidgetGeneric, { getTileStyles, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { loadPluginComponent } from '../pluginLoader';
 
 interface WidgetPluginState extends WidgetGenericState {
@@ -99,7 +99,7 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
                                   height: isWide ? 80 : undefined,
                               }),
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, this.props.settings.color, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false, accent: this.props.settings.color, inactiveColor: this.props.settings.color }),
                         gap: 1,
                     })}
                 >
