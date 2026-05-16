@@ -36,7 +36,10 @@
         "sourceMap": true,
         "inlineSourceMap": false,
         "useUnknownInCatchVariables": false,
-        "types": ["@iobroker/types", "@types/node"]
+        "types": ["@iobroker/types", "@types/node"],
+        "paths": {
+            "@iobroker/dm-widgets": ["./packages/dm-widgets/build/index.d.ts"]
+        }
     },
     "include": ["src/**/*.ts", "test/**/*.ts"],
     "exclude": ["build/**", "node_modules/**", "src-admin/**"]

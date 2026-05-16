@@ -45,7 +45,7 @@ export interface WidgetClockSettings extends CustomWidgetBase {
     style?: 'digital' | 'analog';
     /** Show date (day + month). Default: true */
     showDate?: boolean;
-    /** Show day of week. Default: true */
+    /** Show day of the week. Default: true */
     showDow?: boolean;
     /** Show seconds. Default: true */
     showSeconds?: boolean;
@@ -84,7 +84,12 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
                 showDate: { type: 'checkbox', label: 'wm_Show date', default: true },
                 showDow: { type: 'checkbox', label: 'wm_Show DOW', default: true },
                 showSeconds: { type: 'checkbox', label: 'wm_Show seconds', default: true },
-                showSun: { type: 'checkbox', label: 'wm_Show sunrise/sunset', default: true },
+                showSun: {
+                    type: 'checkbox',
+                    label: 'wm_Show sunrise/sunset',
+                    default: true,
+                    hidden: 'data.size === "1x1"',
+                },
             },
         };
     }

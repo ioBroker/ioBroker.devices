@@ -4,7 +4,7 @@
  */
 
 import type { AdapterInstance } from '@iobroker/adapter-core';
-import type { WidgetInfo, CategoryInfo, DeviceStatus } from '../../packages/dm-widgets/src/index';
+import type { WidgetInfo, CategoryInfo, DeviceStatus } from '@iobroker/dm-widgets';
 import type { RetVal, BackendToGuiCommand } from './types';
 import type { WmResponseItems } from './types/api';
 

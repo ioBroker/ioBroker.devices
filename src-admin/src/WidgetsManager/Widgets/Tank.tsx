@@ -477,7 +477,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
             >
                 <ButtonBase
                     component="div"
-                    disabled={!chartAction}
                     disableRipple={!chartAction}
                     onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
@@ -583,7 +582,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
             >
                 <ButtonBase
                     component="div"
-                    disabled={!chartAction}
                     disableRipple={!chartAction}
                     onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
@@ -657,7 +655,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
-                    disabled={!chartAction}
                     disableRipple={!chartAction}
                     onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({

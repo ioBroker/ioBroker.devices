@@ -43,6 +43,9 @@
     "admin/",
     "img/",
     "www/",
+    "packages/dm-widgets/build/",
+    "packages/dm-widgets/package.json",
+    "packages/dm-widgets/package-lock.json",
     "build/",
     "io-package.json",
     "LICENSE"
