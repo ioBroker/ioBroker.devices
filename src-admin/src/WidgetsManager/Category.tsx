@@ -522,6 +522,12 @@ function SortableGrid(props: {
     const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
     const activeItem = activeId ? itemMap.get(activeId) : null;
     const draggingNewline = activeItem?.type === 'custom' && (activeItem.data as CustomWidgetBase).type === 'newline';
+    // CSS Grid `dense` would let later items backfill empty cells before a newline, breaking
+    // the line-break semantics. Fall back to default `row` flow whenever a newline is present.
+    const hasNewline = orderedItems.some(
+        i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline',
+    );
+    const autoFlow = hasNewline ? 'row' : 'dense';
 
     const renderContent = (item: OrderedItem, isDropTarget?: boolean): React.ReactNode => {
         if (item.type === 'category') {
@@ -555,7 +561,7 @@ function SortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
-                    gridAutoFlow: 'dense',
+                    gridAutoFlow: autoFlow,
                     gap: 1.5,
                 }}
             >
@@ -623,7 +629,7 @@ function SortableGrid(props: {
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: category.gridColumns,
-                        gridAutoFlow: 'dense',
+                        gridAutoFlow: autoFlow,
                         gap: 1.5,
                     }}
                 >
@@ -679,6 +685,11 @@ function GroupSortableGrid(props: {
 }): React.JSX.Element {
     const { category, items, activeId, canDrag, widgetSettings, onToggleFavorite } = props;
 
+    // Use default `row` flow when a newline is present, so later items can't backfill
+    // past the line break (see comment in SortableGrid).
+    const hasNewline = items.some(i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline');
+    const autoFlow = hasNewline ? 'row' : 'dense';
+
     const renderContent = (item: OrderedItem): React.ReactNode => {
         if (item.type === 'category') {
             return category.renderCategoryTile(item.data as CategoryInfo);
@@ -695,7 +706,7 @@ function GroupSortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
-                    gridAutoFlow: 'dense',
+                    gridAutoFlow: autoFlow,
                     gap: 1.5,
                 }}
             >
@@ -725,7 +736,7 @@ function GroupSortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
-                    gridAutoFlow: 'dense',
+                    gridAutoFlow: autoFlow,
                     gap: 1.5,
                 }}
             >

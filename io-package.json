@@ -3,19 +3,6 @@
     "name": "devices",
     "version": "2.0.18",
     "news": {
-      "2.0.18": {
-        "en": "Corrected icons for rooms\nAdded 2x2 for iFrame",
-        "de": "Korrigierte Symbole für Zimmer\n2x2 für iFrame hinzugefügt",
-        "ru": "Исправленные иконки для комнат\nДобавлено 2x2 для iFrame",
-        "pt": "Ícones corrigidos para quartos\nAdicionado 2x2 para iFrame",
-        "nl": "Gecorrigeerde iconen voor kamers\nToegevoegd 2x2 voor iFrame",
-        "fr": "Des icônes corrigées pour les chambres\nAjouté 2x2 pour iFrame",
-        "it": "Icone corrette per le camere\nAggiunto 2x2 per iFrame",
-        "es": "Iconos corregidos para habitaciones\nAñadido 2x2 para iFrame",
-        "pl": "Poprawione ikony pokoi\nDodano 2x2 dla iFrame",
-        "uk": "Правильні іконки для кімнат\nДодано 2x2 для iFrame",
-        "zh-cn": "修改房间图标\n为 iFrame 添加了 2x2"
-      },
       "2.0.5": {
         "en": "Added many new widgets.",
         "de": "Viele neue Widgets hinzugefügt.",
