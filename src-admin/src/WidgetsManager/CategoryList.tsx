@@ -60,7 +60,7 @@ interface GuiConfig {
         defaultCategory?: string;
         /** Hide the config/play toggle button in play mode (root only) */
         hideConfigButton?: boolean;
-        /** Explicit grouping toggle. true = render grouped list, false/undefined = sorted list. */
+        /** Explicit grouping toggle. true = render a grouped list, false/undefined = sorted list. */
         widgetsGrouped?: boolean;
         customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
@@ -162,7 +162,7 @@ interface WmThemePreset {
 }
 
 // Default GUI background: pure black for dark themes, pure white for light. If the user
-// sets a per-category backgroundColor that takes precedence; otherwise this is the page bg.
+// sets a per-category backgroundColor, that takes precedence; otherwise this is the page bg.
 // Default text colour mirrors that: pure white on dark themes, pure black on light.
 const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
     dark: {
@@ -1304,7 +1304,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     CategoryList.applyPwaIcon(settings.icon, this.props.admin);
                 }
             } else if (categorySettingsCategoryId === FAVORITES_CATEGORY) {
-                // Favorites is virtual — persist in guiConfig.favorites alongside root
+                // Favorites are virtual — persist in guiConfig.favorites alongside root
                 const guiConfig: GuiConfig = {
                     ...this.state.guiConfig,
                     root: this.state.guiConfig?.root || {},
@@ -2190,10 +2190,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 ? this.state.widgets.find(w => w.id === this.state.settingsWidgetId)
                 : null;
 
-        // Editing callbacks are enabled only when showSettingsButton AND configMode are both true
-        const editing = !!this.props.showSettingsButton && this.state.configMode;
         const hideConfigButton =
             this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton && !this.stateContext.admin;
+        // When the config toggle is hidden (web mode + hideConfigButton), force runtime mode —
+        // localStorage may carry configMode=true from a previous session, but the user has no
+        // way to switch back, so editing callbacks and any per-tile config UI must stay off.
+        const effectiveConfigMode = this.state.configMode && !hideConfigButton;
+        // Editing callbacks are enabled only when showSettingsButton AND (effective) configMode are both true
+        const editing = !!this.props.showSettingsButton && effectiveConfigMode;
 
         // Build virtual favorites category with widgets that have favorite=true
         const favoriteWidgetIds = Object.entries(this.state.widgetSettings)
@@ -2297,7 +2301,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onWidgetGroupsChange={this.onWidgetGroupsChange}
                             onToggleGrouping={editing ? this.onToggleGrouping : undefined}
                             onMoveWidgetToCategory={editing ? this.onMoveWidgetToCategory : undefined}
-                            configMode={this.state.configMode}
+                            configMode={effectiveConfigMode}
                             onToggleConfigMode={
                                 this.props.showSettingsButton && !hideConfigButton
                                     ? () =>
