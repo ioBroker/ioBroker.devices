@@ -376,6 +376,50 @@ function SortableItem(props: {
     );
 }
 
+/**
+ * Full-row drop slot that wraps the widgets currently between two categories (or at the
+ * very top / bottom). Always rendered so its children stay visible; only the frame styling
+ * appears while a drag is active and gets stronger on hover. The inner grid uses the same
+ * `gridTemplateColumns` as the outer container so child widgets keep their normal sizes.
+ */
+function DroppableSlot(props: {
+    id: string;
+    isDragActive: boolean;
+    isEmpty: boolean;
+    gridColumns: string;
+    children?: React.ReactNode;
+}): React.JSX.Element {
+    const { id, isDragActive, isEmpty, gridColumns, children } = props;
+    const { setNodeRef, isOver } = useDroppable({ id });
+    const showFrame = isDragActive;
+    return (
+        <Box
+            ref={setNodeRef}
+            sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: gridColumns,
+                gap: 1.5,
+                padding: showFrame ? 1 : 0,
+                borderRadius: 2,
+                minHeight: showFrame ? (isEmpty ? 56 : 'auto') : 0,
+                border: showFrame
+                    ? `${isOver ? 2 : 1}px dashed ${isOver ? '#4dabf5' : 'rgba(77, 171, 245, 0.35)'}`
+                    : 'none',
+                backgroundColor: showFrame
+                    ? isOver
+                        ? 'rgba(77, 171, 245, 0.15)'
+                        : 'rgba(77, 171, 245, 0.04)'
+                    : 'transparent',
+                transition: 'background-color 0.12s ease, border-color 0.12s ease, padding 0.12s ease',
+                boxSizing: 'border-box',
+            }}
+        >
+            {children}
+        </Box>
+    );
+}
+
 /** Wrapper that makes a subcategory tile act as a drop target during widget drag */
 function DroppableCategoryTile(props: { id: string; children: React.ReactNode }): React.JSX.Element {
     const { id, children } = props;
@@ -468,14 +512,50 @@ function SortableGrid(props: {
             const activeEl = itemMap.get(String(active.id));
             const overEl = itemMap.get(overId);
 
-            // Widget/custom dragged over a subcategory tile = move target (not reorder)
-            if (activeEl && activeEl.type !== 'category' && overEl?.type === 'category' && onMoveWidgetToCategory) {
+            // Explicit slot drop target (full-row droppables rendered AT category boundaries
+            // and at the very top / bottom while a drag is active). They unambiguously mean
+            // "reorder to this position" — the category tile itself remains "move INTO".
+            if (overId.startsWith('slot:')) {
+                const slotK = Number(overId.slice('slot:'.length));
+                setDropCategoryId(null);
+                setLiveOrder(prev => {
+                    const oldIdx = prev.indexOf(String(active.id));
+                    if (oldIdx < 0 || !Number.isFinite(slotK)) {
+                        return prev;
+                    }
+                    // slot:K means "insert before item at index K". When the active was to the
+                    // left of K, removing it shifts indices left by one, so the effective
+                    // target is K-1. Clamp to a valid arrayMove index.
+                    const targetIdx = Math.max(0, Math.min(prev.length - 1, slotK - (oldIdx < slotK ? 1 : 0)));
+                    return arrayMove(prev, oldIdx, targetIdx);
+                });
+                return;
+            }
+
+            // Widget/custom dragged over a subcategory tile = move target (not reorder).
+            // Skip the virtual Favorites tile — it has no real backend object, so setting a
+            // widget's parent to `__favorites__` makes the widget vanish (no category to
+            // render it under). Favorites entry is toggled via the star icon, not drag.
+            if (
+                activeEl &&
+                activeEl.type !== 'category' &&
+                overEl?.type === 'category' &&
+                overId !== '__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
+                console.log(`Drop ${active.id} to category ${over.id}`);
                 setDropCategoryId(overId);
                 return;
             }
 
             // Check if hovering over a separate droppable category tile (used in grouped mode)
-            if (overId.startsWith('drop-cat:') && activeEl && activeEl.type !== 'category' && onMoveWidgetToCategory) {
+            if (
+                overId.startsWith('drop-cat:') &&
+                activeEl &&
+                activeEl.type !== 'category' &&
+                overId !== 'drop-cat:__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
                 setDropCategoryId(overId.replace('drop-cat:', ''));
                 return;
             }
@@ -500,12 +580,14 @@ function SortableGrid(props: {
             setDropCategoryId(null);
             // If dropped on a category, move the widget there
             if (currentDrop && onMoveWidgetToCategory) {
+                console.log(`Move ${currentDrop} to ${onMoveWidgetToCategory}`);
                 onMoveWidgetToCategory(String(event.active.id), currentDrop);
                 return;
             }
             // handleDragOver already updated liveOrder during drag,
             // so active.id === over.id is common — always persist if order changed
             const currentOrder = liveOrderRef.current;
+            console.log(`New Order ${currentOrder.join(', ')}`);
             if (currentOrder.some((id, idx) => id !== prevSourceRef.current[idx])) {
                 onOrderChange?.(categoryId, currentOrder);
             }
@@ -522,32 +604,15 @@ function SortableGrid(props: {
     const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
     const activeItem = activeId ? itemMap.get(activeId) : null;
     const draggingNewline = activeItem?.type === 'custom' && (activeItem.data as CustomWidgetBase).type === 'newline';
+    const draggingCategory = activeItem?.type === 'category';
     // CSS Grid `dense` would let later items backfill empty cells before a newline, breaking
     // the line-break semantics. Fall back to default `row` flow whenever a newline is present.
-    const hasNewline = orderedItems.some(
-        i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline',
-    );
+    const hasNewline = orderedItems.some(i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline');
     const autoFlow = hasNewline ? 'row' : 'dense';
 
     const renderContent = (item: OrderedItem, isDropTarget?: boolean): React.ReactNode => {
         if (item.type === 'category') {
-            const tile = category.renderCategoryTile(item.data as CategoryInfo);
-            if (isDropTarget) {
-                return (
-                    <div
-                        style={{
-                            borderRadius: 16,
-                            outline: '2px dashed #4dabf5',
-                            outlineOffset: -2,
-                            backgroundColor: 'rgba(77, 171, 245, 0.08)',
-                            transition: 'outline 0.15s ease, background-color 0.15s ease',
-                        }}
-                    >
-                        {tile}
-                    </div>
-                );
-            }
-            return tile;
+            return category.renderCategoryTile(item.data as CategoryInfo, isDropTarget);
         }
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
@@ -582,7 +647,12 @@ function SortableGrid(props: {
         );
     }
 
-    const parentCatId = category.props.category.parent ? String(category.props.category.parent) : null;
+    // The virtual Favorites category has no real parent to move widgets to — exposing the
+    // "Move to parent" drop target there hijacks every in-favourites drag (closestCenter often
+    // picks it over individual widgets) and ends up changing the widget's real parent to root.
+    const isFavoritesView = categoryId === '__favorites__';
+    const parentCatId =
+        !isFavoritesView && category.props.category.parent ? String(category.props.category.parent) : null;
     const showParentDrop = !!activeId && !draggingNewline && !!onMoveWidgetToCategory && !!parentCatId;
 
     return (
@@ -633,34 +703,92 @@ function SortableGrid(props: {
                         gap: 1.5,
                     }}
                 >
-                    {orderedItems.map(item => {
-                        const isCw = item.type === 'custom';
-                        const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
-                        const fav =
-                            item.type === 'category' || isNewline
-                                ? undefined
-                                : isCw
-                                  ? (item.data as CustomWidgetBase).favorite
-                                  : widgetSettings[item.id]?.favorite;
-                        const toggleFav =
-                            item.type === 'category' || isNewline
-                                ? undefined
-                                : isCw
-                                  ? category.props.onToggleCustomWidgetFavorite
-                                  : onToggleFavorite;
-                        return (
-                            <SortableItem
-                                key={item.id}
-                                id={item.id}
-                                gridSpan={getGridColumn(item, widgetSettings, true)}
-                                isDragging={item.id === activeId}
-                                favorite={fav}
-                                onToggleFavorite={toggleFav}
-                            >
-                                {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
-                            </SortableItem>
-                        );
-                    })}
+                    {(() => {
+                        // Slots act as containers for the widgets currently sitting between
+                        // two categories (or before the first / after the last). Always
+                        // rendered so the widgets stay visible; the frame styling only shows
+                        // up while a drag is active. If the root has no categories at all,
+                        // skip the segmentation and render items flat.
+                        const isCatItem = (it: OrderedItem): boolean => it.type === 'category';
+                        // Slots only help when placing widgets between categories. When the
+                        // user drags a category tile, plain sortable arrayMove already works
+                        // perfectly — render flat to avoid the visual noise of empty slots.
+                        const isDragActive = !!activeId && !draggingNewline && !draggingCategory;
+                        const renderItem = (item: OrderedItem): React.JSX.Element => {
+                            const isCw = item.type === 'custom';
+                            const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
+                            const fav =
+                                item.type === 'category' || isNewline
+                                    ? undefined
+                                    : isCw
+                                      ? (item.data as CustomWidgetBase).favorite
+                                      : widgetSettings[item.id]?.favorite;
+                            const toggleFav =
+                                item.type === 'category' || isNewline
+                                    ? undefined
+                                    : isCw
+                                      ? category.props.onToggleCustomWidgetFavorite
+                                      : onToggleFavorite;
+                            return (
+                                <SortableItem
+                                    key={item.id}
+                                    id={item.id}
+                                    gridSpan={getGridColumn(item, widgetSettings, true)}
+                                    isDragging={item.id === activeId}
+                                    favorite={fav}
+                                    onToggleFavorite={toggleFav}
+                                >
+                                    {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
+                                </SortableItem>
+                            );
+                        };
+
+                        const hasCategories = orderedItems.some(isCatItem);
+                        if (!hasCategories) {
+                            return orderedItems.map(renderItem);
+                        }
+
+                        // Build alternating list of segments (widget groups) and categories.
+                        // `slotIdx` for each segment is the position of its first widget in
+                        // `orderedItems` — that is the index `arrayMove` will insert at when
+                        // the user drops on the slot.
+                        type Segment = { slotIdx: number; widgets: OrderedItem[] };
+                        const segments: Segment[] = [];
+                        const cats: OrderedItem[] = [];
+                        let curWidgets: OrderedItem[] = [];
+                        let segStart = 0;
+                        orderedItems.forEach((item, idx) => {
+                            if (isCatItem(item)) {
+                                segments.push({ slotIdx: segStart, widgets: curWidgets });
+                                cats.push(item);
+                                curWidgets = [];
+                                segStart = idx + 1;
+                            } else {
+                                curWidgets.push(item);
+                            }
+                        });
+                        segments.push({ slotIdx: segStart, widgets: curWidgets });
+
+                        const nodes: React.JSX.Element[] = [];
+                        for (let i = 0; i < segments.length; i++) {
+                            const seg = segments[i];
+                            nodes.push(
+                                <DroppableSlot
+                                    key={`slot:${seg.slotIdx}`}
+                                    id={`slot:${seg.slotIdx}`}
+                                    isDragActive={isDragActive}
+                                    isEmpty={seg.widgets.length === 0}
+                                    gridColumns={category.gridColumns}
+                                >
+                                    {seg.widgets.map(renderItem)}
+                                </DroppableSlot>,
+                            );
+                            if (i < cats.length) {
+                                nodes.push(renderItem(cats[i]));
+                            }
+                        }
+                        return nodes;
+                    })()}
                 </Box>
             </SortableContext>
             <DragOverlay dropAnimation={null}>
@@ -966,8 +1094,17 @@ function GroupedContent(props: {
             const overId = String(over.id);
             const activeIdStr = String(active.id);
 
-            // Check if hovering over a droppable category tile
-            if (overId.startsWith('drop-cat:') && onMoveWidgetToCategory) {
+            // Check if hovering over a droppable category tile. Skip when:
+            //   - the target is the virtual Favorites tile (no real parent to move into), or
+            //   - the active item is itself a category (Favorites or otherwise — categories
+            //     are reordered, never re-parented via drag).
+            const activeIsCategory = itemMap.get(activeIdStr)?.type === 'category';
+            if (
+                overId.startsWith('drop-cat:') &&
+                !activeIsCategory &&
+                overId !== 'drop-cat:__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
                 setDropCategoryId(overId.replace('drop-cat:', ''));
                 return;
             }
@@ -2385,7 +2522,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderCategoryTile(category: CategoryInfo): React.JSX.Element {
+    renderCategoryTile(category: CategoryInfo, isDropTarget?: boolean): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
         const tileCatSettings = this.props.categorySettings[String(category.id)];
@@ -2415,8 +2552,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     p: `${Math.round(16 * scale)}px`,
                     position: 'relative',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    backgroundColor: isDropTarget
+                        ? 'rgba(77, 171, 245, 0.15)'
+                        : theme.palette.mode === 'dark'
+                          ? 'rgba(255,255,255,0.04)'
+                          : 'rgba(0,0,0,0.02)',
                     borderLeft: `3px solid ${tileColor || theme.palette.primary.main}`,
+                    // Drop-target outline lives on the tile itself, so it always inherits the
+                    // full-row gridColumn — wrapping the tile in another <div> would lose it
+                    // during dnd-kit reorder transforms and shrink the highlight.
+                    outline: isDropTarget ? '2px dashed #4dabf5' : 'none',
+                    outlineOffset: -2,
                     ...(tileImage
                         ? {
                               backgroundImage: `url(${tileImage})`,
@@ -2425,7 +2571,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                           }
                         : {}),
                     '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+                        backgroundColor: isDropTarget
+                            ? 'rgba(77, 171, 245, 0.2)'
+                            : theme.palette.mode === 'dark'
+                              ? 'rgba(255,255,255,0.07)'
+                              : 'rgba(0,0,0,0.04)',
                     },
                     '&:active': {
                         transform: 'scale(0.99)',

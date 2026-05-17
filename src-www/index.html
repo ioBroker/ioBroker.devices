@@ -20,7 +20,7 @@
         />
         <script type="text/javascript" src="_socket/info.js"></script>
         <script>
-            var script = document.createElement('script');
+            const script = document.createElement('script');
             window.registerSocketOnLoad = function (cb) {
                 window.socketLoadedHandler = cb;
             };
@@ -34,7 +34,7 @@
                 typeof window.socketLoadedHandler === 'function' && window.socketLoadedHandler();
             };
             // Set background immediately to avoid white flash in dark mode (or vice versa)
-            var t = query.theme || window.localStorage.getItem('App.themeName');
+            const t = query.theme || window.localStorage.getItem('App.themeName');
             if (t === 'dark') {
                 document.documentElement.style.background = '#121212';
             } else if (t === 'light') {

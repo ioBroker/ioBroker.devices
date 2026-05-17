@@ -1226,6 +1226,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         for (const cat of categories) {
             validIds.add(String(cat.id));
         }
+        // The virtual Favorites category never appears in `categories` (it is synthesized in
+        // render()), but its id is a legal entry in widgetOrder. Whitelist it so the clean-up
+        // below doesn't strip it on every reload — without this, every refresh would persist
+        // a widgetOrder with "__favorites__" removed, and the favourites tile would always
+        // fall through to the "unordered" tail.
+        validIds.add(FAVORITES_CATEGORY);
         for (const cs of Object.values(categorySettings)) {
             if (cs.customWidgets) {
                 for (const cw of cs.customWidgets) {

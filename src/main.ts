@@ -38,6 +38,46 @@ export default class DevicesAdapter extends Adapter {
         } catch (error) {
             this.log.error(`Unable to upload default image: ${error}`);
         }
+
+        // Warn if any installed `web` adapter instance is misconfigured for the devices GUI.
+        // The widget manager backend talks to the GUI via socket.io sendTo; with the legacy
+        // built-in socket.io transport on `web` this hangs (no router for our namespace), so
+        // the instance must either run `usePureWebSockets` or delegate the socket layer to a
+        // `ws.X` adapter instance via `native.socketio`.
+        await this.checkWebInstances();
+    }
+
+    private async checkWebInstances(): Promise<void> {
+        try {
+            let found = false;
+            const res = await this.getObjectViewAsync('system', 'instance', {
+                startkey: 'system.adapter.web.',
+                endkey: 'system.adapter.web.香',
+            });
+            for (const row of res?.rows || []) {
+                const id = row.id;
+                // Skip ws.* / other adapters that happen to alphabetically fall in this range
+                if (!/^system\.adapter\.web\.\d+$/.test(id)) {
+                    continue;
+                }
+                const native = (row.value?.native || {}) as { usePureWebSockets?: boolean; socketio?: string };
+                if (!native.socketio && native.usePureWebSockets) {
+                    found = true;
+                    break;
+                }
+                if (typeof native.socketio === 'string' && /^ws\.\d+$/.test(native.socketio)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                this.log.warn(
+                    `web instance is not configured for the devices GUI — enable "Pure Web Sockets" or set "Socket.io adapter" to a "ws.X" instance, otherwise the widget view will hang.`,
+                );
+            }
+        } catch (error) {
+            this.log.debug(`Could not check web instance configuration: ${error as Error}`);
+        }
     }
 }
 
