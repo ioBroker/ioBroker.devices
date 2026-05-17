@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.19",
+    "version": "2.1.0",
     "news": {
+      "2.1.0": {
+        "en": "Corrected dragging of widgets",
+        "de": "Korrigiertes Ziehen von Widgets",
+        "ru": "Исправленное перетаскивание виджетов",
+        "pt": "Arraste os elementos corrigidos",
+        "nl": "Gecorrigeerd slepen van widgets",
+        "fr": "Traînage corrigé des widgets",
+        "it": "Trascinamento corretto dei widget",
+        "es": "Arrastre corregido de widgets",
+        "pl": "Poprawione przeciąganie widżetów",
+        "uk": "Виправлено перетягування віджетів",
+        "zh-cn": "已更正部件拖曳"
+      },
       "2.0.19": {
         "en": "Corrected icons for rooms\nAdded 2x2 for iFrame",
         "de": "Korrigierte Symbole für Zimmer\n2x2 für iFrame hinzugefügt",
