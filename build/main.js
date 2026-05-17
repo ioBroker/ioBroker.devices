@@ -48,6 +48,7 @@ class DevicesAdapter extends adapter_core_1.Adapter {
     }
     async checkWebInstances() {
         try {
+            let found = false;
             const res = await this.getObjectViewAsync('system', 'instance', {
                 startkey: 'system.adapter.web.',
                 endkey: 'system.adapter.web.香',
@@ -59,13 +60,17 @@ class DevicesAdapter extends adapter_core_1.Adapter {
                     continue;
                 }
                 const native = (row.value?.native || {});
-                if (native.usePureWebSockets) {
-                    continue;
+                if (!native.socketio && native.usePureWebSockets) {
+                    found = true;
+                    break;
                 }
                 if (typeof native.socketio === 'string' && /^ws\.\d+$/.test(native.socketio)) {
-                    continue;
+                    found = true;
+                    break;
                 }
-                this.log.warn(`${id} is not configured for the devices GUI — enable "Pure Web Sockets" or set "Socket.io adapter" to a "ws.X" instance, otherwise the widget view will hang.`);
+            }
+            if (!found) {
+                this.log.warn(`web instance is not configured for the devices GUI — enable "Pure Web Sockets" or set "Socket.io adapter" to a "ws.X" instance, otherwise the widget view will hang.`);
             }
         }
         catch (error) {

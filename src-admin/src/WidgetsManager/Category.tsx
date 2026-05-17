@@ -286,20 +286,44 @@ function SortableItem(props: {
     id: string;
     gridSpan?: GridSpan;
     isDragging: boolean;
+    /**
+     * True when the user is dragging this item AND hovering a "move-into" target. The
+     *  ghost should be hidden because the item is about to leave its current position.
+     */
+    movingIntoTarget?: boolean;
+    /**
+     * True when THIS item is the current "move-into" drop target (a category being hovered).
+     *  dnd-kit would otherwise translate it as if a sortable swap is about to happen — but
+     *  for move-into we want the target to stay put so the user sees a stable drop zone.
+     */
+    isDropTarget?: boolean;
     favorite?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
     children: React.ReactNode;
 }): React.JSX.Element {
-    const { id, gridSpan, isDragging, favorite, onToggleFavorite, children } = props;
+    const { id, gridSpan, isDragging, movingIntoTarget, isDropTarget, favorite, onToggleFavorite, children } = props;
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id });
+
+    // `rectSortingStrategy` from dnd-kit computes scaleX/scaleY for displaced items based
+    // on the swap partner's rect. With non-uniform tile sizes (categories vs 1x1 widgets,
+    // 2x1 widgets, 2x2 widgets) that visibly squashes/stretches items during drag — the
+    // user explicitly wants every tile to keep its real size. Strip scale on ALL items
+    // (keep translate) so the layout reflows by movement only. Also kill the translate
+    // entirely on the move-into target: it should stay anchored as a stable drop zone.
+    const adjustedTransform = isDropTarget ? null : transform ? { ...transform, scaleX: 1, scaleY: 1 } : transform;
 
     const style: React.CSSProperties = {
         position: 'relative',
         gridColumn: gridSpan?.gridColumn || undefined,
         gridRow: gridSpan?.gridRow || undefined,
-        opacity: isDragging ? 0.25 : 1,
-        transform: CSS.Transform.toString(transform),
-        transition: transition || undefined,
+        // Hide the source ghost completely when about to be re-parented into a category —
+        // the widget will disappear from this slot once the drop happens, so the 25 %
+        // ghost is misleading. Plain reorder keeps the regular 25 % ghost for feedback.
+        opacity: isDragging ? (movingIntoTarget ? 0 : 0.25) : 1,
+        transform: CSS.Transform.toString(adjustedTransform),
+        // Also kill the transition on the move-into target so it doesn't animate from a
+        // stale transform position.
+        transition: isDropTarget ? undefined : transition || undefined,
     };
 
     return (
@@ -495,10 +519,15 @@ function SortableGrid(props: {
     const [dropCategoryId, setDropCategoryId] = useState<string | null>(null);
     const dropCategoryRef = useRef<string | null>(null);
     dropCategoryRef.current = dropCategoryId;
+    // Category over which a drop is *forbidden* (currently only the virtual Favorites tile).
+    // We still track it during drag to show a red outline + hide the ghost, but it must NOT
+    // trigger any state change on drop.
+    const [forbiddenDropId, setForbiddenDropId] = useState<string | null>(null);
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(String(event.active.id));
         setDropCategoryId(null);
+        setForbiddenDropId(null);
     }, []);
 
     // Reorder live during drag so the grid reflows naturally
@@ -506,11 +535,21 @@ function SortableGrid(props: {
         (event: DragOverEvent) => {
             const { active, over } = event;
             if (!over || active.id === over.id) {
+                setForbiddenDropId(null);
                 return;
             }
             const overId = String(over.id);
             const activeEl = itemMap.get(String(active.id));
             const overEl = itemMap.get(overId);
+
+            // Forbidden target — Favorites: signal red outline + hide ghost, but never persist.
+            const overIsFavorites = overId === '__favorites__' || overId === 'drop-cat:__favorites__';
+            if (overIsFavorites && activeEl && activeEl.type !== 'category') {
+                setDropCategoryId(null);
+                setForbiddenDropId('__favorites__');
+                return;
+            }
+            setForbiddenDropId(null);
 
             // Explicit slot drop target (full-row droppables rendered AT category boundaries
             // and at the very top / bottom while a drag is active). They unambiguously mean
@@ -578,16 +617,15 @@ function SortableGrid(props: {
             setActiveId(null);
             const currentDrop = dropCategoryRef.current;
             setDropCategoryId(null);
+            setForbiddenDropId(null);
             // If dropped on a category, move the widget there
             if (currentDrop && onMoveWidgetToCategory) {
-                console.log(`Move ${currentDrop} to ${onMoveWidgetToCategory}`);
                 onMoveWidgetToCategory(String(event.active.id), currentDrop);
                 return;
             }
             // handleDragOver already updated liveOrder during drag,
             // so active.id === over.id is common — always persist if order changed
             const currentOrder = liveOrderRef.current;
-            console.log(`New Order ${currentOrder.join(', ')}`);
             if (currentOrder.some((id, idx) => id !== prevSourceRef.current[idx])) {
                 onOrderChange?.(categoryId, currentOrder);
             }
@@ -598,6 +636,7 @@ function SortableGrid(props: {
     const handleDragCancel = useCallback(() => {
         setActiveId(null);
         setDropCategoryId(null);
+        setForbiddenDropId(null);
         setLiveOrder(sourceIds);
     }, [sourceIds]);
 
@@ -610,9 +649,9 @@ function SortableGrid(props: {
     const hasNewline = orderedItems.some(i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline');
     const autoFlow = hasNewline ? 'row' : 'dense';
 
-    const renderContent = (item: OrderedItem, isDropTarget?: boolean): React.ReactNode => {
+    const renderContent = (item: OrderedItem, isDropTarget?: boolean, isForbidden?: boolean): React.ReactNode => {
         if (item.type === 'category') {
-            return category.renderCategoryTile(item.data as CategoryInfo, isDropTarget);
+            return category.renderCategoryTile(item.data as CategoryInfo, isDropTarget, isForbidden);
         }
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
@@ -729,16 +768,20 @@ function SortableGrid(props: {
                                     : isCw
                                       ? category.props.onToggleCustomWidgetFavorite
                                       : onToggleFavorite;
+                            const isCatDropTarget = item.type === 'category' && item.id === dropCategoryId;
+                            const isCatForbidden = item.type === 'category' && item.id === forbiddenDropId;
                             return (
                                 <SortableItem
                                     key={item.id}
                                     id={item.id}
                                     gridSpan={getGridColumn(item, widgetSettings, true)}
                                     isDragging={item.id === activeId}
+                                    movingIntoTarget={item.id === activeId && (!!dropCategoryId || !!forbiddenDropId)}
+                                    isDropTarget={isCatDropTarget || isCatForbidden}
                                     favorite={fav}
                                     onToggleFavorite={toggleFav}
                                 >
-                                    {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
+                                    {renderContent(item, isCatDropTarget, isCatForbidden)}
                                 </SortableItem>
                             );
                         };
@@ -807,11 +850,12 @@ function GroupSortableGrid(props: {
     category: Category;
     items: OrderedItem[];
     activeId: string | null;
+    dropCategoryId?: string | null;
     canDrag: boolean;
     widgetSettings: Record<string, WidgetSettingsBase>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, items, activeId, canDrag, widgetSettings, onToggleFavorite } = props;
+    const { category, items, activeId, dropCategoryId, canDrag, widgetSettings, onToggleFavorite } = props;
 
     // Use default `row` flow when a newline is present, so later items can't backfill
     // past the line break (see comment in SortableGrid).
@@ -889,6 +933,7 @@ function GroupSortableGrid(props: {
                             id={item.id}
                             gridSpan={getGridColumn(item, widgetSettings, true)}
                             isDragging={item.id === activeId}
+                            movingIntoTarget={item.id === activeId && !!dropCategoryId}
                             favorite={fav}
                             onToggleFavorite={toggleFav}
                         >
@@ -1145,7 +1190,7 @@ function GroupedContent(props: {
                 );
             }
         },
-        [onMoveWidgetToCategory],
+        [itemMap, onMoveWidgetToCategory],
     );
 
     const handleDragEnd = useCallback(
@@ -1321,6 +1366,7 @@ function GroupedContent(props: {
                                 category={category}
                                 items={groupItems}
                                 activeId={activeId}
+                                dropCategoryId={dropCategoryId}
                                 canDrag={canDrag}
                                 widgetSettings={widgetSettings}
                                 onToggleFavorite={onToggleFavorite}
@@ -1343,6 +1389,7 @@ function GroupedContent(props: {
                         category={category}
                         items={ungrouped}
                         activeId={activeId}
+                        dropCategoryId={dropCategoryId}
                         canDrag={canDrag}
                         widgetSettings={widgetSettings}
                         onToggleFavorite={onToggleFavorite}
@@ -2522,7 +2569,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderCategoryTile(category: CategoryInfo, isDropTarget?: boolean): React.JSX.Element {
+    renderCategoryTile(category: CategoryInfo, isDropTarget?: boolean, isForbidden?: boolean): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
         const tileCatSettings = this.props.categorySettings[String(category.id)];
@@ -2552,16 +2599,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     p: `${Math.round(16 * scale)}px`,
                     position: 'relative',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    backgroundColor: isDropTarget
-                        ? 'rgba(77, 171, 245, 0.15)'
-                        : theme.palette.mode === 'dark'
-                          ? 'rgba(255,255,255,0.04)'
-                          : 'rgba(0,0,0,0.02)',
+                    backgroundColor: isForbidden
+                        ? 'rgba(244, 67, 54, 0.15)'
+                        : isDropTarget
+                          ? 'rgba(77, 171, 245, 0.15)'
+                          : theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.04)'
+                            : 'rgba(0,0,0,0.02)',
                     borderLeft: `3px solid ${tileColor || theme.palette.primary.main}`,
-                    // Drop-target outline lives on the tile itself, so it always inherits the
-                    // full-row gridColumn — wrapping the tile in another <div> would lose it
-                    // during dnd-kit reorder transforms and shrink the highlight.
-                    outline: isDropTarget ? '2px dashed #4dabf5' : 'none',
+                    // Drop-target / forbidden outline lives on the tile itself, so it always
+                    // inherits the full-row gridColumn — wrapping the tile in another <div>
+                    // would lose it during dnd-kit reorder transforms and shrink the highlight.
+                    outline: isForbidden ? '2px dashed #f44336' : isDropTarget ? '2px dashed #4dabf5' : 'none',
                     outlineOffset: -2,
                     ...(tileImage
                         ? {
@@ -2571,11 +2620,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                           }
                         : {}),
                     '&:hover': {
-                        backgroundColor: isDropTarget
-                            ? 'rgba(77, 171, 245, 0.2)'
-                            : theme.palette.mode === 'dark'
-                              ? 'rgba(255,255,255,0.07)'
-                              : 'rgba(0,0,0,0.04)',
+                        backgroundColor: isForbidden
+                            ? 'rgba(244, 67, 54, 0.2)'
+                            : isDropTarget
+                              ? 'rgba(77, 171, 245, 0.2)'
+                              : theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.07)'
+                                : 'rgba(0,0,0,0.04)',
                     },
                     '&:active': {
                         transform: 'scale(0.99)',
