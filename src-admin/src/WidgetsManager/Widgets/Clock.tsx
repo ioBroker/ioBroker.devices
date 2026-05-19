@@ -6,7 +6,7 @@ import { getTimes } from 'suncalc2';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface SunTimes {
@@ -355,7 +355,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
 
     private renderDigitalCompact(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.settings.color;
         const date = this.displayDate;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
@@ -421,7 +420,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
 
     private renderDigitalWide(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.settings.color;
         const date = this.displayDate;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
@@ -493,7 +491,6 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
 
     private renderDigitalWideTall(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.settings.color;
         const date = this.displayDate;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);

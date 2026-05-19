@@ -1123,7 +1123,6 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         const { name, setTemp, actualTemp, boost, power, setMin, setMax, dragging } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const displayTemp = actualTemp ?? setTemp;
@@ -1274,7 +1273,6 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         const modeLabel = this.getCurrentModeLabel();
         const speedLabel = this.getCurrentSpeedLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const poweredOff = this.isPoweredOff();

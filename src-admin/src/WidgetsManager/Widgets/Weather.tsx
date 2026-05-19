@@ -1168,7 +1168,11 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         justifyContent: 'space-between',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...this.applyTileStyles(theme, false, { interactive: false, accent: color, inactiveColor: color }),
+                        ...this.applyTileStyles(theme, false, {
+                            interactive: false,
+                            accent: color,
+                            inactiveColor: color,
+                        }),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >

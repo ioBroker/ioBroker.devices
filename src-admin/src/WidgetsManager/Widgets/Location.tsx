@@ -954,7 +954,6 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     private renderMapTile(isWide: boolean, aspectRatio?: string, huge?: boolean): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const showCoords = this.props.settings?.showCoordinates;

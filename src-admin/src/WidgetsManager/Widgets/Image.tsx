@@ -149,7 +149,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 
@@ -249,7 +248,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 
@@ -325,7 +323,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 

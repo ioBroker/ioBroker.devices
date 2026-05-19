@@ -451,5 +451,7 @@
     "wm_True text": "True text",
     "wm_Invert 1 value": "Invert value 1",
     "wm_Invert 2 value": "Invert value 2",
-    "wm_Invert 3 value": "Invert value 3"
+    "wm_Invert 3 value": "Invert value 3",
+    "wm_Quick chart hint": "Use long click to open chart dialog",
+    "wm_RGB color": "Use long click to open dialog"
 }

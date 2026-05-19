@@ -15,11 +15,7 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, {
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetMediaPlayerState extends WidgetGenericState {
     playing: boolean;

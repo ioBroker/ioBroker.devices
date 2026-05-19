@@ -284,7 +284,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { temperature, weather } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 
@@ -385,7 +384,6 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 

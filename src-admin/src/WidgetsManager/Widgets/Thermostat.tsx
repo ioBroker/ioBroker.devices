@@ -1119,7 +1119,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const { name, setTemp, actualTemp, humidity, boost, power, party } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const poweredOff = this.isPoweredOff();

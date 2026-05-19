@@ -194,6 +194,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "number"',
                 },
                 quickChart: {
+                    newLine: true,
                     type: 'checkbox',
                     label: 'wm_Quick chart',
                     help: 'wm_Quick chart help',
@@ -206,6 +207,16 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     min: QUICK_CHART_MIN_WINDOW_SEC,
                     step: 1,
                     hidden: '!data.quickChart',
+                },
+                _quickChartHint: {
+                    newLine: true,
+                    type: 'staticText',
+                    hidden: '!data.stateId || !data.actionStateId || (!data.quickChart && !(await getObject(data.stateId))?.common?.custom)',
+                    text: 'wm_Quick chart hint',
+                    style: {
+                        fontStyle: 'italic',
+                    },
+                    sm: 12,
                 },
                 opacityStateId: { type: 'objectId', label: 'wm_Opacity state' },
                 opacityFalse: {

@@ -391,7 +391,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
     // --- Compact 1x1 layout: compass fills the whole tile ---
     renderCompact(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.settings.color;
         const hasData =
             this.props.settings.directionStateId ||
             this.props.settings.speedStateId ||
@@ -457,7 +456,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
     // --- Wide 2x0.5 layout: compass left, details right ---
     renderWide(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.settings.color;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 
@@ -536,7 +534,6 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
     // --- Wide tall 2x1 layout: compass left, details right ---
     renderWideTall(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.settings.color;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 

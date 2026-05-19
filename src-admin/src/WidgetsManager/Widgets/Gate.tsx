@@ -3,11 +3,7 @@ import { Box, IconButton, Typography, type Theme } from '@mui/material';
 import { Garage, KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, {
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetGateState extends WidgetGenericState {
     /** Gate position 0 (closed) – 100 (open) */

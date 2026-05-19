@@ -99,7 +99,11 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
                                   height: isWide ? 80 : undefined,
                               }),
                         overflow: 'hidden',
-                        ...this.applyTileStyles(theme, false, { interactive: false, accent: this.props.settings.color, inactiveColor: this.props.settings.color }),
+                        ...this.applyTileStyles(theme, false, {
+                            interactive: false,
+                            accent: this.props.settings.color,
+                            inactiveColor: this.props.settings.color,
+                        }),
                         gap: 1,
                     })}
                 >

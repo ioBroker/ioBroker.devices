@@ -6,7 +6,7 @@ import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { StateChangeListener } from '../StateContext';
-import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetPresenceSettings extends CustomWidgetBase {
@@ -136,7 +136,11 @@ export class WidgetPresence extends WidgetGeneric<WidgetPresenceState, WidgetPre
                         aspectRatio: '1',
                         position: 'relative',
                         overflow: 'hidden',
-                        ...this.applyTileStyles(theme, present, { interactive: false, accent: color, inactiveColor: color }),
+                        ...this.applyTileStyles(theme, present, {
+                            interactive: false,
+                            accent: color,
+                            inactiveColor: color,
+                        }),
                         ...(dimmed && {
                             opacity: 0.35,
                             filter: 'grayscale(100%)',

@@ -346,7 +346,6 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         // 3+ states: replace icon area with a table
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const indicators = this.renderIndicators();
         const chartClickable = this.hasChartAction();
 

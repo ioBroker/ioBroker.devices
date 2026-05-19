@@ -2,11 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-import WidgetGeneric, {
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { translateWeather } from './weatherTranslations';
 
 interface ForecastDay {
@@ -353,7 +349,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { icon, weatherState } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 
@@ -507,7 +502,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { icon, tempMin, tempMax, weatherState, forecastDays } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 

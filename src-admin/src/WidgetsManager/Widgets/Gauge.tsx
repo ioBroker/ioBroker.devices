@@ -614,7 +614,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
     // -- 1x1 compact --
 
     renderCompact(): React.JSX.Element {
-        const accent = this.props.settings.color;
         const clickable = this.hasChart;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
@@ -675,7 +674,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
 
     renderWide(): React.JSX.Element {
         const { value } = this.state;
-        const accent = this.props.settings.color;
         const raw = value ?? this.min;
         const color = value != null ? this.getColor(raw) : undefined;
         const clickable = this.hasChart;
@@ -738,7 +736,6 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
     // -- 2x1 wide tall --
 
     renderWideTall(): React.JSX.Element {
-        const accent = this.props.settings.color;
         const clickable = this.hasChart;
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);

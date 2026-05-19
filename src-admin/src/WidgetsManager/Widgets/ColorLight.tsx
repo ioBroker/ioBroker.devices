@@ -133,6 +133,15 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         max: 100,
                         unit: '%',
                     },
+                    _dialogChartHint: {
+                        newLine: true,
+                        type: 'staticText',
+                        text: 'wm_RGB color',
+                        style: {
+                            fontStyle: 'italic',
+                        },
+                        sm: 12,
+                    },
                 },
             },
         };
@@ -539,9 +548,12 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
             this.longPressTimer = null;
         }
 
-        if (!this.dragStartPos && !this.isDragging) {
-            // Long press already triggered
+        // Long-press already opened the dialog — swallow the trailing pointerUp/cancel.
+        if (this.longPressTriggered) {
             this.longPressTriggered = false;
+            this.dragStartPos = null;
+            this.isDragging = false;
+            this.setState({ dragging: false });
             return;
         }
 
@@ -696,7 +708,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     renderCompact(): React.JSX.Element {
         const { name, brightness, dragging, color } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
 

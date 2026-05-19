@@ -2129,8 +2129,6 @@ export class WidgetGeneric<
     renderCompact(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
@@ -2235,8 +2233,6 @@ export class WidgetGeneric<
     renderWide(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
@@ -2319,8 +2315,6 @@ export class WidgetGeneric<
     renderWideTall(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
