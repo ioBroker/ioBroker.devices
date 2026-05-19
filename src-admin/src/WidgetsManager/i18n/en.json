@@ -56,7 +56,6 @@
     "wm_Clock": "Clock",
     "wm_Clock_desc": "Shows current time and date",
     "wm_Close": "Close",
-    "wm_Close preview": "Close preview",
     "wm_Closed": "Closed",
     "wm_Collapse all": "Collapse all groups",
     "wm_Color": "Color",
@@ -107,7 +106,6 @@
     "wm_Flood": "Flood",
     "wm_Forecast": "Forecast",
     "wm_Frequency": "Frequency",
-    "wm_GUI only": "GUI only",
     "wm_Gauge": "Gauge",
     "wm_Gauge_desc": "Arc gauge with colored levels for any value",
     "wm_Group": "Group",
@@ -443,5 +441,15 @@
     "wm_w_Thunderstorm": "Thunderstorm",
     "wm_w_Thunderstorm with hail": "Thunderstorm with hail",
     "wm_w_Thunderstorm with heavy hail": "Thunderstorm with heavy hail",
-    "wm_w_Violent rain showers": "Violent rain showers"
+    "wm_w_Violent rain showers": "Violent rain showers",
+    "wm_true": "True",
+    "wm_false": "False",
+    "wm_Off only": "Off only",
+    "wm_On only": "On only",
+    "wm_On and off": "On and off",
+    "wm_False text": "False text",
+    "wm_True text": "True text",
+    "wm_Invert 1 value": "Invert value 1",
+    "wm_Invert 2 value": "Invert value 2",
+    "wm_Invert 3 value": "Invert value 3"
 }

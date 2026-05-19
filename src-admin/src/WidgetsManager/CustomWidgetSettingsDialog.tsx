@@ -20,6 +20,7 @@ import GroupSelector from './GroupSelector';
 import ConfigCitySearch from './Components/ConfigCitySearch';
 import ConfigColorLevels from './Components/ConfigColorLevels';
 import ConfigIconSelect from './Components/ConfigIconSelect';
+import ConfigURLSelect from './Components/ConfigURLSelect';
 import type StateContext from './StateContext';
 
 interface CustomWidgetSettingsDialogProps {
@@ -58,6 +59,7 @@ const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps,
     citySearch: ConfigCitySearch as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
     colorLevels: ConfigColorLevels as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
     iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+    urlSelector: ConfigURLSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
 };
 
 // --- Dialog ---

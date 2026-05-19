@@ -50,6 +50,7 @@ export const BASE_WIDGET_ITEMS: Record<string, ConfigItemAny> = {
         default: '1x1',
         format: 'radio',
         horizontal: true,
+        noTranslation: true,
     } as ConfigItemAny,
     colorActive: { type: 'color', label: 'wm_Active color', sm: 6 } as ConfigItemAny,
     color: { type: 'color', label: 'wm_Color inactive', sm: 6 } as ConfigItemAny,

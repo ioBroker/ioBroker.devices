@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, type Theme, Typography } from '@mui/material';
-import { Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
@@ -33,6 +33,7 @@ interface IconDef {
     stateId: string;
     icon: string;
     color: string;
+    invert: boolean;
 }
 
 export interface WidgetUniversalSettings extends CustomWidgetBase {
@@ -64,12 +65,28 @@ export interface WidgetUniversalSettings extends CustomWidgetBase {
     quickChart?: boolean;
     /** Visible QuickChart time window in seconds (minimum 10) */
     quickChartInterval?: number;
+
+    icon1StateId?: string;
+    icon1Name?: string;
+    icon1Invert?: boolean;
+    icon1Color?: string;
+
+    icon2StateId?: string;
+    icon2Invert?: boolean;
+    icon2Name?: string;
+    icon2Color?: string;
+
+    icon3StateId?: string;
+    icon3Name?: string;
+    icon3Invert?: boolean;
+    icon3Color?: string;
 }
 
 interface WidgetUniversalState extends WidgetGenericState {
-    value: number | null;
+    value: number | boolean | string | null;
     unit: string;
     commonType: ioBroker.CommonType;
+    commonName: string;
     secondaryValue: number | null;
     secondaryUnit: string;
     opacity: number;
@@ -91,11 +108,29 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             items: {
                 stateId: { type: 'objectId', label: 'wm_State ID' },
                 name: { type: 'text', label: 'wm_Name', default: '' },
-                digits: { type: 'number', label: 'wm_Digits after comma', default: 1, min: 0, max: 5 },
+                digits: {
+                    type: 'number',
+                    label: 'wm_Digits after comma',
+                    default: 1,
+                    min: 0,
+                    max: 5,
+                    hidden: 'data.stateId && getObject(data.stateId)?.common?.type === "number"',
+                },
                 widgetIcon: { type: 'component', subType: 'iconSelect', label: 'wm_Icon', sm: 6 },
                 widgetIconActive: { type: 'component', subType: 'iconSelect', label: 'wm_Active icon', sm: 6 },
+                text: {
+                    type: 'text',
+                    label: 'wm_False text',
+                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "boolean"',
+                },
+                textActive: {
+                    type: 'text',
+                    label: 'wm_True text',
+                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "boolean"',
+                },
                 secondaryStateId: { type: 'objectId', label: 'wm_Secondary value' },
                 secondaryName: { type: 'text', label: 'wm_Secondary name', default: '' },
+
                 actionStateId: { type: 'objectId', label: 'wm_Action state' },
                 actionType: {
                     type: 'select',
@@ -151,7 +186,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     default: '',
                     hidden: "!data.actionStateId || data.actionConfirm !== 'pin'",
                 },
-                colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
+
+                colorLevels: {
+                    type: 'component',
+                    subType: 'colorLevels',
+                    label: 'wm_Color levels',
+                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "number"',
+                },
                 quickChart: {
                     type: 'checkbox',
                     label: 'wm_Quick chart',
@@ -191,30 +232,101 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     collapsable: true,
                     items: {
                         icon1StateId: { type: 'objectId', label: 'wm_Icon 1 state', sm: 12 },
-                        icon1Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 1 name', sm: 6 },
-                        icon1Color: { type: 'color', label: 'wm_Icon 1 color', sm: 6 },
-                        icon2StateId: { type: 'objectId', label: 'wm_Icon 2 state', sm: 12 },
-                        icon2Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 2 name', sm: 6 },
-                        icon2Color: { type: 'color', label: 'wm_Icon 2 color', sm: 6 },
-                        icon3StateId: { type: 'objectId', label: 'wm_Icon 3 state', sm: 12 },
-                        icon3Name: { type: 'component', subType: 'iconSelect', label: 'wm_Icon 3 name', sm: 6 },
-                        icon3Color: { type: 'color', label: 'wm_Icon 3 color', sm: 6 },
+                        icon1Name: {
+                            type: 'component',
+                            subType: 'iconSelect',
+                            label: 'wm_Icon 1 name',
+                            sm: 6,
+                            hidden: '!data.icon1StateId',
+                        },
+                        icon1Color: { type: 'color', label: 'wm_Icon 1 color', sm: 6, hidden: '!data.icon1StateId' },
+                        icon1Invert: {
+                            type: 'checkbox',
+                            label: 'wm_Invert 1 value',
+                            sm: 12,
+                            hidden: '!data.icon1StateId',
+                            default: false,
+                        },
+                        _divider1: { type: 'divider', hidden: '!data.icon1StateId' },
+                        icon2StateId: {
+                            type: 'objectId',
+                            label: 'wm_Icon 2 state',
+                            sm: 12,
+                            hidden: '!data.icon1StateId',
+                        },
+                        icon2Name: {
+                            type: 'component',
+                            subType: 'iconSelect',
+                            label: 'wm_Icon 2 name',
+                            sm: 6,
+                            hidden: '!data.icon2StateId',
+                        },
+                        icon2Color: { type: 'color', label: 'wm_Icon 2 color', sm: 6, hidden: '!data.icon2StateId' },
+                        icon2Invert: {
+                            type: 'checkbox',
+                            label: 'wm_Invert 2 value',
+                            sm: 12,
+                            default: false,
+                            hidden: '!data.icon2StateId',
+                        },
+                        _divider2: { type: 'divider', hidden: '!data.icon2StateId' },
+                        icon3StateId: {
+                            type: 'objectId',
+                            label: 'wm_Icon 3 state',
+                            sm: 12,
+                            hidden: '!data.icon2StateId',
+                        },
+                        icon3Name: {
+                            type: 'component',
+                            subType: 'iconSelect',
+                            label: 'wm_Icon 3 name',
+                            sm: 6,
+                            hidden: '!data.icon3StateId',
+                        },
+                        icon3Color: { type: 'color', label: 'wm_Icon 3 color', sm: 6, hidden: '!data.icon3StateId' },
+                        icon3Invert: {
+                            type: 'checkbox',
+                            label: 'wm_Invert 3 value',
+                            sm: 12,
+                            hidden: '!data.icon3StateId',
+                            default: false,
+                        },
                     },
                 },
-                colorActive: { type: 'color', label: 'wm_Active color' },
             },
         };
     }
 
     /** Build WidgetUniversalSettings from a flat CustomWidgetBase (resolves icon1StateId/icon1Name/icon1Color → icons[]) */
-    static buildSettings(def: CustomWidgetBase): WidgetUniversalSettings {
-        const d = def as Record<string, any>;
+    static buildSettings(def: WidgetUniversalSettings): WidgetUniversalSettings {
+        const d = def;
         return {
             ...def,
             icons: [
-                d.icon1StateId ? { stateId: d.icon1StateId, icon: d.icon1Name || '', color: d.icon1Color || '' } : null,
-                d.icon2StateId ? { stateId: d.icon2StateId, icon: d.icon2Name || '', color: d.icon2Color || '' } : null,
-                d.icon3StateId ? { stateId: d.icon3StateId, icon: d.icon3Name || '', color: d.icon3Color || '' } : null,
+                d.icon1StateId
+                    ? {
+                          stateId: d.icon1StateId,
+                          icon: d.icon1Name || '',
+                          color: d.icon1Color || '',
+                          invert: d.icon1Invert,
+                      }
+                    : null,
+                d.icon2StateId
+                    ? {
+                          stateId: d.icon2StateId,
+                          icon: d.icon2Name || '',
+                          color: d.icon2Color || '',
+                          invert: d.icon2Invert,
+                      }
+                    : null,
+                d.icon3StateId
+                    ? {
+                          stateId: d.icon3StateId,
+                          icon: d.icon3Name || '',
+                          color: d.icon3Color || '',
+                          invert: d.icon3Invert,
+                      }
+                    : null,
             ].filter(Boolean) as IconDef[],
         } as WidgetUniversalSettings;
     }
@@ -266,7 +378,9 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             prev.settings.secondaryStateId !== this.props.settings.secondaryStateId ||
             prev.settings.opacityStateId !== this.props.settings.opacityStateId ||
             prev.settings.actionStateId !== this.props.settings.actionStateId ||
-            prev.settings.icons !== this.props.settings.icons
+            prev.settings.icon1StateId !== this.props.settings.icon1StateId ||
+            prev.settings.icon2StateId !== this.props.settings.icon2StateId ||
+            prev.settings.icon3StateId !== this.props.settings.icon3StateId
         ) {
             this.unsubscribe();
             this.objectCache.clear();
@@ -328,13 +442,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         return Math.ceil(windowSec * 1000 * 1.2);
     }
 
-    private captureQuickSample(value?: number): void {
+    private captureQuickSample(value?: number | boolean): void {
         const val = value ?? this.state.value;
-        if (val == null || !Number.isFinite(val)) {
+        if (val == null || !(Number.isFinite(val) || val === true || val === false)) {
             return;
         }
         const now = Date.now();
-        const sample = { ts: now, val };
+        const sample = { ts: now, val: typeof val === 'boolean' ? (val ? 1 : 0) : (val as number) };
         const cutoff = now - this.getQuickBufferKeepMs();
         this.setState(prev => {
             // Drop anything older than 1.2× the window; also enforce the hard
@@ -371,27 +485,42 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         const W = 200;
         const H = 60;
         const tsRange = windowSec * 1000;
-        let valMin = Infinity;
-        let valMax = -Infinity;
-        for (const p of visible) {
-            if (p.val < valMin) {
-                valMin = p.val;
+        const isBoolean = this.state.commonType === 'boolean';
+        let padMin: number;
+        let padRange: number;
+        if (isBoolean) {
+            padMin = -0.1;
+            padRange = 1.2;
+        } else {
+            let valMin = Infinity;
+            let valMax = -Infinity;
+            for (const p of visible) {
+                if (p.val < valMin) {
+                    valMin = p.val;
+                }
+                if (p.val > valMax) {
+                    valMax = p.val;
+                }
             }
-            if (p.val > valMax) {
-                valMax = p.val;
-            }
+            const valRange = valMax - valMin || 1;
+            padMin = valMin - valRange * 0.1;
+            padRange = valMax + valRange * 0.1 - padMin;
         }
-        const valRange = valMax - valMin || 1;
-        const padMin = valMin - valRange * 0.1;
-        const padRange = valMax + valRange * 0.1 - padMin;
         const pts = visible.map(p => ({
             x: ((p.ts - tsMin) / tsRange) * W,
             y: H - ((p.val - padMin) / padRange) * H,
         }));
-        const line = pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('');
+        const line = isBoolean
+            ? pts
+                  .map((p, j) =>
+                      j === 0 ? `M${p.x.toFixed(1)},${p.y.toFixed(1)}` : `H${p.x.toFixed(1)}V${p.y.toFixed(1)}`,
+                  )
+                  .join('')
+            : pts.map((p, j) => `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('');
         const lastX = pts[pts.length - 1].x.toFixed(1);
         const firstX = pts[0].x.toFixed(1);
         const color = this.getValueColor() || this.props.settings.color || '#2196f3';
+
         return (
             <Box
                 sx={{
@@ -449,20 +578,35 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         if (this.props.settings.stateId) {
             this.primaryHandler = (_id, state) => {
                 const val = state?.val;
-                const num = val != null ? Number(val) : null;
-                this.setState({ value: num });
+                let value: number | string | boolean | null;
+                if (this.state.commonType === 'boolean') {
+                    value = val === true || val === 'true' || val === 1 || val === '1' || val === 'ON' || val === 'AN';
+                } else if (this.state.commonType === 'number') {
+                    value = val != null ? Number(val) : null;
+                } else {
+                    value = (val || '').toString();
+                }
+                this.setState({ value });
                 // Capture immediately on every state change when QuickChart is on,
                 // so the chart populates without waiting for the next interval tick.
-                if (this.props.settings.quickChart && num != null && Number.isFinite(num)) {
-                    this.captureQuickSample(num);
+                if (
+                    this.props.settings.quickChart &&
+                    value != null &&
+                    (typeof value === 'boolean' || typeof value === 'number')
+                ) {
+                    this.captureQuickSample(value);
                 }
             };
             ctx.getState(this.props.settings.stateId, this.primaryHandler);
             void this.getCachedObject(this.props.settings.stateId).then(obj => {
                 if (obj?.common?.unit) {
-                    this.setState({ unit: obj.common.unit, commonType: obj.common.type });
+                    this.setState({
+                        unit: obj.common.unit,
+                        commonType: obj.common.type,
+                        commonName: this.getText(obj.common.name),
+                    });
                 } else if (obj?.common?.type) {
-                    this.setState({ commonType: obj.common.type });
+                    this.setState({ commonType: obj.common.type, commonName: this.getText(obj.common.name) });
                 }
             });
         }
@@ -514,7 +658,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             const handler: StateChangeListener = (_id, state) => {
                 this.setState(prev => {
                     const iconStates = [...prev.iconStates];
-                    iconStates[idx] = !!state?.val;
+                    iconStates[idx] = iconDef.invert ? !state?.val : !!state?.val;
                     return { iconStates };
                 });
             };
@@ -632,22 +776,38 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
 
     private getValueColor(): string | undefined {
         const { value } = this.state;
-        const levels = this.props.settings.colorLevels;
-        if (value == null || !levels?.length) {
-            return this.props.settings.color || undefined;
+        if (typeof value === 'boolean') {
+            return value ? this.props.settings.colorActive || this.props.settings.color : this.props.settings.color;
         }
-        const sorted = [...levels].sort((a, b) => a.value - b.value);
-        for (const lvl of sorted) {
-            if (value <= lvl.value) {
-                return lvl.color;
+        if (typeof value === 'number') {
+            const levels = this.props.settings.colorLevels;
+            if (!levels?.length) {
+                return this.props.settings.color || undefined;
             }
+            const sorted = [...levels].sort((a, b) => a.value - b.value);
+            for (const lvl of sorted) {
+                if (value <= lvl.value) {
+                    return lvl.color;
+                }
+            }
+            return sorted[sorted.length - 1].color;
         }
-        return sorted[sorted.length - 1].color;
+
+        return undefined;
     }
 
-    private formatValue(val: number): string {
-        const digits = this.props.settings.digits ?? 1;
-        return formatFloat(val, digits, this.props.stateContext.isFloatComma);
+    private formatValue(val: number | boolean | string): string {
+        if (typeof val === 'boolean') {
+            if (val) {
+                return this.props.settings.textActive || I18n.t('wm_true');
+            }
+            return this.props.settings.text || I18n.t('wm_false');
+        }
+        if (typeof val === 'number') {
+            const digits = this.props.settings.digits ?? 1;
+            return formatFloat(val, digits, this.props.stateContext.isFloatComma);
+        }
+        return val;
     }
 
     /** Execute the action (send value / toggle) — called after confirmation if needed */
@@ -663,25 +823,23 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         if (actionType === 'value') {
             let val: ioBroker.StateValue;
             if (commonType === 'boolean') {
-                val = actionValue === 'true' || actionValue === true || actionValue === 1;
+                val = actionValue === 'true' || actionValue === true || actionValue === 1 || actionValue === '1';
             } else if (commonType === 'number') {
                 val = Number(actionValue);
             } else {
                 val = actionValue != null ? String(actionValue) : '';
             }
             await socket.setState(actionStateId, val);
-        } else {
+        } else if (obj) {
             const state = await socket.getState(actionStateId);
-            if (state) {
-                if (commonType === 'boolean') {
-                    void socket.setState(actionStateId, !state.val);
-                } else if (commonType === 'number') {
-                    const min = obj?.common.min ?? 0;
-                    const max = obj?.common.max ?? 100;
-                    void socket.setState(actionStateId, state.val === min ? max : min);
-                } else {
-                    void socket.setState(actionStateId, !state.val);
-                }
+            if (commonType === 'boolean') {
+                void socket.setState(actionStateId, !state?.val);
+            } else if (commonType === 'number') {
+                const min = obj?.common.min ?? 0;
+                const max = obj?.common.max ?? 100;
+                void socket.setState(actionStateId, state?.val === min ? max : min);
+            } else {
+                void socket.setState(actionStateId, !state?.val);
             }
         }
     }
@@ -702,7 +860,38 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         return scope === 'on' ? !isCurrentlyActive : isCurrentlyActive;
     }
 
+    /** Long-press: when both an action and a chart are configured, holding the tile opens the chart. */
+    private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+    private longPressed = false;
+
+    private clearLongPressTimer = (): void => {
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+    };
+
+    private handlePointerDown = (): void => {
+        this.longPressed = false;
+        const chartAvailable = !!this.state.historyId || !!this.props.settings.quickChart;
+        if (!this.props.settings.actionStateId || !chartAvailable) {
+            return;
+        }
+        this.clearLongPressTimer();
+        this.longPressTimer = setTimeout(() => {
+            this.longPressed = true;
+            this.longPressTimer = null;
+            this.setState({ chartOpen: true });
+        }, 500);
+    };
+
     private handleTileClick = (): void => {
+        // Long-press already opened the chart — swallow the synthetic click.
+        if (this.longPressed) {
+            this.longPressed = false;
+            return;
+        }
+        this.clearLongPressTimer();
         if (this.props.settings.actionStateId && this.props.stateContext) {
             if (this.needsConfirmation()) {
                 const mode = this.props.settings.actionConfirm!;
@@ -777,6 +966,10 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                 {isWideTall && <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />}
                 <Box
                     onClick={clickable ? this.handleTileClick : undefined}
+                    onPointerDown={clickable ? this.handlePointerDown : undefined}
+                    onPointerUp={clickable ? this.clearLongPressTimer : undefined}
+                    onPointerLeave={clickable ? this.clearLongPressTimer : undefined}
+                    onPointerCancel={clickable ? this.clearLongPressTimer : undefined}
                     sx={(theme: Theme) => ({
                         ...this.applyTileStyles(theme, this.state.actionActive, {
                             interactive: clickable,
@@ -893,7 +1086,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                         }}
                                     />
                                 ) : null}
-                                {this.state.commonType !== 'boolean' && value != null ? (
+                                {value != null ? (
                                     <Typography
                                         sx={{
                                             fontSize: isWide ? 56 : 36,
@@ -967,7 +1160,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         if (!hasHistory && !useQuick) {
             return null;
         }
-        const title = this.props.settings.name || String(this.props.widget.id);
+        const title = this.props.settings.name || this.state.commonName || String(this.props.widget.id);
         const color = this.props.settings.color || '#2196f3';
         const quickData: ChartSeries[] | undefined = useQuick
             ? [{ data: this.state.quickSamples, color, name: title, unit: this.state.unit }]
@@ -989,6 +1182,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                 widgetId={String(this.props.widget.id)}
                 instanceId={this.props.stateContext.instanceId}
                 quickData={quickData}
+                isBoolean={this.state.commonType === 'boolean'}
                 lockedWindowMs={useQuick ? windowSec * 1000 : undefined}
             />
         );

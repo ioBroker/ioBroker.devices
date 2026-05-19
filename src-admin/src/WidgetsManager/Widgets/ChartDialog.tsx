@@ -267,6 +267,8 @@ interface InteractiveChartProps {
      * and updates once per second (live-scrolling). Pan, zoom and view-settle are disabled.
      */
     lockedWindowMs?: number;
+    /** When true, the underlying state is boolean — y-axis is locked to [0,1] and only 0/1 ticks are shown. */
+    isBoolean?: boolean;
 }
 
 function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
@@ -282,6 +284,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         isFloatComma,
         onViewSettle,
         lockedWindowMs,
+        isBoolean,
     } = props;
     const svgRef = useRef<SVGSVGElement>(null);
     const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -406,6 +409,12 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             globalValMin = visMin - r * 0.05;
             globalValMax = visMax + r * 0.05;
         }
+    }
+
+    // Boolean override: lock y-range to [0, 1] so the step chart stays anchored.
+    if (isBoolean && !dualAxis) {
+        globalValMin = -0.1;
+        globalValMax = 1.1;
     }
 
     // Reset view when data changes — skipped while the view is locked.
@@ -624,11 +633,15 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
     }
 
     // Value axis ticks (left axis)
-    const valStep = niceStep(globalValMax - globalValMin, Math.max(3, Math.floor(plotH / 40)));
     const valTicks: number[] = [];
-    const firstVal = Math.ceil(globalValMin / valStep) * valStep;
-    for (let v = firstVal; v <= globalValMax; v += valStep) {
-        valTicks.push(v);
+    if (isBoolean && !dualAxis) {
+        valTicks.push(0, 1);
+    } else {
+        const valStep = niceStep(globalValMax - globalValMin, Math.max(3, Math.floor(plotH / 40)));
+        const firstVal = Math.ceil(globalValMin / valStep) * valStep;
+        for (let v = firstVal; v <= globalValMax; v += valStep) {
+            valTicks.push(v);
+        }
     }
 
     // Right Y-axis ticks (dual-axis mode)
@@ -731,6 +744,11 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             {valTicks.map((v, vi) => {
                 const y = valToY(v);
                 const leftUnit = dualAxis ? series[0].unit : unit;
+                const label = isBoolean
+                    ? v >= 0.5
+                        ? I18n.t('wm_true')
+                        : I18n.t('wm_false')
+                    : formatValue(v, isFloatComma);
                 return (
                     <text
                         key={`vl${v}`}
@@ -741,8 +759,8 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                         fill={dualAxis ? series[0].color : 'currentColor'}
                         opacity={dualAxis ? 0.7 : 0.5}
                     >
-                        {formatValue(v, isFloatComma)}
-                        {vi === valTicks.length - 1 && leftUnit ? ` ${leftUnit}` : ''}
+                        {label}
+                        {!isBoolean && vi === valTicks.length - 1 && leftUnit ? ` ${leftUnit}` : ''}
                     </text>
                 );
             })}
@@ -781,7 +799,12 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                       const labels = entries.map(e => {
                           const displayName = e.name || (series.length === 1 ? chartTitle : undefined);
                           const entryUnit = e.unit || unit;
-                          return `${displayName ? `${displayName}: ` : ''}${formatValue(e.val, isFloatComma)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                          const valueLabel = isBoolean
+                              ? e.val >= 0.5
+                                  ? I18n.t('wm_true')
+                                  : I18n.t('wm_false')
+                              : `${formatValue(e.val, isFloatComma)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                          return `${displayName ? `${displayName}: ` : ''}${valueLabel}`;
                       });
 
                       const allLines = [...labels, timeLabel];
@@ -893,6 +916,8 @@ export interface ChartDialogProps {
      * `[Date.now() - lockedWindowMs, Date.now()]` and updates live. Pan/zoom is disabled.
      */
     lockedWindowMs?: number;
+    /** When true, the underlying state is boolean — forces step-end rendering and hides type/smoothing controls. */
+    isBoolean?: boolean;
 }
 
 function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
@@ -909,6 +934,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         instanceId,
         quickData,
         lockedWindowMs,
+        isBoolean,
     } = props;
     const isQuick = !!quickData;
     // Stabilize historyIds so that a new array reference with the same content doesn't trigger re-fetches
@@ -1203,60 +1229,66 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             ))}
                         </ButtonGroup>
                     )}
-                    <Tooltip title={I18n.t('wm_Settings')}>
-                        <IconButton
-                            size="small"
-                            onClick={e => setSettingsAnchor(e.currentTarget)}
-                        >
-                            <Settings fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                    {!isBoolean && (
+                        <Tooltip title={I18n.t('wm_Settings')}>
+                            <IconButton
+                                size="small"
+                                onClick={e => setSettingsAnchor(e.currentTarget)}
+                            >
+                                <Settings fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     <Popover
-                        open={Boolean(settingsAnchor)}
+                        open={Boolean(settingsAnchor) && !isBoolean}
                         anchorEl={settingsAnchor}
                         onClose={() => setSettingsAnchor(null)}
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     >
                         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 200 }}>
-                            <TextField
-                                select
-                                variant="filled"
-                                size="small"
-                                label={I18n.t('wm_Chart type')}
-                                value={chartType}
-                                onChange={e => {
-                                    const val = e.target.value as ChartLineType;
-                                    setChartType(val);
-                                    saveSetting('chartType', val);
-                                }}
-                            >
-                                <MenuItem value="line">{I18n.t('wm_chart_line')}</MenuItem>
-                                <MenuItem value="step-start">{I18n.t('wm_chart_step_start')}</MenuItem>
-                                <MenuItem value="step-end">{I18n.t('wm_chart_step_end')}</MenuItem>
-                            </TextField>
-                            <TextField
-                                select
-                                variant="filled"
-                                size="small"
-                                label={I18n.t('wm_Smoothing')}
-                                value={smoothing}
-                                onChange={e => {
-                                    const val = Number(e.target.value) as SmoothingWindow;
-                                    setSmoothing(val);
-                                    saveSetting('chartSmoothing', val);
-                                }}
-                            >
-                                {SMOOTHING_OPTIONS.map(opt => (
-                                    <MenuItem
-                                        key={opt.value}
-                                        value={opt.value}
-                                    >
-                                        {I18n.t(opt.label)}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                            {smoothing > 0 && (
+                            {!isBoolean && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Chart type')}
+                                    value={chartType}
+                                    onChange={e => {
+                                        const val = e.target.value as ChartLineType;
+                                        setChartType(val);
+                                        saveSetting('chartType', val);
+                                    }}
+                                >
+                                    <MenuItem value="line">{I18n.t('wm_chart_line')}</MenuItem>
+                                    <MenuItem value="step-start">{I18n.t('wm_chart_step_start')}</MenuItem>
+                                    <MenuItem value="step-end">{I18n.t('wm_chart_step_end')}</MenuItem>
+                                </TextField>
+                            )}
+                            {!isBoolean && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Smoothing')}
+                                    value={smoothing}
+                                    onChange={e => {
+                                        const val = Number(e.target.value) as SmoothingWindow;
+                                        setSmoothing(val);
+                                        saveSetting('chartSmoothing', val);
+                                    }}
+                                >
+                                    {SMOOTHING_OPTIONS.map(opt => (
+                                        <MenuItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {I18n.t(opt.label)}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            )}
+                            {!isBoolean && smoothing > 0 && (
                                 <TextField
                                     select
                                     variant="filled"
@@ -1309,12 +1341,13 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             height={dims.h}
                             unit={unit}
                             title={title}
-                            chartType={chartType}
-                            smoothing={smoothing}
+                            chartType={isBoolean ? 'step-end' : chartType}
+                            smoothing={isBoolean ? 0 : smoothing}
                             smoothingMethod={smoothingMethod}
                             isFloatComma={isFloatComma}
                             onViewSettle={isQuick ? undefined : handleViewSettle}
                             lockedWindowMs={lockedWindowMs}
+                            isBoolean={isBoolean}
                         />
                     ) : (
                         <Typography

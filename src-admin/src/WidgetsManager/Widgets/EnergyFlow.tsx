@@ -247,6 +247,7 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     default: '1x1',
                     format: 'radio',
                     horizontal: true,
+                    noTranslation: true,
                 },
                 _producers: {
                     type: 'panel',

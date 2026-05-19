@@ -245,6 +245,7 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
                 default: '1x1',
                 format: 'radio',
                 horizontal: true,
+                noTranslation: true,
             },
             showCoordinates: {
                 type: 'checkbox',

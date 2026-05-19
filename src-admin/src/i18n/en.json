@@ -156,5 +156,7 @@
     "tooltip_quality": "Quality",
     "tooltip_ts": "Time stamp",
     "tooltip_user": "User",
-    "tooltip_value": "Value"
+    "tooltip_value": "Value",
+    "GUI only": "GUI only",
+    "Close preview": "Close preview"
 }

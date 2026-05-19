@@ -7,9 +7,10 @@ import type { Theme } from '@mui/material/styles';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, getTileStyles } from './Generic';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
 import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
+import { DETECT_APPLICATIONS } from '../Utils';
 
 export interface WidgetIframeSettings extends CustomWidgetBase {
     url?: string;
@@ -21,9 +22,12 @@ export interface WidgetIframeSettings extends CustomWidgetBase {
 interface WidgetIframeState extends WidgetGenericState {
     dialogOpen: boolean;
     ts: number;
+    webPort: number;
 }
 
 export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeSettings> {
+    private refreshTimer: ReturnType<typeof setInterval> | null = null;
+
     static getConfigSchema(): ConfigItemPanel {
         return {
             type: 'panel',
@@ -37,8 +41,14 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                     default: '1x1',
                     format: 'radio',
                     horizontal: true,
+                    noTranslation: true,
                 },
-                url: { type: 'text', label: 'URL', placeholder: 'wm_URL placeholder' },
+                url: { type: 'component', subType: 'urlSelector', title: 'wm_URL', placeholder: 'wm_URL placeholder' },
+                doNotModifyUrl: {
+                    type: 'checkbox',
+                    label: 'wm_Do not modify URL',
+                    hidden: '["/vis/", "/vis-2/", "/echarts/", "/flot/", "/jarvis/"].find(e=>(data.url || "").includes(e))',
+                },
                 refreshInterval: {
                     type: 'number',
                     label: 'wm_Refresh interval',
@@ -61,16 +71,57 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
         };
     }
 
-    private refreshTimer: ReturnType<typeof setInterval> | null = null;
-
     constructor(props: WidgetGenericProps<WidgetIframeSettings>) {
         super(props);
-        this.state = { ...this.state, dialogOpen: props.openDialogId === String(props.widget.id), ts: Date.now() };
+        this.state = {
+            ...this.state,
+            dialogOpen: props.openDialogId === String(props.widget.id),
+            ts: Date.now(),
+            webPort: 0,
+        };
     }
 
-    componentDidMount(): void {
+    async componentDidMount(): Promise<void> {
         super.componentDidMount();
         this.setupRefreshTimer();
+        const url = this.props.settings.url || '';
+        let webPort = 0;
+        if (this.props.stateContext.admin && url && DETECT_APPLICATIONS.find(e => url.includes(e))) {
+            // read web port
+            const instances = await this.props.stateContext.getSocket().getAdapterInstances('web');
+            // find not localhost instance
+            for (const instance of instances) {
+                if (
+                    instance.common.enabled &&
+                    instance.native.host !== 'localhost' &&
+                    ((window.location.protocol === 'http:' && !instance.native.secure) ||
+                        (window.location.protocol === 'https:' && instance.native.secure))
+                ) {
+                    webPort = instance.native.port;
+                }
+            }
+            if (!webPort) {
+                for (const instance of instances) {
+                    if (instance.common.enabled && instance.native.host !== 'localhost') {
+                        webPort = instance.native.port;
+                    }
+                }
+            }
+            if (!webPort) {
+                for (const instance of instances) {
+                    if (instance.common.enabled) {
+                        webPort = instance.native.port;
+                    }
+                }
+            }
+            if (!webPort) {
+                for (const instance of instances) {
+                    webPort = instance.native.port;
+                    break;
+                }
+            }
+            this.setState({ webPort });
+        }
     }
 
     componentDidUpdate(prevProps: WidgetGenericProps<WidgetIframeSettings>): void {
@@ -103,6 +154,15 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
         let url = this.props.settings.url || '';
         if (!url) {
             return '';
+        }
+
+        if (DETECT_APPLICATIONS.find(e => url.startsWith(e))) {
+            // if we are in admin, so find WEB port
+            // if we are in web, use directly
+            // if in cloud, use directly
+            if (!window.location.hostname.includes('iobroker.') && this.props.stateContext.admin) {
+                url = `${window.location.protocol}//${window.location.hostname}:${this.state.webPort}${url}`;
+            }
         }
         if (this.props.settings.appendTimestamp || forceTs) {
             const sep = url.includes('?') ? '&' : '?';
@@ -277,7 +337,11 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
                         overflow: 'hidden',
                         cursor: 'pointer',
                         display: 'flex',
-                        ...this.applyTileStyles(theme, false, { interactive: false, accent: color, inactiveColor: color }),
+                        ...this.applyTileStyles(theme, false, {
+                            interactive: false,
+                            accent: color,
+                            inactiveColor: color,
+                        }),
                         padding: 0,
                     })}
                 >

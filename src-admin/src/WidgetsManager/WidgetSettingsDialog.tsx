@@ -76,6 +76,7 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
             default: '1x1',
             format: 'radio',
             horizontal: true,
+            noTranslation: true,
         },
         colorActive: {
             type: 'color',

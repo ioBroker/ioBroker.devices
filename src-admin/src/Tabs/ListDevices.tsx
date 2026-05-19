@@ -3437,8 +3437,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             this.state.splitScreen === 'off'
                                 ? 'Toggle split screen'
                                 : this.state.splitScreen === 'split'
-                                  ? 'wm_GUI only'
-                                  : 'wm_Close preview',
+                                  ? 'GUI only'
+                                  : 'Close preview',
                         )}
                     >
                         <IconButton

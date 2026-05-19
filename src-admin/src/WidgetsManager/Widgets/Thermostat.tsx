@@ -904,7 +904,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const { name, setTemp, actualTemp, boost, power, party, setMin, setMax, dragging } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(null, settingsButton);
         const displayTemp = actualTemp ?? setTemp;
@@ -977,7 +976,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     >
                         <svg
                             viewBox={`0 0 ${vb} ${vb}`}
-                            style={{ width: '55%', aspectRatio: '1', transform: 'rotate(135deg)' }}
+                            style={{ width: '60%', aspectRatio: '1', transform: 'rotate(135deg)' }}
                         >
                             <defs>
                                 <linearGradient

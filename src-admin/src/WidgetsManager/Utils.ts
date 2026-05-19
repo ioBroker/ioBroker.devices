@@ -4,6 +4,9 @@ let language: ioBroker.Languages;
 
 const HEX_RE = /^[0-9a-fA-F]+$/;
 
+const DETECT_APPLICATIONS = ['/vis/', '/vis-2/', '/echarts/', '/flot/', '/jarvis/'];
+export { DETECT_APPLICATIONS };
+
 /**
  * Normalize a user-supplied color so MUI's `alpha()`/theme helpers don't throw.
  * - Adds a missing leading `#` for bare 3/4/6/8-char hex strings (e.g. "112233" → "#112233").
