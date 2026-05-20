@@ -3,19 +3,6 @@
     "name": "devices",
     "version": "2.1.1",
     "news": {
-      "2.1.1": {
-        "en": "Extended universal widget",
-        "de": "Erweitertes universelles Widget",
-        "ru": "Расширенный универсальный виджет",
-        "pt": "Elemento universal estendido",
-        "nl": "Uitgebreide universele widget",
-        "fr": "Widget universel étendu",
-        "it": "Widget universale esteso",
-        "es": "Widget universal extendido",
-        "pl": "Rozszerzony uniwersalny widżet",
-        "uk": "Розширений універсальний віджет",
-        "zh-cn": "扩展通用部件"
-      },
       "2.1.0": {
         "en": "Corrected dragging of widgets",
         "de": "Korrigiertes Ziehen von Widgets",

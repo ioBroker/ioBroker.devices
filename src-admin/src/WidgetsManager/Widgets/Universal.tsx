@@ -114,19 +114,19 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     default: 1,
                     min: 0,
                     max: 5,
-                    hidden: 'data.stateId && getObject(data.stateId)?.common?.type === "number"',
+                    hidden: 'data.stateId && (await getObject(data.stateId))?.common?.type === "number"',
                 },
                 widgetIcon: { type: 'component', subType: 'iconSelect', label: 'wm_Icon', sm: 6 },
                 widgetIconActive: { type: 'component', subType: 'iconSelect', label: 'wm_Active icon', sm: 6 },
                 text: {
                     type: 'text',
                     label: 'wm_False text',
-                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "boolean"',
+                    hidden: '!data.stateId || (await getObject(data.stateId))?.common?.type !== "boolean"',
                 },
                 textActive: {
                     type: 'text',
                     label: 'wm_True text',
-                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "boolean"',
+                    hidden: '!data.stateId || (await getObject(data.stateId))?.common?.type !== "boolean"',
                 },
                 secondaryStateId: { type: 'objectId', label: 'wm_Secondary value' },
                 secondaryName: { type: 'text', label: 'wm_Secondary name', default: '' },
@@ -191,7 +191,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     type: 'component',
                     subType: 'colorLevels',
                     label: 'wm_Color levels',
-                    hidden: '!data.stateId || getObject(data.stateId)?.common?.type !== "number"',
+                    hidden: '!data.stateId || (await getObject(data.stateId))?.common?.type !== "number"',
                 },
                 quickChart: {
                     newLine: true,
@@ -945,6 +945,79 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         );
     }
 
+    /**
+     * Calculate the font size in px for either the name or the primary value based on:
+     *  - widget layout (`compact` = 1x1, `wide` = 2x0.5, `wideTall` = 2x1 / 2x2)
+     *  - text length (shorter text → bigger, longer text → smaller, floored at a minimum).
+     * Keeps long strings (boolean labels via text / textActive, string values, multi-word
+     * names) from overflowing the tile when CSS `text-overflow: ellipsis` alone would clip
+     * too aggressively.
+     */
+    private static calcFontSize(
+        text: string,
+        kind: 'value' | 'name',
+        layout: 'compact' | 'wide' | 'wideTall',
+    ): number {
+        const len = text.length;
+        if (kind === 'name') {
+            // Name is the secondary line — keep it readable but compact.
+            const base = layout === 'compact' ? 13 : layout === 'wide' ? 15 : 17;
+            const min = layout === 'compact' ? 10 : 11;
+            if (len <= 12) {
+                return base;
+            }
+            if (len <= 20) {
+                return Math.max(min, base - 2);
+            }
+            return Math.max(min, base - 4);
+        }
+        // Primary value — much larger steps so digits / labels look prominent.
+        if (layout === 'compact') {
+            if (len <= 3) {
+                return 36;
+            }
+            if (len <= 5) {
+                return 28;
+            }
+            if (len <= 8) {
+                return 22;
+            }
+            if (len <= 12) {
+                return 16;
+            }
+            return 14;
+        }
+        if (layout === 'wide') {
+            if (len <= 3) {
+                return 32;
+            }
+            if (len <= 6) {
+                return 26;
+            }
+            if (len <= 10) {
+                return 20;
+            }
+            if (len <= 16) {
+                return 16;
+            }
+            return 13;
+        }
+        // wideTall (also covers 2x2)
+        if (len <= 3) {
+            return 48;
+        }
+        if (len <= 6) {
+            return 38;
+        }
+        if (len <= 10) {
+            return 28;
+        }
+        if (len <= 16) {
+            return 20;
+        }
+        return 16;
+    }
+
     /** Shared tile rendering used by renderCompact, renderWide, and renderWideTall */
     private renderTile(isWide: boolean, isWideTall: boolean): React.JSX.Element {
         const { opacity, value, unit, secondaryValue, secondaryUnit, iconStates } = this.state;
@@ -969,6 +1042,15 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         iconSrc = this.props.stateContext.getImagePath(iconSrc) || undefined;
         const valueEl = value != null ? this.formatValue(value, !!iconSrc) : null;
         const iconSize = size === '2x0.5' ? (valueEl ? 24 : 36) : valueEl ? 32 : 72;
+
+        // Font sizes adapt to BOTH widget layout AND text length so that long
+        // names / boolean labels (text / textActive) / string values still fit
+        // without overflowing.
+        const layoutKind: 'compact' | 'wide' | 'wideTall' = isWideTall ? 'wideTall' : isWide ? 'wide' : 'compact';
+        const valueText = (valueEl ?? '') + (unit ? ` ${unit}` : '');
+        const nameText = this.props.settings.name || '';
+        const valueFontSize = WidgetUniversal.calcFontSize(valueText, 'value', layoutKind);
+        const nameFontSize = WidgetUniversal.calcFontSize(nameText, 'name', layoutKind);
 
         return (
             <Box
@@ -1093,6 +1175,8 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: 1,
+                                    maxWidth: '100%',
+                                    minWidth: 0,
                                 }}
                             >
                                 {iconSrc ? (
@@ -1109,20 +1193,29 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                 {valueEl != null ? (
                                     <Typography
                                         sx={{
-                                            fontSize: 36,
+                                            fontSize: valueFontSize,
                                             fontWeight: 700,
                                             lineHeight: 1,
                                             color: valueColor,
                                             textAlign: 'center',
+                                            // Text-typed values (or boolean text/textActive) can
+                                            // overflow the tile — truncate with ellipsis.
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            minWidth: 0,
+                                            maxWidth: '100%',
                                         }}
                                     >
                                         {valueEl}
-                                        <Typography
-                                            component="span"
-                                            sx={{ fontSize: '0.45em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
-                                        >
-                                            {unit}
-                                        </Typography>
+                                        {unit ? (
+                                            <Typography
+                                                component="span"
+                                                sx={{ fontSize: '0.45em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
+                                            >
+                                                {unit}
+                                            </Typography>
+                                        ) : null}
                                     </Typography>
                                 ) : (
                                     this.state.commonType !== 'boolean' && (
@@ -1133,7 +1226,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                             {this.props.settings.name ? (
                                 <Typography
                                     sx={{
-                                        fontSize: 12,
+                                        fontSize: nameFontSize,
                                         fontWeight: 500,
                                         color: 'text.secondary',
                                         textAlign: 'center',
@@ -1161,6 +1254,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                 // Cap the inner row so it doesn't bleed to the edges on wide
                                 // tiles — keeps icon + name/value visually grouped in the middle.
                                 maxWidth: '100%',
+                                minWidth: 0,
                             }}
                         >
                             {iconSrc ? (
@@ -1178,15 +1272,21 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                 sx={{
                                     display: 'flex',
                                     flexDirection: 'column',
+                                    // `flex: '0 1 auto'` lets the text-stack shrink (so long
+                                    // names/values get ellipsised) but not grow — the group
+                                    // therefore stays centered when content is short.
+                                    flex: '0 1 auto',
                                     minWidth: 0,
+                                    maxWidth: '100%',
+                                    overflow: 'hidden',
                                     gap: 0.5,
-                                    alignItems: isWideTall ? 'flex-start' : 'flex-start',
+                                    alignItems: 'flex-start',
                                 }}
                             >
                                 {this.props.settings.name ? (
                                     <Typography
                                         sx={{
-                                            fontSize: 16,
+                                            fontSize: nameFontSize,
                                             fontWeight: 500,
                                             color: 'text.secondary',
                                             lineHeight: 1.2,
@@ -1202,19 +1302,27 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                 {valueEl != null ? (
                                     <Typography
                                         sx={{
-                                            fontSize: isWideTall ? 40 : 28,
+                                            fontSize: valueFontSize,
                                             fontWeight: 700,
                                             lineHeight: 1,
                                             color: valueColor,
+                                            // Same truncation guard as the name above — the
+                                            // value can be a string / boolean label too.
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            maxWidth: '100%',
                                         }}
                                     >
                                         {valueEl}
-                                        <Typography
-                                            component="span"
-                                            sx={{ fontSize: '0.5em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
-                                        >
-                                            {unit}
-                                        </Typography>
+                                        {unit ? (
+                                            <Typography
+                                                component="span"
+                                                sx={{ fontSize: '0.5em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
+                                            >
+                                                {unit}
+                                            </Typography>
+                                        ) : null}
                                     </Typography>
                                 ) : (
                                     this.state.commonType !== 'boolean' && (
