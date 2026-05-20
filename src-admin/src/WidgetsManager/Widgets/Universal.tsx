@@ -807,10 +807,16 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         return undefined;
     }
 
-    private formatValue(val: number | boolean | string): string {
+    private formatValue(val: number | boolean | string, hasIcon: boolean): string | null {
         if (typeof val === 'boolean') {
             if (val) {
+                if (hasIcon) {
+                    return this.props.settings.textActive || null;
+                }
                 return this.props.settings.textActive || I18n.t('wm_true');
+            }
+            if (hasIcon) {
+                return this.props.settings.text || null;
             }
             return this.props.settings.text || I18n.t('wm_false');
         }
@@ -956,6 +962,13 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         const size = this.props.settings.size || '1x1';
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
+        let iconSrc =
+            this.state.actionActive && this.props.settings.widgetIconActive
+                ? this.props.settings.widgetIconActive
+                : this.props.settings.widgetIcon;
+        iconSrc = this.props.stateContext.getImagePath(iconSrc) || undefined;
+        const valueEl = value != null ? this.formatValue(value, !!iconSrc) : null;
+        const iconSize = size === '2x0.5' ? (valueEl ? 24 : 36) : valueEl ? 32 : 72;
 
         return (
             <Box
@@ -1023,7 +1036,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                         whiteSpace: 'nowrap',
                                     }}
                                 >
-                                    {this.formatValue(secondaryValue)}
+                                    {this.formatValue(secondaryValue, false)}
                                     {secondaryUnit ? (
                                         <Typography
                                             component="span"
@@ -1069,21 +1082,17 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                         </Box>
                     ) : null}
 
-                    {/* Widget icon + Primary value — center */}
-                    {(() => {
-                        let iconSrc =
-                            this.state.actionActive && this.props.settings.widgetIconActive
-                                ? this.props.settings.widgetIconActive
-                                : this.props.settings.widgetIcon;
-                        iconSrc = this.props.stateContext.getImagePath(iconSrc) || undefined;
-                        const iconSize = isWide ? 48 : 32;
-                        return (
+                    {/* Center content: layout differs by tile size.
+                        1x1 → icon + value side by side, name below (legacy centered look).
+                        2x0.5 / 2x1 / 2x2 → icon LEFT, name above value stacked on the RIGHT. */}
+                    {size === '1x1' ? (
+                        <>
                             <Box
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: isWide ? 1.5 : 1,
+                                    gap: 1,
                                 }}
                             >
                                 {iconSrc ? (
@@ -1097,17 +1106,17 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                         }}
                                     />
                                 ) : null}
-                                {value != null ? (
+                                {valueEl != null ? (
                                     <Typography
                                         sx={{
-                                            fontSize: isWide ? 56 : 36,
+                                            fontSize: 36,
                                             fontWeight: 700,
                                             lineHeight: 1,
                                             color: valueColor,
                                             textAlign: 'center',
                                         }}
                                     >
-                                        {this.formatValue(value)}
+                                        {valueEl}
                                         <Typography
                                             component="span"
                                             sx={{ fontSize: '0.45em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
@@ -1117,34 +1126,106 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                                     </Typography>
                                 ) : (
                                     this.state.commonType !== 'boolean' && (
-                                        <Typography sx={{ fontSize: isWide ? 48 : 32, color: 'text.disabled' }}>
+                                        <Typography sx={{ fontSize: 32, color: 'text.disabled' }}>—</Typography>
+                                    )
+                                )}
+                            </Box>
+                            {this.props.settings.name ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: 12,
+                                        fontWeight: 500,
+                                        color: 'text.secondary',
+                                        textAlign: 'center',
+                                        mt: 0.5,
+                                        lineHeight: 1.2,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        maxWidth: '90%',
+                                    }}
+                                >
+                                    {this.props.settings.name}
+                                </Typography>
+                            ) : null}
+                        </>
+                    ) : (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 2,
+                                width: '100%',
+                                px: 1,
+                                // Cap the inner row so it doesn't bleed to the edges on wide
+                                // tiles — keeps icon + name/value visually grouped in the middle.
+                                maxWidth: '100%',
+                            }}
+                        >
+                            {iconSrc ? (
+                                <Icon
+                                    src={iconSrc}
+                                    style={{
+                                        width: iconSize,
+                                        height: iconSize,
+                                        color: valueColor || undefined,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                            ) : null}
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    minWidth: 0,
+                                    gap: 0.5,
+                                    alignItems: isWideTall ? 'flex-start' : 'flex-start',
+                                }}
+                            >
+                                {this.props.settings.name ? (
+                                    <Typography
+                                        sx={{
+                                            fontSize: 16,
+                                            fontWeight: 500,
+                                            color: 'text.secondary',
+                                            lineHeight: 1.2,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            maxWidth: '100%',
+                                        }}
+                                    >
+                                        {this.props.settings.name}
+                                    </Typography>
+                                ) : null}
+                                {valueEl != null ? (
+                                    <Typography
+                                        sx={{
+                                            fontSize: isWideTall ? 40 : 28,
+                                            fontWeight: 700,
+                                            lineHeight: 1,
+                                            color: valueColor,
+                                        }}
+                                    >
+                                        {valueEl}
+                                        <Typography
+                                            component="span"
+                                            sx={{ fontSize: '0.5em', fontWeight: 400, ml: 0.5, opacity: 0.7 }}
+                                        >
+                                            {unit}
+                                        </Typography>
+                                    </Typography>
+                                ) : (
+                                    this.state.commonType !== 'boolean' && (
+                                        <Typography sx={{ fontSize: isWideTall ? 36 : 24, color: 'text.disabled' }}>
                                             —
                                         </Typography>
                                     )
                                 )}
                             </Box>
-                        );
-                    })()}
-
-                    {/* Name — below value */}
-                    {this.props.settings.name ? (
-                        <Typography
-                            sx={{
-                                fontSize: isWide ? 16 : 12,
-                                fontWeight: 500,
-                                color: 'text.secondary',
-                                textAlign: 'center',
-                                mt: 0.5,
-                                lineHeight: 1.2,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '90%',
-                            }}
-                        >
-                            {this.props.settings.name}
-                        </Typography>
-                    ) : null}
+                        </Box>
+                    )}
                 </Box>
             </Box>
         );
