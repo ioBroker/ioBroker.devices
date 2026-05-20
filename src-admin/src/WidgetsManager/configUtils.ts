@@ -55,3 +55,32 @@ export const BASE_WIDGET_ITEMS: Record<string, ConfigItemAny> = {
     colorActive: { type: 'color', label: 'wm_Active color', sm: 6 } as ConfigItemAny,
     color: { type: 'color', label: 'wm_Color inactive', sm: 6 } as ConfigItemAny,
 };
+
+/**
+ * Helper for widget `getConfigSchema()` implementations: returns a partial items map that
+ * overrides selected BASE_WIDGET_ITEMS entries with `hidden: true`. Spread it into the
+ * widget's own `items` so the merge `{ ...BASE_WIDGET_ITEMS, ...widget.items }` keeps the
+ * base item's structure but flags it as hidden in the json-config UI.
+ *
+ * Example for a widget without active state (Clock, Iframe):
+ * ```ts
+ * items: {
+ *     ...hideBaseFields('colorActive', 'color'),
+ *     // ... widget-specific items
+ * }
+ * ```
+ */
+export function hideBaseFields(...keys: (keyof typeof BASE_WIDGET_ITEMS)[]): Record<string, ConfigItemAny> {
+    const result: Record<string, ConfigItemAny> = {};
+    for (const key of keys) {
+        const base = BASE_WIDGET_ITEMS[key];
+        if (base) {
+            result[key] = { ...base, hidden: true } as ConfigItemAny;
+        } else {
+            // Allow hiding fields that the WidgetSettingsDialog adds outside BASE_WIDGET_ITEMS
+            // (e.g. `iconActive` / `icon` for alarm widgets, `name`, etc.).
+            result[key] = { type: 'text', hidden: true } as ConfigItemAny;
+        }
+    }
+    return result;
+}

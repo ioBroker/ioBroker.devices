@@ -7,6 +7,7 @@ import { getTimes } from 'suncalc2';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface SunTimes {
@@ -71,6 +72,8 @@ export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSett
             type: 'panel',
             label: 'wm_Clock',
             items: {
+                // Clock has no active/inactive state — hide the base color fields.
+                ...hideBaseFields('colorActive', 'color'),
                 style: {
                     type: 'select',
                     label: 'wm_Style',

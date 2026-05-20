@@ -23,7 +23,7 @@ import { getBezierPath, Position } from '@xyflow/react';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 import type { StateChangeListener } from '../StateContext';
-import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
+import { SIZE_OPTIONS_WITH_2X2, hideBaseFields } from '../configUtils';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState, formatFloat } from './Generic';
 import ChartDialog from './ChartDialog';
 
@@ -239,6 +239,8 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
             type: 'panel',
             label: 'wm_EnergyFlow',
             items: {
+                // Energy flow has its own per-source colours — base accent/inactive unused.
+                ...hideBaseFields('colorActive', 'color'),
                 // Override base size dropdown so EnergyFlow exposes the 2×2 tile (square, double).
                 size: {
                     type: 'select',

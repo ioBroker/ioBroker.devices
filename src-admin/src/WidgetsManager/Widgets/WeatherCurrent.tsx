@@ -8,7 +8,9 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import { translateWeather } from './weatherTranslations';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetWeatherCurrentState extends WidgetGenericState {
     temperature: number | null;
@@ -24,6 +26,13 @@ interface WidgetWeatherCurrentState extends WidgetGenericState {
 }
 
 export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'WeatherCurrent',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly ids: Record<string, string | null>;
 
     constructor(props: WidgetGenericProps) {

@@ -6,6 +6,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { StateChangeListener } from '../StateContext';
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, formatFloat } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 export interface WidgetWindSettings extends CustomWidgetBase {
@@ -34,6 +35,8 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
             type: 'panel',
             label: 'wm_Wind',
             items: {
+                // Wind is a passive display widget — no active state, no tint.
+                ...hideBaseFields('colorActive', 'color'),
                 directionStateId: { type: 'objectId', label: 'wm_Wind direction' },
                 speedStateId: { type: 'objectId', label: 'wm_Wind speed' },
                 gustsStateId: { type: 'objectId', label: 'wm_Wind gusts' },

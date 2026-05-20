@@ -3,12 +3,21 @@ import { Box, Typography } from '@mui/material';
 import { DarkMode, LightMode, NightsStay, WbTwilight } from '@mui/icons-material';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetIlluminanceState extends WidgetGenericState {
     illuminance: number | null;
 }
 
 export class WidgetIlluminance extends WidgetGeneric<WidgetIlluminanceState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Illuminance',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly actualId: string | null;
 
     constructor(props: WidgetGenericProps) {

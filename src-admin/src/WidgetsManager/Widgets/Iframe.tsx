@@ -8,7 +8,7 @@ import type { Theme } from '@mui/material/styles';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
-import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
+import { SIZE_OPTIONS_WITH_2X2, hideBaseFields } from '../configUtils';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 import { DETECT_APPLICATIONS } from '../Utils';
 
@@ -33,6 +33,8 @@ export class WidgetIframe extends WidgetGeneric<WidgetIframeState, WidgetIframeS
             type: 'panel',
             label: 'wm_Iframe',
             items: {
+                // Iframe shows a web page — no active/inactive colour palette applies.
+                ...hideBaseFields('colorActive', 'color'),
                 // Override the base size dropdown to also offer 2×2 for the iFrame's web view.
                 size: {
                     type: 'select',

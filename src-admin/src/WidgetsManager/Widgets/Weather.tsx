@@ -21,6 +21,7 @@ import WidgetGeneric, {
     formatFloat,
     isNeumorphicTheme,
 } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 /** WMO weather code → i18n key */
@@ -305,6 +306,8 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
             type: 'panel',
             label: 'wm_Weather',
             items: {
+                // Pure weather display — no active state, no colour palette.
+                ...hideBaseFields('colorActive', 'color'),
                 weatherSource: {
                     type: 'select',
                     label: 'wm_Weather source',

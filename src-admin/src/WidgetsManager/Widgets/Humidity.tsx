@@ -3,6 +3,8 @@ import { Box, Typography } from '@mui/material';
 import { WaterDrop, Thermostat } from '@mui/icons-material';
 
 import WidgetGeneric, { formatFloat, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetHumidityState extends WidgetGenericState {
     humidity: number | null;
@@ -10,6 +12,13 @@ interface WidgetHumidityState extends WidgetGenericState {
 }
 
 export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Humidity',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly actualId: string | null;
     private readonly temperatureId: string | null;
 

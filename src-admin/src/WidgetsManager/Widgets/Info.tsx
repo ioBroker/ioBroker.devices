@@ -28,6 +28,8 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Map ioBroker roles / units to icons */
 const ROLE_ICON_MAP: [RegExp, SvgIconComponent][] = [
@@ -74,6 +76,13 @@ interface WidgetInfoState extends WidgetGenericState {
 }
 
 export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Info',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly stateIds: { id: string; role: string }[];
 
     constructor(props: WidgetGenericProps) {

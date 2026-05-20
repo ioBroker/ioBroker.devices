@@ -3,7 +3,9 @@ import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import { translateWeather } from './weatherTranslations';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface ForecastDay {
     index: number;
@@ -46,6 +48,13 @@ const DAY0_STATES = [
 ] as const;
 
 export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'WeatherForecast',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly day0Ids: Record<string, string | null> = {};
     /** Multi-day states: key = "ICON1", "TEMP_MIN2", etc. */
     private readonly multiDayIds: Record<string, string | null> = {};
