@@ -156,6 +156,11 @@
       {
         "web": ">=8"
       }
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
     ]
   },
   "native": {},
