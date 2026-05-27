@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "news": {
+      "2.1.4": {
+        "en": "Added digits after comma for Display widget\nAdded an installation script",
+        "de": "Hinzufügen von Ziffern nach Komma für Anzeige Widget\nEin Installationsskript hinzugefügt",
+        "ru": "Добавлены цифры после запятой для виджета Display\nДобавлен сценарий установки",
+        "pt": "Adicionados dígitos após vírgula para o elemento de visualização\nAdicionado um script de instalação",
+        "nl": "Toegevoegd cijfers na komma voor Display widget\nEen installatiescript toegevoegd",
+        "fr": "Ajout de chiffres après virgule pour le widget Affichage\nAjouté un script d'installation",
+        "it": "Aggiunto le cifre dopo virgola per il widget di visualizzazione\nAggiunto un script di installazione",
+        "es": "Dígitos añadidos después de coma para el widget de pantalla\nAñadido un script de instalación",
+        "pl": "Dodano cyfry po przecinku dla widżetu wyświetlania\nDodano skrypt instalacyjny",
+        "uk": "Додано цифри після коми для віджету\nДодано скрипт установки",
+        "zh-cn": "显示部件的逗号后添加数字\n添加了安装脚本"
+      },
       "2.1.2": {
         "en": "Extended universal widget",
         "de": "Erweitertes universelles Widget",

@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 2.1.4 (2026-05-27)
 * (@GermanBluefox) Added digits after comma for Display widget
 * (@GermanBluefox) Added an installation script
 
