@@ -133,8 +133,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Added digits after comma for Display widget
-
-### 2.1.3 (2026-05-27)
 * (@GermanBluefox) Added an installation script
 
 ### 2.1.2 (2026-05-20)
