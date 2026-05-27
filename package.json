@@ -23,7 +23,7 @@
     "@iobroker/adapter-core": "^3.3.2",
     "@iobroker/dm-utils": "^3.0.19",
     "@iobroker/type-detector": "^5.0.13",
-    "typescript": "~5.9.3"
+    "typescript": "~6.0.3"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^5.2.0",
