@@ -114,7 +114,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     default: 1,
                     min: 0,
                     max: 5,
-                    hidden: 'data.stateId && (await getObject(data.stateId))?.common?.type === "number"',
+                    hidden: '!data.stateId || (await getObject(data.stateId))?.common?.type !== "number"',
                 },
                 widgetIcon: { type: 'component', subType: 'iconSelect', label: 'wm_Icon', sm: 6 },
                 widgetIconActive: { type: 'component', subType: 'iconSelect', label: 'wm_Active icon', sm: 6 },

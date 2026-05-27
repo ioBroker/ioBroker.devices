@@ -48,7 +48,7 @@ class DevicesAdapter extends adapter_core_1.Adapter {
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');
-        await this.onInstall();
+        await this.onInstall(true);
         // Upload one picture to devices.0, so it will be available in the File selector
         try {
             if (!(await this.fileExistsAsync(this.namespace, 'ioBrokerLogo.png'))) {
