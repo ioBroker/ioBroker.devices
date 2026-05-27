@@ -67,6 +67,7 @@ export interface WidgetGaugeSettings extends CustomWidgetBase {
     colorLevels?: ColorLevel[];
     usePercentage?: boolean;
     smoothGradient?: boolean;
+    decimals?: number;
 }
 
 interface WidgetGaugeState extends WidgetGenericState {
@@ -91,6 +92,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                 minValue: { type: 'number', label: 'wm_Min value', default: 0 },
                 maxValue: { type: 'number', label: 'wm_Max value', default: 100 },
                 gaugeUnit: { type: 'text', label: 'wm_Unit', default: '' },
+                decimals: { type: 'number', label: 'wm_Digits after comma', min: 0, max: 5 },
                 usePercentage: { type: 'checkbox', label: 'wm_Color levels as percent', default: true },
                 smoothGradient: { type: 'checkbox', label: 'wm_Smooth gradient', default: false },
                 colorLevels: { type: 'component', subType: 'colorLevels', label: 'wm_Color levels' },
@@ -344,7 +346,10 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
         return stops[stops.length - 1].color;
     }
 
-    static formatValue(raw: number, isFloatComma?: boolean): string {
+    static formatValue(raw: number, isFloatComma?: boolean, decimals?: number): string {
+        if (decimals !== undefined && decimals !== null) {
+            return formatFloat(raw, decimals, isFloatComma);
+        }
         if (Math.abs(raw) >= 100) {
             return formatFloat(raw, 0, isFloatComma);
         }
@@ -454,7 +459,11 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                                 mb: 0.25,
                             }}
                         >
-                            {WidgetGauge.formatValue(this.state.value2, this.props.stateContext.isFloatComma)}
+                            {WidgetGauge.formatValue(
+                                this.state.value2,
+                                this.props.stateContext.isFloatComma,
+                                this.props.settings.decimals,
+                            )}
                             {this.state.unit2 ? ` ${this.state.unit2}` : ''}
                         </Typography>
                     ) : null}
@@ -466,7 +475,13 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                             color: value != null ? color : 'text.disabled',
                         }}
                     >
-                        {value != null ? WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma) : '\u2014'}
+                        {value != null
+                            ? WidgetGauge.formatValue(
+                                  raw,
+                                  this.props.stateContext.isFloatComma,
+                                  this.props.settings.decimals,
+                              )
+                            : '\u2014'}
                     </Typography>
                     {this.displayUnit ? (
                         <Typography
@@ -724,7 +739,7 @@ export class WidgetGauge extends WidgetGeneric<WidgetGaugeState, WidgetGaugeSett
                             sx={{ fontWeight: 700, color, lineHeight: 1.2 }}
                         >
                             {value != null
-                                ? `${WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma)} ${this.displayUnit}`
+                                ? `${WidgetGauge.formatValue(raw, this.props.stateContext.isFloatComma, this.props.settings.decimals)} ${this.displayUnit}`
                                 : '\u2014'}
                         </Typography>
                     </Box>
