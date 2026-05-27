@@ -114,6 +114,9 @@ class WidgetsManagement {
     sendReply(reply, msg) {
         this.adapter.sendTo(msg.from, msg.command, reply, msg.callback);
     }
+    destroy() {
+        // do nothing
+    }
 }
 exports.WidgetsManagement = WidgetsManagement;
 //# sourceMappingURL=WidgetsManagement.js.map

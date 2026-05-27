@@ -18,10 +18,29 @@ class DevicesAdapter extends adapter_core_1.Adapter {
             },
             ready: () => this.main(),
             unload: cb => this.unload(cb),
+            install: () => this.onInstall(),
         });
     }
+    async onInstall(noTerminate) {
+        // DB ist hier nutzbar → bestehendes Objekt anpassen
+        const instances = await this.getObjectViewAsync('system', 'instance', {
+            startkey: 'system.adapter.devices.',
+            endkey: 'system.adapter.devices.香',
+        });
+        if (instances.rows) {
+            for (const instance of instances.rows) {
+                if (instance.value?.common?.mode !== 'daemon') {
+                    instance.value.common.mode = 'daemon';
+                    await this.setForeignObjectAsync(instance.value._id, instance.value);
+                }
+            }
+        }
+        if (!noTerminate) {
+            this.terminate ? this.terminate('install finished', 0) : process.exit(0);
+        }
+    }
     unload(cb) {
-        //this.deviceManagement?.destroy();
+        this.deviceManagement?.destroy();
         cb?.();
     }
     async main() {
@@ -29,6 +48,7 @@ class DevicesAdapter extends adapter_core_1.Adapter {
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');
+        await this.onInstall();
         // Upload one picture to devices.0, so it will be available in the File selector
         try {
             if (!(await this.fileExistsAsync(this.namespace, 'ioBrokerLogo.png'))) {

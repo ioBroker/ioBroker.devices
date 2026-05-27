@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.1.2",
+    "version": "2.1.3",
     "news": {
+      "2.1.3": {
+        "en": "Added an installation script",
+        "de": "Ein Installationsskript hinzugefügt",
+        "ru": "Добавлен сценарий установки",
+        "pt": "Adicionado um script de instalação",
+        "nl": "Een installatiescript toegevoegd",
+        "fr": "Ajouté un script d'installation",
+        "it": "Aggiunto un script di installazione",
+        "es": "Añadido un script de instalación",
+        "pl": "Dodano skrypt instalacyjny",
+        "uk": "Додано скрипт установки",
+        "zh-cn": "添加了安装脚本"
+      },
       "2.1.2": {
         "en": "Extended universal widget",
         "de": "Erweitertes universelles Widget",
