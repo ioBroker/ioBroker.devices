@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.1.4",
+    "version": "2.1.5",
     "news": {
+      "2.1.5": {
+        "en": "Added a theme type to context",
+        "de": "Hinzufügen eines Thementyps zum Kontext",
+        "ru": "Добавлен тип темы в контекст",
+        "pt": "Adicionado um tipo de tema ao contexto",
+        "nl": "Een thematype aan context toegevoegd",
+        "fr": "Ajout d'un type de thème au contexte",
+        "it": "Aggiunto un tipo tema per contesto",
+        "es": "Añadido un tipo de tema al contexto",
+        "pl": "Dodano typ tematu do kontekstu",
+        "uk": "Додано тему контексту",
+        "zh-cn": "向上下文添加主题类型"
+      },
       "2.1.4": {
         "en": "Added digits after comma for Display widget\nAdded an installation script",
         "de": "Hinzufügen von Ziffern nach Komma für Anzeige Widget\nEin Installationsskript hinzugefügt",
