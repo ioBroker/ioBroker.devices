@@ -4,7 +4,7 @@
  * This is a compilable mirror of the host's StateContext.
  * At runtime, Module Federation provides the host's real implementation.
  */
-import type { Connection } from '@iobroker/adapter-react-v5';
+import type { Connection, ThemeType } from '@iobroker/adapter-react-v5';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 
@@ -34,6 +34,7 @@ export interface IStateContext {
     isFloatComma: boolean;
     dateFormat: string;
     imagePrefix: string;
+    themeType: ThemeType;
 }
 
 export default class StateContext implements IStateContext {
@@ -95,6 +96,7 @@ export default class StateContext implements IStateContext {
     language: ioBroker.Languages = 'en';
     longitude: number | null = null;
     latitude: number | null = null;
+    themeType: ThemeType = 'light';
 
     setCoordinates(latitude: number | null, longitude: number | null): void {
         this.latitude = latitude;

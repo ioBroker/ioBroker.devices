@@ -244,6 +244,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         latitude: null,
         longitude: null,
         defaultHistory: null,
+        themeType: this.props.themeType,
     });
 
     private lastAliveSubscribe = '';

@@ -1,4 +1,4 @@
-import { type Connection, I18n } from '@iobroker/adapter-react-v5';
+import { type Connection, I18n, type ThemeType } from '@iobroker/adapter-react-v5';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 export type ObjectChangeListener = (
@@ -40,6 +40,7 @@ export default class StateContext {
     private _longitude: number | null = null;
     private _defaultHistory: string | null = null;
     private readonly _imagePrefix: string;
+    private readonly _themeType: ThemeType;
 
     constructor(props: {
         socket: Connection;
@@ -50,6 +51,7 @@ export default class StateContext {
         latitude: number | null;
         longitude: number | null;
         defaultHistory: string | null;
+        themeType: ThemeType;
     }) {
         this.socket = props.socket;
         this._instanceId = props.instanceId;
@@ -60,6 +62,7 @@ export default class StateContext {
         this._latitude = props.latitude ?? null;
         this._defaultHistory = props.defaultHistory;
         this._imagePrefix = props.admin ? '../../files/' : '../';
+        this._themeType = props.themeType;
     }
 
     public get language(): ioBroker.Languages {
@@ -74,6 +77,9 @@ export default class StateContext {
     }
     public setFloatComma(isFloatComma: boolean): void {
         this._isFloatComma = isFloatComma;
+    }
+    public get themeType(): ThemeType {
+        return this._themeType;
     }
 
     public get dateFormat(): string {
