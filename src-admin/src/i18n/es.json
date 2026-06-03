@@ -1,5 +1,5 @@
 {
-    "Add": "Agregar",
+    "Add": "Añadir",
     "Add new folder to \"%s\"": "Agregar nueva carpeta a \"%s\"",
     "Add state": "Agregar estado",
     "Add to root": "Agregar a la raíz",
@@ -20,7 +20,7 @@
     "Decrement color temperature": "Disminuya la temperatura de color",
     "Decrement percentage": "Porcentaje de disminución",
     "Decrement target temperature": "Disminuya la temperatura objetivo",
-    "Delete": "Borrar",
+    "Delete": "Eliminar",
     "Delete device with all states": "Eliminar dispositivo con todos los estados",
     "Delete folder": "Eliminar carpeta",
     "Delete state": "Eliminar estado",
