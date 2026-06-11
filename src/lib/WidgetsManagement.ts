@@ -748,8 +748,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     device.states.splice(i, 1);
                     continue;
                 }
-                // We must deliver role, as in some widgets it is used to determine the widget type
-                device.states[i].stateRole = this.objects[device.states[i].id]?.common?.role;
+                // We must deliver role, as in some widgets it is used to determine the widget type.
+                // Use the actual object's common.role; fall back to the type-detector pattern role
+                // so detection still works when an adapter omits common.role on the state.
+                device.states[i].stateRole =
+                    this.objects[device.states[i].id]?.common?.role ??
+                    (typeof device.states[i].role === 'string' ? device.states[i].role : undefined);
                 /** Remove useless for GUI information */
                 if (device.states[i].original) {
                     delete device.states[i].original;
