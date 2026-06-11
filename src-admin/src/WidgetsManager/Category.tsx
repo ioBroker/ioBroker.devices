@@ -1651,6 +1651,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 role = 'door';
             }
             const actual = w.control.states.find(s => s.name === 'ACTUAL');
+            // type-detector names the power-consumption state ELECTRIC_POWER in socket/dimmer/light
+            const electricPower = w.control.states.find(s => s.name === 'ELECTRIC_POWER');
             const actualRole =
                 typeof actual?.stateRole === 'string'
                     ? actual.stateRole
@@ -1660,20 +1662,27 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             if (!role && actualRole && POWER_ROLE_PATTERN.test(actualRole)) {
                 role = 'power';
             }
+            // For socket/dimmer/light devices the power state is ELECTRIC_POWER, not ACTUAL
+            let useElectricPower = false;
+            if (!role && electricPower?.id) {
+                role = 'power';
+                useElectricPower = true;
+            }
             if (role) {
-                if (actual?.id) {
+                const stateForSub = useElectricPower ? electricPower : actual;
+                if (stateForSub?.id) {
                     // Avoid duplicate subscriptions for the same state
-                    if (!this.statusSubs.some(s => s.stateId === actual.id && s.categoryId === categoryId)) {
+                    if (!this.statusSubs.some(s => s.stateId === stateForSub.id && s.categoryId === categoryId)) {
                         const isOpening = role === 'window' || role === 'door';
                         this.statusSubs.push({
-                            stateId: actual.id,
+                            stateId: stateForSub.id,
                             role,
                             widgetName: isOpening ? this.getWidgetName(w) : undefined,
                             widgetIcon: isOpening ? (typeof w.icon === 'string' ? w.icon : undefined) : undefined,
                             widgetId: isOpening ? String(w.id) : undefined,
                             categoryId,
                         });
-                        this.props.stateContext.getState(actual.id, this.onStatusChange);
+                        this.props.stateContext.getState(stateForSub.id, this.onStatusChange);
                     }
                 }
 
