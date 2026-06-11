@@ -226,6 +226,9 @@ const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
     lowBatteryDevices: [],
 };
 
+// Match common power-related detector roles (e.g. value.power, level.power, *.power.*).
+const POWER_ROLE_PATTERN = /(?:^|\.)(?:value|level)\.power(?:\.|$)|(?:^|\.)power(?:\.|$)|watt|consumption/i;
+
 type StatusRole = 'temperature' | 'power' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery' | 'sensor';
 
 interface StatusSubscription {
@@ -1651,7 +1654,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             if (
                 !role &&
                 actual?.stateRole &&
-                /(?:^|\.)(?:value|level)\.power(?:\.|$)|(?:^|\.)power(?:\.|$)|watt|consumption/i.test(actual.stateRole)
+                POWER_ROLE_PATTERN.test(actual.stateRole)
             ) {
                 role = 'power';
             }
