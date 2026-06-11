@@ -1651,11 +1651,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 role = 'door';
             }
             const actual = w.control.states.find(s => s.name === 'ACTUAL');
-            if (
-                !role &&
-                actual?.stateRole &&
-                POWER_ROLE_PATTERN.test(actual.stateRole)
-            ) {
+            if (!role && actual?.stateRole && POWER_ROLE_PATTERN.test(actual.stateRole)) {
                 role = 'power';
             }
             if (role) {
