@@ -1657,34 +1657,23 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     : typeof actual?.role === 'string'
                       ? actual.role
                       : '';
-            // Track which state to subscribe for power (may differ from ACTUAL, e.g. ELECTRIC_POWER in sockets)
-            let powerState: DevicesDetectorState | undefined;
             if (!role && actualRole && POWER_ROLE_PATTERN.test(actualRole)) {
                 role = 'power';
-                powerState = actual;
-            } else if (!role) {
-                // ACTUAL doesn't have a power role — scan all states (e.g. ELECTRIC_POWER in socket devices)
-                const found = w.control.states.find(s => POWER_ROLE_PATTERN.test(s.stateRole ?? ''));
-                if (found?.id) {
-                    role = 'power';
-                    powerState = found;
-                }
             }
-            const stateToSubscribe = role === 'power' ? powerState : actual;
             if (role) {
-                if (stateToSubscribe?.id) {
+                if (actual?.id) {
                     // Avoid duplicate subscriptions for the same state
-                    if (!this.statusSubs.some(s => s.stateId === stateToSubscribe.id && s.categoryId === categoryId)) {
+                    if (!this.statusSubs.some(s => s.stateId === actual.id && s.categoryId === categoryId)) {
                         const isOpening = role === 'window' || role === 'door';
                         this.statusSubs.push({
-                            stateId: stateToSubscribe.id,
+                            stateId: actual.id,
                             role,
                             widgetName: isOpening ? this.getWidgetName(w) : undefined,
                             widgetIcon: isOpening ? (typeof w.icon === 'string' ? w.icon : undefined) : undefined,
                             widgetId: isOpening ? String(w.id) : undefined,
                             categoryId,
                         });
-                        this.props.stateContext.getState(stateToSubscribe.id, this.onStatusChange);
+                        this.props.stateContext.getState(actual.id, this.onStatusChange);
                     }
                 }
 
