@@ -1651,8 +1651,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 role = 'door';
             }
             const actual = w.control.states.find(s => s.name === 'ACTUAL');
-            // type-detector names the power-consumption state ELECTRIC_POWER in socket/dimmer/light
-            const electricPower = w.control.states.find(s => s.name === 'ELECTRIC_POWER');
             const actualRole =
                 typeof actual?.stateRole === 'string'
                     ? actual.stateRole
@@ -1662,14 +1660,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             if (!role && actualRole && POWER_ROLE_PATTERN.test(actualRole)) {
                 role = 'power';
             }
-            // For socket/dimmer/light devices the power state is ELECTRIC_POWER, not ACTUAL
-            let useElectricPower = false;
-            if (!role && electricPower?.id) {
-                role = 'power';
-                useElectricPower = true;
-            }
             if (role) {
-                const stateForSub = useElectricPower ? electricPower : actual;
+                const stateForSub = actual;
                 if (stateForSub?.id) {
                     // Avoid duplicate subscriptions for the same state
                     if (!this.statusSubs.some(s => s.stateId === stateForSub.id && s.categoryId === categoryId)) {
@@ -1755,7 +1747,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     private onStatusChange = (id: string, state: ioBroker.State): void => {
-        this.statusValues[id] = state.val;
+        // state can be null at runtime when ioBroker deletes a state
+        this.statusValues[id] = (state as ioBroker.State | null)?.val ?? null;
         this.recalcCategoryStatus();
     };
 
