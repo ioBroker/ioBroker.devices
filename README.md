@@ -133,6 +133,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Corrected universal widget
+* (@GermanBluefox) Added open-meteo-wather adapter support
 
 ### 2.1.5 (2026-05-28)
 * (@GermanBluefox) Added a theme type to context

@@ -21,6 +21,7 @@ import ConfigCitySearch from './Components/ConfigCitySearch';
 import ConfigColorLevels from './Components/ConfigColorLevels';
 import ConfigIconSelect from './Components/ConfigIconSelect';
 import ConfigURLSelect from './Components/ConfigURLSelect';
+import ConfigLocationSelect from './Components/ConfigLocationSelect';
 import type StateContext from './StateContext';
 
 interface CustomWidgetSettingsDialogProps {
@@ -60,6 +61,7 @@ const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps,
     colorLevels: ConfigColorLevels as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
     iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
     urlSelector: ConfigURLSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+    locationSelect: ConfigLocationSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
 };
 
 // --- Dialog ---

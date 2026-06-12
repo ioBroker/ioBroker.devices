@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Gewitter",
     "wm_w_Thunderstorm with hail": "Gewitter mit Hagel",
     "wm_w_Thunderstorm with heavy hail": "Gewitter mit starkem Hagel",
-    "wm_w_Violent rain showers": "Heftige Regenschauer"
+    "wm_w_Violent rain showers": "Heftige Regenschauer",
+    "wm_Location": "Standort",
+    "wm_No locations found": "Keine Standorte gefunden"
 }

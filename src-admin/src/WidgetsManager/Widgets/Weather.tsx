@@ -141,6 +141,42 @@ const FORECAST_ROLES: Record<string, string> = {
     'value.precipitation.forecast': 'precipitationChance',
 };
 
+/**
+ * open-meteo-weather adapter mapping. Unlike the generic adapter discovery (which matches roles),
+ * this adapter exposes multiple locations as devices and its forecast roles are inconsistent across
+ * days, so we match by the well-defined state-id leaf under `<device>.weather.current|forecast.dayN`.
+ */
+/** Current weather state leaf → widget current field */
+const OMW_CURRENT_FIELDS: Record<string, string> = {
+    temperature_2m: 'temperature',
+    apparent_temperature: 'realFeel',
+    relative_humidity_2m: 'humidity',
+    weather_code: 'wmoCode',
+    weather_text: 'weatherState',
+    wind_speed_10m: 'windSpeed',
+    wind_direction_10m: 'windDirection',
+    pressure_msl: 'pressure',
+    icon_url: 'icon',
+};
+
+/** Forecast dayN state leaf → widget forecast field */
+const OMW_FORECAST_FIELDS: Record<string, string> = {
+    temperature_2m_max: 'tempMax',
+    temperature_2m_min: 'tempMin',
+    weather_code: 'wmoCode',
+    weather_text: 'state',
+    icon_url: 'icon',
+    precipitation_probability_max: 'precipitationChance',
+    name_day: 'dow',
+    time: 'time',
+};
+
+/** Parse a state value to a finite number, or null */
+function numOrNull(val: unknown): number | null {
+    const n = val != null ? Number(val) : null;
+    return n != null && !isNaN(n) ? n : null;
+}
+
 interface ForecastDay {
     index: number;
     icon: string | null;
@@ -155,10 +191,14 @@ interface ForecastDay {
 
 export interface WidgetWeatherSettings extends CustomWidgetBase {
     adapterInstance?: string;
-    weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
+    weatherSource?: 'adapter' | 'open-meteo-weather' | 'openmeteo' | 'yrno';
     latitude?: number;
     longitude?: number;
     cityName?: string;
+    /** open-meteo-weather adapter instance, e.g. "open-meteo-weather.0" */
+    omwInstance?: string;
+    /** open-meteo-weather selected location (device) id, e.g. "open-meteo-weather.0.Split" */
+    omwLocation?: string;
 }
 
 interface WidgetWeatherState extends WidgetGenericState {
@@ -313,7 +353,8 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                     label: 'wm_Weather source',
                     options: [
                         { value: 'adapter', label: 'wm_Adapter' },
-                        { value: 'openmeteo', label: 'Open-Meteo' },
+                        { value: 'open-meteo-weather', label: 'Open-Meteo (Adapter)' },
+                        { value: 'openmeteo', label: 'Open-Meteo (API)' },
                         { value: 'yrno', label: 'yr.no' },
                     ],
                     default: 'adapter',
@@ -325,11 +366,23 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                     adapters: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
                     hidden: "data.weatherSource !== 'adapter'",
                 },
+                omwInstance: {
+                    type: 'instance',
+                    label: 'wm_Adapter instance',
+                    adapters: ['open-meteo-weather'],
+                    hidden: "data.weatherSource !== 'open-meteo-weather'",
+                },
+                omwLocation: {
+                    type: 'component',
+                    subType: 'locationSelect',
+                    label: 'wm_Location',
+                    hidden: "data.weatherSource !== 'open-meteo-weather' || !data.omwInstance",
+                },
                 cityName: {
                     type: 'component',
                     subType: 'citySearch',
                     label: 'wm_City',
-                    hidden: "data.weatherSource === 'adapter'",
+                    hidden: "data.weatherSource !== 'openmeteo' && data.weatherSource !== 'yrno'",
                 },
             },
         };
@@ -370,11 +423,14 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
     componentDidUpdate(prevProps: WidgetGenericProps<WidgetWeatherSettings>): void {
         const sourceChanged = prevProps.settings.weatherSource !== this.props.settings.weatherSource;
         const adapterChanged = prevProps.settings.adapterInstance !== this.props.settings.adapterInstance;
+        const omwChanged =
+            prevProps.settings.omwInstance !== this.props.settings.omwInstance ||
+            prevProps.settings.omwLocation !== this.props.settings.omwLocation;
         const coordsChanged =
             prevProps.settings.latitude !== this.props.settings.latitude ||
             prevProps.settings.longitude !== this.props.settings.longitude;
 
-        if (sourceChanged || adapterChanged || coordsChanged) {
+        if (sourceChanged || adapterChanged || omwChanged || coordsChanged) {
             this.cleanup();
             this.startDataSource();
         }
@@ -388,6 +444,34 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
     /** Whether this source uses direct API (coordinates-based) */
     private isDirectApi(): boolean {
         return this.props.settings.weatherSource === 'openmeteo' || this.props.settings.weatherSource === 'yrno';
+    }
+
+    /** Whether this source is the open-meteo-weather adapter (object/device based) */
+    private isOpenMeteoAdapter(): boolean {
+        return this.props.settings.weatherSource === 'open-meteo-weather';
+    }
+
+    /**
+     * Base object path of the selected open-meteo-weather location.
+     * Uses the chosen location device, falling back to the instance root if none was picked.
+     */
+    private omwBasePath(): string | null {
+        return this.props.settings.omwLocation || this.props.settings.omwInstance || null;
+    }
+
+    /**
+     * Human-readable location label shown in the widget header/footer.
+     * For the open-meteo-weather adapter the city is the selected device's id leaf (e.g. "…0.Split"
+     * → "Split"); for the other sources it is the geocoded city name from the search field.
+     */
+    private getLocationTitle(): string {
+        if (this.isOpenMeteoAdapter() && this.props.settings.omwLocation) {
+            const leaf = (this.props.settings.omwLocation.split('.').pop() || '').replace(/_/g, ' ').trim();
+            if (leaf) {
+                return leaf;
+            }
+        }
+        return this.props.settings.cityName || I18n.t('wm_Weather');
     }
 
     /** Get coordinates — from widget settings, falling back to system.config via stateContext */
@@ -404,6 +488,9 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
         if (this.isDirectApi()) {
             return this.getCoordinates() != null;
         }
+        if (this.isOpenMeteoAdapter()) {
+            return !!this.omwBasePath();
+        }
         return !!this.props.settings.adapterInstance;
     }
 
@@ -413,6 +500,13 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                 const fetcher = (): void => void this.fetchDirectApi();
                 fetcher();
                 this.refreshTimer = setInterval(fetcher, API_REFRESH_MS);
+            } else {
+                this.setState({ loading: false });
+            }
+        } else if (this.isOpenMeteoAdapter()) {
+            const base = this.omwBasePath();
+            if (base) {
+                void this.discoverOpenMeteoWeather(base);
             } else {
                 this.setState({ loading: false });
             }
@@ -835,6 +929,174 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
         }
     };
 
+    // --- open-meteo-weather adapter discovery ---
+
+    /**
+     * Discover and subscribe to the states of one open-meteo-weather location (device).
+     * `basePath` is the device id (e.g. `open-meteo-weather.0.Split`) or the instance root.
+     */
+    private async discoverOpenMeteoWeather(basePath: string): Promise<void> {
+        const socket = this.props.stateContext.getSocket();
+        try {
+            const objects = (await socket.getObjectViewSystem('state', `${basePath}.`, `${basePath}.\u9999`)) as Record<
+                string,
+                ioBroker.StateObject
+            >;
+
+            if (!objects) {
+                this.setState({ loading: false });
+                return;
+            }
+
+            const forecastIndices = new Set<number>();
+            const currentRe = /\.weather\.current\.([^.]+)$/;
+            const forecastRe = /\.weather\.forecast\.day(\d+)\.([^.]+)$/;
+
+            for (const stateId of Object.keys(objects)) {
+                const cur = currentRe.exec(stateId);
+                if (cur) {
+                    const field = OMW_CURRENT_FIELDS[cur[1]];
+                    if (field) {
+                        this.stateMap.set(stateId, { target: 'current', key: field });
+                    }
+                    continue;
+                }
+                const fc = forecastRe.exec(stateId);
+                if (fc) {
+                    const dayIndex = parseInt(fc[1], 10);
+                    // Day 0 is "today" — already shown in the current section, skip it in the forecast row
+                    if (dayIndex < 1) {
+                        continue;
+                    }
+                    const field = OMW_FORECAST_FIELDS[fc[2]];
+                    if (field) {
+                        this.stateMap.set(stateId, { target: 'forecast', key: field, dayIndex });
+                        forecastIndices.add(dayIndex);
+                    }
+                }
+            }
+
+            // Initialize forecast days (1..N, capped at 7)
+            const maxDay = forecastIndices.size > 0 ? Math.max(...forecastIndices) : -1;
+            const forecastDays: ForecastDay[] = [];
+            for (let i = 1; i <= Math.min(maxDay, 7); i++) {
+                forecastDays.push({
+                    index: i,
+                    icon: null,
+                    tempMin: null,
+                    tempMax: null,
+                    dow: null,
+                    state: null,
+                    precipitationChance: null,
+                });
+            }
+            this.setState({ forecastDays });
+
+            // Subscribe to all discovered states
+            for (const [stateId] of this.stateMap) {
+                const handler = (id: string, state: ioBroker.State): void => this.onOmwStateChange(id, state);
+                this.subs.push({ stateId, handler });
+                this.props.stateContext.getState(stateId, handler);
+            }
+
+            this.setState({ loading: false });
+        } catch (e) {
+            console.warn('Weather widget: failed to discover open-meteo-weather states', e);
+            this.setState({ loading: false });
+        }
+    }
+
+    private onOmwStateChange = (id: string, state: ioBroker.State): void => {
+        const mapping = this.stateMap.get(id);
+        if (!mapping) {
+            return;
+        }
+        const val = state?.val;
+
+        if (mapping.target === 'current') {
+            switch (mapping.key) {
+                case 'temperature':
+                    this.setState({ temperature: numOrNull(val) });
+                    break;
+                case 'realFeel':
+                    this.setState({ realFeel: numOrNull(val) });
+                    break;
+                case 'humidity':
+                    this.setState({ humidity: numOrNull(val) });
+                    break;
+                case 'windSpeed':
+                    this.setState({ windSpeed: numOrNull(val) });
+                    break;
+                case 'pressure': {
+                    const n = numOrNull(val);
+                    this.setState({ pressure: n != null ? Math.round(n) : null });
+                    break;
+                }
+                case 'windDirection': {
+                    const n = numOrNull(val);
+                    this.setState({ windDirection: n != null ? degToCardinal(n) : null });
+                    break;
+                }
+                case 'weatherState':
+                    this.setState({ weatherState: val != null && val !== '' ? String(val) : null });
+                    break;
+                case 'wmoCode': {
+                    const n = numOrNull(val);
+                    this.setState({ wmoCode: n ?? undefined });
+                    break;
+                }
+                case 'icon':
+                    this.setState({ icon: val ? String(val) : null });
+                    break;
+            }
+            return;
+        }
+
+        // Forecast
+        const { key, dayIndex } = mapping;
+        this.setState(prev => {
+            const days = [...prev.forecastDays];
+            const day = days.find(d => d.index === dayIndex);
+            if (!day) {
+                return null;
+            }
+            const updated = { ...day };
+            switch (key) {
+                case 'tempMin':
+                    updated.tempMin = numOrNull(val);
+                    break;
+                case 'tempMax':
+                    updated.tempMax = numOrNull(val);
+                    break;
+                case 'precipitationChance':
+                    updated.precipitationChance = numOrNull(val);
+                    break;
+                case 'state':
+                    updated.state = val != null && val !== '' ? String(val) : null;
+                    break;
+                case 'icon':
+                    updated.icon = val ? String(val) : null;
+                    break;
+                case 'wmoCode':
+                    updated.wmoCode = numOrNull(val) ?? undefined;
+                    break;
+                case 'dow':
+                    // Localized day name from the adapter takes precedence
+                    if (val) {
+                        updated.dow = String(val);
+                    }
+                    break;
+                case 'time':
+                    // Fall back to deriving the day-of-week from the ISO date only if not set via name_day
+                    if (!updated.dow && val) {
+                        updated.dow = formatDow(String(val), this.props.stateContext.language);
+                    }
+                    break;
+            }
+            return { forecastDays: days.map(d => (d.index === dayIndex ? updated : d)) };
+        });
+    };
+
     static renderWeatherIcon(src: string | null, size: number, wmoCode?: number): React.JSX.Element {
         if (src) {
             return (
@@ -1028,7 +1290,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                                         : {}),
                                 })}
                             >
-                                {this.props.settings.cityName || I18n.t('wm_Weather')}
+                                {this.getLocationTitle()}
                             </Typography>
                         </>
                     )}
@@ -1296,7 +1558,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                                     textOverflow: 'ellipsis',
                                 }}
                             >
-                                {this.props.settings.cityName || I18n.t('wm_Weather')}
+                                {this.getLocationTitle()}
                             </Typography>
                         </>
                     )}
@@ -1331,7 +1593,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
         } = this.state;
 
         const allDays = forecastDays.filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null);
-        const title = this.props.settings.cityName || I18n.t('wm_Weather');
+        const title = this.getLocationTitle();
 
         return (
             <Dialog
