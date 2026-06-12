@@ -10,6 +10,7 @@ import {
     Close,
     Delete,
     DirectionsRun,
+    ElectricBolt,
     DragIndicator,
     ErrorOutline,
     ExpandMore,
@@ -191,6 +192,7 @@ interface LowBatteryDevice {
 
 interface CategoryStatus {
     temperature: number | null;
+    power: number | null;
     humidity: number | null;
     motionActive: boolean;
     openings: OpeningSensor[];
@@ -217,13 +219,17 @@ interface CategoryState {
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
     temperature: null,
+    power: null,
     humidity: null,
     motionActive: false,
     openings: [],
     lowBatteryDevices: [],
 };
 
-type StatusRole = 'temperature' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery' | 'sensor';
+// Match common power-related detector roles (e.g. value.power, level.power, *.power.*).
+const POWER_ROLE_PATTERN = /(?:^|\.)(?:value|level)\.power(?:\.|$)|(?:^|\.)power(?:\.|$)|watt|consumption/i;
+
+type StatusRole = 'temperature' | 'power' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery' | 'sensor';
 
 interface StatusSubscription {
     stateId: string;
@@ -1644,21 +1650,31 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             } else if (type === Types.door) {
                 role = 'door';
             }
+            const actual = w.control.states.find(s => s.name === 'ACTUAL');
+            const actualRole =
+                typeof actual?.stateRole === 'string'
+                    ? actual.stateRole
+                    : typeof actual?.role === 'string'
+                      ? actual.role
+                      : '';
+            if (!role && actualRole && POWER_ROLE_PATTERN.test(actualRole)) {
+                role = 'power';
+            }
             if (role) {
-                const actual = w.control.states.find(s => s.name === 'ACTUAL');
-                if (actual?.id) {
+                const stateForSub = actual;
+                if (stateForSub?.id) {
                     // Avoid duplicate subscriptions for the same state
-                    if (!this.statusSubs.some(s => s.stateId === actual.id && s.categoryId === categoryId)) {
+                    if (!this.statusSubs.some(s => s.stateId === stateForSub.id && s.categoryId === categoryId)) {
                         const isOpening = role === 'window' || role === 'door';
                         this.statusSubs.push({
-                            stateId: actual.id,
+                            stateId: stateForSub.id,
                             role,
                             widgetName: isOpening ? this.getWidgetName(w) : undefined,
                             widgetIcon: isOpening ? (typeof w.icon === 'string' ? w.icon : undefined) : undefined,
                             widgetId: isOpening ? String(w.id) : undefined,
                             categoryId,
                         });
-                        this.props.stateContext.getState(actual.id, this.onStatusChange);
+                        this.props.stateContext.getState(stateForSub.id, this.onStatusChange);
                     }
                 }
 
@@ -1731,7 +1747,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     private onStatusChange = (id: string, state: ioBroker.State): void => {
-        this.statusValues[id] = state.val;
+        // state can be null at runtime when ioBroker deletes a state
+        this.statusValues[id] = (state as ioBroker.State | null)?.val ?? null;
         this.recalcCategoryStatus();
     };
 
@@ -1752,6 +1769,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         values: Record<string, ioBroker.StateValue>,
     ): CategoryStatus {
         let temperature: number | null = null;
+        let power: number | null = null;
         let humidity: number | null = null;
         let motionActive = false;
         const openings: OpeningSensor[] = [];
@@ -1775,6 +1793,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         const n = Number(val);
                         if (!isNaN(n)) {
                             humidity = n;
+                        }
+                    }
+                    break;
+                case 'power':
+                    if (power === null && val != null) {
+                        const n = Number(val);
+                        if (!isNaN(n)) {
+                            power = n;
                         }
                     }
                     break;
@@ -1817,7 +1843,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
         }
 
-        return { temperature, humidity, motionActive, openings, lowBatteryDevices };
+        return { temperature, power, humidity, motionActive, openings, lowBatteryDevices };
     }
 
     private recalcCategoryStatus(): void {
@@ -2441,13 +2467,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
-    /** Render status summary for a subcategory tile (temperature, humidity, openings, motion) */
+    /** Render status summary for a subcategory tile (temperature, power, humidity, openings, motion) */
     private renderSubCategoryStatus(category: CategoryInfo, deviceCount: number): React.JSX.Element {
         const status = this.state.subCategoryStatuses[String(category.id)];
         const activeOpenings = status ? status.openings.filter(o => o.state !== 0) : [];
         const hasStatus =
             status &&
             (status.temperature !== null ||
+                status.power !== null ||
                 status.humidity !== null ||
                 status.motionActive ||
                 activeOpenings.length > 0 ||
@@ -2482,6 +2509,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             sx={{ color: 'text.secondary', fontWeight: 500 }}
                         >
                             {formatFloat(status.temperature, 1, this.props.stateContext.isFloatComma)}°
+                        </Typography>
+                    </Box>
+                ) : null}
+                {status.power !== null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <ElectricBolt sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary', fontWeight: 500 }}
+                        >
+                            {`${formatFloat(status.power, 1, this.props.stateContext.isFloatComma)} W`}
                         </Typography>
                     </Box>
                 ) : null}
@@ -2733,11 +2771,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     renderCategoryStatus(): React.JSX.Element | null {
-        const { temperature, humidity, motionActive, openings, lowBatteryDevices } = this.state.categoryStatus;
+        const { temperature, power, humidity, motionActive, openings, lowBatteryDevices } = this.state.categoryStatus;
         // Only show active openings (state !== 0) in the category header
         const activeOpenings = openings.filter(o => o.state !== 0);
         const hasAny =
             temperature !== null ||
+            power !== null ||
             humidity !== null ||
             motionActive ||
             activeOpenings.length > 0 ||
@@ -2765,6 +2804,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             sx={{ fontWeight: 500, color: 'text.secondary' }}
                         >
                             {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
+                        </Typography>
+                    </Box>
+                ) : null}
+                {power !== null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <ElectricBolt sx={{ fontSize: 18, color: 'text.secondary' }} />
+                        <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 500, color: 'text.secondary' }}
+                        >
+                            {`${formatFloat(power, 1, this.props.stateContext.isFloatComma)} W`}
                         </Typography>
                     </Box>
                 ) : null}
