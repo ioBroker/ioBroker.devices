@@ -314,6 +314,31 @@ export function getAddedChannelStates(
         .filter(item => !channelInfo.states.filter(item => item.defaultRole).find(el => el.name === item.name));
 }
 
+/**
+ * Decide how to treat `common.custom` / `common.smartName` of a state that is being copied.
+ * See the `mode` option of {@link copyDevice}. A `move` keeps everything; only `duplicate` and
+ * `import` strip parts of it.
+ */
+function stripCustomForCopy(common: Record<string, any> | undefined, mode: 'move' | 'duplicate' | 'import'): void {
+    if (!common) {
+        return;
+    }
+    if (mode === 'import') {
+        delete common.custom;
+        delete common.smartName;
+    } else if (mode === 'duplicate') {
+        delete common.smartName;
+        if (common.custom) {
+            for (const key of Object.keys(common.custom)) {
+                if (common.custom[key]?.smartName !== undefined) {
+                    delete common.custom[key].smartName;
+                }
+            }
+        }
+    }
+    // mode === 'move': keep custom (logging) and smartName — it is the same logical device.
+}
+
 export async function copyDevice(
     newChannelId: string,
     options: {
@@ -323,9 +348,19 @@ export async function copyDevice(
         objects: Record<string, ioBroker.Object>;
         channelObj?: ioBroker.FolderObject | ioBroker.ChannelObject | ioBroker.DeviceObject;
         newName?: string;
+        /**
+         * How to treat `common.custom` of the copied states. Defaults to `'move'`.
+         * - `move`: keep everything (same logical device, just relocated) — preserves logging
+         *   (history/influxdb/sql) and smartName.
+         * - `duplicate`: drop only smartName (so the copy does not share the Alexa/Google name);
+         *   keep logging custom.
+         * - `import`: drop all custom (a fresh alias from a native source state).
+         */
+        mode?: 'move' | 'duplicate' | 'import';
     },
 ): Promise<void> {
     const language = options.language || I18n.getLanguage();
+    const mode = options.mode || 'move';
     // if this is a device not from linkeddevices or from alias
     const deviceToCopy: PatternControlEx = JSON.parse(JSON.stringify(options.deviceToCopy));
     renameMultipleEntries(deviceToCopy, options.objects, language);
@@ -405,13 +440,7 @@ export async function copyDevice(
 
         obj.native ||= {};
 
-        if (obj?.common?.custom) {
-            delete obj.common.custom;
-        }
-
-        if (obj?.common?.smartName) {
-            delete obj.common.smartName;
-        }
+        stripCustomForCopy(obj.common, mode);
 
         if (!isAlias) {
             obj.common.alias = { id: state.id };
@@ -429,13 +458,7 @@ export async function copyDevice(
 
         obj.native ||= {};
 
-        if (obj?.common?.custom) {
-            delete obj.common.custom;
-        }
-
-        if (obj?.common?.smartName) {
-            delete obj.common.smartName;
-        }
+        stripCustomForCopy(obj.common, mode);
 
         if (!isAlias) {
             obj.common.alias = { id: state.id };

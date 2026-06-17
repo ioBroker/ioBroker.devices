@@ -2548,7 +2548,11 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         }
     };
 
-    onCopyDevice = async (id: string, newChannelId: string): Promise<void> => {
+    onCopyDevice = async (
+        id: string,
+        newChannelId: string,
+        mode: 'move' | 'duplicate' | 'import' = 'move',
+    ): Promise<void> => {
         // if this is a device not from linkeddevices or from alias
         const deviceToCopy = this.state.devices.find(device => device.channelId === id);
 
@@ -2557,6 +2561,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 socket: this.props.socket,
                 objects: this.objects,
                 deviceToCopy: deviceToCopy,
+                mode,
             });
         }
     };
