@@ -306,10 +306,10 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
         if (this.props.deviceToCopy) {
             const channelId = this.props.deviceToCopy.channelId;
             const parentId = getParentId(channelId);
-            return `${parentId || this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
+            return `${parentId || this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
         }
 
-        return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_')}`;
+        return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
     }
 
     handleOk = async (): Promise<void> => {

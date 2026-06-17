@@ -180,17 +180,24 @@ function DialogEditFolder(props: {
     };
 
     const onChangeCopy = async (): Promise<void> => {
-        let newDevices: PatternControlEx[] = JSON.parse(JSON.stringify(devices));
-
         const parentId = `${getParentId(data!._id)}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
 
-        let deleteFolderID = '';
+        // If the new (sanitized) ID is identical to the current one - only the display name changed,
+        // e.g. "A B" -> "A.B", both sanitize to "A_B" - there is nothing to move. Just update the
+        // folder object in place. Without this guard the loop below would copy every device onto its
+        // own path and then immediately delete it (data loss).
+        if (parentId === data!._id) {
+            await socket.setObject(data!._id, dataEdit);
+            return;
+        }
+
+        let newDevices: PatternControlEx[] = JSON.parse(JSON.stringify(devices));
+
         for (let i = 0; i < arrayObjects.length; i++) {
             const el = arrayObjects[i];
             const newId = el._id.replace(data!._id, parentId);
             if (el.type === 'folder') {
                 await addNewFolder(data!._id === el._id ? dataEdit.common : el.common, newId);
-                deleteFolderID = el._id;
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
                 if (device?.channelId) {
@@ -201,13 +208,18 @@ function DialogEditFolder(props: {
                         channelObj: el,
                     });
 
-                    newDevices = await deleteDevice(newDevices.indexOf(device));
+                    // Pass `newDevices` so the index refers to the same (progressively spliced) list
+                    // the index was computed against. Without it, deleteDevice cloned the full
+                    // state list and deleted the wrong device from the second device on.
+                    newDevices = await deleteDevice(newDevices.indexOf(device), newDevices);
                 }
             }
         }
 
-        // Delete folder and all object
-        deleteFolderID && (await socket.delObjects(deleteFolderID, true));
+        // Remove the whole old subtree. The renamed folder now lives under a sibling ID, so this does
+        // not touch the freshly created objects. It also cleans up empty old sub-folders, which the
+        // previous code left behind because it only deleted the last iterated folder.
+        await socket.delObjects(data!._id, true);
     };
 
     const onCloseLocal = async (changed?: boolean): Promise<void> => {
