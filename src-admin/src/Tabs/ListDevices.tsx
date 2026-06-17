@@ -2698,21 +2698,41 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 : state.type
                             : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
 
-                        /*if (state.defaultMin !== undefined) {
-                            common.min = state.defaultMin;
-                        } else */
-                        if (state.min !== undefined) {
+                        // Take over the value range (min/max/step/unit) from the linked source state
+                        // (#22: e.g. thermostats keep their real range instead of a hard 0..100).
+                        // This is the first-mapping branch; the update branch above leaves an existing
+                        // range untouched, so a manual override is preserved. Skip min/max/step when a
+                        // read conversion is set - the displayed range is then not the source range.
+                        // Fall back to the previous 0/100 default when the source has no explicit range.
+                        const srcTarget = data.ids[state.name];
+                        const srcId = typeof srcTarget === 'string' ? srcTarget : srcTarget?.read;
+                        const srcCommon = srcId
+                            ? (this.objects[srcId]?.common as ioBroker.StateCommon | undefined)
+                            : undefined;
+                        const hasReadFx = !!data.fx[state.name]?.read;
+                        const srcMin = srcCommon?.min;
+                        const srcMax = srcCommon?.max;
+                        const srcStep = srcCommon?.step;
+
+                        if (!hasReadFx && srcMin !== undefined) {
+                            common.min = srcMin;
+                        } else if (state.min !== undefined) {
                             common.min = 0;
                         }
 
-                        /*if (state.defaultMax !== undefined) {
-                            common.max = state.defaultMax;
-                        } else */
-                        if (state.max !== undefined) {
+                        if (!hasReadFx && srcMax !== undefined) {
+                            common.max = srcMax;
+                        } else if (state.max !== undefined) {
                             common.max = 100;
                         }
 
-                        if (state.defaultUnit) {
+                        if (!hasReadFx && srcStep !== undefined) {
+                            common.step = srcStep;
+                        }
+
+                        if (srcCommon?.unit) {
+                            common.unit = srcCommon.unit;
+                        } else if (state.defaultUnit) {
                             common.unit = state.defaultUnit;
                         } else if (state.unit) {
                             common.unit = state.unit;
@@ -2811,21 +2831,41 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 : state.type
                             : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
 
-                        /*if (state.defaultMin !== undefined) {
-                            common.min = state.defaultMin;
-                        } else */
-                        if (state.min !== undefined) {
+                        // Take over the value range (min/max/step/unit) from the linked source state
+                        // (#22: e.g. thermostats keep their real range instead of a hard 0..100).
+                        // This is the first-mapping branch; the update branch above leaves an existing
+                        // range untouched, so a manual override is preserved. Skip min/max/step when a
+                        // read conversion is set - the displayed range is then not the source range.
+                        // Fall back to the previous 0/100 default when the source has no explicit range.
+                        const srcTarget = data.ids[state.name];
+                        const srcId = typeof srcTarget === 'string' ? srcTarget : srcTarget?.read;
+                        const srcCommon = srcId
+                            ? (this.objects[srcId]?.common as ioBroker.StateCommon | undefined)
+                            : undefined;
+                        const hasReadFx = !!data.fx[state.name]?.read;
+                        const srcMin = srcCommon?.min;
+                        const srcMax = srcCommon?.max;
+                        const srcStep = srcCommon?.step;
+
+                        if (!hasReadFx && srcMin !== undefined) {
+                            common.min = srcMin;
+                        } else if (state.min !== undefined) {
                             common.min = 0;
                         }
 
-                        /*if (state.defaultMax !== undefined) {
-                            common.max = state.defaultMax;
-                        } else */
-                        if (state.max !== undefined) {
+                        if (!hasReadFx && srcMax !== undefined) {
+                            common.max = srcMax;
+                        } else if (state.max !== undefined) {
                             common.max = 100;
                         }
 
-                        if (state.defaultUnit) {
+                        if (!hasReadFx && srcStep !== undefined) {
+                            common.step = srcStep;
+                        }
+
+                        if (srcCommon?.unit) {
+                            common.unit = srcCommon.unit;
+                        } else if (state.defaultUnit) {
                             common.unit = state.defaultUnit;
                         } else if (state.unit) {
                             common.unit = state.unit;
