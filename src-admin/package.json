@@ -12,7 +12,7 @@
         "@iobroker/json-config": "^8.4.3",
         "@iobroker/type-detector": "^5.0.13",
         "@iobroker/types": "^7.1.2",
-        "@module-federation/runtime": "^2.3.0",
+        "@module-federation/runtime": "^2.5.1",
         "@module-federation/vite": "^1.13.5",
         "@mui/icons-material": "^6.5.0",
         "@mui/material": "^6.5.0",
