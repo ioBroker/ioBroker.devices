@@ -9,7 +9,7 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@iobroker/adapter-react-v5": "^8.2.6",
-        "@iobroker/json-config": "^8.4.3",
+        "@iobroker/json-config": "^8.4.7",
         "@iobroker/type-detector": "^5.0.13",
         "@iobroker/types": "^7.1.2",
         "@module-federation/runtime": "^2.3.0",
