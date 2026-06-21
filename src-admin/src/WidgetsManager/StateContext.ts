@@ -28,6 +28,9 @@ export default class StateContext {
     private pendingObjPropIds: string[] = [];
     private objPropTimer: ReturnType<typeof setTimeout> | null = null;
 
+    /** Debounce timer for refreshAllStates (reconnect + visibilitychange can fire together) */
+    private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
     private _language = I18n.getLanguage();
     private _isFloatComma: boolean;
     private _dateFormat: string;
@@ -63,6 +66,14 @@ export default class StateContext {
         this._defaultHistory = props.defaultHistory;
         this._imagePrefix = props.admin ? '../../files/' : '../';
         this._themeType = props.themeType;
+
+        // Re-read current values when the connection comes back or the tab becomes visible again.
+        // On reconnect the socket-client only re-subscribes; it does not re-fetch current values,
+        // so states that changed while the tab was in the background would otherwise stay stale.
+        this.socket.registerConnectionHandler(this.onConnectionChanged);
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', this.onVisibilityChange);
+        }
     }
 
     public get language(): ioBroker.Languages {
@@ -129,6 +140,47 @@ export default class StateContext {
             this.subscribedStates[id].forEach(cb =>
                 cb(id, this.states[id] || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State)),
             );
+        }
+    };
+
+    /**
+     * Re-read the current values of all subscribed states and notify their listeners.
+     * Needed after a reconnect or when the tab becomes visible again, because the
+     * socket-client only re-subscribes on reconnect and never re-fetches current values,
+     * so any change that happened while the tab was in the background would be missed.
+     */
+    private refreshAllStates = (): void => {
+        if (this.refreshTimer) {
+            return; // already scheduled — reconnect and visibilitychange often fire together
+        }
+        this.refreshTimer = setTimeout(() => {
+            this.refreshTimer = null;
+            const ids = Object.keys(this.subscribedStates);
+            if (!ids.length || !this.socket.isConnected()) {
+                return;
+            }
+            void this.socket.getStates(ids).then(result => {
+                for (const id of ids) {
+                    if (!this.subscribedStates[id]) {
+                        continue; // unsubscribed while the request was in flight
+                    }
+                    const state = result?.[id] || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State);
+                    this.states[id] = state;
+                    this.subscribedStates[id].forEach(cb => cb(id, state));
+                }
+            });
+        }, 100);
+    };
+
+    private onConnectionChanged = (connected: boolean): void => {
+        if (connected) {
+            this.refreshAllStates();
+        }
+    };
+
+    private onVisibilityChange = (): void => {
+        if (document.visibilityState === 'visible') {
+            this.refreshAllStates();
         }
     };
 
@@ -346,6 +398,14 @@ export default class StateContext {
     }
 
     destroy(): void {
+        this.socket.unregisterConnectionHandler(this.onConnectionChanged);
+        if (typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this.onVisibilityChange);
+        }
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
         if (this.stateFlushTimer) {
             clearTimeout(this.stateFlushTimer);
             this.stateFlushTimer = null;
