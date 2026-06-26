@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 3.0.0 (2026-06-26)
 * (@GermanBluefox) Corrected universal widget
 * (@GermanBluefox) Added open-meteo-weather adapter support
 * (@GermanBluefox) Read all states anew after the reconnection
