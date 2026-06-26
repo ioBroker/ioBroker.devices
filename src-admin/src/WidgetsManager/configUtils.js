@@ -1,0 +1,81 @@
+/** Extract a default value from a json-config item definition */
+export function getConfigDefault(item) {
+    switch (item.type) {
+        case 'select':
+            return item.default ?? item.options?.[0]?.value ?? '';
+        case 'checkbox':
+            return item.default ?? true;
+        case 'color':
+            return item.default ?? '';
+        case 'instance':
+            return item.default ?? '';
+        case 'text':
+            return item.default ?? '';
+        case 'number':
+            return item.default ?? 0;
+        case 'objectId':
+            return item.default ?? '';
+        case 'custom':
+            return item.default ?? '';
+        default:
+            return item.default ?? '';
+    }
+}
+const SIZE_ICON_1x1 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><rect x="1" y="1" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+const SIZE_ICON_2x1 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18" viewBox="0 0 32 18"><rect x="1" y="1" width="30" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+const SIZE_ICON_2xHalf = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="12" viewBox="0 0 32 12"><rect x="1" y="1" width="30" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+const SIZE_ICON_2x2 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>')}`;
+export const SIZE_OPTIONS = [
+    { value: '1x1', label: '1\u00D71', icon: SIZE_ICON_1x1 },
+    { value: '2x1', label: '2\u00D71', icon: SIZE_ICON_2x1 },
+    { value: '2x0.5', label: '2\u00D7\u00BD', icon: SIZE_ICON_2xHalf },
+];
+/** Extended size options for widgets that also support a 2\u00D72 (square, double) tile (iFrame, EnergyFlow). */
+export const SIZE_OPTIONS_WITH_2X2 = [
+    ...SIZE_OPTIONS,
+    { value: '2x2', label: '2\u00D72', icon: SIZE_ICON_2x2 },
+];
+/** Base config items (size + colors) automatically prepended to every custom widget schema */
+export const BASE_WIDGET_ITEMS = {
+    size: {
+        type: 'select',
+        label: 'wm_Size',
+        options: SIZE_OPTIONS,
+        default: '1x1',
+        format: 'radio',
+        horizontal: true,
+        noTranslation: true,
+    },
+    colorActive: { type: 'color', label: 'wm_Active color', sm: 6 },
+    color: { type: 'color', label: 'wm_Color inactive', sm: 6 },
+};
+/**
+ * Helper for widget `getConfigSchema()` implementations: returns a partial items map that
+ * overrides selected BASE_WIDGET_ITEMS entries with `hidden: true`. Spread it into the
+ * widget's own `items` so the merge `{ ...BASE_WIDGET_ITEMS, ...widget.items }` keeps the
+ * base item's structure but flags it as hidden in the json-config UI.
+ *
+ * Example for a widget without active state (Clock, Iframe):
+ * ```ts
+ * items: {
+ *     ...hideBaseFields('colorActive', 'color'),
+ *     // ... widget-specific items
+ * }
+ * ```
+ */
+export function hideBaseFields(...keys) {
+    const result = {};
+    for (const key of keys) {
+        const base = BASE_WIDGET_ITEMS[key];
+        if (base) {
+            result[key] = { ...base, hidden: true };
+        }
+        else {
+            // Allow hiding fields that the WidgetSettingsDialog adds outside BASE_WIDGET_ITEMS
+            // (e.g. `iconActive` / `icon` for alarm widgets, `name`, etc.).
+            result[key] = { type: 'text', hidden: true };
+        }
+    }
+    return result;
+}
+//# sourceMappingURL=configUtils.js.map

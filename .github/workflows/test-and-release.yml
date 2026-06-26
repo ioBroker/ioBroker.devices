@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: ioBroker/testing-action-check@v1
         with:
-          node-version: '22.x'
+          node-version: '24.x'
           install-command: 'npm ci && cd src-admin && npm ci && cd ../src-www && npm ci && cd ../packages/dm-widgets && npm ci && npm run build'
           lint: true
 
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        node-version: [20.x, 22.x, 24.15.0]
 
     steps:
       - uses: ioBroker/testing-action-adapter@v1
