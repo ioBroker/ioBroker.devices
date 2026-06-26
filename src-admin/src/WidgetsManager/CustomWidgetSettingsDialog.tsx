@@ -57,11 +57,11 @@ const EXTRA_KEYS = ['latitude', 'longitude'] as const;
 
 /** Custom component registry for JsonConfigComponent */
 const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps, any>> = {
-    citySearch: ConfigCitySearch as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
-    colorLevels: ConfigColorLevels as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
-    iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
-    urlSelector: ConfigURLSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
-    locationSelect: ConfigLocationSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+    citySearch: ConfigCitySearch,
+    colorLevels: ConfigColorLevels,
+    iconSelect: ConfigIconSelect,
+    urlSelector: ConfigURLSelect,
+    locationSelect: ConfigLocationSelect,
 };
 
 // --- Dialog ---
@@ -200,7 +200,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                     <JsonConfigComponent
                         socket={socket}
                         themeName={props.theme.name}
-                        themeType={props.theme.palette.mode as 'dark' | 'light'}
+                        themeType={props.theme.palette.mode}
                         adapterName={stateContext.instanceId?.replace(/\.\d+$/, '') || 'devices'}
                         instance={parseInt(stateContext.instanceId?.match(/\.(\d+)$/)?.[1] || '0', 10)}
                         isFloatComma={stateContext.isFloatComma}

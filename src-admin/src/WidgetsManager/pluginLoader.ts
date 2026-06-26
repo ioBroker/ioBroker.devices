@@ -1,5 +1,5 @@
 /**
- * Dynamic loader for federated widget plugins using @module-federation/runtime.
+ * Dynamic loader for federated widget plugins using \@module-federation/runtime.
  *
  * Each adapter that provides widgets exposes a federation remote entry URL.
  * We use registerRemotes / loadRemote from the MF runtime to load components.

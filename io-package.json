@@ -146,6 +146,7 @@
     "type": "general",
     "eraseOnUpload": true,
     "mode": "daemon",
+    "nogit": true,
     "adminTab": {
       "singleton": true,
       "name": {

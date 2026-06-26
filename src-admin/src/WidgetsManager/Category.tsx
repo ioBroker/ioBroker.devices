@@ -90,18 +90,10 @@ import {
     WidgetWind,
     WidgetGauge,
     WidgetUniversal,
-    type WidgetUniversalSettings,
     WidgetPresence,
-    type WidgetPresenceSettings,
     WidgetEnergyFlow,
-    type WidgetEnergyFlowSettings,
     WidgetGate,
     WidgetPlugin,
-    type WidgetWeatherSettings,
-    type WidgetIframeSettings,
-    type WidgetWindSettings,
-    type WidgetGaugeSettings,
-    type WidgetClockSettings,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -1489,22 +1481,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             category.id === '__root__' ? 'ioBroker' : category.id.toString().split('.').pop() || '';
 
         if (category.icon && typeof category.icon === 'object') {
-            if ((category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onIconChange,
-                );
+            if (category.icon.stateId) {
+                this.props.stateContext.getState(category.icon.stateId, this.onIconChange);
             }
         } else {
             state.icons[category.id] = this.props.stateContext.getImagePath(category.icon);
         }
 
         if (category.color && typeof category.color === 'object') {
-            if ((category.color as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (category.color as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onColorChange,
-                );
+            if (category.color.stateId) {
+                this.props.stateContext.getState(category.color.stateId, this.onColorChange);
             }
         } else if (typeof category.color === 'string') {
             state.colors[category.id] = category.color;
@@ -2196,7 +2182,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetClock
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetClockSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2208,7 +2194,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetWeather
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetWeatherSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2220,7 +2206,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetIframe
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetIframeSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2235,7 +2221,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetWind
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetWindSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2247,7 +2233,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetGauge
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetGaugeSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2259,7 +2245,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetUniversal
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetUniversalSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2272,7 +2258,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetPresence
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetPresenceSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
@@ -2284,7 +2270,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <WidgetEnergyFlow
                         key={def.id}
                         widget={Category.buildCustomWidgetInfo(def)}
-                        settings={def as WidgetEnergyFlowSettings}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}

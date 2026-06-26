@@ -1,9 +1,9 @@
 /**
- * @iobroker/dm-widgets — Types and base class for ioBroker Device Manager widget plugins.
+ * \@iobroker/dm-widgets — Types and base class for ioBroker Device Manager widget plugins.
  *
  * ## How it works
  *
- * **At compile time:** Plugin authors `npm install @iobroker/dm-widgets` and import
+ * **At compile time:** Plugin authors `npm install \@iobroker/dm-widgets` and import
  * types, interfaces, and the `WidgetGeneric` base class for TypeScript support.
  *
  * **At runtime:** The host app (ioBroker.devices) exposes the real implementation on

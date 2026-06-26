@@ -764,10 +764,7 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
             if (adapterObjectsCache[instance]) {
                 objects = adapterObjectsCache[instance];
             } else {
-                objects = (await socket.getObjectViewSystem('state', `${instance}.`, `${instance}.\u9999`)) as Record<
-                    string,
-                    ioBroker.StateObject
-                >;
+                objects = await socket.getObjectViewSystem('state', `${instance}.`, `${instance}.\u9999`);
                 if (objects) {
                     adapterObjectsCache[instance] = objects;
                 }

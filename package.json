@@ -55,7 +55,7 @@
         "build:backend": "tsc -p tsconfig.build.json",
         "build:dm-widgets": "cd packages/dm-widgets && npm ci && npm run build",
         "build": "npm run build:dm-widgets && npm run build:backend && node tasks",
-        "lint": "eslint -c eslint.config.mjs && cd src-admin && npm run lint && cd ../packages/dm-widgets && npm run lint",
+        "lint": "eslint -c eslint.config.mjs",
         "test:package": "mocha test/package.test.js --exit",
         "test:integration": "mocha test/testAdapter.gui.test.js --exit",
         "release": "release-script",
