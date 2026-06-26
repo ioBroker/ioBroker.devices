@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: ioBroker/testing-action-check@v1
+      - uses: ioBroker/testing-action-check@v2
         with:
           node-version: '24.x'
           install-command: 'npm ci && cd src-admin && npm ci && cd ../src-www && npm ci && cd ../packages/dm-widgets && npm ci && npm run build'
