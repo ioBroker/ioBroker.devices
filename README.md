@@ -134,6 +134,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 
 ### **WORK IN PROGRESS**
 - (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
+- (krobipd) Reduced Safari rendering lag of the devices list
 
 ### 3.0.0 (2026-06-26)
 * (@GermanBluefox) Corrected universal widget
