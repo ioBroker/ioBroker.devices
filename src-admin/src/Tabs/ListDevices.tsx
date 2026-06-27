@@ -153,6 +153,10 @@ const TYPES_MAPPING: Record<string, 'boolean' | 'number'> = {
 
 const UNSUPPORTED_TYPES = [Types.unknown];
 
+// Number of devices detected per chunk in updateListItems() before yielding to the browser,
+// so detecting many devices does not block the main thread (UI freeze, esp. in Safari).
+const DETECT_CHUNK = 10;
+
 interface InternalObject {
     common: {
         name: string;
@@ -683,16 +687,19 @@ const styles: Record<string, any> = {
     iconOpen: {
         transform: 'skew(147deg, 183deg) scale(0.5) translate(-43px, 11px)',
     },
-    hoverRow: {
+    hoverRow: (theme: IobTheme): SxProps => ({
         // Safari: `transform: scale(1)` promotes every row to its own compositing layer
         // (~one GPU layer per device row), and the animated `::after` overlay forces a
         // full-width row repaint on hover — together they make the list very laggy in Safari
         // (fine in Firefox/Chrome). Plain row-background hover keeps it cheap. Also fixes the
         // dark-mode "big block" hover artifact (#464).
         '&:hover': {
-            background: '#ffffff20',
+            // Theme-aware hover: a fixed white overlay is nearly invisible on light themes,
+            // so use the MUI action.hover token (as elsewhere in this app) which adapts to
+            // the palette mode.
+            background: theme.palette.action.hover,
         },
-    },
+    }),
     selected: (theme: IobTheme): SxProps => ({
         background: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
     }),
@@ -1200,7 +1207,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 ignoreCache: true,
             });
             result?.forEach(device => devices.push(device as PatternControlEx));
-            if (di % 10 === 9) {
+            if (di % DETECT_CHUNK === DETECT_CHUNK - 1) {
                 await new Promise(resolve => setTimeout(resolve));
                 if (detectGen !== this.detectGeneration) {
                     return;
