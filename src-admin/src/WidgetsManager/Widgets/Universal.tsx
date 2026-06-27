@@ -339,7 +339,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                       }
                     : null,
             ].filter(Boolean) as IconDef[],
-        } as WidgetUniversalSettings;
+        };
     }
 
     private primaryHandler: StateChangeListener | null = null;
@@ -993,11 +993,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
      * names) from overflowing the tile when CSS `text-overflow: ellipsis` alone would clip
      * too aggressively.
      */
-    private static calcFontSize(
-        text: string,
-        kind: 'value' | 'name',
-        layout: 'compact' | 'wide' | 'wideTall',
-    ): number {
+    private static calcFontSize(text: string, kind: 'value' | 'name', layout: 'compact' | 'wide' | 'wideTall'): number {
         const len = text.length;
         if (kind === 'name') {
             // Name is the secondary line — keep it readable but compact.

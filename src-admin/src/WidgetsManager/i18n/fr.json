@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Orage",
     "wm_w_Thunderstorm with hail": "Orage avec grêle",
     "wm_w_Thunderstorm with heavy hail": "Orage avec forte grêle",
-    "wm_w_Violent rain showers": "Averses violentes"
+    "wm_w_Violent rain showers": "Averses violentes",
+    "wm_Location": "Emplacement",
+    "wm_No locations found": "Aucun emplacement trouvé"
 }

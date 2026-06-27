@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Гроза",
     "wm_w_Thunderstorm with hail": "Гроза с градом",
     "wm_w_Thunderstorm with heavy hail": "Гроза с сильным градом.",
-    "wm_w_Violent rain showers": "Сильные ливни"
+    "wm_w_Violent rain showers": "Сильные ливни",
+    "wm_Location": "Местоположение",
+    "wm_No locations found": "Местоположения не найдены"
 }

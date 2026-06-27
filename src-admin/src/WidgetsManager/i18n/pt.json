@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Tempestade",
     "wm_w_Thunderstorm with hail": "Tempestade com granizo",
     "wm_w_Thunderstorm with heavy hail": "Tempestade com forte granizo",
-    "wm_w_Violent rain showers": "Chuvas torrenciais"
+    "wm_w_Violent rain showers": "Chuvas torrenciais",
+    "wm_Location": "Localização",
+    "wm_No locations found": "Nenhuma localização encontrada"
 }

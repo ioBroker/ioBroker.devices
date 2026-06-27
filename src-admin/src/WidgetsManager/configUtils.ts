@@ -51,9 +51,9 @@ export const BASE_WIDGET_ITEMS: Record<string, ConfigItemAny> = {
         format: 'radio',
         horizontal: true,
         noTranslation: true,
-    } as ConfigItemAny,
-    colorActive: { type: 'color', label: 'wm_Active color', sm: 6 } as ConfigItemAny,
-    color: { type: 'color', label: 'wm_Color inactive', sm: 6 } as ConfigItemAny,
+    },
+    colorActive: { type: 'color', label: 'wm_Active color', sm: 6 },
+    color: { type: 'color', label: 'wm_Color inactive', sm: 6 },
 };
 
 /**
@@ -75,11 +75,11 @@ export function hideBaseFields(...keys: (keyof typeof BASE_WIDGET_ITEMS)[]): Rec
     for (const key of keys) {
         const base = BASE_WIDGET_ITEMS[key];
         if (base) {
-            result[key] = { ...base, hidden: true } as ConfigItemAny;
+            result[key] = { ...base, hidden: true };
         } else {
             // Allow hiding fields that the WidgetSettingsDialog adds outside BASE_WIDGET_ITEMS
             // (e.g. `iconActive` / `icon` for alarm widgets, `name`, etc.).
-            result[key] = { type: 'text', hidden: true } as ConfigItemAny;
+            result[key] = { type: 'text', hidden: true };
         }
     }
     return result;
