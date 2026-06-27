@@ -684,19 +684,13 @@ const styles: Record<string, any> = {
         transform: 'skew(147deg, 183deg) scale(0.5) translate(-43px, 11px)',
     },
     hoverRow: {
-        '&:hover:after': {
-            width: '100%',
-        },
-        position: 'relative',
-        transform: 'scale(1)',
-        '&:after': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            height: 37,
-            background: '#ffffff36',
-            pointerEvents: 'none',
+        // Safari: `transform: scale(1)` promotes every row to its own compositing layer
+        // (~one GPU layer per device row), and the animated `::after` overlay forces a
+        // full-width row repaint on hover — together they make the list very laggy in Safari
+        // (fine in Firefox/Chrome). Plain row-background hover keeps it cheap. Also fixes the
+        // dark-mode "big block" hover artifact (#464).
+        '&:hover': {
+            background: '#ffffff20',
         },
     },
     selected: (theme: IobTheme): SxProps => ({
@@ -848,6 +842,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     private prefix: string;
 
     private typesWords: Partial<Record<Types, string>> = {};
+
+    private detectGeneration = 0;
 
     private filter: string;
 
@@ -1190,16 +1186,27 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
         const _usedIdsOptional: string[] = [];
         const devices: PatternControlEx[] = [];
-        idsInEnums.forEach(id => {
+        // updateListItems runs on every object change (subscribeObject('*')). Detecting all
+        // devices in one synchronous loop blocks the main thread (UI freeze, esp. visible in
+        // Safari). Yield to the browser periodically so the UI stays responsive; a newer
+        // rebuild bumps detectGeneration and aborts this (now stale) run.
+        const detectGen = ++this.detectGeneration;
+        for (let di = 0; di < idsInEnums.length; di++) {
             const result = this.detector.detect({
-                id,
+                id: idsInEnums[di],
                 objects: this.objects,
                 _usedIdsOptional,
                 _keysOptional: keys,
                 ignoreCache: true,
             });
             result?.forEach(device => devices.push(device as PatternControlEx));
-        });
+            if (di % 10 === 9) {
+                await new Promise(resolve => setTimeout(resolve));
+                if (detectGen !== this.detectGeneration) {
+                    return;
+                }
+            }
+        }
 
         this.funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         this.roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
