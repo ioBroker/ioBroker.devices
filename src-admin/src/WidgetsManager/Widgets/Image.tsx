@@ -3,11 +3,17 @@ import { Box, Typography } from '@mui/material';
 import { BrokenImage } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type WidgetGenericSettings,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+interface ImageWidgetSettings extends WidgetGenericSettings {
+    refreshInterval: number;
+    appendTimestamp: boolean;
+}
 
 interface WidgetImageState extends WidgetGenericState {
     url: string | null;
@@ -15,11 +21,11 @@ interface WidgetImageState extends WidgetGenericState {
     tick: number;
 }
 
-export class WidgetImage extends WidgetGeneric<WidgetImageState> {
+export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSettings> {
     private readonly urlId: string | null;
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<ImageWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const urlState = states.find(s => s.name === 'URL');
@@ -33,6 +39,37 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         };
     }
 
+    static getDefaultSettings(): ImageWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            refreshInterval: 0,
+            appendTimestamp: false,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    refreshInterval: {
+                        type: 'number',
+                        label: 'wm_Refresh interval',
+                        default: 0,
+                        min: 0,
+                        help: 'wm_Refresh interval help',
+                    },
+                    appendTimestamp: {
+                        type: 'checkbox',
+                        label: 'wm_Append timestamp',
+                        default: false,
+                    },
+                },
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.urlId) {
@@ -41,7 +78,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         this.setupRefreshTimer();
     }
 
-    componentDidUpdate(prevProps: WidgetGenericProps): void {
+    componentDidUpdate(prevProps: WidgetGenericProps<ImageWidgetSettings>): void {
         const prevInterval = prevProps.settings?.refreshInterval ?? 0;
         const newInterval = this.props.settings?.refreshInterval ?? 0;
         if (prevInterval !== newInterval) {
@@ -112,14 +149,14 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -132,7 +169,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -164,9 +201,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         </Box>
                     )}
 
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>{indicators}</Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name overlay at bottom */}
                     <Box
@@ -203,7 +238,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -214,14 +248,14 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -232,7 +266,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -279,7 +313,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         </Box>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -290,14 +323,14 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
         const { name } = this.state;
         const displayUrl = this.getDisplayUrl();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
@@ -309,7 +342,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -341,9 +374,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         </Box>
                     )}
 
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>{indicators}</Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name overlay at bottom */}
                     <Box
@@ -372,7 +403,6 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState> {
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

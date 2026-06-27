@@ -19,6 +19,9 @@
         "useUnknownInCatchVariables": false,
         "target": "ES2022",
         "baseUrl": "./",
+        "paths": {
+            "@iobroker/dm-widgets": ["../packages/dm-widgets/build/index.d.ts"]
+        },
         "allowSyntheticDefaultImports": true,
         "checkJs": false,
         "noEmit": false,

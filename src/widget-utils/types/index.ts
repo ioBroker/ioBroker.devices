@@ -1,13 +1,9 @@
 export type {
-    WidgetInfo,
-    CategoryInfo,
-    ItemInfo,
-    CustomWidgetType,
-    CustomWidgetDef,
     BackendToGuiCommand,
     BackendToGuiCommandUpdate,
     BackendToGuiCommandAllUpdate,
     BackendToGuiCommandNavigate,
     BackendToGuiCommandDeviceDelete,
+    RetVal,
 } from './base';
-export type * from './common';
+export type { WmResponseItems } from './api';

@@ -304,7 +304,7 @@ async function detectWebUrl(socket: Connection): Promise<string> {
         if (!obj?.common?.enabled) {
             continue;
         }
-        const native = (obj as any).native || {};
+        const native = obj.native || {};
         webInstances.push({
             id,
             enabled: true,

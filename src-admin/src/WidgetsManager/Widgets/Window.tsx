@@ -2,9 +2,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { SensorWindow, SensorWindowOutlined } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
-import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+
+interface AlarmWidgetSettings extends WidgetGenericSettings {
+    hideWhenOk?: boolean;
+}
 
 /** 0 = closed, 1 = open, 2 = tilted */
 type WindowOpenState = 0 | 1 | 2;
@@ -16,11 +19,11 @@ interface WidgetWindowState extends WidgetGenericState {
     lastChangedAgo: string;
 }
 
-export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
+export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
@@ -41,7 +44,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onWindowChange);
         }
-        this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+        this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
     componentWillUnmount(): void {
@@ -53,10 +56,6 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
             clearInterval(this.agoTimer);
             this.agoTimer = null;
         }
-    }
-
-    private fromNow(ts: number): string {
-        return moment(ts).locale(this.props.language).fromNow();
     }
 
     private updateAgo(): void {
@@ -95,17 +94,17 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
         }
         return this.state.isOpen
             ? this.props.settings?.textActive || I18n.t('wm_Open')
-            : this.props.settings?.textInactive || I18n.t('wm_Closed');
+            : this.props.settings?.text || I18n.t('wm_Closed');
     }
 
     protected renderTileIcon(): React.JSX.Element {
         const { isOpen, openState } = this.state;
         const accent = this.getAccentColor();
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon = isOpen
-            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-            : this.props.settings?.iconInactive;
+            ? this.props.settings?.iconActive || this.props.settings?.icon
+            : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -157,7 +156,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }

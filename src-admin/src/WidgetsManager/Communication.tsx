@@ -14,12 +14,6 @@ import type { ItemInfo } from './protocol/api';
 import { WmProtocol, type LoadItemsCallback } from './protocol/WmProtocol';
 import { getTranslation } from './Utils';
 
-declare module '@mui/material/Button' {
-    interface ButtonPropsColorOverrides {
-        grey: true;
-    }
-}
-
 export type CommunicationProps = {
     /** Socket connection */
     socket: Connection;

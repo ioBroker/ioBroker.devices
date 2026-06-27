@@ -3,11 +3,18 @@ import { Box, ButtonBase, Typography } from '@mui/material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
+    formatFloat,
     isNeumorphicTheme,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for Tank widget */
+export interface TankWidgetSettings extends WidgetGenericSettings {
+    showAnimation?: boolean;
+}
 
 /** Color based on fill level */
 function getFillColor(percent: number, accent: string | undefined): string {
@@ -101,23 +108,59 @@ function TankIcon(props: {
     );
 }
 
+/** Names handled by the base class or by Tank itself — not shown as extra states */
+const HANDLED_NAMES = new Set([
+    // Indicator names
+    'WORKING',
+    'UNREACH',
+    'LOWBAT',
+    'MAINTAIN',
+    'ERROR',
+    'DIRECTION',
+    'CONNECTED',
+    'BATTERY',
+    // Extra info names
+    'ELECTRIC_POWER',
+    'CURRENT',
+    'VOLTAGE',
+    'CONSUMPTION',
+    'FREQUENCY',
+]);
+
+interface TankExtraState {
+    id: string;
+    name: string;
+    label: string;
+    unit: string;
+    value: ioBroker.StateValue;
+}
+
 interface WidgetTankState extends WidgetGenericState {
     level: number;
     rawValue: number;
     rawMin: number;
     rawMax: number;
     unit: string;
+    tankExtra: TankExtraState[];
 }
 
-export class WidgetTank extends WidgetGeneric<WidgetTankState> {
+export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSettings> {
     private readonly actualId: string | null;
+    private readonly extraStateIds: { id: string; name: string }[] = [];
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<TankWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
-        const actual = states.find(s => s.name === 'ACTUAL');
+        const actual = states.find(s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''));
 
         this.actualId = actual?.id ?? null;
+
+        // Collect all other states that are not handled by base class or Tank
+        for (const s of states) {
+            if (s.id && this.actualId !== s.id && !HANDLED_NAMES.has(s.name)) {
+                this.extraStateIds.push({ id: s.id, name: s.name });
+            }
+        }
 
         this.state = {
             ...this.state,
@@ -126,6 +169,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
             rawMin: 0,
             rawMax: 100,
             unit: '%',
+            tankExtra: [],
         };
     }
 
@@ -135,6 +179,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
             this.props.stateContext.getState(this.actualId, this.onLevelChange);
         }
         void this.loadObjectConfig();
+        void this.loadExtraStates();
     }
 
     componentWillUnmount(): void {
@@ -142,7 +187,67 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onLevelChange);
         }
+        for (const s of this.extraStateIds) {
+            this.props.stateContext.removeState(s.id, this.onExtraStateChange);
+        }
     }
+
+    static getDefaultSettings(): TankWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            showAnimation: true,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Tank',
+            schema: {
+                type: 'panel',
+                items: {
+                    showAnimation: {
+                        type: 'checkbox',
+                        label: 'wm_Show animation',
+                        default: true,
+                    },
+                },
+            },
+        };
+    }
+
+    private async loadExtraStates(): Promise<void> {
+        const entries: TankExtraState[] = [];
+        for (const { id, name } of this.extraStateIds) {
+            let unit = '';
+            let label = name;
+            try {
+                const obj = (await this.props.stateContext.getSocket().getObject(id)) as
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
+                if (obj?.common) {
+                    unit = obj.common.unit || '';
+                    const n = obj.common.name;
+                    if (n) {
+                        label = typeof n === 'object' ? n[I18n.getLanguage()] || n.en || name : n;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+            entries.push({ id, name, label, unit, value: null });
+            this.props.stateContext.getState(id, this.onExtraStateChange);
+        }
+        if (entries.length) {
+            this.setState({ tankExtra: entries });
+        }
+    }
+
+    private onExtraStateChange = (id: string, state: ioBroker.State): void => {
+        this.setState(prev => ({
+            tankExtra: prev.tankExtra.map(e => (e.id === id ? { ...e, value: state.val } : e)),
+        }));
+    };
 
     private async loadObjectConfig(): Promise<void> {
         if (!this.actualId) {
@@ -194,12 +299,58 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         return this.state.level > 0;
     }
 
+    private renderExtraStates(): React.JSX.Element | null {
+        const { tankExtra } = this.state;
+        const visible = tankExtra.filter(e => e.value != null);
+        if (!visible.length) {
+            return null;
+        }
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: '2px',
+                }}
+            >
+                {visible.map(e => {
+                    const val =
+                        typeof e.value === 'number'
+                            ? Number.isInteger(e.value)
+                                ? e.value
+                                : formatFloat(e.value, 1, this.props.stateContext.isFloatComma)
+                            : typeof e.value === 'boolean'
+                              ? e.value
+                                  ? I18n.t('wm_On')
+                                  : I18n.t('wm_Off')
+                              : String(e.value);
+                    return (
+                        <Typography
+                            key={e.id}
+                            variant="caption"
+                            sx={{
+                                fontSize: 'max(0.55rem, 6cqi)',
+                                lineHeight: 1.2,
+                                opacity: 0.7,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {val}
+                            {e.unit ? ` ${e.unit}` : ''}
+                        </Typography>
+                    );
+                })}
+            </Box>
+        );
+    }
+
     private getDisplayValue(): string {
         const { level, rawValue, unit } = this.state;
         if (unit === '%') {
             return `${level}%`;
         }
-        return `${Number.isInteger(rawValue) ? rawValue : rawValue.toFixed(1)} ${unit}`;
+        return `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
     }
 
     private shouldAnimate(): boolean {
@@ -311,16 +462,22 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
+        const chartAction = this.hasChartAction();
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
-                <Box
+                <ButtonBase
+                    component="div"
+                    disableRipple={!chartAction}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -331,24 +488,15 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        cursor: chartAction ? 'pointer' : 'default',
+                        ...this.applyTileStyles(theme, isActive),
+                        ...(!chartAction && { '&:active': { transform: 'none' } }),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
                     {this.renderFillBackground(fillColor)}
 
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Center: tank icon + value */}
                     <Box
@@ -408,8 +556,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         </Typography>
                     </Box>
                     {this.renderChart()}
-                </Box>
-                {this.renderSettingsButton()}
+                </ButtonBase>
             </Box>
         );
     }
@@ -420,16 +567,22 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
+        const chartAction = this.hasChartAction();
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
-                <Box
+                <ButtonBase
+                    component="div"
+                    disableRipple={!chartAction}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
@@ -438,7 +591,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        cursor: chartAction ? 'pointer' : 'default',
+                        ...this.applyTileStyles(theme, isActive),
+                        ...(!chartAction && { '&:active': { transform: 'none' } }),
                     })}
                 >
                     {this.renderFillBackground(fillColor)}
@@ -469,10 +624,10 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         {this.renderTileStatus()}
                     </Box>
 
+                    {extraStates ? <Box sx={{ position: 'relative', zIndex: 1 }}>{extraStates}</Box> : null}
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
-                </Box>
-                {this.renderSettingsButton()}
+                </ButtonBase>
             </Box>
         );
     }
@@ -483,21 +638,24 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const extraStates = this.renderExtraStates();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton, extraStates);
         const fillColor = getFillColor(level, accent);
+        const chartAction = this.hasChartAction();
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
-                    disabled
-                    disableRipple
+                    disableRipple={!chartAction}
+                    onClick={chartAction ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,
@@ -509,19 +667,15 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                         height: '100%',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        cursor: 'default',
-                        ...getTileStyles(theme, isActive, accent),
-                        '&:active': { transform: 'none' },
+                        cursor: chartAction ? 'pointer' : 'default',
+                        ...this.applyTileStyles(theme, isActive),
+                        ...(!chartAction && { '&:active': { transform: 'none' } }),
                         padding: 'max(16px, 5cqi)',
                     })}
                 >
                     {this.renderFillBackground(fillColor)}
 
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -558,7 +712,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState> {
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

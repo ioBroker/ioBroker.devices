@@ -1,8 +1,22 @@
-import React, { Component } from 'react';
-import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
+import React from 'react';
+import {
+    Box,
+    Button,
+    ButtonBase,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    type SxProps,
+    TextField,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import {
     ArrowDownward,
     ArrowUpward,
+    Backspace,
     BatteryAlert,
     Battery20,
     Battery50,
@@ -22,94 +36,53 @@ import {
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import moment from 'moment/min/moment-with-locales';
 
-import type { WidgetInfo } from '../../../../src/widget-utils';
+import {
+    WidgetGeneric as WidgetGenericBase,
+    type WidgetGenericProps as WidgetGenericPropsBase,
+    type WidgetSettingsBase,
+} from '../../../../packages/dm-widgets/src/index';
 import type StateContext from '../StateContext';
-import ChartDialog, { type ChartLineType } from './ChartDialog';
+import { normalizeColor } from '../Utils';
+import ChartDialog, { type ChartLineType, type SmoothingWindow, type SmoothingMethod, smoothData } from './ChartDialog';
 
-export interface WidgetSettings {
-    size: '1x1' | '2x0.5' | '2x1';
-    chartHours: number;
-    name: string;
-    color: string;
-    blindType: 'shutter' | 'curtain';
-    pin: string;
-    hideWhenOk: boolean;
-    onBrightness: number;
-    showCoordinates: boolean;
-    /** Base64 data URI or predefined type name for map marker icon */
-    markerIcon: string;
-    /** Map tile theme: standard, dark, satellite */
-    mapTheme: string;
-    /** Slider visual type: normal, valve, fan, gauge */
-    sliderType: string;
-    /** Wide view slider style: horizontal (MUI slider) or round (arc knob) */
-    wideSliderStyle: string;
-    /** Show wave animation on tank widget */
-    showAnimation: boolean;
-    /** Image refresh interval in seconds (0 = no refresh) */
-    refreshInterval: number;
-    /** Append ?ts=timestamp to image URL for cache busting */
-    appendTimestamp: boolean;
-    /** Custom text shown when widget is in active/alarm state */
-    textActive: string;
-    /** Custom text shown when widget is in inactive/OK state */
-    textInactive: string;
-    /** Custom color for inactive state */
-    colorInactive: string;
-    /** Custom icon URL/base64 for active/alarm state */
-    iconActive: string;
-    /** Custom icon URL/base64 for inactive/OK state */
-    iconInactive: string;
-    /** Custom widget icon URL/base64 (for non-alarm widgets, stored in common.icon) */
-    icon: string;
+/** Generic settings used by WidgetGeneric base class */
+export interface WidgetGenericSettings extends WidgetSettingsBase {
     /** Show trend arrow indicator based on recent history data */
-    showTrendArrow: boolean;
+    showTrendArrow?: boolean;
     /** Trend calculation period in minutes (default 30) */
-    trendMinutes: number;
-    /** Mark widget as favorite — shown in auto-generated Favorites category */
-    favorite: boolean;
+    trendMinutes?: number;
 }
 
-export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
-    size: '1x1',
-    chartHours: 12,
-    name: '',
-    color: '',
-    blindType: 'shutter',
-    pin: '',
-    hideWhenOk: false,
-    onBrightness: 100,
-    showCoordinates: false,
-    markerIcon: '',
-    mapTheme: 'standard',
-    sliderType: 'normal',
-    wideSliderStyle: 'horizontal',
-    showAnimation: true,
-    refreshInterval: 0,
-    appendTimestamp: false,
-    textActive: '',
-    textInactive: '',
-    colorInactive: '',
-    iconActive: '',
-    iconInactive: '',
-    icon: '',
-    showTrendArrow: false,
-    trendMinutes: 30,
-    favorite: false,
-};
-
-export interface WidgetGenericProps {
-    widget: WidgetInfo;
-    language: ioBroker.Languages;
+export interface WidgetGenericProps<
+    TSettings extends WidgetSettingsBase = WidgetGenericSettings,
+> extends WidgetGenericPropsBase<TSettings> {
+    /** Host's StateContext (superset of IStateContext) */
     stateContext: StateContext;
-    size?: '1x1' | '2x0.5' | '2x1';
-    settings?: WidgetSettings;
-    onOpenSettings?: (widgetId: string | number) => void;
-    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings in custom */
-    instanceId?: string;
+}
+
+/** Resolve an ioBroker StringOrTranslated value to a plain string */
+export function resolveTranslated(
+    text: ioBroker.StringOrTranslated | undefined | null,
+    language?: ioBroker.Languages,
+): string {
+    if (!text) {
+        return '';
+    }
+    if (typeof text === 'string') {
+        return text;
+    }
+    return (language && text[language]) || text.en || Object.values(text)[0] || '';
+}
+
+/**
+ * Format a number for display, replacing '.' with ',' when isFloatComma is true.
+ * Use ONLY for user-visible text — never for SVG paths, API calls, or CSS values.
+ */
+export function formatFloat(value: number, decimals: number, isFloatComma?: boolean): string {
+    const str = value.toFixed(decimals);
+    return isFloatComma ? str.replace('.', ',') : str;
 }
 
 export interface IndicatorValues {
@@ -153,8 +126,20 @@ export interface WidgetGenericState {
     trend: 'up' | 'down' | 'stable' | null;
     /** Chart line type synced from chart dialog settings */
     chartType: ChartLineType;
+    /** Smoothing window synced from chart dialog settings */
+    chartSmoothing: SmoothingWindow;
+    /** Smoothing method synced from chart dialog settings */
+    chartSmoothingMethod: SmoothingMethod;
     /** Extra info entry whose chart dialog is currently open */
     infoChartEntry: ExtraInfoEntry | null;
+    /** PinPad dialog state */
+    pinPadOpen: boolean;
+    pinPadPin: string;
+    /** Confirmation dialog state */
+    confirmDialogOpen: boolean;
+    confirmDialogMode: 'dialog' | 'pin';
+    confirmDialogPin: string;
+    confirmDialogText: string;
 }
 
 const INDICATOR_NAMES = [
@@ -236,6 +221,285 @@ export function getTileStyles(
     };
 }
 
+// --- Standalone dialog components (usable outside WidgetGeneric hierarchy) ---
+
+export interface PinPadDialogProps {
+    open: boolean;
+    pin: string;
+    onSuccess: () => void;
+    onClose: () => void;
+}
+
+/**
+ * PinPad dialog with a numeric keypad for PIN entry.
+ * Can be used standalone in any widget.
+ */
+export function PinPadDialog(props: PinPadDialogProps): React.JSX.Element | null {
+    const { open, pin, onSuccess, onClose } = props;
+    const [pinInput, setPinInput] = React.useState('');
+    const [pinError, setPinError] = React.useState(false);
+
+    // Reset state when dialog opens
+    React.useEffect(() => {
+        if (open) {
+            setPinInput('');
+            setPinError(false);
+        }
+    }, [open]);
+
+    if (!open) {
+        return null;
+    }
+
+    const pinLength = pin.length || 4;
+    const dots = Array.from({ length: pinLength }, (_, i) => i < pinInput.length);
+
+    const onDigit = (digit: string): void => {
+        const next = pinInput + digit;
+        if (next.length >= pin.length) {
+            if (next === pin) {
+                setPinInput('');
+                setPinError(false);
+                onSuccess();
+            } else {
+                setPinInput('');
+                setPinError(true);
+                setTimeout(() => setPinError(false), 600);
+            }
+        } else {
+            setPinInput(next);
+            setPinError(false);
+        }
+    };
+
+    const onBackspace = (): void => {
+        setPinInput(prev => prev.slice(0, -1));
+        setPinError(false);
+    };
+
+    const keys = [
+        ['1', '2', '3'],
+        ['4', '5', '6'],
+        ['7', '8', '9'],
+        ['', '0', 'back'],
+    ];
+
+    return (
+        <Dialog
+            open
+            onClose={onClose}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            PaperProps={{
+                sx: {
+                    borderRadius: '24px',
+                    p: 3,
+                    minWidth: 280,
+                    maxWidth: 320,
+                },
+            }}
+        >
+            <Typography
+                variant="h6"
+                sx={{ textAlign: 'center', mb: 3, fontWeight: 600 }}
+            >
+                {I18n.t('wm_Enter PIN')}
+            </Typography>
+
+            {/* PIN dots */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 1.5,
+                    mb: 3,
+                    animation: pinError ? 'wmShake 0.4s ease' : undefined,
+                    '@keyframes wmShake': {
+                        '0%, 100%': { transform: 'translateX(0)' },
+                        '20%, 60%': { transform: 'translateX(-8px)' },
+                        '40%, 80%': { transform: 'translateX(8px)' },
+                    },
+                }}
+            >
+                {dots.map((filled, i) => (
+                    <Box
+                        key={i}
+                        sx={theme => ({
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            border: `2px solid ${pinError ? theme.palette.error.main : theme.palette.primary.main}`,
+                            backgroundColor: filled
+                                ? pinError
+                                    ? theme.palette.error.main
+                                    : theme.palette.primary.main
+                                : 'transparent',
+                            transition: 'all 0.15s ease',
+                        })}
+                    />
+                ))}
+            </Box>
+
+            {/* Keypad */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                {keys.map((row, ri) => (
+                    <Box
+                        key={ri}
+                        sx={{ display: 'flex', gap: 1 }}
+                    >
+                        {row.map((key, ki) => {
+                            if (key === '') {
+                                return (
+                                    <Box
+                                        key={ki}
+                                        sx={{ width: 64, height: 64 }}
+                                    />
+                                );
+                            }
+                            if (key === 'back') {
+                                return (
+                                    <IconButton
+                                        key={ki}
+                                        onClick={onBackspace}
+                                        disabled={pinInput.length === 0}
+                                        sx={theme => ({
+                                            width: 64,
+                                            height: 64,
+                                            color: theme.palette.text.secondary,
+                                        })}
+                                    >
+                                        <Backspace />
+                                    </IconButton>
+                                );
+                            }
+                            return (
+                                <Button
+                                    key={ki}
+                                    variant="text"
+                                    onClick={() => onDigit(key)}
+                                    sx={theme => ({
+                                        width: 64,
+                                        height: 64,
+                                        minWidth: 0,
+                                        borderRadius: '50%',
+                                        fontSize: '1.5rem',
+                                        fontWeight: 500,
+                                        color: theme.palette.text.primary,
+                                        backgroundColor: theme.palette.action.hover,
+                                        '&:hover': {
+                                            backgroundColor: theme.palette.action.selected,
+                                        },
+                                    })}
+                                >
+                                    {key}
+                                </Button>
+                            );
+                        })}
+                    </Box>
+                ))}
+            </Box>
+
+            <Button
+                variant="text"
+                onClick={onClose}
+                sx={{ mt: 2, alignSelf: 'center', textTransform: 'none' }}
+            >
+                {I18n.t('wm_Cancel')}
+            </Button>
+        </Dialog>
+    );
+}
+
+export interface ConfirmDialogProps {
+    open: boolean;
+    mode: 'dialog' | 'pin';
+    pin?: string;
+    text?: string;
+    onSuccess: () => void;
+    onClose: () => void;
+}
+
+/**
+ * Confirmation dialog — either a simple OK/Cancel or with PIN input.
+ * Can be used standalone in any widget.
+ */
+export function ConfirmDialog(props: ConfirmDialogProps): React.JSX.Element | null {
+    const { open, mode, pin = '', text, onSuccess, onClose } = props;
+    const [pinInput, setPinInput] = React.useState('');
+    const [pinError, setPinError] = React.useState(false);
+
+    React.useEffect(() => {
+        if (open) {
+            setPinInput('');
+            setPinError(false);
+        }
+    }, [open]);
+
+    if (!open) {
+        return null;
+    }
+
+    const title = text || I18n.t(mode === 'pin' ? 'wm_Enter PIN' : 'wm_Are you sure');
+
+    const handleConfirm = (): void => {
+        if (mode === 'pin') {
+            if (pinInput === pin) {
+                setPinInput('');
+                setPinError(false);
+                onSuccess();
+            } else {
+                setPinError(true);
+            }
+        } else {
+            onSuccess();
+        }
+    };
+
+    return (
+        <Dialog
+            open
+            onClose={onClose}
+            maxWidth="xs"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+            <DialogTitle>{title}</DialogTitle>
+            {mode === 'pin' ? (
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        type="password"
+                        inputMode="numeric"
+                        value={pinInput}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            setPinInput(e.target.value);
+                            setPinError(false);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter') {
+                                handleConfirm();
+                            }
+                        }}
+                        error={pinError}
+                        helperText={pinError ? I18n.t('wm_Wrong PIN') : undefined}
+                        fullWidth
+                        size="small"
+                        sx={{ mt: 1 }}
+                    />
+                </DialogContent>
+            ) : null}
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    onClick={handleConfirm}
+                    disabled={mode === 'pin' && !pinInput}
+                >
+                    {I18n.t('wm_OK')}
+                </Button>
+                <Button onClick={onClose}>{I18n.t('wm_Cancel')}</Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
 const DEFAULT_INDICATORS: IndicatorValues = {
     working: null,
     unreach: null,
@@ -247,10 +511,10 @@ const DEFAULT_INDICATORS: IndicatorValues = {
     battery: null,
 };
 
-export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericState> extends Component<
-    WidgetGenericProps,
-    TState
-> {
+export class WidgetGeneric<
+    TState extends WidgetGenericState = WidgetGenericState,
+    TSettings extends WidgetGenericSettings = WidgetGenericSettings,
+> extends WidgetGenericBase<TState, TSettings> {
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
     /** Extra info state IDs (ELECTRIC_POWER, CURRENT, etc.) */
@@ -262,7 +526,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private trendTimer: ReturnType<typeof setInterval> | null = null;
     protected nameRef = React.createRef<HTMLSpanElement>();
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<TSettings>) {
         super(props);
         this.state = {
             name: null,
@@ -271,11 +535,19 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             indicators: { ...DEFAULT_INDICATORS },
             chartSeries: [] as ChartSeries[],
             extraInfo: [] as ExtraInfoEntry[],
-            infoDialogOpen: false,
-            chartDialogOpen: false,
+            infoDialogOpen: props.openDialogId === `${props.widget.id}_info`,
+            chartDialogOpen: props.openDialogId === `${props.widget.id}_chart`,
             trend: null,
             chartType: 'line',
+            chartSmoothing: 0,
+            chartSmoothingMethod: 'average' as SmoothingMethod,
             infoChartEntry: null,
+            pinPadOpen: false,
+            pinPadPin: '',
+            confirmDialogOpen: false,
+            confirmDialogMode: 'dialog' as const,
+            confirmDialogPin: '',
+            confirmDialogText: '',
         } as unknown as TState;
 
         // Collect indicator state IDs from control.states
@@ -310,11 +582,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
 
         if (this.props.widget.icon && typeof this.props.widget.icon === 'object') {
-            if ((this.props.widget.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (this.props.widget.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onIconChange,
-                );
+            if (this.props.widget.icon.stateId) {
+                this.props.stateContext.getState(this.props.widget.icon.stateId, this.onIconChange);
             }
         } else if (typeof this.props.widget.icon === 'string') {
             state ||= {};
@@ -322,11 +591,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
 
         if (this.props.widget.color && typeof this.props.widget.color === 'object') {
-            if ((this.props.widget.color as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (this.props.widget.color as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onColorChange,
-                );
+            if (this.props.widget.color.stateId) {
+                this.props.stateContext.getState(this.props.widget.color.stateId, this.onColorChange);
             }
         } else if (typeof this.props.widget.color === 'string') {
             state ||= {};
@@ -391,7 +657,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         }
     }
 
-    componentDidUpdate(prevProps: Readonly<WidgetGenericProps>): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<TSettings>>): void {
         const prevHours = prevProps.settings?.chartHours ?? 12;
         const newHours = this.props.settings?.chartHours ?? 12;
         if (prevHours !== newHours) {
@@ -425,11 +691,50 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 state.color = this.props.widget.color || null;
             }
         }
+        // Sync from settings when they change (for plugin widgets where widget is synthetic)
+        if (prevProps.settings !== this.props.settings) {
+            if (this.props.settings?.name && this.props.settings.name !== prevProps.settings?.name) {
+                state.name = this.props.settings.name;
+            }
+            if (this.props.settings?.color && this.props.settings.color !== prevProps.settings?.color) {
+                state.color = this.props.settings.color;
+            }
+        }
+
         if (Object.keys(state).length) {
             this.setState(state as TState);
         }
 
         this.adjustNameFontSize();
+    }
+
+    static getDefaultSettings(): WidgetSettingsBase {
+        return {
+            size: '1x1',
+            chartHours: 12,
+            name: '',
+            color: '',
+            colorActive: '',
+            showTrendArrow: false,
+            trendMinutes: 30,
+            favorite: false,
+            icon: '',
+            iconActive: '',
+            text: '',
+            textActive: '',
+        };
+    }
+
+    /** Override in subclasses to provide widget-specific settings schema items */
+    // Return type uses `any` because ConfigItemPanel from @iobroker/json-config and @iobroker/dm-utils are structurally equivalent but TypeScript treats them as different types
+    static override getConfigSchema(): any {
+        return {
+            name: 'Generic',
+            schema: {
+                type: 'panel',
+                items: {},
+            },
+        };
     }
 
     /** Shrink the name font so it fits on one line without truncation */
@@ -589,11 +894,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     };
 
     getText(text: ioBroker.StringOrTranslated): string {
-        if (typeof text === 'object') {
-            return text[this.props.language] || text.en;
-        }
-
-        return text;
+        return resolveTranslated(text, this.props.stateContext.language);
     }
 
     // --- Extra info (ELECTRIC_POWER, CURRENT, VOLTAGE, etc.) ---
@@ -601,8 +902,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private async loadExtraInfoMetadata(): Promise<void> {
         // Ensure history instance is resolved before checking history availability
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const cfg = await this.props.stateContext.getSocket().getObject('system.config');
@@ -642,17 +943,13 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     }
 
     private onExtraInfoChange = (id: string, state: ioBroker.State): void => {
-        this.setState(
-            prev =>
-                ({
-                    extraInfo: prev.extraInfo.map(e =>
-                        e.id === id ? { ...e, value: state.val as number | string | null } : e,
-                    ),
-                }) as Partial<TState> as TState,
-        );
+        this.setState(prev => ({
+            extraInfo: prev.extraInfo.map(e =>
+                e.id === id ? { ...e, value: state.val as number | string | null } : e,
+            ),
+        }));
     };
 
-    // eslint-disable-next-line class-methods-use-this
     private formatExtraInfoValue(entry: ExtraInfoEntry): string {
         if (entry.value == null) {
             return '—';
@@ -663,8 +960,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 abs >= 100
                     ? Math.round(entry.value).toString()
                     : abs >= 10
-                      ? entry.value.toFixed(1)
-                      : entry.value.toFixed(2);
+                      ? formatFloat(entry.value, 1, this.props.stateContext.isFloatComma)
+                      : formatFloat(entry.value, 2, this.props.stateContext.isFloatComma);
             return entry.unit ? `${str} ${entry.unit}` : str;
         }
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
@@ -789,8 +1086,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={entry.unit}
+                isFloatComma={this.props.stateContext.isFloatComma}
                 widgetId={String(this.props.widget.id)}
-                instanceId={this.props.instanceId}
+                instanceId={this.props.stateContext.instanceId}
             />
         );
     }
@@ -807,7 +1105,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <>
                 <Dialog
                     open
-                    onClose={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                    onClose={() => this.closeWidgetDialog('info')}
                     maxWidth="xs"
                     fullWidth
                 >
@@ -815,7 +1113,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         {this.props.settings?.name || this.state.name || '...'}
                         <IconButton
                             size="small"
-                            onClick={() => this.setState({ infoDialogOpen: false } as Partial<TState> as TState)}
+                            onClick={() => this.closeWidgetDialog('info')}
                         >
                             <Close />
                         </IconButton>
@@ -907,12 +1205,58 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return false;
     }
 
+    /** Open a dialog and persist it in the URL hash */
+    protected openWidgetDialog(type: 'chart' | 'info'): void {
+        const dialogId = `${this.props.widget.id}_${type}`;
+        this.props.onOpenWidgetDialog?.(dialogId);
+        if (type === 'chart') {
+            this.setState({ chartDialogOpen: true } as Partial<TState> as TState);
+        } else {
+            this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+        }
+    }
+
+    /** Close a dialog and remove it from the URL hash */
+    protected closeWidgetDialog(type: 'chart' | 'info'): void {
+        this.props.onCloseWidgetDialog?.();
+        if (type === 'chart') {
+            this.setState({ chartDialogOpen: false } as Partial<TState> as TState);
+        } else {
+            this.setState({ infoDialogOpen: false } as Partial<TState> as TState);
+        }
+    }
+
     protected getAccentColor(): string | undefined {
-        return this.props.settings?.color || this.state.color || undefined;
+        return normalizeColor(this.props.settings?.colorActive || this.state.color || undefined);
     }
 
     protected getInactiveColor(): string | undefined {
-        return this.props.settings?.colorInactive || undefined;
+        return normalizeColor(this.props.settings?.color || undefined);
+    }
+
+    /**
+     * Canonical wrapper around `getTileStyles`. Widgets should call this instead of the raw
+     * `getTileStyles` function — changes to the call signature (extra theming params, different
+     * defaults, etc.) propagate everywhere automatically. Overrides only what the widget needs.
+     */
+    protected applyTileStyles(
+        theme: Theme,
+        isActive: boolean,
+        opts: { interactive?: boolean; accent?: string; inactiveColor?: string } = {},
+    ): Record<string, unknown> {
+        const { interactive = true, accent, inactiveColor } = opts;
+        return getTileStyles(
+            theme,
+            isActive,
+            accent !== undefined ? accent : this.getAccentColor(),
+            interactive,
+            inactiveColor !== undefined ? inactiveColor : this.getInactiveColor(),
+        );
+    }
+
+    /** Format a timestamp as a localized "time ago" string using moment */
+    protected fromNow(ts: number): string {
+        return moment(ts).locale(this.props.stateContext.language).fromNow();
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -972,7 +1316,10 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     // --- Indicators ---
 
-    protected renderIndicators(): React.JSX.Element | null {
+    protected renderIndicators(
+        settingsButton?: React.JSX.Element | null,
+        extraStates?: React.JSX.Element | null,
+    ): React.JSX.Element | null {
         const { indicators } = this.state;
         const items: React.JSX.Element[] = [];
         const sz = INDICATOR_ICON_SIZE;
@@ -1013,7 +1360,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             );
         }
 
-        // Low battery indicator (boolean)
+        // Low-battery indicator (boolean)
         if (indicators.lowbat) {
             items.push(
                 <Tooltip
@@ -1107,20 +1454,26 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             );
         }
 
-        if (items.length === 0) {
+        if (!items.length && !extraStates && !settingsButton) {
             return null;
         }
 
         return (
             <Box
-                sx={{
+                sx={theme => ({
+                    position: 'absolute',
+                    top: isNeumorphicTheme(theme) ? 'max(4px, 2cqi)' : 'max(4px, 2cqi)',
+                    right: isNeumorphicTheme(theme) ? 'max(4px, 2cqi)' : 'max(4px, 2cqi)',
+                    zIndex: 1,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '3px',
                     flexWrap: 'wrap',
-                }}
+                })}
             >
                 {items}
+                {extraStates}
+                {settingsButton}
             </Box>
         );
     }
@@ -1169,7 +1522,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
     private loadChartType(): void {
         const widgetId = String(this.props.widget.id);
-        const instanceId = this.props.instanceId;
+        const instanceId = this.props.stateContext.instanceId;
         if (!widgetId || !instanceId) {
             return;
         }
@@ -1180,9 +1533,22 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
                     | Record<string, Record<string, unknown>>
                     | undefined;
-                const ct = custom?.[instanceId]?.chartType;
+                const settings = custom?.[instanceId];
+                const update: Partial<WidgetGenericState> = {};
+                const ct = settings?.chartType;
                 if (ct && ['line', 'step-start', 'step-end'].includes(ct as string)) {
-                    this.setState({ chartType: ct as ChartLineType } as Partial<TState> as TState);
+                    update.chartType = ct as ChartLineType;
+                }
+                const cs = settings?.chartSmoothing;
+                if (typeof cs === 'number' && [0, 30, 60, 300, 600].includes(cs)) {
+                    update.chartSmoothing = cs as SmoothingWindow;
+                }
+                const cm = settings?.chartSmoothingMethod;
+                if (cm && ['average', 'min', 'max', 'median'].includes(cm as string)) {
+                    update.chartSmoothingMethod = cm as SmoothingMethod;
+                }
+                if (Object.keys(update).length) {
+                    this.setState(update as Partial<TState> as TState);
                 }
             })
             .catch(() => {
@@ -1252,8 +1618,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const socket = this.props.stateContext.getSocket();
 
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const sysConfig =
@@ -1333,8 +1699,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     private async loadTrend(stateId: string): Promise<void> {
         // Ensure history instance is resolved
         if (this.historyInstance === null) {
-            if (this.props.defaultHistory) {
-                this.historyInstance = this.props.defaultHistory;
+            if (this.props.stateContext.defaultHistory) {
+                this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
                     const sysConfig =
@@ -1444,7 +1810,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             <ChartDialog
                 open
                 onClose={() => {
-                    this.setState({ chartDialogOpen: false } as Partial<TState> as TState);
+                    this.closeWidgetDialog('chart');
                     this.loadChartType();
                 }}
                 title={this.props.settings?.name || (this.state.name ?? '') || String(this.props.widget.id)}
@@ -1452,8 +1818,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                 historyInstance={this.historyInstance}
                 socket={this.props.stateContext.getSocket()}
                 unit={this.getChartUnit()}
+                isFloatComma={this.props.stateContext.isFloatComma}
                 widgetId={String(this.props.widget.id)}
-                instanceId={this.props.instanceId}
+                instanceId={this.props.stateContext.instanceId}
             />
         );
     }
@@ -1473,15 +1840,18 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         const W = 200;
         const H = 60;
 
+        const { chartSmoothing, chartSmoothingMethod } = this.state;
+
         const paths: React.JSX.Element[] = [];
         for (let i = 0; i < chartSeries.length; i++) {
             const s = chartSeries[i];
             if (s.data.length < 2) {
                 continue;
             }
+            const smoothed = chartSmoothing > 0 ? smoothData(s.data, chartSmoothing, chartSmoothingMethod) : s.data;
             let min = Infinity;
             let max = -Infinity;
-            for (const p of s.data) {
+            for (const p of smoothed) {
                 if (p.val < min) {
                     min = p.val;
                 }
@@ -1493,7 +1863,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
             const padMin = min - range * 0.1;
             const padRange = max + range * 0.1 - padMin;
 
-            const pts = s.data.map(p => ({
+            const pts = smoothed.map(p => ({
                 x: ((p.ts - start) / (end - start)) * W,
                 y: H - ((p.val - padMin) / padRange) * H,
             }));
@@ -1561,11 +1931,78 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         );
     }
 
+    // --- PinPad ---
+
+    /**
+     * Open the PinPad dialog.
+     * On correct PIN entry, `onPinPadSuccess()` is called.
+     */
+    protected showPinPad(pin: string): void {
+        this.setState({ pinPadOpen: true, pinPadPin: pin } as Partial<TState> as TState);
+    }
+
+    /** Override in subclass to handle successful PIN entry */
+    // eslint-disable-next-line class-methods-use-this
+    protected onPinPadSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderPinPad(): React.JSX.Element | null {
+        return (
+            <PinPadDialog
+                open={this.state.pinPadOpen}
+                pin={this.state.pinPadPin}
+                onSuccess={() => {
+                    this.setState({ pinPadOpen: false } as Partial<TState> as TState);
+                    this.onPinPadSuccess();
+                }}
+                onClose={() => this.setState({ pinPadOpen: false } as Partial<TState> as TState)}
+            />
+        );
+    }
+
+    // --- Confirmation Dialog ---
+
+    /**
+     * Open a confirmation dialog.
+     * On success, `onConfirmDialogSuccess()` is called.
+     */
+    protected showConfirmDialog(mode: 'dialog' | 'pin', pin?: string, text?: string): void {
+        this.setState({
+            confirmDialogOpen: true,
+            confirmDialogMode: mode,
+            confirmDialogPin: pin || '',
+            confirmDialogText: text || '',
+        } as Partial<TState> as TState);
+    }
+
+    /** Override in subclass to handle successful confirmation */
+    // eslint-disable-next-line class-methods-use-this
+    protected onConfirmDialogSuccess(): void {
+        // override in subclass
+    }
+
+    protected renderConfirmDialog(): React.JSX.Element | null {
+        return (
+            <ConfirmDialog
+                open={this.state.confirmDialogOpen}
+                mode={this.state.confirmDialogMode}
+                pin={this.state.confirmDialogPin}
+                text={this.state.confirmDialogText}
+                onSuccess={() => {
+                    this.setState({ confirmDialogOpen: false } as Partial<TState> as TState);
+                    this.onConfirmDialogSuccess();
+                }}
+                onClose={() => this.setState({ confirmDialogOpen: false } as Partial<TState> as TState)}
+            />
+        );
+    }
+
     // --- Settings button ---
 
     protected renderSettingsButton(): React.JSX.Element | null {
         const hasSettings = !!this.props.onOpenSettings;
-        const hasInfo = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
+        const hasInfo = this.state.extraInfo.length || this.hasIndicatorStates();
 
         if (!hasSettings && !hasInfo) {
             return null;
@@ -1573,44 +2010,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
 
         return (
             <>
-                {hasSettings ? (
-                    <Box
-                        component="span"
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            this.props.onOpenSettings!(this.props.widget.id);
-                        }}
-                        onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.stopPropagation();
-                                this.props.onOpenSettings!(this.props.widget.id);
-                            }
-                        }}
-                        sx={theme => ({
-                            position: 'absolute',
-                            bottom: 6,
-                            right: 6,
-                            p: '3px',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            zIndex: 2,
-                            color: theme.palette.primary.main,
-                            opacity: 0.6,
-                            transition: 'opacity 0.2s, background-color 0.2s',
-                            '&:hover': {
-                                opacity: 1,
-                                backgroundColor: theme.palette.action.hover,
-                            },
-                        })}
-                    >
-                        <Settings sx={{ fontSize: 16 }} />
-                    </Box>
-                ) : null}
                 {hasInfo ? (
                     <Box
                         component="span"
@@ -1618,18 +2017,15 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         tabIndex={0}
                         onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                            this.openWidgetDialog('info');
                         }}
                         onKeyDown={(e: React.KeyboardEvent) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.stopPropagation();
-                                this.setState({ infoDialogOpen: true } as Partial<TState> as TState);
+                                this.openWidgetDialog('info');
                             }
                         }}
                         sx={theme => ({
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
                             p: '3px',
                             borderRadius: '50%',
                             display: 'flex',
@@ -1649,21 +2045,83 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         <InfoOutlined sx={{ fontSize: 16 }} />
                     </Box>
                 ) : null}
+                {hasSettings ? (
+                    <Box
+                        component="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            this.props.onOpenSettings!(this.props.widget.id);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                this.props.onOpenSettings!(this.props.widget.id);
+                            }
+                        }}
+                        sx={WidgetGeneric.getSettingButtonStyle()}
+                    >
+                        <Settings sx={{ fontSize: 16 }} />
+                    </Box>
+                ) : null}
                 {this.renderInfoDialog()}
             </>
         );
     }
 
+    static getStyleCompact(theme: Theme): React.CSSProperties {
+        return {
+            position: 'relative',
+            containerType: 'inline-size',
+            overflow: 'hidden',
+            borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+        };
+    }
+
+    static getStyleWide(theme: Theme): React.CSSProperties {
+        const style = WidgetGeneric.getStyleCompact(theme);
+        style.gridColumn = 'span 2';
+        return style;
+    }
+
+    static getStyleWideTall(theme: Theme): React.CSSProperties {
+        return WidgetGeneric.getStyleWide(theme);
+    }
+
+    /** 2×2: spans 2 columns AND 2 rows, so the tile occupies a square double-cell area. */
+    static getStyleHuge(theme: Theme): React.CSSProperties {
+        const style = WidgetGeneric.getStyleCompact(theme);
+        style.gridColumn = 'span 2';
+        style.gridRow = 'span 2';
+        return style;
+    }
+
+    static getSettingButtonStyle(): SxProps<Theme> {
+        return (theme: Theme) => ({
+            p: '3px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+            color: theme.palette.primary.main,
+            opacity: 0.6,
+            transition: 'opacity 0.2s, background-color 0.2s',
+            '&:hover': {
+                opacity: 1,
+                backgroundColor: theme.palette.action.hover,
+            },
+        });
+    }
     // --- Frame rendering ---
 
     renderCompact(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
-        // Skip tile indicators when info button is shown — they overlap in the same corner
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1671,24 +2129,15 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <ButtonBase
                     component="div"
-                    disabled={!clickable}
                     disableRipple={!clickable}
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => {
@@ -1704,22 +2153,12 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                             textAlign: 'left',
                             overflow: 'hidden',
                             cursor: clickable ? 'pointer' : 'default',
-                            ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                            ...this.applyTileStyles(theme, isActive),
                             ...(!clickable && { '&:active': { transform: 'none' } }),
                             padding: pad,
                         };
                     }}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => {
-                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)';
-                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
-                            }}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
                     {trendArrow ? (
                         <Box
                             sx={{
@@ -1775,7 +2214,9 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+                {/* Indicators rendered OUTSIDE the ButtonBase so they remain clickable even when
+                    ButtonBase is disabled (which applies `pointer-events: none` to all descendants). */}
+                {indicators}
             </Box>
         );
     }
@@ -1783,10 +2224,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     renderWide(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1794,22 +2233,13 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => ({
@@ -1821,7 +2251,7 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         position: 'relative',
                         cursor: clickable ? 'pointer' : 'default',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                     })}
                 >
@@ -1869,7 +2299,6 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1877,10 +2306,8 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
     renderWideTall(): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const inactiveColor = this.getInactiveColor();
-        const hasInfoButton = this.state.extraInfo.length > 0 || this.hasIndicatorStates();
-        const indicators = hasInfoButton ? null : this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
         const clickable = this.hasTileAction() || chartAction;
@@ -1888,27 +2315,17 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
         return (
             <Box
                 id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                className={`${this.getWidgetClass()}`}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <ButtonBase
                     component="div"
-                    disabled={!clickable}
                     disableRipple={!clickable}
                     onClick={
                         clickable
-                            ? () =>
-                                  chartAction
-                                      ? this.setState({ chartDialogOpen: true } as Partial<TState> as TState)
-                                      : this.onTileClick()
+                            ? () => (chartAction ? this.openWidgetDialog('chart') : this.onTileClick())
                             : undefined
                     }
                     sx={theme => ({
@@ -1923,22 +2340,11 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: clickable ? 'pointer' : 'default',
-                        ...getTileStyles(theme, isActive, accent, true, inactiveColor),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(!clickable && { '&:active': { transform: 'none' } }),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => {
-                                const pad = isNeumorphicTheme(theme) ? 'max(12px, 4cqi)' : 'max(16px, 5cqi)';
-                                return { position: 'absolute', top: pad, right: pad, zIndex: 1 };
-                            }}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
-
                     <Box
                         sx={{
                             display: 'flex',
@@ -1985,27 +2391,44 @@ export class WidgetGeneric<TState extends WidgetGenericState = WidgetGenericStat
                     {this.renderTileAction()}
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+                {/* Indicators rendered OUTSIDE the ButtonBase so they remain clickable even when
+                    ButtonBase is disabled (which applies `pointer-events: none` to all descendants). */}
+                {indicators}
             </Box>
         );
     }
 
+    /**
+     * Override in subclasses that opt into the 2×2 size. Defaults to renderWideTall (2×1) so widgets
+     *  that don't customize 2×2 don't blow up if they ever receive that size — but normally only
+     *  iFrame and EnergyFlow expose this option in their schema.
+     */
+    renderHuge(): React.JSX.Element {
+        return this.renderWideTall();
+    }
+
     render(): React.JSX.Element {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();
         } else if (size === '2x1') {
             widget = this.renderWideTall();
+        } else if (size === '2x2') {
+            widget = this.renderHuge();
         } else {
             widget = this.renderCompact();
         }
         const chartDialog = this.renderChartDialog();
-        if (chartDialog) {
+        const pinPad = this.renderPinPad();
+        const confirmDialog = this.renderConfirmDialog();
+        if (chartDialog || pinPad || confirmDialog) {
             return (
                 <>
                     {widget}
                     {chartDialog}
+                    {pinPad}
+                    {confirmDialog}
                 </>
             );
         }

@@ -5,14 +5,19 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type WidgetGenericSettings,
 } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
+/** Settings for ColorLight widget */
+export interface ColorLightWidgetSettings extends WidgetGenericSettings {
+    onBrightness?: number;
+}
 // --- State interface ---
 
 interface WidgetColorLightState extends WidgetGenericState {
@@ -31,7 +36,7 @@ interface WidgetColorLightState extends WidgetGenericState {
 
 // --- Widget ---
 
-export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
+export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, ColorLightWidgetSettings> {
     // Dimmer states
     protected readonly setId: string | null;
     protected readonly actualId: string | null;
@@ -56,7 +61,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
     private longPressTimer: ReturnType<typeof setTimeout> | null = null;
     private longPressTriggered = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<ColorLightWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const find = (name: string): string | null => states.find(s => s.name === name)?.id ?? null;
@@ -104,6 +109,41 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
             ctValue: 4000,
             ctMin: 2000,
             ctMax: 6500,
+        };
+    }
+
+    static getDefaultSettings(): ColorLightWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            onBrightness: 100,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    onBrightness: {
+                        type: 'number',
+                        label: 'wm_On brightness',
+                        default: 100,
+                        min: 1,
+                        max: 100,
+                        unit: '%',
+                    },
+                    _dialogChartHint: {
+                        newLine: true,
+                        type: 'staticText',
+                        text: 'wm_RGB color',
+                        style: {
+                            fontStyle: 'italic',
+                        },
+                        sm: 12,
+                    },
+                },
+            },
         };
     }
 
@@ -508,9 +548,12 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
             this.longPressTimer = null;
         }
 
-        if (!this.dragStartPos && !this.isDragging) {
-            // Long press already triggered
+        // Long-press already opened the dialog — swallow the trailing pointerUp/cancel.
+        if (this.longPressTriggered) {
             this.longPressTriggered = false;
+            this.dragStartPos = null;
+            this.isDragging = false;
+            this.setState({ dragging: false });
             return;
         }
 
@@ -665,8 +708,8 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
     renderCompact(): React.JSX.Element {
         const { name, brightness, dragging, color } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -680,7 +723,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.arcRef}
@@ -700,22 +743,11 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
-                        ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
+                        ...this.applyTileStyles(theme, isActive),
+                        padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -791,7 +823,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
 

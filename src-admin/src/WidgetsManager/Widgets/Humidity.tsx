@@ -2,7 +2,9 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WaterDrop, Thermostat } from '@mui/icons-material';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { formatFloat, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetHumidityState extends WidgetGenericState {
     humidity: number | null;
@@ -10,6 +12,13 @@ interface WidgetHumidityState extends WidgetGenericState {
 }
 
 export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Humidity',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly actualId: string | null;
     private readonly temperatureId: string | null;
 
@@ -123,7 +132,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         // In wide/tall modes, values are shown via renderTileAction
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }
@@ -155,7 +164,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 12 }} />
-                        {temperature.toFixed(1)}°
+                        {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>
@@ -185,7 +194,7 @@ export class WidgetHumidity extends WidgetGeneric<WidgetHumidityState> {
                         }}
                     >
                         <Thermostat sx={{ fontSize: 14 }} />
-                        {temperature.toFixed(1)}°
+                        {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                     </Typography>
                 ) : null}
             </Box>

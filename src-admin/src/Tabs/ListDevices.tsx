@@ -67,6 +67,7 @@ import { HiLink } from 'react-icons/hi';
 import {
     FileCopy as CopyIcon,
     CreateNewFolder as CreateNewFolderIcon,
+    PlayArrow,
     VerticalSplit as VerticalSplitIcon,
 } from '@mui/icons-material';
 
@@ -643,9 +644,9 @@ const styles: Record<string, any> = {
         fontWeight: 800,
         display: 'flex',
         alignItems: 'center',
-        marginRight: 10,
+        mr: '10px',
         '@media screen and (max-width: 700px)': {
-            marginLeft: 10,
+            ml: '10px',
         },
         '@media screen and (max-width: 440px)': {
             '& span': {
@@ -781,7 +782,8 @@ interface ListDevicesState {
     updating: string[];
 
     deleteFolderAndDevice: null | { id: string; device?: false } | { index: number; device: true };
-    splitScreen: boolean;
+    /** 'off' = device list only, 'split' = both panels, 'gui' = widget preview only */
+    splitScreen: 'off' | 'split' | 'gui';
     splitLeftWidth: number | null;
     splitDragging: boolean;
 }
@@ -937,7 +939,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             onlyAliases: false,
             updating: [],
             deleteFolderAndDevice: null,
-            splitScreen: window.localStorage.getItem('Devices.splitScreen') === 'true',
+            splitScreen:
+                (window.localStorage.getItem('Devices.splitScreen') as 'off' | 'split' | 'gui') ||
+                (window.localStorage.getItem('Devices.splitScreen') === 'true' ? 'split' : 'off'),
             splitLeftWidth: parseFloat(window.localStorage.getItem('Devices.splitLeftWidth') || '0') || null,
             splitDragging: false,
         };
@@ -1038,7 +1042,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     /** Effective width used for column visibility — accounts for split screen */
     private get tableWidth(): number {
-        if (this.state.splitScreen) {
+        if (this.state.splitScreen === 'split') {
             return this.state.splitLeftWidth || Math.floor(this.state.windowWidth / 2);
         }
         return this.state.windowWidth;
@@ -2443,7 +2447,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         return (
             <Paper
                 style={
-                    this.state.splitScreen ? { ...styles.paperTable, height: '100%', marginTop: 0 } : styles.paperTable
+                    this.state.splitScreen !== 'off'
+                        ? { ...styles.paperTable, height: '100%', marginTop: 0 }
+                        : styles.paperTable
                 }
             >
                 <Table
@@ -3349,14 +3355,14 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t('Create new device with Aliases')}
                     >
-                        <div>
+                        <span>
                             <IconButton
                                 disabled={disabledButtons}
                                 onClick={() => this.setState({ showAddDialog: `${ALIAS}0` })}
                             >
                                 <IconAdd />
                             </IconButton>
-                        </div>
+                        </span>
                     </Tooltip>
                     {this.state.linkeddevices && (
                         <Tooltip
@@ -3427,17 +3433,33 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     </Tooltip>
                     <Tooltip
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                        title={I18n.t('Toggle split screen')}
+                        title={I18n.t(
+                            this.state.splitScreen === 'off'
+                                ? 'Toggle split screen'
+                                : this.state.splitScreen === 'split'
+                                  ? 'GUI only'
+                                  : 'Close preview',
+                        )}
                     >
                         <IconButton
-                            color={this.state.splitScreen ? 'primary' : 'inherit'}
+                            color={this.state.splitScreen !== 'off' ? 'primary' : 'inherit'}
                             onClick={() => {
-                                const splitScreen = !this.state.splitScreen;
-                                window.localStorage.setItem('Devices.splitScreen', splitScreen.toString());
-                                this.setState({ splitScreen });
+                                // Cycle: off → split → gui → off
+                                const next =
+                                    this.state.splitScreen === 'off'
+                                        ? 'split'
+                                        : this.state.splitScreen === 'split'
+                                          ? 'gui'
+                                          : 'off';
+                                window.localStorage.setItem('Devices.splitScreen', next);
+                                this.setState({ splitScreen: next });
                             }}
                         >
-                            <VerticalSplitIcon />
+                            {this.state.splitScreen === 'gui' ? (
+                                <PlayArrow sx={{ color: '#4caf50' }} />
+                            ) : (
+                                <VerticalSplitIcon />
+                            )}
                         </IconButton>
                     </Tooltip>
                 </div>
@@ -3517,90 +3539,89 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 {this.renderEditFolder()}
                 {this.renderDeleteDialog()}
 
-                {/* Hide toolbar when only widgets are visible (split + narrow) */}
-                {!(this.state.splitScreen && narrow) && this.renderToolbar()}
+                {/* Hide toolbar when only widgets are visible (gui-only or narrow split) */}
+                {!(this.state.splitScreen !== 'off' && (narrow || this.state.splitScreen === 'gui')) &&
+                    this.renderToolbar()}
 
-                {this.state.splitScreen ? (
-                    narrow ? (
+                {this.state.splitScreen === 'gui' || (this.state.splitScreen === 'split' && narrow) ? (
+                    <div
+                        style={{
+                            height: '100%',
+                            overflow: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        {this.renderWidgetsManager({
+                            onBackToDevices: () => {
+                                window.localStorage.setItem('Devices.splitScreen', 'off');
+                                this.setState({ splitScreen: 'off' });
+                            },
+                        })}
+                    </div>
+                ) : this.state.splitScreen === 'split' ? (
+                    <div
+                        ref={this.splitContainerRef}
+                        style={{
+                            display: 'flex',
+                            height: 'calc(100% - 57px)',
+                            overflow: 'hidden',
+                        }}
+                    >
                         <div
                             style={{
-                                height: '100%',
+                                width: this.state.splitLeftWidth || undefined,
+                                flex: this.state.splitLeftWidth ? undefined : 1,
+                                minWidth: ListDevices.MIN_SPLIT_LEFT_WIDTH,
+                                overflow: 'auto',
+                            }}
+                        >
+                            {this.renderDevices()}
+                        </div>
+                        {/* Draggable divider */}
+                        <div
+                            onMouseDown={this.onSplitDividerMouseDown}
+                            style={{
+                                width: 6,
+                                cursor: 'col-resize',
+                                background: this.state.splitDragging
+                                    ? 'rgba(100,149,237,0.5)'
+                                    : 'rgba(128,128,128,0.3)',
+                                flexShrink: 0,
+                                zIndex: 1,
+                                transition: this.state.splitDragging ? undefined : 'background 0.2s',
+                            }}
+                            title={I18n.t('Drag to resize')}
+                        />
+                        <div
+                            style={{
+                                flex: 1,
+                                minWidth: ListDevices.MIN_SPLIT_RIGHT_WIDTH,
                                 overflow: 'auto',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                userSelect: this.state.splitDragging ? 'none' : undefined,
                             }}
                         >
-                            {this.renderWidgetsManager({
-                                onBackToDevices: () => {
-                                    window.localStorage.setItem('Devices.splitScreen', 'false');
-                                    this.setState({ splitScreen: false });
-                                },
-                            })}
+                            {this.renderWidgetsManager()}
                         </div>
-                    ) : (
-                        <div
-                            ref={this.splitContainerRef}
-                            style={{
-                                display: 'flex',
-                                height: 'calc(100% - 57px)',
-                                overflow: 'hidden',
-                            }}
-                        >
+                        {/* Overlay to capture mouse while dragging */}
+                        {this.state.splitDragging ? (
                             <div
                                 style={{
-                                    width: this.state.splitLeftWidth || undefined,
-                                    flex: this.state.splitLeftWidth ? undefined : 1,
-                                    minWidth: ListDevices.MIN_SPLIT_LEFT_WIDTH,
-                                    overflow: 'auto',
-                                }}
-                            >
-                                {this.renderDevices()}
-                            </div>
-                            {/* Draggable divider */}
-                            <div
-                                onMouseDown={this.onSplitDividerMouseDown}
-                                style={{
-                                    width: 6,
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
                                     cursor: 'col-resize',
-                                    background: this.state.splitDragging
-                                        ? 'rgba(100,149,237,0.5)'
-                                        : 'rgba(128,128,128,0.3)',
-                                    flexShrink: 0,
-                                    zIndex: 1,
-                                    transition: this.state.splitDragging ? undefined : 'background 0.2s',
+                                    zIndex: 9999,
                                 }}
-                                title={I18n.t('Drag to resize')}
                             />
-                            <div
-                                style={{
-                                    flex: 1,
-                                    minWidth: ListDevices.MIN_SPLIT_RIGHT_WIDTH,
-                                    overflow: 'auto',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    userSelect: this.state.splitDragging ? 'none' : undefined,
-                                }}
-                            >
-                                {this.renderWidgetsManager()}
-                            </div>
-                            {/* Overlay to capture mouse while dragging */}
-                            {this.state.splitDragging ? (
-                                <div
-                                    style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        cursor: 'col-resize',
-                                        zIndex: 9999,
-                                    }}
-                                />
-                            ) : null}
-                        </div>
-                    )
+                        ) : null}
+                    </div>
                 ) : (
                     this.renderDevices()
                 )}

@@ -3,12 +3,7 @@ import { Box, IconButton, Typography, type Theme } from '@mui/material';
 import { Garage, KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, {
-    getTileStyles,
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetGateState extends WidgetGenericState {
     /** Gate position 0 (closed) – 100 (open) */
@@ -230,17 +225,14 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         const { name, position } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     onClick={() => this.toggle()}
@@ -256,9 +248,11 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                         cursor: 'pointer',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                     })}
                 >
+                    {indicators}
+
                     {/* Gate visualization */}
                     <Box
                         sx={{
@@ -342,7 +336,6 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

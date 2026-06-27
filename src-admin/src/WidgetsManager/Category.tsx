@@ -6,36 +6,34 @@ import {
     ArrowBack,
     BatteryAlert,
     Build,
-    LocalFireDepartment,
     ChevronRight,
-    DirectionsRun,
+    Close,
     Delete,
+    DirectionsRun,
     DragIndicator,
     ErrorOutline,
     ExpandMore,
     Lightbulb,
     LightbulbOutlined,
+    LocalFireDepartment,
     MeetingRoom,
     PlayArrow,
     SensorDoor,
     SensorWindow,
     Settings,
-    Thermostat,
     SplitscreenOutlined,
+    Star,
+    StarBorder,
+    Thermostat,
     UnfoldLess,
     UnfoldMore,
     ViewModule,
-    Star,
-    StarBorder,
     Warning,
     WaterDamage,
     WaterDrop,
     Workspaces,
 } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
 import { alpha } from '@mui/material/styles';
-import { detectBrowser } from './SidePanelInstallDialog';
-import { Types } from '@iobroker/type-detector';
 import {
     DndContext,
     DragOverlay,
@@ -52,10 +50,13 @@ import {
 import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import type { CategoryInfo, CustomWidgetDef, WidgetInfo } from '../../../src/widget-utils';
+import { Types } from '@iobroker/type-detector';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
+
+import { detectBrowser } from './SidePanelInstallDialog';
 import {
-    type WidgetGenericProps,
-    type WidgetSettings,
+    formatFloat,
+    resolveTranslated,
     WidgetSwitch,
     WidgetLight,
     WidgetDimmer,
@@ -88,23 +89,43 @@ import {
     WidgetIframe,
     WidgetWind,
     WidgetGauge,
+    WidgetUniversal,
+    WidgetPresence,
+    WidgetEnergyFlow,
     WidgetGate,
+    WidgetPlugin,
 } from './Widgets';
 
 import type StateContext from './StateContext';
 import type { CategorySettings } from './CategorySettingsDialog';
+import { normalizeColor } from './Utils';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import { moveWidgetToGroup, findWidgetGroup, type WidgetGroup } from './groupUtils';
+import {
+    moveWidgetToGroup,
+    findWidgetGroup,
+    setGroupCollapsed,
+    setAllGroupsCollapsed,
+    applyCollapsedFromStorage,
+    type WidgetGroup,
+} from './groupUtils';
 import { getGroupIcon } from './groupIcons';
+import type {
+    WidgetSettingsBase,
+    CustomWidgetBase,
+    CategoryInfo,
+    WidgetInfo,
+    DevicesDetectorState,
+    CustomWidgetPlugin,
+} from '../../../packages/dm-widgets/src/index';
+import { WidgetGeneric } from './Widgets/Generic';
 
 interface CategoryProps {
     category: CategoryInfo;
     categories: CategoryInfo[];
     widgets: WidgetInfo[];
-    language: ioBroker.Languages;
     stateContext: StateContext;
     onNavigate: (category: CategoryInfo) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onOpenSettings?: (widgetId: string | number) => void;
     categorySettings: Record<string, CategorySettings>;
     onOpenCategorySettings?: (categoryId: string) => void;
@@ -117,18 +138,12 @@ interface CategoryProps {
         categoryId: string,
         orderedItems: Array<{ type: 'category' | 'widget' | 'custom'; id: string; data: unknown }>,
     ) => void;
-    /** true if running in admin, false if in web */
-    admin: boolean;
     /** Whether config/editing mode is active */
     configMode?: boolean;
     /** Toggle between config and play mode. If undefined, no toggle button is shown. */
     onToggleConfigMode?: () => void;
     /** Open the "Install as Side Panel" dialog */
     onInstallSidePanel?: () => void;
-    /** Default history adapter instance (e.g. "history.0"), passed down to avoid repeated system.config reads */
-    defaultHistory?: string;
-    /** Adapter instance ID (e.g. "devices.0"), used to persist chart settings */
-    instanceId?: string;
     /** Move a widget to a different category (drag & drop between groups) */
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
     /** Delete a widget by ID (for unsupported widget types) */
@@ -137,12 +152,14 @@ interface CategoryProps {
     onToggleFavorite?: (widgetId: string) => void;
     /** Toggle favorite on a custom widget */
     onToggleCustomWidgetFavorite?: (widgetId: string) => void;
-    /** Latitude from system.config for sun calculations */
-    latitude?: number | null;
-    /** Longitude from system.config for sun calculations */
-    longitude?: number | null;
-    /** Callback to go back to device list (admin split-screen narrow mode) */
+    /** Callback to go back to the device list (admin split-screen narrow mode) */
     onBackToDevices?: () => void;
+    /** Widget dialog ID to auto-open (from hash) */
+    openDialogId?: string | null;
+    /** Callback to persist an opened widget dialog in the hash */
+    onOpenWidgetDialog?: (dialogId: string) => void;
+    /** Callback to clear the widget dialog from the hash */
+    onCloseWidgetDialog?: () => void;
 }
 
 /** 0 = closed, 1 = open, 2 = tilted */
@@ -181,6 +198,13 @@ interface CategoryState {
     subCategoryStatuses: Record<string, CategoryStatus>;
     /** Widget grid min-size scale (percent, from localStorage) */
     widgetScale: number;
+    /** IDs of widgets that are currently marked as hidden */
+    hidden: { [id: string]: boolean };
+    /**
+     * Bumped when expand-all / collapse-all is clicked to signal GroupedContent to re-read
+     *  collapsed state from localStorage.
+     */
+    collapseVersion: number;
 }
 
 const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
@@ -209,25 +233,42 @@ interface StatusSubscription {
 type OrderedItem = {
     type: 'category' | 'widget' | 'custom';
     id: string;
-    data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+    data: CategoryInfo | WidgetInfo | CustomWidgetBase;
 };
 
-function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetSettings>): string | undefined {
+interface GridSpan {
+    gridColumn?: string;
+    gridRow?: string;
+}
+
+function getGridColumn(
+    item: OrderedItem,
+    widgetSettings: Record<string, WidgetSettingsBase>,
+    editing?: boolean,
+): GridSpan | undefined {
     if (item.type === 'category') {
-        return '1 / -1';
+        return { gridColumn: '1 / -1' };
     }
-    let size: '1x1' | '2x0.5' | '2x1';
+    if (item.type === 'custom' && (item.data as CustomWidgetBase).type === 'newline') {
+        // In edit mode: normal 1x1 grid item (draggable); play mode: full-row span for line break
+        return editing ? undefined : { gridColumn: '1 / -1' };
+    }
+    let size: '1x1' | '2x0.5' | '2x1' | '2x2';
     if (item.type === 'widget') {
         size = widgetSettings[item.id]?.size || '1x1';
     } else {
-        const def = item.data as CustomWidgetDef;
+        const def = item.data as CustomWidgetBase;
         // Fall back to the config default when size wasn't persisted (older widgets)
         const configDefault = CUSTOM_WIDGET_CONFIGS[def.type]?.items.size;
         size =
-            def.size || (configDefault ? (String(getConfigDefault(configDefault)) as '1x1' | '2x0.5' | '2x1') : '1x1');
+            def.size ||
+            (configDefault ? (String(getConfigDefault(configDefault)) as '1x1' | '2x0.5' | '2x1' | '2x2') : '1x1');
+    }
+    if ((size as string) === '2x2') {
+        return { gridColumn: 'span 2', gridRow: 'span 2' };
     }
     if (size === '2x0.5' || size === '2x1') {
-        return 'span 2';
+        return { gridColumn: 'span 2' };
     }
     return undefined;
 }
@@ -235,21 +276,46 @@ function getGridColumn(item: OrderedItem, widgetSettings: Record<string, WidgetS
 /** Thin wrapper so each grid cell is a valid droppable/draggable for dnd-kit */
 function SortableItem(props: {
     id: string;
-    gridColumn?: string;
+    gridSpan?: GridSpan;
     isDragging: boolean;
+    /**
+     * True when the user is dragging this item AND hovering a "move-into" target. The
+     *  ghost should be hidden because the item is about to leave its current position.
+     */
+    movingIntoTarget?: boolean;
+    /**
+     * True when THIS item is the current "move-into" drop target (a category being hovered).
+     *  dnd-kit would otherwise translate it as if a sortable swap is about to happen — but
+     *  for move-into we want the target to stay put so the user sees a stable drop zone.
+     */
+    isDropTarget?: boolean;
     favorite?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
     children: React.ReactNode;
 }): React.JSX.Element {
-    const { id, gridColumn, isDragging, favorite, onToggleFavorite, children } = props;
+    const { id, gridSpan, isDragging, movingIntoTarget, isDropTarget, favorite, onToggleFavorite, children } = props;
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({ id });
+
+    // `rectSortingStrategy` from dnd-kit computes scaleX/scaleY for displaced items based
+    // on the swap partner's rect. With non-uniform tile sizes (categories vs 1x1 widgets,
+    // 2x1 widgets, 2x2 widgets) that visibly squashes/stretches items during drag — the
+    // user explicitly wants every tile to keep its real size. Strip scale on ALL items
+    // (keep translate) so the layout reflows by movement only. Also kill the translate
+    // entirely on the move-into target: it should stay anchored as a stable drop zone.
+    const adjustedTransform = isDropTarget ? null : transform ? { ...transform, scaleX: 1, scaleY: 1 } : transform;
 
     const style: React.CSSProperties = {
         position: 'relative',
-        gridColumn: gridColumn || undefined,
-        opacity: isDragging ? 0.25 : 1,
-        transform: CSS.Transform.toString(transform),
-        transition: transition || undefined,
+        gridColumn: gridSpan?.gridColumn || undefined,
+        gridRow: gridSpan?.gridRow || undefined,
+        // Hide the source ghost completely when about to be re-parented into a category —
+        // the widget will disappear from this slot once the drop happens, so the 25 %
+        // ghost is misleading. Plain reorder keeps the regular 25 % ghost for feedback.
+        opacity: isDragging ? (movingIntoTarget ? 0 : 0.25) : 1,
+        transform: CSS.Transform.toString(adjustedTransform),
+        // Also kill the transition on the move-into target so it doesn't animate from a
+        // stale transform position.
+        transition: isDropTarget ? undefined : transition || undefined,
     };
 
     return (
@@ -326,6 +392,50 @@ function SortableItem(props: {
     );
 }
 
+/**
+ * Full-row drop slot that wraps the widgets currently between two categories (or at the
+ * very top / bottom). Always rendered so its children stay visible; only the frame styling
+ * appears while a drag is active and gets stronger on hover. The inner grid uses the same
+ * `gridTemplateColumns` as the outer container so child widgets keep their normal sizes.
+ */
+function DroppableSlot(props: {
+    id: string;
+    isDragActive: boolean;
+    isEmpty: boolean;
+    gridColumns: string;
+    children?: React.ReactNode;
+}): React.JSX.Element {
+    const { id, isDragActive, isEmpty, gridColumns, children } = props;
+    const { setNodeRef, isOver } = useDroppable({ id });
+    const showFrame = isDragActive;
+    return (
+        <Box
+            ref={setNodeRef}
+            sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: gridColumns,
+                gap: 1.5,
+                padding: showFrame ? 1 : 0,
+                borderRadius: 2,
+                minHeight: showFrame ? (isEmpty ? 56 : 'auto') : 0,
+                border: showFrame
+                    ? `${isOver ? 2 : 1}px dashed ${isOver ? '#4dabf5' : 'rgba(77, 171, 245, 0.35)'}`
+                    : 'none',
+                backgroundColor: showFrame
+                    ? isOver
+                        ? 'rgba(77, 171, 245, 0.15)'
+                        : 'rgba(77, 171, 245, 0.04)'
+                    : 'transparent',
+                transition: 'background-color 0.12s ease, border-color 0.12s ease, padding 0.12s ease',
+                boxSizing: 'border-box',
+            }}
+        >
+            {children}
+        </Box>
+    );
+}
+
 /** Wrapper that makes a subcategory tile act as a drop target during widget drag */
 function DroppableCategoryTile(props: { id: string; children: React.ReactNode }): React.JSX.Element {
     const { id, children } = props;
@@ -352,7 +462,7 @@ function SortableGrid(props: {
     categoryId: string;
     onOrderChange?: (categoryId: string, widgetOrder: string[]) => void;
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
     const { category, canDrag, categoryId, onOrderChange, onMoveWidgetToCategory, widgetSettings, onToggleFavorite } =
@@ -360,7 +470,7 @@ function SortableGrid(props: {
     const sourceItems = category.getOrderedItems();
     const sourceIds = useMemo(() => sourceItems.map(i => i.id), [sourceItems]);
 
-    // Local order kept in sync with props, but updated live during drag
+    // Local order kept in sync with props but updated live during drag
     const [liveOrder, setLiveOrder] = useState<string[]>(sourceIds);
     const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -401,10 +511,15 @@ function SortableGrid(props: {
     const [dropCategoryId, setDropCategoryId] = useState<string | null>(null);
     const dropCategoryRef = useRef<string | null>(null);
     dropCategoryRef.current = dropCategoryId;
+    // Category over which a drop is *forbidden* (currently only the virtual Favorites tile).
+    // We still track it during drag to show a red outline + hide the ghost, but it must NOT
+    // trigger any state change on drop.
+    const [forbiddenDropId, setForbiddenDropId] = useState<string | null>(null);
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(String(event.active.id));
         setDropCategoryId(null);
+        setForbiddenDropId(null);
     }, []);
 
     // Reorder live during drag so the grid reflows naturally
@@ -412,20 +527,66 @@ function SortableGrid(props: {
         (event: DragOverEvent) => {
             const { active, over } = event;
             if (!over || active.id === over.id) {
+                setForbiddenDropId(null);
                 return;
             }
             const overId = String(over.id);
             const activeEl = itemMap.get(String(active.id));
             const overEl = itemMap.get(overId);
 
-            // Widget/custom dragged over a sub-category tile = move target (not reorder)
-            if (activeEl && activeEl.type !== 'category' && overEl?.type === 'category' && onMoveWidgetToCategory) {
+            // Forbidden target — Favorites: signal red outline + hide ghost, but never persist.
+            const overIsFavorites = overId === '__favorites__' || overId === 'drop-cat:__favorites__';
+            if (overIsFavorites && activeEl && activeEl.type !== 'category') {
+                setDropCategoryId(null);
+                setForbiddenDropId('__favorites__');
+                return;
+            }
+            setForbiddenDropId(null);
+
+            // Explicit slot drop target (full-row droppables rendered AT category boundaries
+            // and at the very top / bottom while a drag is active). They unambiguously mean
+            // "reorder to this position" — the category tile itself remains "move INTO".
+            if (overId.startsWith('slot:')) {
+                const slotK = Number(overId.slice('slot:'.length));
+                setDropCategoryId(null);
+                setLiveOrder(prev => {
+                    const oldIdx = prev.indexOf(String(active.id));
+                    if (oldIdx < 0 || !Number.isFinite(slotK)) {
+                        return prev;
+                    }
+                    // slot:K means "insert before item at index K". When the active was to the
+                    // left of K, removing it shifts indices left by one, so the effective
+                    // target is K-1. Clamp to a valid arrayMove index.
+                    const targetIdx = Math.max(0, Math.min(prev.length - 1, slotK - (oldIdx < slotK ? 1 : 0)));
+                    return arrayMove(prev, oldIdx, targetIdx);
+                });
+                return;
+            }
+
+            // Widget/custom dragged over a subcategory tile = move target (not reorder).
+            // Skip the virtual Favorites tile — it has no real backend object, so setting a
+            // widget's parent to `__favorites__` makes the widget vanish (no category to
+            // render it under). Favorites entry is toggled via the star icon, not drag.
+            if (
+                activeEl &&
+                activeEl.type !== 'category' &&
+                overEl?.type === 'category' &&
+                overId !== '__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
+                console.log(`Drop ${active.id} to category ${over.id}`);
                 setDropCategoryId(overId);
                 return;
             }
 
             // Check if hovering over a separate droppable category tile (used in grouped mode)
-            if (overId.startsWith('drop-cat:') && activeEl && activeEl.type !== 'category' && onMoveWidgetToCategory) {
+            if (
+                overId.startsWith('drop-cat:') &&
+                activeEl &&
+                activeEl.type !== 'category' &&
+                overId !== 'drop-cat:__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
                 setDropCategoryId(overId.replace('drop-cat:', ''));
                 return;
             }
@@ -448,6 +609,7 @@ function SortableGrid(props: {
             setActiveId(null);
             const currentDrop = dropCategoryRef.current;
             setDropCategoryId(null);
+            setForbiddenDropId(null);
             // If dropped on a category, move the widget there
             if (currentDrop && onMoveWidgetToCategory) {
                 onMoveWidgetToCategory(String(event.active.id), currentDrop);
@@ -466,36 +628,27 @@ function SortableGrid(props: {
     const handleDragCancel = useCallback(() => {
         setActiveId(null);
         setDropCategoryId(null);
+        setForbiddenDropId(null);
         setLiveOrder(sourceIds);
     }, [sourceIds]);
 
     const orderedItems = liveOrder.map(id => itemMap.get(id)).filter(Boolean) as OrderedItem[];
     const activeItem = activeId ? itemMap.get(activeId) : null;
+    const draggingNewline = activeItem?.type === 'custom' && (activeItem.data as CustomWidgetBase).type === 'newline';
+    const draggingCategory = activeItem?.type === 'category';
+    // CSS Grid `dense` would let later items backfill empty cells before a newline, breaking
+    // the line-break semantics. Fall back to default `row` flow whenever a newline is present.
+    const hasNewline = orderedItems.some(i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline');
+    const autoFlow = hasNewline ? 'row' : 'dense';
 
-    const renderContent = (item: OrderedItem, isDropTarget?: boolean): React.ReactNode => {
+    const renderContent = (item: OrderedItem, isDropTarget?: boolean, isForbidden?: boolean): React.ReactNode => {
         if (item.type === 'category') {
-            const tile = category.renderCategoryTile(item.data as CategoryInfo);
-            if (isDropTarget) {
-                return (
-                    <div
-                        style={{
-                            borderRadius: 16,
-                            outline: '2px dashed #4dabf5',
-                            outlineOffset: -2,
-                            backgroundColor: 'rgba(77, 171, 245, 0.08)',
-                            transition: 'outline 0.15s ease, background-color 0.15s ease',
-                        }}
-                    >
-                        {tile}
-                    </div>
-                );
-            }
-            return tile;
+            return category.renderCategoryTile(item.data as CategoryInfo, isDropTarget, isForbidden);
         }
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
 
     if (!canDrag) {
@@ -504,15 +657,16 @@ function SortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: autoFlow,
                     gap: 1.5,
                 }}
             >
                 {orderedItems.map(item => {
-                    const gridColumn = getGridColumn(item, widgetSettings);
-                    return gridColumn ? (
+                    const gridSpan = getGridColumn(item, widgetSettings);
+                    return gridSpan ? (
                         <div
                             key={item.id}
-                            style={{ gridColumn }}
+                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
                         >
                             {renderContent(item)}
                         </div>
@@ -524,8 +678,13 @@ function SortableGrid(props: {
         );
     }
 
-    const parentCatId = category.props.category.parent ? String(category.props.category.parent) : null;
-    const showParentDrop = !!activeId && !!onMoveWidgetToCategory && !!parentCatId;
+    // The virtual Favorites category has no real parent to move widgets to — exposing the
+    // "Move to parent" drop target there hijacks every in-favourites drag (closestCenter often
+    // picks it over individual widgets) and ends up changing the widget's real parent to root.
+    const isFavoritesView = categoryId === '__favorites__';
+    const parentCatId =
+        !isFavoritesView && category.props.category.parent ? String(category.props.category.parent) : null;
+    const showParentDrop = !!activeId && !draggingNewline && !!onMoveWidgetToCategory && !!parentCatId;
 
     return (
         <DndContext
@@ -571,36 +730,100 @@ function SortableGrid(props: {
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: category.gridColumns,
+                        gridAutoFlow: autoFlow,
                         gap: 1.5,
                     }}
                 >
-                    {orderedItems.map(item => {
-                        const isCw = item.type === 'custom';
-                        const fav =
-                            item.type === 'category'
-                                ? undefined
-                                : isCw
-                                  ? (item.data as CustomWidgetDef).favorite
-                                  : widgetSettings[item.id]?.favorite;
-                        const toggleFav =
-                            item.type === 'category'
-                                ? undefined
-                                : isCw
-                                  ? category.props.onToggleCustomWidgetFavorite
-                                  : onToggleFavorite;
-                        return (
-                            <SortableItem
-                                key={item.id}
-                                id={item.id}
-                                gridColumn={getGridColumn(item, widgetSettings)}
-                                isDragging={item.id === activeId}
-                                favorite={fav}
-                                onToggleFavorite={toggleFav}
-                            >
-                                {renderContent(item, item.type === 'category' && item.id === dropCategoryId)}
-                            </SortableItem>
-                        );
-                    })}
+                    {(() => {
+                        // Slots act as containers for the widgets currently sitting between
+                        // two categories (or before the first / after the last). Always
+                        // rendered so the widgets stay visible; the frame styling only shows
+                        // up while a drag is active. If the root has no categories at all,
+                        // skip the segmentation and render items flat.
+                        const isCatItem = (it: OrderedItem): boolean => it.type === 'category';
+                        // Slots only help when placing widgets between categories. When the
+                        // user drags a category tile, plain sortable arrayMove already works
+                        // perfectly — render flat to avoid the visual noise of empty slots.
+                        const isDragActive = !!activeId && !draggingNewline && !draggingCategory;
+                        const renderItem = (item: OrderedItem): React.JSX.Element => {
+                            const isCw = item.type === 'custom';
+                            const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
+                            const fav =
+                                item.type === 'category' || isNewline
+                                    ? undefined
+                                    : isCw
+                                      ? (item.data as CustomWidgetBase).favorite
+                                      : widgetSettings[item.id]?.favorite;
+                            const toggleFav =
+                                item.type === 'category' || isNewline
+                                    ? undefined
+                                    : isCw
+                                      ? category.props.onToggleCustomWidgetFavorite
+                                      : onToggleFavorite;
+                            const isCatDropTarget = item.type === 'category' && item.id === dropCategoryId;
+                            const isCatForbidden = item.type === 'category' && item.id === forbiddenDropId;
+                            return (
+                                <SortableItem
+                                    key={item.id}
+                                    id={item.id}
+                                    gridSpan={getGridColumn(item, widgetSettings, true)}
+                                    isDragging={item.id === activeId}
+                                    movingIntoTarget={item.id === activeId && (!!dropCategoryId || !!forbiddenDropId)}
+                                    isDropTarget={isCatDropTarget || isCatForbidden}
+                                    favorite={fav}
+                                    onToggleFavorite={toggleFav}
+                                >
+                                    {renderContent(item, isCatDropTarget, isCatForbidden)}
+                                </SortableItem>
+                            );
+                        };
+
+                        const hasCategories = orderedItems.some(isCatItem);
+                        if (!hasCategories) {
+                            return orderedItems.map(renderItem);
+                        }
+
+                        // Build alternating list of segments (widget groups) and categories.
+                        // `slotIdx` for each segment is the position of its first widget in
+                        // `orderedItems` — that is the index `arrayMove` will insert at when
+                        // the user drops on the slot.
+                        type Segment = { slotIdx: number; widgets: OrderedItem[] };
+                        const segments: Segment[] = [];
+                        const cats: OrderedItem[] = [];
+                        let curWidgets: OrderedItem[] = [];
+                        let segStart = 0;
+                        orderedItems.forEach((item, idx) => {
+                            if (isCatItem(item)) {
+                                segments.push({ slotIdx: segStart, widgets: curWidgets });
+                                cats.push(item);
+                                curWidgets = [];
+                                segStart = idx + 1;
+                            } else {
+                                curWidgets.push(item);
+                            }
+                        });
+                        segments.push({ slotIdx: segStart, widgets: curWidgets });
+
+                        const nodes: React.JSX.Element[] = [];
+                        for (let i = 0; i < segments.length; i++) {
+                            const seg = segments[i];
+                            nodes.push(
+                                <DroppableSlot
+                                    key={`slot:${seg.slotIdx}`}
+                                    id={`slot:${seg.slotIdx}`}
+                                    isDragActive={isDragActive}
+                                    isEmpty={seg.widgets.length === 0}
+                                    gridColumns={category.gridColumns}
+                                >
+                                    {seg.widgets.map(renderItem)}
+                                </DroppableSlot>,
+                            );
+                            if (i < cats.length) {
+                                nodes.push(renderItem(cats[i]));
+                            }
+                        }
+                        return nodes;
+                    })()}
                 </Box>
             </SortableContext>
             <DragOverlay dropAnimation={null}>
@@ -619,10 +842,17 @@ function GroupSortableGrid(props: {
     category: Category;
     items: OrderedItem[];
     activeId: string | null;
-    widgetSettings: Record<string, WidgetSettings>;
+    dropCategoryId?: string | null;
+    canDrag: boolean;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     onToggleFavorite?: (widgetId: string) => void;
 }): React.JSX.Element {
-    const { category, items, activeId, widgetSettings, onToggleFavorite } = props;
+    const { category, items, activeId, dropCategoryId, canDrag, widgetSettings, onToggleFavorite } = props;
+
+    // Use default `row` flow when a newline is present, so later items can't backfill
+    // past the line break (see comment in SortableGrid).
+    const hasNewline = items.some(i => i.type === 'custom' && (i.data as CustomWidgetBase).type === 'newline');
+    const autoFlow = hasNewline ? 'row' : 'dense';
 
     const renderContent = (item: OrderedItem): React.ReactNode => {
         if (item.type === 'category') {
@@ -631,8 +861,35 @@ function GroupSortableGrid(props: {
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
+
+    if (!canDrag) {
+        return (
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: autoFlow,
+                    gap: 1.5,
+                }}
+            >
+                {items.map(item => {
+                    const gridSpan = getGridColumn(item, widgetSettings);
+                    return gridSpan ? (
+                        <div
+                            key={item.id}
+                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
+                        >
+                            {renderContent(item)}
+                        </div>
+                    ) : (
+                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
+                    );
+                })}
+            </Box>
+        );
+    }
 
     return (
         <SortableContext
@@ -643,19 +900,21 @@ function GroupSortableGrid(props: {
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: category.gridColumns,
+                    gridAutoFlow: autoFlow,
                     gap: 1.5,
                 }}
             >
                 {items.map(item => {
                     const isCw = item.type === 'custom';
+                    const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
                     const fav =
-                        item.type === 'category'
+                        item.type === 'category' || isNewline
                             ? undefined
                             : isCw
-                              ? (item.data as CustomWidgetDef).favorite
+                              ? (item.data as CustomWidgetBase).favorite
                               : widgetSettings[item.id]?.favorite;
                     const toggleFav =
-                        item.type === 'category'
+                        item.type === 'category' || isNewline
                             ? undefined
                             : isCw
                               ? category.props.onToggleCustomWidgetFavorite
@@ -664,8 +923,9 @@ function GroupSortableGrid(props: {
                         <SortableItem
                             key={item.id}
                             id={item.id}
-                            gridColumn={getGridColumn(item, widgetSettings)}
+                            gridSpan={getGridColumn(item, widgetSettings, true)}
                             isDragging={item.id === activeId}
+                            movingIntoTarget={item.id === activeId && !!dropCategoryId}
                             favorite={fav}
                             onToggleFavorite={toggleFav}
                         >
@@ -724,8 +984,8 @@ function LightsGroupControl(props: {
         statesRef.current = {};
 
         for (const ctrl of lightControls) {
-            const handler = (_id: string, state: ioBroker.State): void => {
-                const isOn = !!state.val;
+            const handler = (_id: string, state: ioBroker.State | null | undefined): void => {
+                const isOn = !!state?.val;
                 if (statesRef.current[ctrl.widgetId] !== isOn) {
                     statesRef.current[ctrl.widgetId] = isOn;
                     const count = Object.values(statesRef.current).filter(v => v).length;
@@ -776,7 +1036,7 @@ function LightsGroupControl(props: {
     );
 }
 
-// --- Grouped content: renders sub-categories + collapsible widget groups ---
+// --- Grouped content: renders subcategories + collapsible widget groups ---
 // Uses a single DndContext so widgets can be dragged between groups.
 
 function GroupedContent(props: {
@@ -786,9 +1046,11 @@ function GroupedContent(props: {
     categoryId: string;
     onGroupsChange?: (categoryId: string, groups: WidgetGroup[]) => void;
     onMoveWidgetToCategory?: (widgetId: string, targetCategoryId: string) => void;
-    widgetSettings: Record<string, WidgetSettings>;
+    widgetSettings: Record<string, WidgetSettingsBase>;
     configMode?: boolean;
     onToggleFavorite?: (widgetId: string) => void;
+    /** Bumped by parent on expand-all/collapse-all to trigger re-sync from localStorage. */
+    collapseVersion?: number;
 }): React.JSX.Element {
     const {
         category,
@@ -800,6 +1062,7 @@ function GroupedContent(props: {
         widgetSettings,
         configMode,
         onToggleFavorite,
+        collapseVersion,
     } = props;
     const allItems = category.getOrderedItems();
     const itemMap = useMemo(() => {
@@ -817,27 +1080,37 @@ function GroupedContent(props: {
     const dropCategoryRef = useRef<string | null>(null);
     dropCategoryRef.current = dropCategoryId;
 
-    // Keep a live copy of groups for cross-group moves during drag
-    const [liveGroups, setLiveGroups] = useState(groups);
+    // Keep a live copy of groups for cross-group moves during drag. Collapsed state is read
+    // from localStorage (not the object), so we layer it on top of incoming groups here.
+    const [liveGroups, setLiveGroups] = useState(() => applyCollapsedFromStorage(categoryId, groups));
     const prevGroupsRef = useRef(groups);
     if (prevGroupsRef.current !== groups) {
         prevGroupsRef.current = groups;
-        setLiveGroups(groups);
+        setLiveGroups(applyCollapsedFromStorage(categoryId, groups));
     }
     const liveGroupsRef = useRef(liveGroups);
     liveGroupsRef.current = liveGroups;
+
+    // Re-sync collapsed state from localStorage when parent signals expand-all / collapse-all.
+    // The version is bumped by the parent; the groups data itself does not change.
+    const lastCollapseVersionRef = useRef(collapseVersion);
+    if (collapseVersion !== undefined && lastCollapseVersionRef.current !== collapseVersion) {
+        lastCollapseVersionRef.current = collapseVersion;
+        setLiveGroups(prev => applyCollapsedFromStorage(categoryId, prev));
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     );
 
+    // Collapsed state is persisted in localStorage, not in the object. We update liveGroups
+    // locally and skip onGroupsChange so the object is not written for this UI-only preference.
     const handleToggleCollapse = (groupId: string): void => {
-        if (!onGroupsChange) {
-            return;
-        }
-        const updated = groups.map(g => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g));
-        onGroupsChange(categoryId, updated);
+        const target = liveGroupsRef.current.find(g => g.id === groupId);
+        const newCollapsed = !target?.collapsed;
+        setGroupCollapsed(categoryId, groupId, newCollapsed);
+        setLiveGroups(prev => prev.map(g => (g.id === groupId ? { ...g, collapsed: newCollapsed } : g)));
     };
 
     // Collect any widgets not in any group
@@ -858,8 +1131,17 @@ function GroupedContent(props: {
             const overId = String(over.id);
             const activeIdStr = String(active.id);
 
-            // Check if hovering over a droppable category tile
-            if (overId.startsWith('drop-cat:') && onMoveWidgetToCategory) {
+            // Check if hovering over a droppable category tile. Skip when:
+            //   - the target is the virtual Favorites tile (no real parent to move into), or
+            //   - the active item is itself a category (Favorites or otherwise — categories
+            //     are reordered, never re-parented via drag).
+            const activeIsCategory = itemMap.get(activeIdStr)?.type === 'category';
+            if (
+                overId.startsWith('drop-cat:') &&
+                !activeIsCategory &&
+                overId !== 'drop-cat:__favorites__' &&
+                onMoveWidgetToCategory
+            ) {
                 setDropCategoryId(overId.replace('drop-cat:', ''));
                 return;
             }
@@ -900,7 +1182,7 @@ function GroupedContent(props: {
                 );
             }
         },
-        [onMoveWidgetToCategory],
+        [itemMap, onMoveWidgetToCategory],
     );
 
     const handleDragEnd = useCallback(
@@ -932,7 +1214,7 @@ function GroupedContent(props: {
         if (item.type === 'widget') {
             return category.renderWidget(item.data as WidgetInfo);
         }
-        return category.renderCustomWidget(item.data as CustomWidgetDef);
+        return category.renderCustomWidget(item.data as CustomWidgetBase);
     };
 
     const showCatDropTargets = !!activeId && !!onMoveWidgetToCategory;
@@ -946,6 +1228,7 @@ function GroupedContent(props: {
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: category.gridColumns,
+                        gridAutoFlow: 'dense',
                         gap: 1.5,
                         mb: 2,
                     }}
@@ -1075,6 +1358,8 @@ function GroupedContent(props: {
                                 category={category}
                                 items={groupItems}
                                 activeId={activeId}
+                                dropCategoryId={dropCategoryId}
+                                canDrag={canDrag}
                                 widgetSettings={widgetSettings}
                                 onToggleFavorite={onToggleFavorite}
                             />
@@ -1096,6 +1381,8 @@ function GroupedContent(props: {
                         category={category}
                         items={ungrouped}
                         activeId={activeId}
+                        dropCategoryId={dropCategoryId}
+                        canDrag={canDrag}
                         widgetSettings={widgetSettings}
                         onToggleFavorite={onToggleFavorite}
                     />
@@ -1156,6 +1443,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             categoryStatus: { ...DEFAULT_CATEGORY_STATUS },
             subCategoryStatuses: {},
             widgetScale: Number(localStorage.getItem('wm_widgetScale')) || 100,
+            hidden: {},
+            collapseVersion: 0,
         };
     }
 
@@ -1171,7 +1460,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         category: CategoryInfo,
         state: {
             names: { [categoryId: string]: string };
-            icons: { [categoryId: string]: string };
+            icons: { [categoryId: string]: string | null };
             colors: { [categoryId: string]: string };
         },
     ): void {
@@ -1192,22 +1481,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             category.id === '__root__' ? 'ioBroker' : category.id.toString().split('.').pop() || '';
 
         if (category.icon && typeof category.icon === 'object') {
-            if ((category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (category.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onIconChange,
-                );
+            if (category.icon.stateId) {
+                this.props.stateContext.getState(category.icon.stateId, this.onIconChange);
             }
-        } else if (typeof category.icon === 'string') {
-            state.icons[category.id] = category.icon;
+        } else {
+            state.icons[category.id] = this.props.stateContext.getImagePath(category.icon);
         }
 
         if (category.color && typeof category.color === 'object') {
-            if ((category.color as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (category.color as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onColorChange,
-                );
+            if (category.color.stateId) {
+                this.props.stateContext.getState(category.color.stateId, this.onColorChange);
             }
         } else if (typeof category.color === 'string') {
             state.colors[category.id] = category.color;
@@ -1426,7 +1709,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const currentWidgets = this.props.widgets.filter(w => w.parent === this.props.category.id);
         this.subscribeWidgetsForStatus(currentWidgets);
 
-        // Subscribe for each sub-category's widgets (tagged with sub-category ID)
+        // Subscribe for each subcategory's widgets (tagged with subcategory ID)
         for (const subCat of this.subCategories) {
             const subWidgets = this.props.widgets.filter(w => w.parent === subCat.id);
             this.subscribeWidgetsForStatus(subWidgets, String(subCat.id));
@@ -1622,7 +1905,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             const struct = this.props.category.icon as { stateId?: string; mapping?: Record<string | number, string> };
             if (struct.stateId === id) {
                 let iconValue = '';
-                if (struct.mapping && struct.mapping[state.val as string]) {
+                if (struct.mapping?.[state.val as string]) {
                     iconValue = struct.mapping[state.val as string];
                 } else if (state.val !== undefined && state.val !== null) {
                     iconValue = (state.val as string) || '';
@@ -1662,7 +1945,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     getOrderedItems(): Array<{
         type: 'category' | 'widget' | 'custom';
         id: string;
-        data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+        data: CategoryInfo | WidgetInfo | CustomWidgetBase;
     }> {
         const categoryId = String(this.props.category.id);
         const catSettings = this.props.categorySettings[categoryId];
@@ -1672,7 +1955,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const items: Array<{
             type: 'category' | 'widget' | 'custom';
             id: string;
-            data: CategoryInfo | WidgetInfo | CustomWidgetDef;
+            data: CategoryInfo | WidgetInfo | CustomWidgetBase;
         }> = [
             ...this.subCategories.map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
             ...this.widgets.map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
@@ -1691,95 +1974,91 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     getText(text: ioBroker.StringOrTranslated): string {
         if (typeof text === 'object') {
-            return text[this.props.language] || text.en;
+            return text[this.props.stateContext.language] || text.en;
         }
 
         return text;
     }
 
-    // eslint-disable-next-line react/no-unused-class-component-methods
-    renderWidget(widget: WidgetInfo): React.JSX.Element {
-        let Widget: React.ComponentType<WidgetGenericProps> | undefined;
-        if (widget.control && widget.control.type === Types.socket) {
+    static getWidgetComponent(
+        type?: Types,
+        states?: DevicesDetectorState[],
+    ): typeof WidgetGeneric<any, any> | undefined {
+        let Widget: typeof WidgetGeneric<any, any> | undefined;
+        if (type === Types.socket) {
             Widget = WidgetSwitch;
-        } else if (widget.control && widget.control.type === Types.light) {
+        } else if (type === Types.light) {
             Widget = WidgetLight;
-        } else if (widget.control && widget.control.type === Types.dimmer) {
+        } else if (type === Types.dimmer) {
             Widget = WidgetDimmer;
-        } else if (widget.control && widget.control.type === Types.temperature) {
+        } else if (type === Types.temperature) {
             Widget = WidgetTemperature;
-        } else if (widget.control && widget.control.type === Types.motion) {
+        } else if (type === Types.motion) {
             Widget = WidgetMotion;
-        } else if (widget.control && widget.control.type === Types.window) {
+        } else if (type === Types.window) {
             Widget = WidgetWindow;
-        } else if (widget.control && widget.control.type === Types.gate) {
+        } else if (type === Types.gate) {
             Widget = WidgetGate;
-        } else if (widget.control && widget.control.type === Types.blind) {
+        } else if (type === Types.blind) {
             Widget = WidgetBlind;
-        } else if (widget.control && widget.control.type === Types.blindButtons) {
+        } else if (type === Types.blindButtons) {
             Widget = WidgetBlindButtons;
-        } else if (widget.control && widget.control.type === Types.lock) {
+        } else if (type === Types.lock) {
             Widget = WidgetLock;
-        } else if (widget.control && widget.control.type === Types.door) {
+        } else if (type === Types.door) {
             Widget = WidgetDoor;
-        } else if (widget.control && widget.control.type === Types.floodAlarm) {
+        } else if (type === Types.floodAlarm) {
             Widget = WidgetFloodAlarm;
-        } else if (widget.control && widget.control.type === Types.fireAlarm) {
+        } else if (type === Types.fireAlarm) {
             Widget = WidgetFireAlarm;
-        } else if (widget.control && widget.control.type === Types.humidity) {
+        } else if (type === Types.humidity) {
             Widget = WidgetHumidity;
-        } else if (widget.control && widget.control.type === Types.illuminance) {
+        } else if (type === Types.illuminance) {
             Widget = WidgetIlluminance;
-        } else if (widget.control && widget.control.type === Types.thermostat) {
+        } else if (type === Types.thermostat) {
             Widget = WidgetThermostat;
-        } else if (widget.control && widget.control.type === Types.airCondition) {
+        } else if (type === Types.airCondition) {
             Widget = WidgetAirCondition;
-        } else if (widget.control && widget.control.type === Types.warning) {
+        } else if (type === Types.warning) {
             Widget = WidgetWarning;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.volume || widget.control.type === Types.volumeGroup)
-        ) {
+        } else if (type === Types.volume || type === Types.volumeGroup) {
             Widget = WidgetVolume;
-        } else if (widget.control && widget.control.type === Types.media) {
+        } else if (type === Types.media) {
             Widget = WidgetMediaPlayer;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.slider || widget.control.type === Types.percentage)
-        ) {
+        } else if (type === Types.slider || type === Types.percentage) {
             Widget = WidgetSlider;
         } else if (
-            widget.control?.type === Types.info &&
-            widget.control.states.some(
-                s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''),
-            )
+            type === Types.info &&
+            states?.some(s => s.name === 'ACTUAL' && /value\.fill|level\.tank|tank/i.test(s.stateRole || ''))
         ) {
             Widget = WidgetTank;
-        } else if (widget.control && widget.control.type === Types.image) {
+        } else if (type === Types.image) {
             Widget = WidgetImage;
-        } else if (widget.control && widget.control.type === Types.info) {
+        } else if (type === Types.info) {
             Widget = WidgetInfoWidget;
-        } else if (
-            widget.control &&
-            (widget.control.type === Types.location || widget.control.type === Types.locationOne)
-        ) {
+        } else if (type === Types.location || type === Types.locationOne) {
             Widget = WidgetLocation;
-        } else if (widget.control && widget.control.type === Types.weatherCurrent) {
+        } else if (type === Types.weatherCurrent) {
             Widget = WidgetWeatherCurrent;
-        } else if (widget.control && widget.control.type === Types.weatherForecast) {
+        } else if (type === Types.weatherForecast) {
             Widget = WidgetWeatherForecast;
         } else if (
-            widget.control &&
-            (widget.control.type === Types.rgbSingle ||
-                widget.control.type === Types.rgbwSingle ||
-                widget.control.type === Types.rgb ||
-                widget.control.type === Types.hue ||
-                widget.control.type === Types.cie ||
-                widget.control.type === Types.ct)
+            type === Types.rgbSingle ||
+            type === Types.rgbwSingle ||
+            type === Types.rgb ||
+            type === Types.hue ||
+            type === Types.cie ||
+            type === Types.ct
         ) {
             Widget = WidgetColorLight;
         }
 
+        return Widget;
+    }
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    renderWidget(widget: WidgetInfo): React.JSX.Element {
+        const Widget = Category.getWidgetComponent(widget.control?.type, widget.control?.states);
         if (!Widget) {
             const settings = this.props.widgetSettings[String(widget.id)];
             const size = settings?.size || '1x1';
@@ -1831,17 +2110,19 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 </Box>
             );
         }
+
         const settings = this.props.widgetSettings[String(widget.id)];
         return (
             <Widget
                 key={widget.id}
                 stateContext={this.props.stateContext}
                 widget={widget}
-                language={this.props.language}
                 settings={settings}
                 onOpenSettings={this.props.onOpenSettings}
-                defaultHistory={this.props.defaultHistory}
-                instanceId={this.props.instanceId}
+                openDialogId={this.props.openDialogId}
+                onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                onHide={this.hideCb}
             />
         );
     }
@@ -1859,113 +2140,227 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return String(this.props.category.id);
     }
 
+    hideCb = (id: string, hide: boolean): void => {
+        if (!!this.state.hidden[id] !== hide) {
+            this.setState({ hidden: { ...this.state.hidden, [id]: hide } });
+        }
+    };
+
+    /** Build a minimal WidgetInfo for a custom widget so it can use WidgetGeneric's lifecycle */
+    private static buildCustomWidgetInfo(def: CustomWidgetBase): WidgetInfo {
+        return {
+            type: 'widget',
+            id: def.id,
+            name: def.name || '',
+            control: {
+                states: [],
+                type: Types.info,
+                storeId: '',
+                parentId: '',
+                deviceId: '',
+                channelId: '',
+            },
+        };
+    }
+
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderCustomWidget(def: CustomWidgetDef): React.JSX.Element | null {
+    renderCustomWidget(def: CustomWidgetBase): React.JSX.Element | null {
         const ownerCategoryId = this.findCustomWidgetCategory(def.id);
+        // WidgetGenericProps-compatible callback (accepts widget id)
         const settingsCb = this.props.onOpenCustomWidgetSettings
-            ? () => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
+            ? (_widgetId: string | number) => this.props.onOpenCustomWidgetSettings!(ownerCategoryId, def.id)
             : undefined;
         const removeCb = this.props.onRemoveCustomWidget
             ? () => this.props.onRemoveCustomWidget!(ownerCategoryId, def.id)
             : undefined;
 
+        let content: React.JSX.Element | null;
+
         switch (def.type) {
             case 'clock':
-                return (
+                content = (
                     <WidgetClock
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        size={def.size}
-                        color={def.color}
-                        style={def.style}
-                        showDate={def.showDate}
-                        showDow={def.showDow}
-                        showSeconds={def.showSeconds}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
-                        latitude={this.props.latitude}
-                        longitude={this.props.longitude}
+                        onHide={this.hideCb}
                     />
                 );
+                break;
             case 'weather':
-                return (
+                content = (
                     <WidgetWeather
                         key={def.id}
-                        id={def.id}
-                        weatherSource={def.weatherSource}
-                        adapterInstance={def.adapterInstance}
-                        latitude={def.latitude}
-                        longitude={def.longitude}
-                        cityName={def.cityName}
-                        language={this.props.language}
-                        size={def.size}
-                        color={def.color}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
+                break;
             case 'iframe':
-                return (
+                content = (
                     <WidgetIframe
                         key={def.id}
-                        id={def.id}
-                        url={def.url}
-                        refreshInterval={def.refreshInterval}
-                        appendTimestamp={def.appendTimestamp}
-                        clickAction={def.clickAction}
-                        size={def.size}
-                        color={def.color}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
+                        openDialogId={this.props.openDialogId}
+                        onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                        onCloseWidgetDialog={this.props.onCloseWidgetDialog}
                     />
                 );
+                break;
             case 'wind':
-                return (
+                content = (
                     <WidgetWind
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        directionStateId={def.directionStateId}
-                        speedStateId={def.speedStateId}
-                        gustsStateId={def.gustsStateId}
-                        size={def.size}
-                        color={def.color}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
+                break;
             case 'gauge':
-                return (
+                content = (
                     <WidgetGauge
                         key={def.id}
-                        id={def.id}
-                        language={this.props.language}
-                        gaugeStateId={def.gaugeStateId}
-                        gaugeStateId2={def.gaugeStateId2}
-                        gaugeName={def.gaugeName}
-                        minValue={def.minValue}
-                        maxValue={def.maxValue}
-                        gaugeUnit={def.gaugeUnit}
-                        colorLevels={def.colorLevels}
-                        usePercentage={def.usePercentage}
-                        size={def.size}
-                        color={def.color}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
                         stateContext={this.props.stateContext}
-                        defaultHistory={this.props.defaultHistory}
-                        instanceId={this.props.instanceId}
                         onOpenSettings={settingsCb}
-                        onRemove={removeCb}
+                        onHide={this.hideCb}
                     />
                 );
+                break;
+            case 'universal': {
+                content = (
+                    <WidgetUniversal
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                    />
+                );
+                break;
+            }
+            case 'presence':
+                content = (
+                    <WidgetPresence
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                    />
+                );
+                break;
+            case 'energyFlow':
+                content = (
+                    <WidgetEnergyFlow
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                    />
+                );
+                break;
+            case 'plugin':
+                content = (
+                    <WidgetPlugin
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def as CustomWidgetPlugin}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                        openDialogId={this.props.openDialogId}
+                        onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                        onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                    />
+                );
+                break;
+            case 'newline':
+                content = removeCb ? (
+                    <Box
+                        key={def.id}
+                        sx={theme => WidgetGeneric.getStyleCompact(theme)}
+                    >
+                        <Box
+                            sx={theme => ({
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxSizing: 'border-box',
+                                width: '100%',
+                                aspectRatio: '1',
+                                border: '2px dashed',
+                                borderColor:
+                                    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+                                borderRadius: 'inherit',
+                                gap: 0.5,
+                            })}
+                        >
+                            <Typography sx={{ fontSize: 'max(36px, 20cqi)', lineHeight: 1, opacity: 0.4 }}>
+                                ⏎
+                            </Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ opacity: 0.3, userSelect: 'none', fontSize: 'max(0.6rem, 3cqi)' }}
+                            >
+                                {I18n.t('wm_New line')}
+                            </Typography>
+                        </Box>
+                        <IconButton
+                            size="small"
+                            onClick={() => removeCb()}
+                            sx={{
+                                position: 'absolute',
+                                top: 6,
+                                right: 6,
+                                p: '3px',
+                                opacity: 0,
+                                '&:hover': { opacity: 1 },
+                                '.MuiBox-root:hover > &': { opacity: 0.7 },
+                            }}
+                        >
+                            <Close sx={{ fontSize: 16 }} />
+                        </IconButton>
+                    </Box>
+                ) : (
+                    <Box key={def.id} />
+                );
+                break;
             default:
-                return null;
+                content = null;
         }
+
+        // Wrap in a div with "widget-custom" class so the GroupedContent CSS
+        // :has([class^="widget-"]) selector finds it (otherwise the group is hidden in play mode)
+        return content ? (
+            <div
+                className="widget-custom"
+                style={this.state.hidden[def.id] && !this.props.configMode ? { display: 'none' } : undefined}
+            >
+                {content}
+            </div>
+        ) : null;
     }
 
-    /** Render small alarm/sensor widget icon previews for a sub-category tile (only active ones) */
+    /** Render small alarm/sensor widget icon previews for a subcategory tile (only active ones) */
     private renderWidgetIconPreviews(category: CategoryInfo): React.JSX.Element | null {
         // Only show alarm/sensor types NOT already covered by the status system
         // (window, door, motion are rendered separately via openings/motionActive)
@@ -1997,12 +2392,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 continue; // no trackable state — skip
             }
             const wName =
-                typeof w.name === 'object'
-                    ? (w.name as ioBroker.Translated)[I18n.getLanguage()] || (w.name as ioBroker.Translated).en || ''
-                    : String(w.name || '');
+                resolveTranslated(w.name as ioBroker.StringOrTranslated, this.props.stateContext.language) ||
+                String(w.id);
             const ws = this.props.widgetSettings[String(w.id)];
-            const iconSrc =
-                ws?.iconActive || ws?.iconInactive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
+            const iconSrc = ws?.iconActive || ws?.icon || (typeof w.icon === 'string' ? w.icon : undefined);
             const color = ws?.color;
             icons.push({ id: w.id, src: iconSrc, name: wName, type: w.control.type, color });
         }
@@ -2034,7 +2427,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
     }
 
-    /** Render status summary for a sub-category tile (temperature, humidity, openings, motion) */
+    /** Render status summary for a subcategory tile (temperature, humidity, openings, motion) */
     private renderSubCategoryStatus(category: CategoryInfo, deviceCount: number): React.JSX.Element {
         const status = this.state.subCategoryStatuses[String(category.id)];
         const activeOpenings = status ? status.openings.filter(o => o.state !== 0) : [];
@@ -2074,7 +2467,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="caption"
                             sx={{ color: 'text.secondary', fontWeight: 500 }}
                         >
-                            {status.temperature.toFixed(1)}°
+                            {formatFloat(status.temperature, 1, this.props.stateContext.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2098,7 +2491,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);
@@ -2162,14 +2555,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderCategoryTile(category: CategoryInfo): React.JSX.Element {
+    renderCategoryTile(category: CategoryInfo, isDropTarget?: boolean, isForbidden?: boolean): React.JSX.Element {
         const icon = this.state.icons[category.id];
         const name = this.state.names[category.id] ?? '...';
         const tileCatSettings = this.props.categorySettings[String(category.id)];
-        const tileColor = this.state.colors[category.id] || tileCatSettings?.color;
+        const tileColor = normalizeColor(this.state.colors[category.id] || tileCatSettings?.color);
         const tileStoredImage = tileCatSettings?.image;
         const tileImage = tileStoredImage
-            ? `/${this.props.admin ? '../../files/' : '../'}${tileStoredImage.replace(/^\//, '')}`
+            ? `/${this.props.stateContext.imagePrefix}${tileStoredImage.replace(/^\//, '')}`
             : '';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
         const scale = this.state.widgetScale / 100;
@@ -2192,8 +2585,19 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     p: `${Math.round(16 * scale)}px`,
                     position: 'relative',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    backgroundColor: isForbidden
+                        ? 'rgba(244, 67, 54, 0.15)'
+                        : isDropTarget
+                          ? 'rgba(77, 171, 245, 0.15)'
+                          : theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.04)'
+                            : 'rgba(0,0,0,0.02)',
                     borderLeft: `3px solid ${tileColor || theme.palette.primary.main}`,
+                    // Drop-target / forbidden outline lives on the tile itself, so it always
+                    // inherits the full-row gridColumn — wrapping the tile in another <div>
+                    // would lose it during dnd-kit reorder transforms and shrink the highlight.
+                    outline: isForbidden ? '2px dashed #f44336' : isDropTarget ? '2px dashed #4dabf5' : 'none',
+                    outlineOffset: -2,
                     ...(tileImage
                         ? {
                               backgroundImage: `url(${tileImage})`,
@@ -2202,7 +2606,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                           }
                         : {}),
                     '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+                        backgroundColor: isForbidden
+                            ? 'rgba(244, 67, 54, 0.2)'
+                            : isDropTarget
+                              ? 'rgba(77, 171, 245, 0.2)'
+                              : theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.07)'
+                                : 'rgba(0,0,0,0.04)',
                     },
                     '&:active': {
                         transform: 'scale(0.99)',
@@ -2340,7 +2750,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="body2"
                             sx={{ fontWeight: 500, color: 'text.secondary' }}
                         >
-                            {temperature.toFixed(1)}°
+                            {formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°
                         </Typography>
                     </Box>
                 ) : null}
@@ -2364,7 +2774,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {activeOpenings.map(sensor => {
                             const ws = sensor.widgetId ? this.props.widgetSettings[sensor.widgetId] : undefined;
-                            const customIcon = ws ? ws.iconActive || ws.iconInactive || ws.icon : undefined;
+                            const customIcon = ws ? ws.iconActive || ws.icon : undefined;
                             const iconSrc = customIcon || sensor.icon;
                             const customColor = ws?.color;
                             const fallbackColor = Category.getOpeningColor(sensor);
@@ -2436,7 +2846,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const hasItems = this.subCategories.length > 0 || this.widgets.length > 0 || customWidgets.length > 0;
         const categoryId = String(this.props.category.id);
         const categorySettings = this.props.categorySettings[categoryId];
-        const widgetGroups = categorySettings?.widgetGroups;
+        // Use the explicit `widgetsGrouped` flag as the source of truth. Fall back to checking
+        // widgetGroups for legacy data saved before the flag existed.
+        const isGrouped = categorySettings?.widgetsGrouped ?? !!categorySettings?.widgetGroups?.length;
+        const widgetGroups = isGrouped ? categorySettings?.widgetGroups : undefined;
         const hasHeader = !!(
             parentCategory ||
             this.state.names[this.props.category.id] ||
@@ -2445,12 +2858,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         );
         const storedImage = categorySettings?.image;
         // Stored path has no prefix; add files/ prefix for admin
-        const catImage = storedImage
-            ? `${this.props.admin ? '../../files/' : '../'}${storedImage.replace(/^\//, '')}`
-            : '';
+        const catImage = storedImage ? `${this.props.stateContext.imagePrefix}${storedImage.replace(/^\//, '')}` : '';
         const imageScope = categorySettings?.imageScope || 'header';
-        const catColor = categorySettings?.color;
-        const catBgColor = categorySettings?.backgroundColor;
+        const catColor = normalizeColor(categorySettings?.color);
+        const catBgColor = normalizeColor(categorySettings?.backgroundColor);
         const displayName = categorySettings?.name || this.state.names[this.props.category.id] || (isRoot ? '' : '...');
 
         const bgImageSx = catImage
@@ -2465,14 +2876,16 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             <Box
                 id={String(this.props.category.id)}
                 key={this.props.category.id}
-                sx={{
+                sx={theme => ({
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
-                    ...(catBgColor ? { backgroundColor: catBgColor } : {}),
+                    // Per-category override wins; otherwise use the widget theme's bgDefault so
+                    // the GUI doesn't fall through to the admin's underlying background.
+                    backgroundColor: catBgColor || theme.palette.background.default,
                     position: 'relative',
-                }}
+                })}
             >
                 {/* Parallax background layer for page-scope images */}
                 {catImage && imageScope === 'page' ? (
@@ -2517,25 +2930,30 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </IconButton>
                             </Tooltip>
                         ) : null}
-                        <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
-                            <IconButton
-                                size="small"
-                                onClick={this.props.onToggleConfigMode}
-                                sx={{
-                                    opacity: this.props.configMode ? 0.5 : 0.35,
-                                    '&:hover': { opacity: 1 },
-                                }}
-                            >
-                                {this.props.configMode ? (
-                                    <PlayArrow fontSize="small" />
-                                ) : (
-                                    <Build
-                                        fontSize="small"
-                                        sx={{ fontSize: 18 }}
-                                    />
-                                )}
-                            </IconButton>
-                        </Tooltip>
+                        {this.props.onToggleConfigMode ? (
+                            <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                                <IconButton
+                                    size="small"
+                                    onClick={this.props.onToggleConfigMode}
+                                    sx={{
+                                        opacity: this.props.configMode ? 0.5 : 0.35,
+                                        '&:hover': { opacity: 1 },
+                                    }}
+                                >
+                                    {this.props.configMode ? (
+                                        <PlayArrow
+                                            fontSize="small"
+                                            sx={{ color: '#4caf50' }}
+                                        />
+                                    ) : (
+                                        <Build
+                                            fontSize="small"
+                                            sx={{ fontSize: 18 }}
+                                        />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                     </Box>
                 ) : null}
                 {/* Fixed header — hidden for the root category (no parent, no name) */}
@@ -2608,7 +3026,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     {(() => {
                                         const rootIconRaw = categorySettings?.rootIcon;
                                         const rootIcon = rootIconRaw
-                                            ? `${this.props.admin ? '../../files/' : '../'}${rootIconRaw.replace(/^\//, '')}`
+                                            ? `${this.props.stateContext.imagePrefix}${rootIconRaw.replace(/^\//, '')}`
                                             : '';
                                         const headerIcon = rootIcon || this.state.icons[this.props.category.id];
                                         return headerIcon ? (
@@ -2642,15 +3060,13 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {this.props.onToggleGrouping ? (
-                                <Tooltip
-                                    title={I18n.t(widgetGroups?.length ? 'wm_Ungroup widgets' : 'wm_Group by type')}
-                                >
+                                <Tooltip title={I18n.t(isGrouped ? 'wm_Ungroup widgets' : 'wm_Group by type')}>
                                     <IconButton
                                         size="small"
                                         onClick={() => this.props.onToggleGrouping!(categoryId, this.getOrderedItems())}
-                                        sx={{ opacity: widgetGroups?.length ? 0.7 : 0.5, '&:hover': { opacity: 1 } }}
+                                        sx={{ opacity: isGrouped ? 0.7 : 0.5, '&:hover': { opacity: 1 } }}
                                     >
-                                        {widgetGroups?.length ? (
+                                        {isGrouped ? (
                                             <ViewModule fontSize="small" />
                                         ) : (
                                             <Workspaces sx={{ fontSize: 18 }} />
@@ -2694,7 +3110,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                         }}
                                     >
                                         {this.props.configMode ? (
-                                            <PlayArrow fontSize="small" />
+                                            <PlayArrow
+                                                fontSize="small"
+                                                sx={{ color: '#4caf50' }}
+                                            />
                                         ) : (
                                             <Build
                                                 fontSize="small"
@@ -2720,14 +3139,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         {/* Room status summary */}
                         <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ flex: 1 }}>{this.renderCategoryStatus()}</Box>
-                            {widgetGroups?.length && this.props.onWidgetGroupsChange ? (
+                            {widgetGroups?.length ? (
                                 <Box sx={{ display: 'flex', ml: 'auto' }}>
                                     <Tooltip title={I18n.t('wm_Expand all')}>
                                         <IconButton
                                             size="small"
                                             onClick={() => {
-                                                const expanded = widgetGroups.map(g => ({ ...g, collapsed: false }));
-                                                this.props.onWidgetGroupsChange!(categoryId, expanded);
+                                                setAllGroupsCollapsed(
+                                                    categoryId,
+                                                    widgetGroups.map(g => g.id),
+                                                    false,
+                                                );
+                                                this.setState({ collapseVersion: this.state.collapseVersion + 1 });
                                             }}
                                             sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                         >
@@ -2738,8 +3161,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                         <IconButton
                                             size="small"
                                             onClick={() => {
-                                                const collapsed = widgetGroups.map(g => ({ ...g, collapsed: true }));
-                                                this.props.onWidgetGroupsChange!(categoryId, collapsed);
+                                                setAllGroupsCollapsed(
+                                                    categoryId,
+                                                    widgetGroups.map(g => g.id),
+                                                    true,
+                                                );
+                                                this.setState({ collapseVersion: this.state.collapseVersion + 1 });
                                             }}
                                             sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                         >
@@ -2777,6 +3204,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 widgetSettings={this.props.widgetSettings}
                                 configMode={this.props.configMode}
                                 onToggleFavorite={this.props.onToggleFavorite}
+                                collapseVersion={this.state.collapseVersion}
                             />
                         ) : (
                             <SortableGrid

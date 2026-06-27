@@ -13,10 +13,24 @@ import {
     ListItemText,
     TextField,
 } from '@mui/material';
-import { AccessTime, Air, Close, CreateNewFolder, Language, Speed, WbCloudy } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import {
+    AccessTime,
+    Air,
+    Bolt,
+    Close,
+    CreateNewFolder,
+    Dashboard,
+    Extension,
+    Language,
+    People,
+    Speed,
+    WbCloudy,
+    WrapText,
+} from '@mui/icons-material';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetType } from '../../../src/widget-utils';
+import type { CustomWidgetType } from '../../../packages/dm-widgets/src/index';
+import { resolveTranslated } from './Widgets';
 
 interface CustomWidgetOption {
     type: CustomWidgetType;
@@ -56,6 +70,30 @@ const CUSTOM_WIDGETS: CustomWidgetOption[] = [
         i18nKey: 'wm_Gauge',
         descriptionKey: 'wm_Gauge_desc',
     },
+    {
+        type: 'universal',
+        icon: <Dashboard />,
+        i18nKey: 'wm_Universal',
+        descriptionKey: 'wm_Universal_desc',
+    },
+    {
+        type: 'presence',
+        icon: <People />,
+        i18nKey: 'wm_Presence',
+        descriptionKey: 'wm_Presence_desc',
+    },
+    {
+        type: 'energyFlow',
+        icon: <Bolt />,
+        i18nKey: 'wm_EnergyFlow',
+        descriptionKey: 'wm_EnergyFlow_desc',
+    },
+    {
+        type: 'newline',
+        icon: <WrapText />,
+        i18nKey: 'wm_New line',
+        descriptionKey: 'wm_New line_desc',
+    },
 ];
 
 interface CustomWidgetDialogProps {
@@ -63,10 +101,16 @@ interface CustomWidgetDialogProps {
     onClose: () => void;
     onAdd: (type: CustomWidgetType) => void;
     onCreateCategory?: (name: string) => void;
+    /** Plugin widgets from adapter instances */
+    adapterWidgets?: Record<string, ioBroker.DevicesWidgets>;
+    /** Callback to add a plugin widget */
+    onAddPlugin?: (adapter: string, component: string, url: string, label: string) => void;
+    admin: boolean;
+    language: ioBroker.Languages;
 }
 
 export default function CustomWidgetDialog(props: CustomWidgetDialogProps): React.JSX.Element {
-    const { open, onClose, onAdd, onCreateCategory } = props;
+    const { open, onClose, onAdd, onCreateCategory, adapterWidgets, onAddPlugin } = props;
     const [showNameInput, setShowNameInput] = useState(false);
     const [categoryName, setCategoryName] = useState('');
 
@@ -159,6 +203,60 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                             />
                         </ListItemButton>
                     ))}
+                    {/* Plugin widgets from adapters */}
+                    {adapterWidgets && onAddPlugin && Object.keys(adapterWidgets).length > 0 ? (
+                        <>
+                            <Divider />
+                            {Object.entries(adapterWidgets).flatMap(([adapter, desc]) =>
+                                desc.components.map(comp => {
+                                    const label = resolveTranslated(comp.label, props.language);
+                                    const description = resolveTranslated(comp.description, props.language);
+                                    return (
+                                        <ListItemButton
+                                            key={`${adapter}_${comp.name}`}
+                                            onClick={() => {
+                                                onAddPlugin(
+                                                    adapter,
+                                                    comp.name,
+                                                    desc.url || 'customDevices.js',
+                                                    label || comp.name,
+                                                );
+                                                handleClose();
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                {comp.icon ? (
+                                                    comp.icon.startsWith('data:') || comp.icon.startsWith('http') ? (
+                                                        <Icon
+                                                            src={comp.icon}
+                                                            alt=""
+                                                            style={{ width: 24, height: 24 }}
+                                                        />
+                                                    ) : (
+                                                        <Icon
+                                                            src={
+                                                                props.admin
+                                                                    ? `../../adapter/${adapter}/dm-widgets/${comp.icon}`
+                                                                    : `../${adapter}.admin/dm-widgets/${comp.icon}`
+                                                            }
+                                                            alt=""
+                                                            style={{ width: 24, height: 24 }}
+                                                        />
+                                                    )
+                                                ) : (
+                                                    <Extension />
+                                                )}
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={label || comp.name}
+                                                secondary={description || adapter}
+                                            />
+                                        </ListItemButton>
+                                    );
+                                }),
+                            )}
+                        </>
+                    ) : null}
                 </List>
             </DialogContent>
         </Dialog>

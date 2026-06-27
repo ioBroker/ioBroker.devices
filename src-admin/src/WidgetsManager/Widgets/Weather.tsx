@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import {
     Air,
@@ -6,7 +6,6 @@ import {
     ArrowUpward,
     Close,
     Opacity,
-    Settings,
     Speed,
     Thermostat,
     WaterDrop,
@@ -14,8 +13,16 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import { getTileStyles, isNeumorphicTheme } from './Generic';
-import type StateContext from '../StateContext';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+import WidgetGeneric, {
+    type WidgetGenericState,
+    type WidgetGenericProps,
+    formatFloat,
+    isNeumorphicTheme,
+} from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 /** WMO weather code → i18n key */
 const WMO_KEYS: Record<number, string> = {
@@ -134,6 +141,42 @@ const FORECAST_ROLES: Record<string, string> = {
     'value.precipitation.forecast': 'precipitationChance',
 };
 
+/**
+ * open-meteo-weather adapter mapping. Unlike the generic adapter discovery (which matches roles),
+ * this adapter exposes multiple locations as devices and its forecast roles are inconsistent across
+ * days, so we match by the well-defined state-id leaf under `<device>.weather.current|forecast.dayN`.
+ */
+/** Current weather state leaf → widget current field */
+const OMW_CURRENT_FIELDS: Record<string, string> = {
+    temperature_2m: 'temperature',
+    apparent_temperature: 'realFeel',
+    relative_humidity_2m: 'humidity',
+    weather_code: 'wmoCode',
+    weather_text: 'weatherState',
+    wind_speed_10m: 'windSpeed',
+    wind_direction_10m: 'windDirection',
+    pressure_msl: 'pressure',
+    icon_url: 'icon',
+};
+
+/** Forecast dayN state leaf → widget forecast field */
+const OMW_FORECAST_FIELDS: Record<string, string> = {
+    temperature_2m_max: 'tempMax',
+    temperature_2m_min: 'tempMin',
+    weather_code: 'wmoCode',
+    weather_text: 'state',
+    icon_url: 'icon',
+    precipitation_probability_max: 'precipitationChance',
+    name_day: 'dow',
+    time: 'time',
+};
+
+/** Parse a state value to a finite number, or null */
+function numOrNull(val: unknown): number | null {
+    const n = val != null ? Number(val) : null;
+    return n != null && !isNaN(n) ? n : null;
+}
+
 interface ForecastDay {
     index: number;
     icon: string | null;
@@ -146,22 +189,19 @@ interface ForecastDay {
     wmoCode?: number;
 }
 
-interface WidgetWeatherProps {
-    id: string;
+export interface WidgetWeatherSettings extends CustomWidgetBase {
     adapterInstance?: string;
-    weatherSource?: 'adapter' | 'openmeteo' | 'yrno';
+    weatherSource?: 'adapter' | 'open-meteo-weather' | 'openmeteo' | 'yrno';
     latitude?: number;
     longitude?: number;
     cityName?: string;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
-    language: ioBroker.Languages;
-    stateContext: StateContext;
-    onOpenSettings?: () => void;
-    onRemove?: () => void;
+    /** open-meteo-weather adapter instance, e.g. "open-meteo-weather.0" */
+    omwInstance?: string;
+    /** open-meteo-weather selected location (device) id, e.g. "open-meteo-weather.0.Split" */
+    omwLocation?: string;
 }
 
-interface WidgetWeatherState {
+interface WidgetWeatherState extends WidgetGenericState {
     loading: boolean;
     // Current weather
     icon: string | null;
@@ -190,8 +230,65 @@ interface StateSub {
 /** Refresh interval for direct API sources: 30 minutes */
 const API_REFRESH_MS = 30 * 60 * 1000;
 
+interface OpenMeteoCurrentUnits {
+    time: string;
+    interval: string;
+    temperature_2m: string;
+    relative_humidity_2m: string;
+    weather_code: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
+    surface_pressure: string;
+}
+
+interface OpenMeteoCurrent {
+    time: string;
+    interval: number;
+    temperature_2m: number;
+    relative_humidity_2m: number;
+    weather_code: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    surface_pressure: number;
+}
+
+interface OpenMeteoDailyUnits {
+    time: string;
+    weather_code: string;
+    temperature_2m_max: string;
+    temperature_2m_min: string;
+    precipitation_probability_max: string;
+}
+
+interface OpenMeteoDaily {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+}
+
+interface OpenMeteoResponse {
+    latitude: number;
+    longitude: number;
+    /** Generation time in milliseconds */
+    generationtime_ms: number;
+    /** UTC offset in seconds */
+    utc_offset_seconds: number;
+    /** IANA timezone string, e.g. "Europe/Berlin" */
+    timezone: string;
+    /** Timezone abbreviation, e.g. "CEST" */
+    timezone_abbreviation: string;
+    /** Elevation in meters */
+    elevation: number;
+    current_units?: OpenMeteoCurrentUnits;
+    current?: OpenMeteoCurrent;
+    daily_units?: OpenMeteoDailyUnits;
+    daily?: OpenMeteoDaily;
+}
+
 /** Module-level cache for weather API responses (key = "source|lat|lon") */
-const weatherApiCache: Record<string, { ts: number; data: unknown }> = {};
+const weatherApiCache: Record<string, { ts: number; data: OpenMeteoResponse }> = {};
 /** Cache lifetime: same as a refresh interval */
 const WEATHER_CACHE_MS = API_REFRESH_MS;
 
@@ -243,7 +340,54 @@ function yrSymbolToDescription(code: string): string {
     return key ? I18n.t(key) : base;
 }
 
-export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherState> {
+export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeatherSettings> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Weather',
+            items: {
+                // Pure weather display — no active state, no colour palette.
+                ...hideBaseFields('colorActive', 'color'),
+                weatherSource: {
+                    type: 'select',
+                    label: 'wm_Weather source',
+                    options: [
+                        { value: 'adapter', label: 'wm_Adapter' },
+                        { value: 'open-meteo-weather', label: 'Open-Meteo (Adapter)' },
+                        { value: 'openmeteo', label: 'Open-Meteo (API)' },
+                        { value: 'yrno', label: 'yr.no' },
+                    ],
+                    default: 'adapter',
+                    format: 'radio',
+                },
+                adapterInstance: {
+                    type: 'instance',
+                    label: 'wm_Adapter instance',
+                    adapters: ['openweathermap', 'yr', 'daswetter', 'weatherunderground'],
+                    hidden: "data.weatherSource !== 'adapter'",
+                },
+                omwInstance: {
+                    type: 'instance',
+                    label: 'wm_Adapter instance',
+                    adapters: ['open-meteo-weather'],
+                    hidden: "data.weatherSource !== 'open-meteo-weather'",
+                },
+                omwLocation: {
+                    type: 'component',
+                    subType: 'locationSelect',
+                    label: 'wm_Location',
+                    hidden: "data.weatherSource !== 'open-meteo-weather' || !data.omwInstance",
+                },
+                cityName: {
+                    type: 'component',
+                    subType: 'citySearch',
+                    label: 'wm_City',
+                    hidden: "data.weatherSource !== 'openmeteo' && data.weatherSource !== 'yrno'",
+                },
+            },
+        };
+    }
+
     private subs: StateSub[] = [];
     /** Maps stateId → { target: 'current'|'forecast', key: string, dayIndex?: number } */
     private stateMap: Map<
@@ -252,9 +396,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     > = new Map();
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetWeatherProps) {
+    constructor(props: WidgetGenericProps<WidgetWeatherSettings>) {
         super(props);
         this.state = {
+            ...this.state,
             loading: true,
             icon: null,
             temperature: null,
@@ -271,48 +416,102 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.startDataSource();
     }
 
-    componentDidUpdate(prevProps: WidgetWeatherProps): void {
-        const sourceChanged = prevProps.weatherSource !== this.props.weatherSource;
-        const adapterChanged = prevProps.adapterInstance !== this.props.adapterInstance;
+    componentDidUpdate(prevProps: WidgetGenericProps<WidgetWeatherSettings>): void {
+        const sourceChanged = prevProps.settings.weatherSource !== this.props.settings.weatherSource;
+        const adapterChanged = prevProps.settings.adapterInstance !== this.props.settings.adapterInstance;
+        const omwChanged =
+            prevProps.settings.omwInstance !== this.props.settings.omwInstance ||
+            prevProps.settings.omwLocation !== this.props.settings.omwLocation;
         const coordsChanged =
-            prevProps.latitude !== this.props.latitude || prevProps.longitude !== this.props.longitude;
+            prevProps.settings.latitude !== this.props.settings.latitude ||
+            prevProps.settings.longitude !== this.props.settings.longitude;
 
-        if (sourceChanged || adapterChanged || coordsChanged) {
+        if (sourceChanged || adapterChanged || omwChanged || coordsChanged) {
             this.cleanup();
             this.startDataSource();
         }
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         this.cleanup();
     }
 
     /** Whether this source uses direct API (coordinates-based) */
     private isDirectApi(): boolean {
-        return this.props.weatherSource === 'openmeteo' || this.props.weatherSource === 'yrno';
+        return this.props.settings.weatherSource === 'openmeteo' || this.props.settings.weatherSource === 'yrno';
+    }
+
+    /** Whether this source is the open-meteo-weather adapter (object/device based) */
+    private isOpenMeteoAdapter(): boolean {
+        return this.props.settings.weatherSource === 'open-meteo-weather';
+    }
+
+    /**
+     * Base object path of the selected open-meteo-weather location.
+     * Uses the chosen location device, falling back to the instance root if none was picked.
+     */
+    private omwBasePath(): string | null {
+        return this.props.settings.omwLocation || this.props.settings.omwInstance || null;
+    }
+
+    /**
+     * Human-readable location label shown in the widget header/footer.
+     * For the open-meteo-weather adapter the city is the selected device's id leaf (e.g. "…0.Split"
+     * → "Split"); for the other sources it is the geocoded city name from the search field.
+     */
+    private getLocationTitle(): string {
+        if (this.isOpenMeteoAdapter() && this.props.settings.omwLocation) {
+            const leaf = (this.props.settings.omwLocation.split('.').pop() || '').replace(/_/g, ' ').trim();
+            if (leaf) {
+                return leaf;
+            }
+        }
+        return this.props.settings.cityName || I18n.t('wm_Weather');
+    }
+
+    /** Get coordinates — from widget settings, falling back to system.config via stateContext */
+    private getCoordinates(): { latitude: number; longitude: number } | null {
+        const lat = this.props.settings.latitude ?? this.props.stateContext?.latitude;
+        const lon = this.props.settings.longitude ?? this.props.stateContext?.longitude;
+        if (lat != null && lon != null) {
+            return { latitude: lat, longitude: lon };
+        }
+        return null;
     }
 
     private isConfigured(): boolean {
         if (this.isDirectApi()) {
-            return this.props.latitude != null && this.props.longitude != null;
+            return this.getCoordinates() != null;
         }
-        return !!this.props.adapterInstance;
+        if (this.isOpenMeteoAdapter()) {
+            return !!this.omwBasePath();
+        }
+        return !!this.props.settings.adapterInstance;
     }
 
     private startDataSource(): void {
         if (this.isDirectApi()) {
-            if (this.props.latitude != null && this.props.longitude != null) {
+            if (this.getCoordinates()) {
                 const fetcher = (): void => void this.fetchDirectApi();
                 fetcher();
                 this.refreshTimer = setInterval(fetcher, API_REFRESH_MS);
             } else {
                 this.setState({ loading: false });
             }
-        } else if (this.props.adapterInstance) {
-            void this.discoverAndSubscribe(this.props.adapterInstance);
+        } else if (this.isOpenMeteoAdapter()) {
+            const base = this.omwBasePath();
+            if (base) {
+                void this.discoverOpenMeteoWeather(base);
+            } else {
+                this.setState({ loading: false });
+            }
+        } else if (this.props.settings.adapterInstance) {
+            void this.discoverAndSubscribe(this.props.settings.adapterInstance);
         } else {
             this.setState({ loading: false });
         }
@@ -320,7 +519,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     /** Route to the correct API fetcher */
     private async fetchDirectApi(): Promise<void> {
-        if (this.props.weatherSource === 'yrno') {
+        if (this.props.settings.weatherSource === 'yrno') {
             await this.fetchYrNo();
         } else {
             await this.fetchOpenMeteo();
@@ -346,14 +545,15 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     // --- Open-Meteo direct API ---
 
     private async fetchOpenMeteo(): Promise<void> {
-        const { latitude, longitude, language } = this.props;
-        if (latitude == null || longitude == null) {
+        const coords = this.getCoordinates();
+        if (!coords) {
             return;
         }
+        const { latitude, longitude } = coords;
 
         try {
             const cacheKey = `openmeteo|${latitude}|${longitude}`;
-            let data: any;
+            let data: OpenMeteoResponse;
             const cached = weatherApiCache[cacheKey];
             if (cached && Date.now() - cached.ts < WEATHER_CACHE_MS) {
                 data = cached.data;
@@ -371,7 +571,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
             const current = data.current;
             const daily = data.daily;
-            const wmoCode = current?.weather_code as number | undefined;
+            const wmoCode = current?.weather_code;
 
             const forecastDays: ForecastDay[] = [];
             if (daily?.time) {
@@ -383,7 +583,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         icon: null,
                         tempMin: daily.temperature_2m_min?.[i] ?? null,
                         tempMax: daily.temperature_2m_max?.[i] ?? null,
-                        dow: formatDow(daily.time[i], language),
+                        dow: formatDow(daily.time[i], this.props.stateContext.language),
                         state: dayWmo != null ? tw(WMO_KEYS[dayWmo]) : null,
                         precipitationChance: daily.precipitation_probability_max?.[i] ?? null,
                         wmoCode: dayWmo,
@@ -414,10 +614,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     // --- yr.no API ---
 
     private async fetchYrNo(): Promise<void> {
-        const { latitude, longitude, language } = this.props;
-        if (latitude == null || longitude == null) {
+        const coords = this.getCoordinates();
+        if (!coords) {
             return;
         }
+        const { latitude, longitude } = coords;
 
         try {
             const cacheKey = `yrno|${latitude.toFixed(4)}|${longitude.toFixed(4)}`;
@@ -524,7 +725,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                     icon: day.symbol ? yrIconUrl(day.symbol) : null,
                     tempMin: day.tempMin,
                     tempMax: day.tempMax,
-                    dow: formatDow(day.date, language),
+                    dow: formatDow(day.date, this.props.stateContext.language),
                     state: day.symbol ? yrSymbolToDescription(day.symbol) : null,
                     precipitationChance: null,
                 });
@@ -563,10 +764,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             if (adapterObjectsCache[instance]) {
                 objects = adapterObjectsCache[instance];
             } else {
-                objects = (await socket.getObjectViewSystem('state', `${instance}.`, `${instance}.\u9999`)) as Record<
-                    string,
-                    ioBroker.StateObject
-                >;
+                objects = await socket.getObjectViewSystem('state', `${instance}.`, `${instance}.\u9999`);
                 if (objects) {
                     adapterObjectsCache[instance] = objects;
                 }
@@ -728,6 +926,174 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         }
     };
 
+    // --- open-meteo-weather adapter discovery ---
+
+    /**
+     * Discover and subscribe to the states of one open-meteo-weather location (device).
+     * `basePath` is the device id (e.g. `open-meteo-weather.0.Split`) or the instance root.
+     */
+    private async discoverOpenMeteoWeather(basePath: string): Promise<void> {
+        const socket = this.props.stateContext.getSocket();
+        try {
+            const objects = (await socket.getObjectViewSystem('state', `${basePath}.`, `${basePath}.\u9999`)) as Record<
+                string,
+                ioBroker.StateObject
+            >;
+
+            if (!objects) {
+                this.setState({ loading: false });
+                return;
+            }
+
+            const forecastIndices = new Set<number>();
+            const currentRe = /\.weather\.current\.([^.]+)$/;
+            const forecastRe = /\.weather\.forecast\.day(\d+)\.([^.]+)$/;
+
+            for (const stateId of Object.keys(objects)) {
+                const cur = currentRe.exec(stateId);
+                if (cur) {
+                    const field = OMW_CURRENT_FIELDS[cur[1]];
+                    if (field) {
+                        this.stateMap.set(stateId, { target: 'current', key: field });
+                    }
+                    continue;
+                }
+                const fc = forecastRe.exec(stateId);
+                if (fc) {
+                    const dayIndex = parseInt(fc[1], 10);
+                    // Day 0 is "today" — already shown in the current section, skip it in the forecast row
+                    if (dayIndex < 1) {
+                        continue;
+                    }
+                    const field = OMW_FORECAST_FIELDS[fc[2]];
+                    if (field) {
+                        this.stateMap.set(stateId, { target: 'forecast', key: field, dayIndex });
+                        forecastIndices.add(dayIndex);
+                    }
+                }
+            }
+
+            // Initialize forecast days (1..N, capped at 7)
+            const maxDay = forecastIndices.size > 0 ? Math.max(...forecastIndices) : -1;
+            const forecastDays: ForecastDay[] = [];
+            for (let i = 1; i <= Math.min(maxDay, 7); i++) {
+                forecastDays.push({
+                    index: i,
+                    icon: null,
+                    tempMin: null,
+                    tempMax: null,
+                    dow: null,
+                    state: null,
+                    precipitationChance: null,
+                });
+            }
+            this.setState({ forecastDays });
+
+            // Subscribe to all discovered states
+            for (const [stateId] of this.stateMap) {
+                const handler = (id: string, state: ioBroker.State): void => this.onOmwStateChange(id, state);
+                this.subs.push({ stateId, handler });
+                this.props.stateContext.getState(stateId, handler);
+            }
+
+            this.setState({ loading: false });
+        } catch (e) {
+            console.warn('Weather widget: failed to discover open-meteo-weather states', e);
+            this.setState({ loading: false });
+        }
+    }
+
+    private onOmwStateChange = (id: string, state: ioBroker.State): void => {
+        const mapping = this.stateMap.get(id);
+        if (!mapping) {
+            return;
+        }
+        const val = state?.val;
+
+        if (mapping.target === 'current') {
+            switch (mapping.key) {
+                case 'temperature':
+                    this.setState({ temperature: numOrNull(val) });
+                    break;
+                case 'realFeel':
+                    this.setState({ realFeel: numOrNull(val) });
+                    break;
+                case 'humidity':
+                    this.setState({ humidity: numOrNull(val) });
+                    break;
+                case 'windSpeed':
+                    this.setState({ windSpeed: numOrNull(val) });
+                    break;
+                case 'pressure': {
+                    const n = numOrNull(val);
+                    this.setState({ pressure: n != null ? Math.round(n) : null });
+                    break;
+                }
+                case 'windDirection': {
+                    const n = numOrNull(val);
+                    this.setState({ windDirection: n != null ? degToCardinal(n) : null });
+                    break;
+                }
+                case 'weatherState':
+                    this.setState({ weatherState: val != null && val !== '' ? String(val) : null });
+                    break;
+                case 'wmoCode': {
+                    const n = numOrNull(val);
+                    this.setState({ wmoCode: n ?? undefined });
+                    break;
+                }
+                case 'icon':
+                    this.setState({ icon: val ? String(val) : null });
+                    break;
+            }
+            return;
+        }
+
+        // Forecast
+        const { key, dayIndex } = mapping;
+        this.setState(prev => {
+            const days = [...prev.forecastDays];
+            const day = days.find(d => d.index === dayIndex);
+            if (!day) {
+                return null;
+            }
+            const updated = { ...day };
+            switch (key) {
+                case 'tempMin':
+                    updated.tempMin = numOrNull(val);
+                    break;
+                case 'tempMax':
+                    updated.tempMax = numOrNull(val);
+                    break;
+                case 'precipitationChance':
+                    updated.precipitationChance = numOrNull(val);
+                    break;
+                case 'state':
+                    updated.state = val != null && val !== '' ? String(val) : null;
+                    break;
+                case 'icon':
+                    updated.icon = val ? String(val) : null;
+                    break;
+                case 'wmoCode':
+                    updated.wmoCode = numOrNull(val) ?? undefined;
+                    break;
+                case 'dow':
+                    // Localized day name from the adapter takes precedence
+                    if (val) {
+                        updated.dow = String(val);
+                    }
+                    break;
+                case 'time':
+                    // Fall back to deriving the day-of-week from the ISO date only if not set via name_day
+                    if (!updated.dow && val) {
+                        updated.dow = formatDow(String(val), this.props.stateContext.language);
+                    }
+                    break;
+            }
+            return { forecastDays: days.map(d => (d.index === dayIndex ? updated : d)) };
+        });
+    };
+
     static renderWeatherIcon(src: string | null, size: number, wmoCode?: number): React.JSX.Element {
         if (src) {
             return (
@@ -757,47 +1123,6 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             );
         }
         return <WbCloudy sx={{ fontSize: size, color: 'text.secondary' }} />;
-    }
-
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!();
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!();
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 1,
-                    color: theme.palette.primary.main,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': { opacity: 1, backgroundColor: theme.palette.action.hover },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
     }
 
     static renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
@@ -862,18 +1187,13 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
 
     renderCompact(): React.JSX.Element {
         const { icon, temperature, weatherState, loading, wmoCode } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         if (!this.isConfigured()) {
             return (
-                <Box
-                    sx={theme => ({
-                        position: 'relative',
-                        containerType: 'inline-size',
-                        overflow: 'hidden',
-                        borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                    })}
-                >
+                <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
                     <Box
                         sx={theme => ({
                             display: 'flex',
@@ -881,9 +1201,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             justifyContent: 'center',
                             width: '100%',
                             aspectRatio: '1',
-                            ...getTileStyles(theme, false, color),
+                            ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         })}
                     >
+                        {indicators}
                         <Typography
                             variant="caption"
                             sx={{ color: 'text.secondary' }}
@@ -891,20 +1212,12 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             {I18n.t('wm_Not configured')}
                         </Typography>
                     </Box>
-                    {this.renderSettingsButton()}
                 </Box>
             );
         }
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleCompact(theme)}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -917,10 +1230,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -935,7 +1249,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {WidgetWeather.renderWeatherIcon(icon, 36, wmoCode)}
                                 <Typography sx={{ fontWeight: 700, fontSize: 'max(1.2rem, 12cqi)', lineHeight: 1.1 }}>
-                                    {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                    {temperature != null
+                                        ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                                        : '\u2014'}
                                 </Typography>
                             </Box>
                             {weatherState ? (
@@ -971,30 +1287,23 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         : {}),
                                 })}
                             >
-                                {this.props.cityName || I18n.t('wm_Weather')}
+                                {this.getLocationTitle()}
                             </Typography>
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     renderWide(): React.JSX.Element {
         const { icon, temperature, weatherState, humidity, windSpeed, pressure, loading, wmoCode } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWide(theme)}>
                 <Box
                     onClick={this.openDetail}
                     sx={theme => ({
@@ -1005,9 +1314,10 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         height: 80,
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color),
+                        ...this.applyTileStyles(theme, false, { accent: color, inactiveColor: color }),
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Typography
                             variant="caption"
@@ -1024,7 +1334,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         variant="h6"
                                         sx={{ fontWeight: 700 }}
                                     >
-                                        {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                        {temperature != null
+                                            ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                                            : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
                                         <Typography
@@ -1079,7 +1391,6 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1097,22 +1408,16 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
             loading,
             wmoCode,
         } = this.state;
-        const { color } = this.props;
+        const { color } = this.props.settings;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const visibleDays = forecastDays
             .filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null)
             .slice(0, 1);
 
         return (
-            <Box
-                sx={theme => ({
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
-                })}
-            >
+            <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -1125,10 +1430,15 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                         justifyContent: 'space-between',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, false, color, false),
+                        ...this.applyTileStyles(theme, false, {
+                            interactive: false,
+                            accent: color,
+                            inactiveColor: color,
+                        }),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
+                    {indicators}
                     {loading ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                             <Typography
@@ -1145,7 +1455,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 {WidgetWeather.renderWeatherIcon(icon, 52, wmoCode)}
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
-                                        {temperature != null ? `${temperature.toFixed(1)}°` : '\u2014'}
+                                        {temperature != null
+                                            ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                                            : '\u2014'}
                                     </Typography>
                                     {weatherState ? (
                                         <Typography
@@ -1243,12 +1555,11 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                     textOverflow: 'ellipsis',
                                 }}
                             >
-                                {this.props.cityName || I18n.t('wm_Weather')}
+                                {this.getLocationTitle()}
                             </Typography>
                         </>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1279,7 +1590,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
         } = this.state;
 
         const allDays = forecastDays.filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null);
-        const title = this.props.cityName || I18n.t('wm_Weather');
+        const title = this.getLocationTitle();
 
         return (
             <Dialog
@@ -1311,7 +1622,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                 variant="h4"
                                 sx={{ fontWeight: 700, lineHeight: 1.1 }}
                             >
-                                {temperature != null ? `${temperature.toFixed(1)}°C` : '\u2014'}
+                                {temperature != null
+                                    ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°C`
+                                    : '\u2014'}
                             </Typography>
                             {weatherState ? (
                                 <Typography
@@ -1426,7 +1739,7 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
                                         variant="body2"
                                         sx={{ fontWeight: 600 }}
                                     >
-                                        {realFeel.toFixed(1)}°C
+                                        {formatFloat(realFeel, 1, this.props.stateContext.isFloatComma)}°C
                                     </Typography>
                                 </Box>
                             </Box>
@@ -1526,19 +1839,9 @@ export class WidgetWeather extends Component<WidgetWeatherProps, WidgetWeatherSt
     }
 
     render(): React.JSX.Element {
-        const size = this.props.size || '2x1';
-        let widget: React.JSX.Element;
-        if (size === '2x0.5') {
-            widget = this.renderWide();
-        } else if (size === '2x1') {
-            widget = this.renderWideTall();
-        } else {
-            widget = this.renderCompact();
-        }
-
         return (
             <>
-                {widget}
+                {super.render()}
                 {this.renderDetailDialog()}
             </>
         );

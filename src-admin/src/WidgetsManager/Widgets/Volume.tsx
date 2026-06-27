@@ -5,18 +5,25 @@ import { VolumeUp, VolumeDown, VolumeMute, VolumeOff } from '@mui/icons-material
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for Slider/Dimmer/Volume widgets */
+interface SliderWidgetSettings extends WidgetGenericSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+}
 
 interface WidgetVolumeState extends WidgetGenericState {
     volume: number;
     dragging: boolean;
 }
 
-export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
+export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly muteSetId: string | null;
@@ -26,7 +33,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
     private dragStartPos: { x: number; y: number } | null = null;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -41,6 +48,28 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
             ...this.state,
             volume: 0,
             dragging: false,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Volume',
+            schema: {
+                type: 'panel',
+                items: {
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                },
+            },
         };
     }
 
@@ -342,7 +371,8 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
         const { name, volume, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -355,7 +385,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.arcRef}
@@ -375,22 +405,11 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -466,7 +485,6 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

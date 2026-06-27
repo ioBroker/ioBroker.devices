@@ -2,7 +2,9 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Thermostat, WaterDrop } from '@mui/icons-material';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { formatFloat, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetTemperatureState extends WidgetGenericState {
     temperature: number | null;
@@ -10,6 +12,13 @@ interface WidgetTemperatureState extends WidgetGenericState {
 }
 
 export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Temperature',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly actualId: string | null;
     private readonly humidityId: string | null;
 
@@ -100,7 +109,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
         if (this.state.temperature == null) {
             return '—';
         }
-        return `${this.state.temperature.toFixed(1)}°`;
+        return `${formatFloat(this.state.temperature, 1, this.props.stateContext.isFloatComma)}°`;
     }
 
     protected isTileActive(): boolean {
@@ -143,7 +152,7 @@ export class WidgetTemperature extends WidgetGeneric<WidgetTemperatureState> {
 
     protected renderTileStatus(): React.JSX.Element | null {
         // In wide/tall modes, values are shown via renderTileAction
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }

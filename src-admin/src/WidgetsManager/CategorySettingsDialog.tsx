@@ -18,11 +18,12 @@ import {
     Typography,
 } from '@mui/material';
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
-import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
-import type { CustomWidgetDef } from '../../../src/widget-utils';
+import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
+import type StateContext from './StateContext';
 
 /** Available theme presets */
 export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark' | 'styling-grey';
@@ -32,20 +33,22 @@ export interface CategorySettings {
     color: string;
     backgroundColor: string;
     image: string;
-    /** 'header' = background only behind header, 'page' = background behind whole page */
+    /** 'header' = background only behind header, 'page' = background behind the whole page */
     imageScope: 'header' | 'page';
-    customWidgets?: CustomWidgetDef[];
+    customWidgets?: CustomWidgetBase[];
     widgetOrder?: string[];
     widgetGroups?: WidgetGroup[];
+    /** Explicit toggle: true = render grouped, false/undefined = sorted list. */
+    widgetsGrouped?: boolean;
     /** Hide the config/play toggle button (root category only) */
     hideConfigButton?: boolean;
-    /** PWA / Chrome extension icon path — used as favicon in browser (root only) */
+    /** PWA / Chrome extension icon path — used as a favicon in browser (root only) */
     icon?: string;
     /** Icon shown in front of the root category name (root only) */
     rootIcon?: string;
     /** Widget theme preset (root category only). Default: 'auto' (follows admin theme) */
     wmTheme?: WmThemeId;
-    /** Default category ID to show when page loads without hash (root only) */
+    /** Default category ID to show when a page loads without hash (root only) */
     defaultCategory?: string;
 }
 
@@ -70,31 +73,15 @@ interface CategorySettingsDialogProps {
     settings: CategorySettings;
     onClose: () => void;
     onSave: (settings: CategorySettings) => void;
-    socket: Connection;
-    instance: string;
+    stateContext: StateContext;
     theme: IobTheme;
-    /** true if running in admin, false if in web */
-    admin: boolean;
     /** All available categories for the default-category picker (root only) */
     categoryOptions?: CategoryOption[];
 }
 
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
-    const {
-        open,
-        categoryName,
-        categoryId,
-        settings,
-        onClose,
-        onSave,
-        socket,
-        instance,
-        theme,
-        admin,
-        categoryOptions,
-    } = props;
+    const { open, categoryName, categoryId, settings, onClose, onSave, theme, categoryOptions, stateContext } = props;
     // In admin, files are served under /files/, in web they are at root
-    const filePrefix = admin ? '../../files/' : '../';
     const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
     const [iconPreview, setIconPreview] = useState<string>('');
@@ -122,13 +109,13 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             });
             // Stored path has no prefix; add prefix for display
             const img = settings.image || '';
-            setPreview(img ? `/${filePrefix}${img.replace(/^\//, '')}` : '');
+            setPreview(img ? `/${stateContext.imagePrefix}${img.replace(/^\//, '')}` : '');
             const ico = settings.icon || '';
-            setIconPreview(ico ? `/${filePrefix}${ico.replace(/^\//, '')}` : '');
+            setIconPreview(ico ? `/${stateContext.imagePrefix}${ico.replace(/^\//, '')}` : '');
             const rIco = settings.rootIcon || '';
-            setRootIconPreview(rIco ? `/${filePrefix}${rIco.replace(/^\//, '')}` : '');
+            setRootIconPreview(rIco ? `/${stateContext.imagePrefix}${rIco.replace(/^\//, '')}` : '');
         }
-    }, [settings, open, categoryName, filePrefix]);
+    }, [settings, open, categoryName, stateContext.imagePrefix]);
 
     const processImage = useCallback(
         async (dataUrl: string): Promise<void> => {
@@ -154,16 +141,17 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             const fileName = `category_${String(categoryId).replace(/[^a-zA-Z0-9_-]/g, '_')}.webp`;
 
             try {
-                await socket.writeFile64(instance, fileName, base64);
+                await stateContext.getSocket().writeFile64(stateContext.instanceId, fileName, base64);
                 // Store without prefix so the same path works in admin and web
-                const storedPath = `/${instance}/${fileName}`;
-                setPreview(`/${filePrefix}${instance}/${fileName}?t=${Date.now()}`);
+                const storedPath = `/${stateContext.instanceId}/${fileName}`;
+                setPreview(`/${stateContext.imagePrefix}${stateContext.instanceId}/${fileName}?t=${Date.now()}`);
                 setLocal(prev => ({ ...prev, image: storedPath }));
             } catch (err) {
                 console.error('Failed to upload category image:', err);
             }
         },
-        [categoryId, socket, instance, filePrefix],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [categoryId, stateContext, stateContext.instanceId],
     );
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -209,15 +197,16 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             const fileName = 'pwa_icon.png';
 
             try {
-                await socket.writeFile64(instance, fileName, base64);
-                const storedPath = `/${instance}/${fileName}`;
-                setIconPreview(`/${filePrefix}${instance}/${fileName}?t=${Date.now()}`);
+                await stateContext.getSocket().writeFile64(stateContext.instanceId, fileName, base64);
+                const storedPath = `/${stateContext.instanceId}/${fileName}`;
+                setIconPreview(`/${stateContext.imagePrefix}${stateContext.instanceId}/${fileName}?t=${Date.now()}`);
                 setLocal(prev => ({ ...prev, icon: storedPath }));
             } catch (err) {
                 console.error('Failed to upload icon:', err);
             }
         },
-        [socket, instance, filePrefix],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [stateContext, stateContext.imagePrefix],
     );
 
     const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -242,7 +231,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         if (filePath) {
             const clean = filePath.startsWith('/') ? filePath.substring(1) : filePath;
             const storedPath = `/${clean}`;
-            setIconPreview(`/${filePrefix}${clean}`);
+            setIconPreview(`/${stateContext.imagePrefix}${clean}`);
             setLocal(prev => ({ ...prev, icon: storedPath }));
         }
     };
@@ -317,7 +306,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             const clean = filePath.startsWith('/') ? filePath.substring(1) : filePath;
             // Store without prefix, display with prefix
             const storedPath = `/${clean}`;
-            setPreview(`/${filePrefix}${clean}`);
+            setPreview(`/${stateContext.imagePrefix}${clean}`);
             setLocal(prev => ({ ...prev, image: storedPath }));
         }
     };
@@ -344,6 +333,8 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         (isRoot && (local.defaultCategory || '') !== (settings.defaultCategory || '')) ||
         (local.icon || '') !== (settings.icon || '') ||
         (local.rootIcon || '') !== (settings.rootIcon || '');
+
+    const icon = stateContext.getImagePath(local.icon);
 
     return (
         <>
@@ -563,16 +554,16 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                         '&:hover': { borderColor: 'primary.main' },
                                     }}
                                 >
-                                    {local.icon ? (
+                                    {icon ? (
                                         <Icon
-                                            src={local.icon}
+                                            src={icon}
                                             style={{ width: 32, height: 32 }}
                                         />
                                     ) : (
                                         <CloudUpload sx={{ fontSize: 24, color: 'text.disabled' }} />
                                     )}
                                 </Box>
-                                {local.icon ? (
+                                {icon ? (
                                     <IconButton
                                         size="small"
                                         onClick={() => setLocal(prev => ({ ...prev, icon: '' }))}
@@ -674,7 +665,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 <Checkbox
                                     checked={!!local.hideConfigButton}
                                     onChange={(_e, v) => {
-                                        if (v && !admin) {
+                                        if (v && !stateContext.admin) {
                                             setHideConfigWarning(true);
                                         } else {
                                             setLocal({ ...local, hideConfigButton: v });
@@ -814,9 +805,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             {/* File browser dialog */}
             {fileDialogOpen ? (
                 <DialogSelectFile
-                    socket={socket}
+                    socket={stateContext.getSocket()}
                     theme={theme}
-                    imagePrefix={admin ? '../../files/' : '../'}
+                    imagePrefix={stateContext.imagePrefix}
                     filterByType="images"
                     onClose={() => setFileDialogOpen(false)}
                     onOk={handleFileSelected}
@@ -827,7 +818,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     allowDelete
                     allowView
                     showToolbar
-                    restrictToFolder={instance}
+                    restrictToFolder={stateContext.instanceId}
                 />
             ) : null}
 
@@ -844,10 +835,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             setIconPickerOpen(false);
                         }
                     }}
-                    socket={socket}
+                    socket={stateContext.getSocket()}
                     theme={theme}
-                    admin={admin}
-                    instance={instance}
+                    admin={stateContext.admin}
+                    instance={stateContext.instanceId}
                 />
             ) : null}
 
@@ -860,25 +851,27 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     onClose={() => setRootIconPickerOpen(false)}
                     onSelect={iconValue => {
                         setLocal(prev => ({ ...prev, rootIcon: iconValue }));
-                        const displayPath = iconValue ? `/${filePrefix}${iconValue.replace(/^\//, '')}` : '';
+                        const displayPath = iconValue
+                            ? `/${stateContext.imagePrefix}${iconValue.replace(/^\//, '')}`
+                            : '';
                         setRootIconPreview(displayPath);
                         if (iconValue) {
                             setRootIconPickerOpen(false);
                         }
                     }}
-                    socket={socket}
-                    instance={instance}
+                    socket={stateContext.getSocket()}
+                    instance={stateContext.instanceId}
                     theme={theme}
-                    admin={admin}
+                    admin={stateContext.admin}
                 />
             ) : null}
 
             {/* Icon file browser dialog */}
             {iconFileDialogOpen ? (
                 <DialogSelectFile
-                    socket={socket}
+                    socket={stateContext.getSocket()}
                     theme={theme}
-                    imagePrefix={admin ? '../../files/' : '../'}
+                    imagePrefix={stateContext.imagePrefix}
                     filterByType="images"
                     onClose={() => setIconFileDialogOpen(false)}
                     onOk={handleIconFileSelected}
@@ -889,7 +882,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                     allowDelete
                     allowView
                     showToolbar
-                    restrictToFolder={instance}
+                    restrictToFolder={stateContext.instanceId}
                 />
             ) : null}
 

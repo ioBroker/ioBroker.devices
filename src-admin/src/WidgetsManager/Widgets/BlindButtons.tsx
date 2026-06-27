@@ -3,12 +3,7 @@ import { Box, ButtonBase, IconButton, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, {
-    getTileStyles,
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetBlindButtonsState extends WidgetGenericState {
     /** Direction: 0 = none, 1 = up/open, 2 = down/close */
@@ -143,7 +138,8 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
         const { name, direction } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const btnSx = (active: boolean) => (theme: IobTheme) => ({
             flex: 1,
@@ -158,7 +154,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -170,15 +166,11 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Three buttons */}
                     <Box
@@ -234,7 +226,6 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         </Typography>
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

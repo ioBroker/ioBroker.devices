@@ -1,8 +1,86 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.0.5",
+    "version": "3.0.0",
     "news": {
+      "3.0.0": {
+        "en": "Corrected universal widget\nAdded open-meteo-weather adapter support\nRead all states anew after the reconnection",
+        "de": "Korrigiertes universelles Widget\nUnterstützung für den Open-Meteo-Weather-Adapter hinzugefügt.\nLesen Sie alle Zustände nach der Wiederverbindung erneut.",
+        "ru": "Исправлен универсальный виджет\nДобавлена поддержка адаптера open-meteo-weather\nПеречитайте все данные по штатам заново после восстановления связи.",
+        "pt": "Widget universal corrigido\nAdicionado suporte ao adaptador open-meteo-weather\nLeia todos os estados novamente após a reconexão.",
+        "nl": "Gecorrigeerde universele widget\nOndersteuning voor open-meteo-weather-adapter toegevoegd\nLees alle statussen opnieuw na de herverbinding.",
+        "fr": "Widget universel corrigé\nAjout de la prise en charge de l'adaptateur open-meteo-weather\nRelisez tous les états après la reconnexion.",
+        "it": "Widget universale corretto\nAggiunto il supporto per l'adattatore open-meteo-weather\nLeggi di nuovo tutti gli stati dopo la riconnessione",
+        "es": "Widget universal corregido\nSe agregó compatibilidad con el adaptador open-meteo-weather.\nLea todos los estados nuevamente después de la reconexión.",
+        "pl": "Poprawiono uniwersalny widget\nDodano obsługę adaptera Open-meteo-weather\nOdczytaj wszystkie stany ponownie po ponownym połączeniu",
+        "uk": "Виправлено універсальний віджет\nДодано підтримку адаптера open-meteo-weather\nЗчитати всі стани заново після повторного підключення",
+        "zh-cn": "已修正的通用小部件\n新增 open-meteo-weather 适配器支持\n重新连接后，请重新阅读所有状态。"
+      },
+      "2.1.5": {
+        "en": "Added a theme type to context",
+        "de": "Hinzufügen eines Thementyps zum Kontext",
+        "ru": "Добавлен тип темы в контекст",
+        "pt": "Adicionado um tipo de tema ao contexto",
+        "nl": "Een thematype aan context toegevoegd",
+        "fr": "Ajout d'un type de thème au contexte",
+        "it": "Aggiunto un tipo tema per contesto",
+        "es": "Añadido un tipo de tema al contexto",
+        "pl": "Dodano typ tematu do kontekstu",
+        "uk": "Додано тему контексту",
+        "zh-cn": "向上下文添加主题类型"
+      },
+      "2.1.4": {
+        "en": "Added digits after comma for Display widget\nAdded an installation script",
+        "de": "Hinzufügen von Ziffern nach Komma für Anzeige Widget\nEin Installationsskript hinzugefügt",
+        "ru": "Добавлены цифры после запятой для виджета Display\nДобавлен сценарий установки",
+        "pt": "Adicionados dígitos após vírgula para o elemento de visualização\nAdicionado um script de instalação",
+        "nl": "Toegevoegd cijfers na komma voor Display widget\nEen installatiescript toegevoegd",
+        "fr": "Ajout de chiffres après virgule pour le widget Affichage\nAjouté un script d'installation",
+        "it": "Aggiunto le cifre dopo virgola per il widget di visualizzazione\nAggiunto un script di installazione",
+        "es": "Dígitos añadidos después de coma para el widget de pantalla\nAñadido un script de instalación",
+        "pl": "Dodano cyfry po przecinku dla widżetu wyświetlania\nDodano skrypt instalacyjny",
+        "uk": "Додано цифри після коми для віджету\nДодано скрипт установки",
+        "zh-cn": "显示部件的逗号后添加数字\n添加了安装脚本"
+      },
+      "2.1.2": {
+        "en": "Extended universal widget",
+        "de": "Erweitertes universelles Widget",
+        "ru": "Расширенный универсальный виджет",
+        "pt": "Elemento universal estendido",
+        "nl": "Uitgebreide universele widget",
+        "fr": "Widget universel étendu",
+        "it": "Widget universale esteso",
+        "es": "Widget universal extendido",
+        "pl": "Rozszerzony uniwersalny widżet",
+        "uk": "Розширений універсальний віджет",
+        "zh-cn": "扩展通用部件"
+      },
+      "2.1.0": {
+        "en": "Corrected dragging of widgets",
+        "de": "Korrigiertes Ziehen von Widgets",
+        "ru": "Исправленное перетаскивание виджетов",
+        "pt": "Arraste os elementos corrigidos",
+        "nl": "Gecorrigeerd slepen van widgets",
+        "fr": "Traînage corrigé des widgets",
+        "it": "Trascinamento corretto dei widget",
+        "es": "Arrastre corregido de widgets",
+        "pl": "Poprawione przeciąganie widżetów",
+        "uk": "Виправлено перетягування віджетів",
+        "zh-cn": "已更正部件拖曳"
+      },
+      "2.0.19": {
+        "en": "Corrected icons for rooms\nAdded 2x2 for iFrame",
+        "de": "Korrigierte Symbole für Zimmer\n2x2 für iFrame hinzugefügt",
+        "ru": "Исправленные иконки для комнат\nДобавлено 2x2 для iFrame",
+        "pt": "Ícones corrigidos para quartos\nAdicionado 2x2 para iFrame",
+        "nl": "Gecorrigeerde iconen voor kamers\nToegevoegd 2x2 voor iFrame",
+        "fr": "Des icônes corrigées pour les chambres\nAjouté 2x2 pour iFrame",
+        "it": "Icone corrette per le camere\nAggiunto 2x2 per iFrame",
+        "es": "Iconos corregidos para habitaciones\nAñadido 2x2 para iFrame",
+        "pl": "Poprawione ikony pokoi\nDodano 2x2 dla iFrame",
+        "uk": "Правильні іконки для кімнат\nДодано 2x2 для iFrame",
+        "zh-cn": "修改房间图标\n为 iFrame 添加了 2x2"
+      },
       "2.0.5": {
         "en": "Added many new widgets.",
         "de": "Viele neue Widgets hinzugefügt.",
@@ -15,84 +93,6 @@
         "pl": "Dodano wiele nowych widżetów.",
         "uk": "Додайте багато нових віджетів.",
         "zh-cn": "添加了许多新部件 ."
-      },
-      "2.0.3": {
-        "en": "Added widgets' visualisation. Now it is possible to create a GUI within the adapter",
-        "de": "Die Visualisierung von Widgets wurde hinzugefügt. Jetzt ist es möglich, eine GUI innerhalb des Adapters zu erstellen",
-        "ru": "Добавлена визуализация виджетов. Теперь можно создать GUI внутри адаптера",
-        "pt": "Visualização de widgets adicionados. Agora é possível criar uma GUI dentro do adaptador",
-        "nl": "Toegevoegd widgets visualisatie. Nu is het mogelijk om een GUI te maken binnen de adapter",
-        "fr": "Ajout de la visualisation des widgets. Maintenant il est possible de créer une interface graphique dans l'adaptateur",
-        "it": "Aggiunta visualizzazione dei widget. Ora è possibile creare una GUI all'interno dell'adattatore",
-        "es": "Visualización de widgets añadidos. Ahora es posible crear un GUI dentro del adaptador",
-        "pl": "Dodano wizualizację widżetów. Teraz jest możliwe stworzenie GUI w adapterze",
-        "uk": "Додано візуалізацію віджетів. Тепер можна створювати GUI в адаптері",
-        "zh-cn": "添加部件的可视化 。 现在可以在适配器内创建图形界面"
-      },
-      "1.2.14": {
-        "en": "Correcting the scrolling on the touch devices\nFixing a problem with `ACTUAL` state\nCorrecting the hover effect under safari",
-        "de": "Korrektur des Scrollens auf den Touch-Geräten\nProblem mit `ACTUAL` Zustand beheben\nKorrektur der Hover-Effekt unter Safari",
-        "ru": "Коррекция прокрутки на сенсорных устройствах\nУстранение проблемы с «фактическим» состоянием\nКоррекция эффекта парения под сафари",
-        "pt": "Corrigindo o rolagem nos dispositivos de toque\nCorrigindo um problema com o estado 'ATUAL'\nCorrigindo o efeito hover sob safari",
-        "nl": "Corrigeren van het scrollen op de aanraakapparaten\nHet oplossen van een probleem met de status van \"ACT\"\nCorrigeren van het zweefeffect onder safari",
-        "fr": "Correction du défilement sur les appareils tactiles\nCorrection d'un problème avec l'état `ACTUEL`\nCorrection de l'effet hover sous safari",
-        "it": "Correggere lo scorrimento sui dispositivi touch\nFissare un problema con lo stato `ACTUAL`\nCorreggere l'effetto hover sotto safari",
-        "es": "Corregir el desplazamiento en los dispositivos táctiles\nArreglar un problema con el estado \"ACTUAL\"\nCorregir el efecto del tubo bajo safari",
-        "pl": "Korekcja przewijania na urządzeniach dotykowych\nNaprawianie problemu ze stanem 'ACTUAL'\nKorekta efektu unoszenia się pod safari",
-        "uk": "Виправлення прокручування на сенсорних пристроях\nВиправлення проблеми з державою `ACTUAL'\nКорекція ефекту конюшини під сафарі",
-        "zh-cn": "纠正触摸设备上的滚动\n解决`实际 ' 状态的问题\n校正 Safari 下的悬浮效应"
-      },
-      "1.2.12": {
-        "en": "Show in color if fx is not empty\nAdded for all text fields the clear button",
-        "de": "Farbe anzeigen, wenn fx nicht leer ist\nHinzugefügt für alle Textfelder die klare Schaltfläche",
-        "ru": "Показать цвет, если fx не пустой\nДобавлено для всех текстовых полей четкая кнопка",
-        "pt": "Mostrar na cor se o fx não estiver vazio\nAdicionado para todos os campos de texto o botão limpar",
-        "nl": "In kleur tonen als fx niet leeg is\nToegevoegd voor alle tekstvelden de knop wissen",
-        "fr": "Afficher en couleur si fx n'est pas vide\nAjouté pour tous les champs de texte le bouton clair",
-        "it": "Mostra nel colore se fx non è vuoto\nAggiunto per tutti i campi di testo il pulsante chiaro",
-        "es": "Mostrar en color si el fx no está vacío\nAñadido para todos los campos de texto el botón claro",
-        "pl": "Pokaż kolor, jeśli fx nie jest pusty\nDodano dla wszystkich pól tekstowych czysty przycisk",
-        "uk": "Показати в кольорі якщо fx не порожній\nДодано для всіх текстових полів чітку кнопку",
-        "zh-cn": "如果 fx 不为空, 以颜色显示\n为所有文本字段添加了清晰的按钮"
-      },
-      "1.2.9": {
-        "en": "Created for new created states of devices the full name and not just last part, like `ACTUAL` ",
-        "de": "Für neu erstellte Gerätezustände wird der vollständige Name erstellt und nicht nur der letzte Teil, wie „ACTUAL“.",
-        "ru": "Для новых состояний устройств создается полное имя, а не только последняя часть, например `ACTUAL`",
-        "pt": "Criado para novos estados criados de dispositivos o nome completo e não apenas a última parte, como `REAL`",
-        "nl": "Gemaakt voor nieuw aangemaakte toestanden van apparaten, de volledige naam en niet alleen het laatste deel, zoals `ACTUAL`",
-        "fr": "Créé pour les nouveaux états créés des appareils, le nom complet et pas seulement la dernière partie, comme « ACTUAL »",
-        "it": "Creato per i nuovi stati creati dei dispositivi il nome completo e non solo l'ultima parte, come `ATTUALE`",
-        "es": "Creado para nuevos estados creados de dispositivos, el nombre completo y no solo la última parte, como \"ACTUAL\"",
-        "pl": "Utworzono dla nowych stanów urządzeń pełną nazwę, a nie tylko jej ostatnią część, np. `ACTUAL`",
-        "uk": "Створено для нових станів пристроїв повне ім'я, а не лише остання частина, наприклад, `ACTUAL`",
-        "zh-cn": "为新创建的设备状态创建全名，而不仅仅是最后部分，如“ACTUAL”"
-      },
-      "1.2.8": {
-        "en": "Corrected error in GUI",
-        "de": "Fehler behoben in GUI",
-        "ru": "Исправленная ошибка в GUI",
-        "pt": "Erro corrigido na interface gráfica",
-        "nl": "Gecorrigeerde fout in GUI",
-        "fr": "Erreur corrigée dans l'interface graphique",
-        "it": "Errore corretto in GUI",
-        "es": "Error corregido en GUI",
-        "pl": "Skorygowany błąd w GUI",
-        "uk": "Виправлена помилка в GUI",
-        "zh-cn": "在图形界面中更正错误"
-      },
-      "1.2.7": {
-        "en": "Replaced icon for the state import\nCorrected the edit dialog",
-        "de": "Ersetztes Symbol für den Staatsimport\nKorrektur des Bearbeitungsdialogs",
-        "ru": "Замена иконки для государственного импорта\nИсправлен диалог редактирования",
-        "pt": "Ícone substituído para a importação do estado\nCorrigido o diálogo de edição",
-        "nl": "Pictogram vervangen door het status-importeren\nHet bewerkingsdialoogvenster corrigeren",
-        "fr": "Icône remplacée pour l'importation d'état\nCorrection de la boîte de dialogue d'édition",
-        "it": "Icona sostituita per l'importazione dello stato\nCorretto la finestra di dialogo Modifica",
-        "es": "Icono reemplazado para la importación del estado\nCorregido el diálogo de edición",
-        "pl": "Zastąpiona ikona dla importu stanu\nPoprawiono okno edycji",
-        "uk": "Заміна ікони для державного імпорту\nВиправлено діалог редагування",
-        "zh-cn": "状态导入已替换图标\n更正了编辑对话框"
       }
     },
     "titleLang": {
@@ -146,6 +146,7 @@
     "type": "general",
     "eraseOnUpload": true,
     "mode": "daemon",
+    "nogit": true,
     "adminTab": {
       "singleton": true,
       "name": {
@@ -178,6 +179,9 @@
     "globalDependencies": [
       {
         "admin": ">=7.6.17"
+      },
+      {
+        "web": ">=8"
       }
     ]
   },

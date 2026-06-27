@@ -4,11 +4,18 @@ import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-m
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
+    type WidgetGenericSettings,
 } from './Generic';
+import { ICON_BLINDS, ICON_CURTAINS } from './configIcons';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for Blind widget */
+export interface BlindWidgetSettings extends WidgetGenericSettings {
+    blindType?: 'shutter' | 'curtain';
+}
 
 interface WidgetBlindState extends WidgetGenericState {
     position: number;
@@ -283,7 +290,7 @@ function BlindSvg(props: BlindSvgProps & { blindType: 'shutter' | 'curtain' }): 
     return <ShutterSvg {...rest} />;
 }
 
-export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
+export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly stopId: string | null;
@@ -297,7 +304,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
     private dragStartPosition = 0;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<BlindWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -323,6 +330,34 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
             min: 0,
             max: 100,
             tiltPosition: null,
+        };
+    }
+
+    static getDefaultSettings(): BlindWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            blindType: 'shutter',
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    blindType: {
+                        type: 'select',
+                        label: 'wm_BlindType',
+                        options: [
+                            { value: 'shutter', label: 'wm_Shutter', icon: ICON_BLINDS },
+                            { value: 'curtain', label: 'wm_Curtain', icon: ICON_CURTAINS },
+                        ],
+                        default: 'shutter',
+                        format: 'radio',
+                    },
+                },
+            },
         };
     }
 
@@ -648,13 +683,14 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
         const { name, position, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.tileRef}
@@ -674,22 +710,11 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                         cursor: this.props.settings?.blindType === 'curtain' ? 'ew-resize' : 'ns-resize',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -732,7 +757,6 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState> {
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

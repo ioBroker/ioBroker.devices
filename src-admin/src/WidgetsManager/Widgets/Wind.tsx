@@ -1,26 +1,21 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Settings } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import type StateContext from '../StateContext';
-import type { StateChangeListener } from '../StateContext';
-import { getTileStyles } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
-interface WidgetWindProps {
-    id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
+import type { StateChangeListener } from '../StateContext';
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps, formatFloat } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
+
+export interface WidgetWindSettings extends CustomWidgetBase {
     directionStateId?: string;
     speedStateId?: string;
     gustsStateId?: string;
-    stateContext?: StateContext;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
 }
 
-interface WidgetWindState {
+interface WidgetWindState extends WidgetGenericState {
     direction: number | null;
     speed: number | null;
     gusts: number | null;
@@ -34,14 +29,29 @@ function polar(cx: number, cy: number, r: number, angleDeg: number): { x: number
     return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
 }
 
-export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
+export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSettings> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Wind',
+            items: {
+                // Wind is a passive display widget — no active state, no tint.
+                ...hideBaseFields('colorActive', 'color'),
+                directionStateId: { type: 'objectId', label: 'wm_Wind direction' },
+                speedStateId: { type: 'objectId', label: 'wm_Wind speed' },
+                gustsStateId: { type: 'objectId', label: 'wm_Wind gusts' },
+            },
+        };
+    }
+
     private dirHandler: StateChangeListener | null = null;
     private speedHandler: StateChangeListener | null = null;
     private gustsHandler: StateChangeListener | null = null;
 
-    constructor(props: WidgetWindProps) {
+    constructor(props: WidgetGenericProps<WidgetWindSettings>) {
         super(props);
         this.state = {
+            ...this.state,
             direction: null,
             speed: null,
             gusts: null,
@@ -51,22 +61,24 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.subscribe();
     }
 
-    componentDidUpdate(prevProps: WidgetWindProps): void {
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<WidgetWindSettings>>): void {
         if (
-            prevProps.directionStateId !== this.props.directionStateId ||
-            prevProps.speedStateId !== this.props.speedStateId ||
-            prevProps.gustsStateId !== this.props.gustsStateId
+            prevProps.settings.directionStateId !== this.props.settings.directionStateId ||
+            prevProps.settings.speedStateId !== this.props.settings.speedStateId ||
+            prevProps.settings.gustsStateId !== this.props.settings.gustsStateId
         ) {
-            this.unsubscribe(prevProps);
+            this.unsubscribe(prevProps.settings);
             this.subscribe();
         }
     }
 
     componentWillUnmount(): void {
-        this.unsubscribe(this.props);
+        super.componentWillUnmount();
+        this.unsubscribe(this.props.settings);
     }
 
     private subscribe(): void {
@@ -75,19 +87,19 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
             return;
         }
 
-        if (this.props.directionStateId) {
+        if (this.props.settings.directionStateId) {
             this.dirHandler = (_id, state) => {
                 this.setState({ direction: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.directionStateId, this.dirHandler);
+            ctx.getState(this.props.settings.directionStateId, this.dirHandler);
         }
-        if (this.props.speedStateId) {
+        if (this.props.settings.speedStateId) {
             this.speedHandler = (_id, state) => {
                 this.setState({ speed: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.speedStateId, this.speedHandler);
+            ctx.getState(this.props.settings.speedStateId, this.speedHandler);
             void ctx
-                .getObject<ioBroker.StateObject>(this.props.speedStateId)
+                .getObject<ioBroker.StateObject>(this.props.settings.speedStateId)
                 .then(obj => {
                     if (obj?.common?.unit) {
                         this.setState({ speedUnit: obj.common.unit });
@@ -95,13 +107,13 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 })
                 .catch(() => {});
         }
-        if (this.props.gustsStateId) {
+        if (this.props.settings.gustsStateId) {
             this.gustsHandler = (_id, state) => {
                 this.setState({ gusts: state?.val != null ? Number(state.val) : null });
             };
-            ctx.getState(this.props.gustsStateId, this.gustsHandler);
+            ctx.getState(this.props.settings.gustsStateId, this.gustsHandler);
             void ctx
-                .getObject<ioBroker.StateObject>(this.props.gustsStateId)
+                .getObject<ioBroker.StateObject>(this.props.settings.gustsStateId)
                 .then(obj => {
                     if (obj?.common?.unit) {
                         this.setState({ gustsUnit: obj.common.unit });
@@ -111,67 +123,23 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         }
     }
 
-    private unsubscribe(props: WidgetWindProps): void {
+    private unsubscribe(settings: WidgetWindSettings): void {
         const ctx = this.props.stateContext;
         if (!ctx) {
             return;
         }
-        if (props.directionStateId && this.dirHandler) {
-            ctx.removeState(props.directionStateId, this.dirHandler);
+        if (settings.directionStateId && this.dirHandler) {
+            ctx.removeState(settings.directionStateId, this.dirHandler);
             this.dirHandler = null;
         }
-        if (props.speedStateId && this.speedHandler) {
-            ctx.removeState(props.speedStateId, this.speedHandler);
+        if (settings.speedStateId && this.speedHandler) {
+            ctx.removeState(settings.speedStateId, this.speedHandler);
             this.speedHandler = null;
         }
-        if (props.gustsStateId && this.gustsHandler) {
-            ctx.removeState(props.gustsStateId, this.gustsHandler);
+        if (settings.gustsStateId && this.gustsHandler) {
+            ctx.removeState(settings.gustsStateId, this.gustsHandler);
             this.gustsHandler = null;
         }
-    }
-
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.id);
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.id);
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 1,
-                    color: theme.palette.primary.main,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': {
-                        opacity: 1,
-                        backgroundColor: theme.palette.action.hover,
-                    },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
     }
 
     /**
@@ -187,6 +155,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
         gusts: number | null,
         gustsUnit: string,
         isDark: boolean,
+        isFloatComma?: boolean,
     ): React.JSX.Element {
         const cx = 100;
         const cy = 100;
@@ -344,7 +313,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                 />
                 {/* Cardinal labels */}
                 {labels.map(l => {
-                    const p = polar(cx, cy, 70, l.angle);
+                    const p = polar(cx, cy, 62, l.angle);
                     return (
                         <text
                             key={l.label}
@@ -406,32 +375,37 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         fontSize={9}
                         fontFamily="system-ui, sans-serif"
                     >
-                        {`${Math.round(gusts * 10) / 10}${gustsUnit ? ` ${gustsUnit}` : ''}`}
+                        {`${formatFloat(Math.round(gusts * 10) / 10, 1, isFloatComma)}${gustsUnit ? ` ${gustsUnit}` : ''}`}
                     </text>
                 ) : null}
             </svg>
         );
     }
 
-    static formatValue(val: number | null, unit: string): string {
+    static formatValue(val: number | null, unit: string, isFloatComma?: boolean): string {
         if (val == null) {
             return '–';
         }
         const rounded = Math.round(val * 10) / 10;
-        return unit ? `${rounded} ${unit}` : String(rounded);
+        const str = formatFloat(rounded, 1, isFloatComma);
+        return unit ? `${str} ${unit}` : str;
     }
 
     // --- Compact 1x1 layout: compass fills the whole tile ---
-    private renderCompact(): React.JSX.Element {
+    renderCompact(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
-        const hasData = this.props.directionStateId || this.props.speedStateId || this.props.gustsStateId;
+        const hasData =
+            this.props.settings.directionStateId ||
+            this.props.settings.speedStateId ||
+            this.props.settings.gustsStateId;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-wind"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -442,10 +416,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         p: 0,
                     })}
                 >
+                    {indicators}
                     {hasData ? (
                         <Box
                             sx={{
@@ -458,13 +433,14 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                             }}
                         >
                             {WidgetWind.renderCompass(
-                                '100%' as unknown as number,
+                                '100%',
                                 direction,
                                 speed,
                                 speedUnit,
                                 gusts,
                                 gustsUnit,
                                 true, // always dark bg for the compass instrument
+                                this.props.stateContext.isFloatComma,
                             )}
                         </Box>
                     ) : (
@@ -476,21 +452,21 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         </Typography>
                     )}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     // --- Wide 2x0.5 layout: compass left, details right ---
-    private renderWide(): React.JSX.Element {
+    renderWide(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-wind"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -501,14 +477,24 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         height: 80,
                         overflow: 'hidden',
                         px: 0.5,
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', height: '100%', py: 0.5 }}>
-                        {WidgetWind.renderCompass(72, direction, speed, speedUnit, gusts, gustsUnit, true)}
+                        {WidgetWind.renderCompass(
+                            72,
+                            direction,
+                            speed,
+                            speedUnit,
+                            gusts,
+                            gustsUnit,
+                            true,
+                            this.props.stateContext.isFloatComma,
+                        )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {this.props.speedStateId ? (
+                        {this.props.settings.speedStateId ? (
                             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                                 <Typography
                                     variant="caption"
@@ -517,11 +503,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Speed')}:
                                 </Typography>
                                 <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                                    {WidgetWind.formatValue(speed, speedUnit)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.stateContext.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
-                        {this.props.gustsStateId ? (
+                        {this.props.settings.gustsStateId ? (
                             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
                                 <Typography
                                     variant="caption"
@@ -530,7 +516,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     {I18n.t('wm_Wind gusts')}:
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.85rem' }}>
-                                    {WidgetWind.formatValue(gusts, gustsUnit)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.stateContext.isFloatComma)}
                                 </Typography>
                             </Box>
                         ) : null}
@@ -544,27 +530,21 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         ) : null}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     // --- Wide tall 2x1 layout: compass left, details right ---
-    private renderWideTall(): React.JSX.Element {
+    renderWideTall(): React.JSX.Element {
         const { direction, speed, gusts, speedUnit, gustsUnit } = this.state;
-        const accent = this.props.color;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-wind"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -576,9 +556,10 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         gap: 1.5,
                         overflow: 'hidden',
                         px: 0.5,
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     <Box
                         sx={{
                             flexShrink: 0,
@@ -591,17 +572,18 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         }}
                     >
                         {WidgetWind.renderCompass(
-                            '100%' as unknown as number,
+                            '100%',
                             direction,
                             speed,
                             speedUnit,
                             gusts,
                             gustsUnit,
                             true,
+                            this.props.stateContext.isFloatComma,
                         )}
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                        {this.props.speedStateId ? (
+                        {this.props.settings.speedStateId ? (
                             <Typography
                                 noWrap
                                 style={{
@@ -622,11 +604,11 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(speed, speedUnit)}
+                                    {WidgetWind.formatValue(speed, speedUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}
-                        {this.props.gustsStateId ? (
+                        {this.props.settings.gustsStateId ? (
                             <Typography
                                 noWrap
                                 style={{
@@ -647,7 +629,7 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                                     component="span"
                                     sx={{ fontWeight: 700, minWidth: 40 }}
                                 >
-                                    {WidgetWind.formatValue(gusts, gustsUnit)}
+                                    {WidgetWind.formatValue(gusts, gustsUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
                             </Typography>
                         ) : null}
@@ -678,20 +660,8 @@ export class WidgetWind extends Component<WidgetWindProps, WidgetWindState> {
                         ) : null}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
-    }
-
-    render(): React.JSX.Element {
-        const size = this.props.size || '1x1';
-        if (size === '2x0.5') {
-            return this.renderWide();
-        }
-        if (size === '2x1') {
-            return this.renderWideTall();
-        }
-        return this.renderCompact();
     }
 }
 

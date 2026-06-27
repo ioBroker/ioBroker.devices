@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "declaration": true,
+        "declarationMap": true,
+        "outDir": "build",
+        "rootDir": "src",
+        "strict": true,
+        "esModuleInterop": true,
+        "jsx": "react-jsx",
+        "skipLibCheck": true,
+        "types": ["react", "@iobroker/types"]
+    },
+    "include": ["src"]
+}

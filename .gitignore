@@ -13,7 +13,11 @@ admin/i18n/flat.txt
 admin/i18n/*/flat.txt
 /src/adapter-react
 /iob_npm.done
+/build
 
 #ignore .commitinfo created by ioBroker release script
 .commitinfo
 /.claude/settings.local.json
+/packages/dm-widgets/build/
+/src-admin/.__mf__temp/
+/src-www/.__mf__temp/

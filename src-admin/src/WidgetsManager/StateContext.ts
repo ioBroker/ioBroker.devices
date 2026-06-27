@@ -1,4 +1,4 @@
-import type { Connection } from '@iobroker/adapter-react-v5';
+import { type Connection, I18n, type ThemeType } from '@iobroker/adapter-react-v5';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 export type ObjectChangeListener = (
@@ -28,14 +28,171 @@ export default class StateContext {
     private pendingObjPropIds: string[] = [];
     private objPropTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(private readonly socket: Connection) {}
+    /** Debounce timer for refreshAllStates (reconnect + visibilitychange can fire together) */
+    private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    private _language = I18n.getLanguage();
+    private _isFloatComma: boolean;
+    private _dateFormat: string;
+    private readonly _admin: boolean;
+    private _instanceId: string;
+    protected readonly socket: Connection;
+    /** Latitude from system.config for sun calculations */
+    private _latitude: number | null = null;
+    /** Longitude from system.config for sun calculations */
+    private _longitude: number | null = null;
+    private _defaultHistory: string | null = null;
+    private readonly _imagePrefix: string;
+    private readonly _themeType: ThemeType;
+
+    constructor(props: {
+        socket: Connection;
+        instanceId: string;
+        admin: boolean;
+        dateFormat: string;
+        isFloatComma: boolean;
+        latitude: number | null;
+        longitude: number | null;
+        defaultHistory: string | null;
+        themeType: ThemeType;
+    }) {
+        this.socket = props.socket;
+        this._instanceId = props.instanceId;
+        this._isFloatComma = props.isFloatComma;
+        this._dateFormat = props.dateFormat;
+        this._admin = props.admin;
+        this._longitude = props.longitude ?? null;
+        this._latitude = props.latitude ?? null;
+        this._defaultHistory = props.defaultHistory;
+        this._imagePrefix = props.admin ? '../../files/' : '../';
+        this._themeType = props.themeType;
+
+        // Re-read current values when the connection comes back or the tab becomes visible again.
+        // On reconnect the socket-client only re-subscribes; it does not re-fetch current values,
+        // so states that changed while the tab was in the background would otherwise stay stale.
+        this.socket.registerConnectionHandler(this.onConnectionChanged);
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', this.onVisibilityChange);
+        }
+    }
+
+    public get language(): ioBroker.Languages {
+        return this._language;
+    }
+    public setLanguage(language: ioBroker.Languages): void {
+        this._language = language;
+    }
+
+    public get isFloatComma(): boolean {
+        return this._isFloatComma;
+    }
+    public setFloatComma(isFloatComma: boolean): void {
+        this._isFloatComma = isFloatComma;
+    }
+    public get themeType(): ThemeType {
+        return this._themeType;
+    }
+
+    public get dateFormat(): string {
+        return this._dateFormat;
+    }
+    public setDateFormat(dateFormat: string): void {
+        this._dateFormat = dateFormat;
+    }
+
+    public get admin(): boolean {
+        return this._admin;
+    }
+
+    public get instanceId(): string {
+        return this._instanceId;
+    }
+
+    public setInstanceId(instanceId: string): void {
+        this._instanceId = instanceId;
+    }
+
+    public setDefaultHistory(defaultHistory: string | null): void {
+        this._defaultHistory = defaultHistory;
+    }
+    public get defaultHistory(): string | null {
+        return this._defaultHistory;
+    }
+
+    public get longitude(): number | null {
+        return this._longitude;
+    }
+    public get latitude(): number | null {
+        return this._latitude;
+    }
+    public setCoordinates(latitude: number | null, longitude: number | null): void {
+        this._latitude = latitude;
+        this._longitude = longitude;
+    }
+
+    public get imagePrefix(): string {
+        return this._imagePrefix;
+    }
 
     private onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.subscribedStates[id]) {
             this.states[id] = state || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State);
-            this.subscribedStates[id].forEach(cb => cb(id, this.states[id]));
+            this.subscribedStates[id].forEach(cb =>
+                cb(id, this.states[id] || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State)),
+            );
         }
     };
+
+    /**
+     * Re-read the current values of all subscribed states and notify their listeners.
+     * Needed after a reconnect or when the tab becomes visible again, because the
+     * socket-client only re-subscribes on reconnect and never re-fetches current values,
+     * so any change that happened while the tab was in the background would be missed.
+     */
+    private refreshAllStates = (): void => {
+        if (this.refreshTimer) {
+            return; // already scheduled — reconnect and visibilitychange often fire together
+        }
+        this.refreshTimer = setTimeout(() => {
+            this.refreshTimer = null;
+            const ids = Object.keys(this.subscribedStates);
+            if (!ids.length || !this.socket.isConnected()) {
+                return;
+            }
+            void this.socket.getStates(ids).then(result => {
+                for (const id of ids) {
+                    if (!this.subscribedStates[id]) {
+                        continue; // unsubscribed while the request was in flight
+                    }
+                    const state = result?.[id] || ({ val: null, ts: Date.now(), ack: true } as ioBroker.State);
+                    this.states[id] = state;
+                    this.subscribedStates[id].forEach(cb => cb(id, state));
+                }
+            });
+        }, 100);
+    };
+
+    private onConnectionChanged = (connected: boolean): void => {
+        if (connected) {
+            this.refreshAllStates();
+        }
+    };
+
+    private onVisibilityChange = (): void => {
+        if (document.visibilityState === 'visible') {
+            this.refreshAllStates();
+        }
+    };
+
+    getImagePath(fileName: string | null | undefined): string | null {
+        if (typeof fileName === 'string') {
+            if (fileName.startsWith('data:image') || fileName.match(/^https?:\/\//) || fileName.length < 4) {
+                return fileName;
+            }
+            return this._imagePrefix + fileName.replace(/^\//, '');
+        }
+        return null;
+    }
 
     static extractProperty<T>(obj: ioBroker.Object, property: string): T {
         const parts = property.split('.');
@@ -119,7 +276,7 @@ export default class StateContext {
         }
 
         const ids = pending.map(p => p.id);
-        void (this.socket as any)
+        void this.socket
             .getObjectsById(ids)
             .then((result: Record<string, ioBroker.Object> | undefined) => {
                 for (const { id, resolve, reject } of pending) {
@@ -133,7 +290,7 @@ export default class StateContext {
                     }
                 }
             })
-            .catch((err: any) => {
+            .catch(err => {
                 for (const { reject } of pending) {
                     reject(err instanceof Error ? err : new Error(String(err)));
                 }
@@ -177,7 +334,7 @@ export default class StateContext {
         };
 
         if (toFetch.length) {
-            void (this.socket as any)
+            void this.socket
                 .getObjectsById(toFetch)
                 .then(async (result: Record<string, ioBroker.Object> | undefined) => {
                     for (const id of toFetch) {
@@ -241,6 +398,14 @@ export default class StateContext {
     }
 
     destroy(): void {
+        this.socket.unregisterConnectionHandler(this.onConnectionChanged);
+        if (typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this.onVisibilityChange);
+        }
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
         if (this.stateFlushTimer) {
             clearTimeout(this.stateFlushTimer);
             this.stateFlushTimer = null;

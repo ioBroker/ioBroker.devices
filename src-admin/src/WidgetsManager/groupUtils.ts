@@ -1,6 +1,6 @@
 import { Types } from '@iobroker/type-detector';
 
-import type { WidgetInfo } from '../../../src/widget-utils';
+import type { WidgetInfo } from '../../../packages/dm-widgets/src/index';
 
 export interface WidgetGroup {
     id: string;
@@ -142,4 +142,85 @@ export function moveWidgetToGroup(groups: WidgetGroup[], widgetId: string, targe
 /** Find which group a widget currently belongs to. */
 export function findWidgetGroup(groups: WidgetGroup[], widgetId: string): string | undefined {
     return groups.find(g => g.widgetIds.includes(widgetId))?.id;
+}
+
+// --- Collapsed-state persistence (localStorage, not object) ---
+//
+// The collapsed/expanded state of widget groups is purely a UI preference and is stored
+// per-browser in localStorage. It is not persisted to the ioBroker object so it does not
+// sync across devices and does not clutter the object data.
+
+const COLLAPSED_LS_KEY = 'iobroker.devices.groupCollapsed';
+
+type CollapsedMap = Record<string, Record<string, boolean>>;
+
+function loadCollapsedMap(): CollapsedMap {
+    try {
+        const raw = window.localStorage.getItem(COLLAPSED_LS_KEY);
+        if (!raw) {
+            return {};
+        }
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? (parsed as CollapsedMap) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveCollapsedMap(map: CollapsedMap): void {
+    try {
+        window.localStorage.setItem(COLLAPSED_LS_KEY, JSON.stringify(map));
+    } catch {
+        // ignore quota / unavailable
+    }
+}
+
+/** Returns the collapsed flag for a given category+group from localStorage. */
+export function getGroupCollapsed(categoryId: string, groupId: string): boolean {
+    const map = loadCollapsedMap();
+    return !!map[categoryId]?.[groupId];
+}
+
+/** Persists the collapsed flag for a given category+group to localStorage. */
+export function setGroupCollapsed(categoryId: string, groupId: string, collapsed: boolean): void {
+    const map = loadCollapsedMap();
+    if (collapsed) {
+        map[categoryId] ||= {};
+        map[categoryId][groupId] = true;
+    } else if (map[categoryId]) {
+        delete map[categoryId][groupId];
+        if (Object.keys(map[categoryId]).length === 0) {
+            delete map[categoryId];
+        }
+    }
+    saveCollapsedMap(map);
+}
+
+/** Sets collapsed for all groups in a category at once (e.g. expand-all / collapse-all). */
+export function setAllGroupsCollapsed(categoryId: string, groupIds: string[], collapsed: boolean): void {
+    const map = loadCollapsedMap();
+    if (collapsed) {
+        map[categoryId] = Object.fromEntries(groupIds.map(id => [id, true]));
+    } else {
+        delete map[categoryId];
+    }
+    saveCollapsedMap(map);
+}
+
+/** Returns a shallow copy of groups with `collapsed` set from localStorage (object value ignored). */
+export function applyCollapsedFromStorage(categoryId: string, groups: WidgetGroup[]): WidgetGroup[] {
+    const map = loadCollapsedMap();
+    const cat = map[categoryId];
+    if (!cat) {
+        return groups.map(g => (g.collapsed ? { ...g, collapsed: false } : g));
+    }
+    return groups.map(g => ({ ...g, collapsed: !!cat[g.id] }));
+}
+
+/** Strips the `collapsed` field from each group — used before saving to the ioBroker object. */
+export function stripCollapsed(groups: WidgetGroup[] | undefined): WidgetGroup[] | undefined {
+    if (!groups) {
+        return groups;
+    }
+    return groups.map(({ collapsed: _ignored, ...rest }) => rest);
 }

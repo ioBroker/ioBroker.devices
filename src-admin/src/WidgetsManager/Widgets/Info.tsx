@@ -22,11 +22,14 @@ import {
 } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
+    formatFloat,
+    resolveTranslated,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Map ioBroker roles / units to icons */
 const ROLE_ICON_MAP: [RegExp, SvgIconComponent][] = [
@@ -73,6 +76,13 @@ interface WidgetInfoState extends WidgetGenericState {
 }
 
 export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Info',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly stateIds: { id: string; role: string }[];
 
     constructor(props: WidgetGenericProps) {
@@ -102,10 +112,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                 const obj = await this.props.stateContext.getObject<ioBroker.StateObject>(entry.id);
                 if (obj?.common) {
                     unit = obj.common.unit || '';
-                    name =
-                        typeof obj.common.name === 'object'
-                            ? obj.common.name[this.props.language] || obj.common.name.en || ''
-                            : obj.common.name || '';
+                    name = resolveTranslated(obj.common.name, this.props.stateContext.language);
                     role = obj.common.role || role;
                 }
             } catch {
@@ -143,13 +150,13 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         return this.state.infoStates.some(s => s.value != null);
     }
 
-    private static formatValue(val: string | number | boolean | null, unit: string): string {
+    private formatValue(val: string | number | boolean | null, unit: string): string {
         if (val == null) {
             return '—';
         }
         if (typeof val === 'number') {
             // Show reasonable precision
-            const str = Number.isInteger(val) ? String(val) : val.toFixed(1);
+            const str = Number.isInteger(val) ? String(val) : formatFloat(val, 1, this.props.stateContext.isFloatComma);
             return unit ? `${str} ${unit}` : str;
         }
         if (typeof val === 'boolean') {
@@ -196,7 +203,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
     // --- Tile status (below name, 1x1 only — value like Humidity shows "65%") ---
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }
@@ -217,7 +224,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         color: 'text.primary',
                     }}
                 >
-                    {WidgetInfo.formatValue(s.value, s.unit)}
+                    {this.formatValue(s.value, s.unit)}
                 </Typography>
             );
         }
@@ -238,7 +245,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                             color: 'text.primary',
                         }}
                     >
-                        {WidgetInfo.formatValue(s0.value, s0.unit)}
+                        {this.formatValue(s0.value, s0.unit)}
                     </Typography>
                     <Typography
                         variant="caption"
@@ -251,7 +258,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         }}
                     >
                         {icon}
-                        {WidgetInfo.formatValue(s1.value, s1.unit)}
+                        {this.formatValue(s1.value, s1.unit)}
                     </Typography>
                 </Box>
             );
@@ -285,7 +292,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                         color: i === 0 ? 'text.primary' : 'text.secondary',
                                     }}
                                 >
-                                    {WidgetInfo.formatValue(s.value, s.unit)}
+                                    {this.formatValue(s.value, s.unit)}
                                 </Typography>
                             </Box>
                         );
@@ -328,7 +335,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                 variant="body2"
                                 sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
                             >
-                                {WidgetInfo.formatValue(s.value, s.unit)}
+                                {this.formatValue(s.value, s.unit)}
                             </Typography>
                         </React.Fragment>
                     );
@@ -348,7 +355,6 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         // 3+ states: replace icon area with a table
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
         const indicators = this.renderIndicators();
         const chartClickable = this.hasChartAction();
 
@@ -356,10 +362,10 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    onClick={chartClickable ? () => this.setState({ chartDialogOpen: true } as any) : undefined}
+                    onClick={chartClickable ? () => this.setState({ chartDialogOpen: true }) : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -370,15 +376,11 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Table of all values */}
                     <Box
@@ -422,7 +424,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                                             lineHeight: 1.3,
                                         }}
                                     >
-                                        {WidgetInfo.formatValue(s.value, s.unit)}
+                                        {this.formatValue(s.value, s.unit)}
                                     </Typography>
                                 </React.Fragment>
                             );

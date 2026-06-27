@@ -3,7 +3,13 @@ import { Box, Typography } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for alarm/sensor widgets: Warning, FireAlarm, FloodAlarm, Motion, Window, Door */
+export interface AlarmWidgetSettings extends WidgetGenericSettings {
+    hideWhenOk?: boolean;
+}
 
 /** Warning level colors: 0 = none/green, 1 = minor/yellow, 2 = moderate/orange, 3 = severe/red, 4+ = extreme/dark red */
 const LEVEL_COLORS = ['#4caf50', '#ffeb3b', '#ff9800', '#f44336', '#b71c1c'];
@@ -26,14 +32,14 @@ interface WidgetWarningState extends WidgetGenericState {
     end: string | null;
 }
 
-export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
+export class WidgetWarning extends WidgetGeneric<WidgetWarningState, AlarmWidgetSettings> {
     private readonly levelId: string | null;
     private readonly titleId: string | null;
     private readonly infoId: string | null;
     private readonly startId: string | null;
     private readonly endId: string | null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
 
@@ -50,6 +56,29 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
             info: null,
             start: null,
             end: null,
+        };
+    }
+
+    static getDefaultSettings(): AlarmWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            hideWhenOk: false,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Warning',
+            schema: {
+                type: 'panel',
+                items: {
+                    hideWhenOk: {
+                        type: 'checkbox',
+                        label: 'wm_Hide when OK',
+                        default: false,
+                    },
+                },
+            },
         };
     }
 
@@ -141,11 +170,9 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
         const { level } = this.state;
         const color = getLevelColor(level);
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon =
-            level > 0
-                ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-                : this.props.settings?.iconInactive;
+            level > 0 ? this.props.settings?.iconActive || this.props.settings?.icon : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -171,7 +198,7 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }
@@ -191,7 +218,7 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                 >
                     {level > 0
                         ? title || this.props.settings?.textActive || I18n.t('wm_Warning')
-                        : this.props.settings?.textInactive || I18n.t('wm_OK')}
+                        : this.props.settings?.text || I18n.t('wm_OK')}
                 </Typography>
             </Box>
         );
@@ -213,7 +240,7 @@ export class WidgetWarning extends WidgetGeneric<WidgetWarningState> {
                 >
                     {level > 0
                         ? title || this.props.settings?.textActive || I18n.t('wm_Warning')
-                        : this.props.settings?.textInactive || I18n.t('wm_OK')}
+                        : this.props.settings?.text || I18n.t('wm_OK')}
                 </Typography>
                 {start || end ? (
                     <Typography

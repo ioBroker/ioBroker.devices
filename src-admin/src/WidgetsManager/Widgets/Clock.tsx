@@ -1,10 +1,14 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
-import { Settings, WbSunny, NightsStay } from '@mui/icons-material';
+import { WbSunny, NightsStay } from '@mui/icons-material';
 // @ts-expect-error no types
 import { getTimes } from 'suncalc2';
 
-import { getTileStyles } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+import WidgetGeneric, { type WidgetGenericState, type WidgetGenericProps } from './Generic';
+import { hideBaseFields } from '../configUtils';
+import type { CustomWidgetBase } from '../../../../packages/dm-widgets/src/index';
 
 interface SunTimes {
     sunrise: Date;
@@ -38,27 +42,19 @@ const SUN_LABELS: Record<string, { rise: string; set: string }> = {
     'zh-cn': { rise: '日出', set: '日落' },
 };
 
-interface WidgetClockProps {
-    id: string;
-    language: ioBroker.Languages;
-    size?: '1x1' | '2x0.5' | '2x1';
-    color?: string;
+export interface WidgetClockSettings extends CustomWidgetBase {
     style?: 'digital' | 'analog';
     /** Show date (day + month). Default: true */
     showDate?: boolean;
-    /** Show day of week. Default: true */
+    /** Show day of the week. Default: true */
     showDow?: boolean;
     /** Show seconds. Default: true */
     showSeconds?: boolean;
-    onOpenSettings?: (id: string) => void;
-    onRemove?: (id: string) => void;
-    /** Latitude from system.config */
-    latitude?: number | null;
-    /** Longitude from system.config */
-    longitude?: number | null;
+    /** Show sunrise/sunset. Default: true */
+    showSun?: boolean;
 }
 
-interface WidgetClockState {
+interface WidgetClockState extends WidgetGenericState {
     time: string;
     dow: string;
     dateStr: string;
@@ -70,36 +66,75 @@ interface WidgetClockState {
     sunset: string;
 }
 
-export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
+export class WidgetClock extends WidgetGeneric<WidgetClockState, WidgetClockSettings> {
+    static getConfigSchema(): ConfigItemPanel {
+        return {
+            type: 'panel',
+            label: 'wm_Clock',
+            items: {
+                // Clock has no active/inactive state — hide the base color fields.
+                ...hideBaseFields('colorActive', 'color'),
+                style: {
+                    type: 'select',
+                    label: 'wm_Style',
+                    options: [
+                        { value: 'digital', label: 'wm_Digital' },
+                        { value: 'analog', label: 'wm_Analog' },
+                    ],
+                    default: 'digital',
+                    format: 'radio',
+                },
+                showDate: { type: 'checkbox', label: 'wm_Show date', default: true },
+                showDow: { type: 'checkbox', label: 'wm_Show DOW', default: true },
+                showSeconds: { type: 'checkbox', label: 'wm_Show seconds', default: true },
+                showSun: {
+                    type: 'checkbox',
+                    label: 'wm_Show sunrise/sunset',
+                    default: true,
+                    hidden: 'data.size === "1x1"',
+                },
+            },
+        };
+    }
+
     private timer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetClockProps) {
+    constructor(props: WidgetGenericProps<WidgetClockSettings>) {
         super(props);
-        this.state = this.getCurrentTime();
+        this.state = {
+            ...this.state,
+            ...this.getCurrentTime(),
+        };
     }
 
     componentDidMount(): void {
+        super.componentDidMount();
         this.timer = setInterval(() => {
-            this.setState(this.getCurrentTime());
+            this.setState(this.getCurrentTime() as Partial<WidgetClockState> as WidgetClockState);
         }, 1000);
     }
 
     componentWillUnmount(): void {
+        super.componentWillUnmount();
         if (this.timer) {
             clearInterval(this.timer);
             this.timer = null;
         }
     }
 
-    private getCurrentTime(): WidgetClockState {
+    private getCurrentTime(): Omit<WidgetClockState, keyof WidgetGenericState> {
         const now = new Date();
-        const lang = this.props.language;
+        const lang = this.props.stateContext.language;
 
         let sunrise = '';
         let sunset = '';
-        if (this.props.latitude != null && this.props.longitude != null) {
+        if (
+            this.props.settings.showSun !== false &&
+            this.props.stateContext.latitude != null &&
+            this.props.stateContext.longitude != null
+        ) {
             try {
-                const times = getTimesTypes(now, this.props.latitude, this.props.longitude);
+                const times = getTimesTypes(now, this.props.stateContext.latitude, this.props.stateContext.longitude);
                 sunrise = times.sunrise.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
                 sunset = times.sunset.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
             } catch {
@@ -122,13 +157,13 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
 
     /** Build the display date string from dow + dateStr based on show* props */
     private get displayDate(): string {
-        const showDate = this.props.showDate !== false;
-        const showDow = this.props.showDow !== false;
+        const showDate = this.props.settings.showDate !== false;
+        const showDow = this.props.settings.showDow !== false;
         if (showDow && showDate) {
             return `${this.state.dow}, ${this.state.dateStr}`;
         }
         if (showDow) {
-            return new Date().toLocaleDateString(this.props.language, { weekday: 'long' });
+            return new Date().toLocaleDateString(this.props.stateContext.language, { weekday: 'long' });
         }
         if (showDate) {
             return this.state.dateStr;
@@ -137,55 +172,11 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
     }
 
     private get showSeconds(): boolean {
-        return this.props.showSeconds !== false;
+        return this.props.settings.showSeconds !== false;
     }
 
     private get isAnalog(): boolean {
-        return this.props.style === 'analog';
-    }
-
-    private renderSettingsButton(): React.JSX.Element | null {
-        if (!this.props.onOpenSettings) {
-            return null;
-        }
-        return (
-            <Box
-                component="span"
-                role="button"
-                tabIndex={0}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    this.props.onOpenSettings!(this.props.id);
-                }}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        this.props.onOpenSettings!(this.props.id);
-                    }
-                }}
-                sx={theme => ({
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    p: '3px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 1,
-                    color: theme.palette.primary.main,
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s, background-color 0.2s',
-                    '&:hover': {
-                        opacity: 1,
-                        backgroundColor: theme.palette.action.hover,
-                    },
-                })}
-            >
-                <Settings sx={{ fontSize: 16 }} />
-            </Box>
-        );
+        return this.props.settings.style === 'analog';
     }
 
     // --- Analog clock face SVG ---
@@ -295,18 +286,87 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
         );
     }
 
-    // --- Digital renders (existing) ---
+    private renderSunInfo(fontSize?: string): React.JSX.Element | null {
+        if (this.props.settings.showSun === false) {
+            return null;
+        }
+        const { sunrise, sunset } = this.state;
+        if (!sunrise || !sunset) {
+            return null;
+        }
+        return (
+            <Box
+                sx={theme => ({
+                    display: 'flex',
+                    gap: 2,
+                    mt: 0.5,
+                    alignItems: 'center',
+                    color: theme.palette.text.disabled,
+                    fontSize: fontSize || 'max(0.7rem, 3.5cqi)',
+                })}
+            >
+                <Tooltip
+                    title={SUN_LABELS[this.props.stateContext.language]?.rise || 'Sunrise'}
+                    arrow
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <WbSunny sx={{ fontSize: '1.1em', color: '#ffa726' }} />
+                        <span>{sunrise}</span>
+                    </Box>
+                </Tooltip>
+                <Tooltip
+                    title={SUN_LABELS[this.props.stateContext.language]?.set || 'Sunset'}
+                    arrow
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <NightsStay sx={{ fontSize: '1.1em', color: '#5c6bc0' }} />
+                        <span>{sunset}</span>
+                    </Box>
+                </Tooltip>
+            </Box>
+        );
+    }
+
+    // --- Compact 1x1 ---
+
+    renderCompact(): React.JSX.Element {
+        if (this.isAnalog) {
+            return this.renderAnalogCompact();
+        }
+        return this.renderDigitalCompact();
+    }
+
+    // --- Wide 2x0.5 ---
+
+    renderWide(): React.JSX.Element {
+        if (this.isAnalog) {
+            return this.renderAnalogWide();
+        }
+        return this.renderDigitalWide();
+    }
+
+    // --- Wide tall 2x1 ---
+
+    renderWideTall(): React.JSX.Element {
+        if (this.isAnalog) {
+            return this.renderAnalogWideTall();
+        }
+        return this.renderDigitalWideTall();
+    }
+
+    // --- Digital renders ---
 
     private renderDigitalCompact(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -317,9 +377,10 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     <Typography
                         sx={{
                             fontWeight: 700,
@@ -356,21 +417,21 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         </Typography>
                     ) : null}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     private renderDigitalWide(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -380,9 +441,10 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'baseline' }}>
                         <Typography
                             sx={{
@@ -426,65 +488,21 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         {this.renderSunInfo('0.7rem')}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
-            </Box>
-        );
-    }
-
-    private renderSunInfo(fontSize?: string): React.JSX.Element | null {
-        const { sunrise, sunset } = this.state;
-        if (!sunrise || !sunset) {
-            return null;
-        }
-        return (
-            <Box
-                sx={theme => ({
-                    display: 'flex',
-                    gap: 2,
-                    mt: 0.5,
-                    alignItems: 'center',
-                    color: theme.palette.text.disabled,
-                    fontSize: fontSize || 'max(0.7rem, 3.5cqi)',
-                })}
-            >
-                <Tooltip
-                    title={SUN_LABELS[this.props.language]?.rise || 'Sunrise'}
-                    arrow
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <WbSunny sx={{ fontSize: '1.1em', color: '#ffa726' }} />
-                        <span>{sunrise}</span>
-                    </Box>
-                </Tooltip>
-                <Tooltip
-                    title={SUN_LABELS[this.props.language]?.set || 'Sunset'}
-                    arrow
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <NightsStay sx={{ fontSize: '1.1em', color: '#5c6bc0' }} />
-                        <span>{sunset}</span>
-                    </Box>
-                </Tooltip>
             </Box>
         );
     }
 
     private renderDigitalWideTall(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -496,9 +514,10 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     {/* Time row */}
                     <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
                         <Typography
@@ -542,7 +561,6 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                     ) : null}
                     {this.renderSunInfo('max(0.75rem, 4cqi)')}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -550,14 +568,16 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
     // --- Analog renders ---
 
     private renderAnalogCompact(): React.JSX.Element {
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -568,10 +588,11 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         width: '100%',
                         aspectRatio: '1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         padding: 'max(8px, 5cqi)',
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                         {this.renderAnalogFace(
                             '80cqi' as unknown as number,
@@ -594,33 +615,36 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         </Typography>
                     ) : null}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     private renderAnalogWide(): React.JSX.Element {
         const { time, seconds } = this.state;
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{ position: 'relative', gridColumn: 'span 2' }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: 2,
                         width: '100%',
                         height: 80,
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                     })}
                 >
+                    {indicators}
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
                         {this.renderAnalogFace(
                             56,
@@ -629,7 +653,7 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                             'currentColor',
                         )}
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ minWidth: 0 }}>
                         <Typography
                             sx={{
                                 fontWeight: 700,
@@ -672,26 +696,21 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         {this.renderSunInfo('0.7rem')}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
 
     private renderAnalogWideTall(): React.JSX.Element {
-        const accent = this.props.color;
+        const accent = this.props.settings.color;
         const date = this.displayDate;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
-                id={this.props.id}
+                id={String(this.props.widget.id)}
                 className="widget-clock"
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
@@ -703,10 +722,11 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         justifyContent: 'center',
                         gap: 'max(8px, 3cqi)',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, false, accent, false),
+                        ...this.applyTileStyles(theme, false, { interactive: false }),
                         padding: 'max(8px, 3cqi)',
                     })}
                 >
+                    {indicators}
                     {/* Left: analog face */}
                     <Box
                         sx={{
@@ -744,31 +764,8 @@ export class WidgetClock extends Component<WidgetClockProps, WidgetClockState> {
                         {this.renderSunInfo('max(0.85rem, 4.5cqi)')}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
-    }
-
-    // --- Main render ---
-
-    render(): React.JSX.Element {
-        const size = this.props.size || '1x1';
-        if (this.isAnalog) {
-            if (size === '2x0.5') {
-                return this.renderAnalogWide();
-            }
-            if (size === '2x1') {
-                return this.renderAnalogWideTall();
-            }
-            return this.renderAnalogCompact();
-        }
-        if (size === '2x0.5') {
-            return this.renderDigitalWide();
-        }
-        if (size === '2x1') {
-            return this.renderDigitalWideTall();
-        }
-        return this.renderDigitalCompact();
     }
 }
 

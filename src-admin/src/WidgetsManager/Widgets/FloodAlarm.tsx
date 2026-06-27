@@ -2,9 +2,14 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Water } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
-import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for alarm/sensor widgets */
+interface AlarmWidgetSettings extends WidgetGenericSettings {
+    hideWhenOk?: boolean;
+}
 
 const FLOOD_COLOR = '#00838f';
 
@@ -14,11 +19,11 @@ interface WidgetFloodAlarmState extends WidgetGenericState {
     lastChangedAgo: string;
 }
 
-export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
+export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
@@ -33,12 +38,28 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
         };
     }
 
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    hideWhenOk: {
+                        type: 'checkbox',
+                        label: 'wm_Hide when OK',
+                        default: false,
+                    },
+                },
+            },
+        };
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onStateChange);
         }
-        this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+        this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
     componentWillUnmount(): void {
@@ -50,10 +71,6 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
             clearInterval(this.agoTimer);
             this.agoTimer = null;
         }
-    }
-
-    private fromNow(ts: number): string {
-        return moment(ts).locale(this.props.language).fromNow();
     }
 
     private updateAgo(): void {
@@ -91,10 +108,10 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
         const { alarm } = this.state;
         const accent = this.getAccentColor();
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon = alarm
-            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-            : this.props.settings?.iconInactive;
+            ? this.props.settings?.iconActive || this.props.settings?.icon
+            : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -120,7 +137,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }
@@ -140,7 +157,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                 >
                     {alarm
                         ? this.props.settings?.textActive || I18n.t('wm_Flood')
-                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
+                        : this.props.settings?.text || I18n.t('wm_Dry')}
                 </Typography>
                 {size !== '2x1' && lastChangedAgo ? (
                     <Typography
@@ -170,7 +187,7 @@ export class WidgetFloodAlarm extends WidgetGeneric<WidgetFloodAlarmState> {
                 >
                     {alarm
                         ? this.props.settings?.textActive || I18n.t('wm_Flood')
-                        : this.props.settings?.textInactive || I18n.t('wm_Dry')}
+                        : this.props.settings?.text || I18n.t('wm_Dry')}
                 </Typography>
                 {lastChangedAgo ? (
                     <Typography

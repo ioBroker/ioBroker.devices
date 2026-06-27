@@ -19,7 +19,7 @@ import {
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
+    formatFloat,
     isNeumorphicTheme,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -422,11 +422,11 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         return '#f44336';
     }
 
-    static formatTemp(t: number | null): string {
+    static formatTemp(t: number | null, isFloatComma?: boolean): string {
         if (t == null) {
             return '—';
         }
-        return `${t.toFixed(1)}°`;
+        return `${formatFloat(t, 1, isFloatComma)}°`;
     }
 
     protected isTileActive(): boolean {
@@ -461,7 +461,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size === '2x0.5') {
             return null;
         }
@@ -478,7 +478,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="caption"
                                 sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                             >
-                                {WidgetThermostat.formatTemp(actualTemp)}
+                                {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -488,13 +488,13 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="caption"
                                 sx={{ fontWeight: 500, color: 'text.secondary' }}
                             >
-                                → {WidgetThermostat.formatTemp(setTemp)}
+                                → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 14, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_Power')}>
+                        <Tooltip title={I18n.t('wm_On/Off')}>
                             <PowerSettingsNew sx={{ fontSize: 14, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
@@ -541,7 +541,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="body2"
                                 sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                             >
-                                {WidgetThermostat.formatTemp(actualTemp)}
+                                {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     ) : null}
@@ -550,12 +550,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             variant="h6"
                             sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                         >
-                            → {WidgetThermostat.formatTemp(setTemp)}
+                            → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                         </Typography>
                     </Tooltip>
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_Power')}>
+                        <Tooltip title={I18n.t('wm_On/Off')}>
                             <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
@@ -709,14 +709,15 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     variant="h3"
                                     sx={{ fontWeight: 700, lineHeight: 1 }}
                                 >
-                                    {WidgetThermostat.formatTemp(setTemp)}
+                                    {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                                 </Typography>
                                 {actualTemp != null && setTemp != null ? (
                                     <Typography
                                         variant="body2"
                                         sx={{ color: 'text.secondary' }}
                                     >
-                                        {I18n.t('wm_Actual')}: {WidgetThermostat.formatTemp(actualTemp)}
+                                        {I18n.t('wm_Actual')}:{' '}
+                                        {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 ) : null}
                             </Box>
@@ -828,7 +829,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     size="small"
                                     sx={{ textTransform: 'none', borderRadius: '20px' }}
                                 >
-                                    {I18n.t('wm_Power')}
+                                    {I18n.t('wm_On/Off')}
                                 </Button>
                             ) : null}
                             {this.partyId ? (
@@ -903,8 +904,8 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const { name, setTemp, actualTemp, boost, power, party, setMin, setMax, dragging } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(null, settingsButton);
         const displayTemp = actualTemp ?? setTemp;
         const poweredOff = this.isPoweredOff();
 
@@ -922,7 +923,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <ButtonBase
                     component="div"
@@ -939,23 +940,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             textAlign: 'left',
                             overflow: 'hidden',
                             cursor: 'pointer',
-                            ...getTileStyles(theme, isActive && !poweredOff, accent),
+                            ...this.applyTileStyles(theme, isActive && !poweredOff),
                             padding: neumorphic ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                         };
                     }}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={theme => {
@@ -973,7 +963,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                               content: '""',
                                               position: 'absolute',
                                               width: '55%',
-                                              height: '55%',
+                                              aspectRatio: '1',
                                               borderRadius: '50%',
                                               background: 'radial-gradient(circle, #151517 0%, #1a1a1c 100%)',
                                               boxShadow:
@@ -986,7 +976,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     >
                         <svg
                             viewBox={`0 0 ${vb} ${vb}`}
-                            style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
+                            style={{ width: '60%', aspectRatio: '1', transform: 'rotate(135deg)' }}
                         >
                             <defs>
                                 <linearGradient
@@ -1067,7 +1057,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                                 : {}),
                                         })}
                                     >
-                                        {WidgetThermostat.formatTemp(setTemp)}
+                                        {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 </Tooltip>
                             ) : null}
@@ -1103,7 +1093,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                         variant="caption"
                                         sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
                                     >
-                                        {WidgetThermostat.formatTemp(actualTemp)}
+                                        {WidgetThermostat.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                                     </Typography>
                                 </Tooltip>
                             ) : null}
@@ -1119,7 +1109,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );
@@ -1129,15 +1119,15 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const { name, setTemp, actualTemp, humidity, boost, power, party } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
         const poweredOff = this.isPoweredOff();
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', gridColumn: 'span 2', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
@@ -1155,15 +1145,11 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive && !poweredOff, accent),
+                        ...this.applyTileStyles(theme, isActive && !poweredOff),
                         padding: 'max(16px, 5cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(16px, 5cqi)', right: 'max(16px, 5cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Name — full width on its own line */}
                     <Typography
@@ -1203,7 +1189,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                             variant="body2"
                                             sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
                                         >
-                                            {WidgetThermostat.formatTemp(actualTemp)}
+                                            {WidgetThermostat.formatTemp(
+                                                actualTemp,
+                                                this.props.stateContext.isFloatComma,
+                                            )}
                                         </Typography>
                                     </Tooltip>
                                 ) : null}
@@ -1240,14 +1229,14 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 variant="h5"
                                 sx={{ fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
                             >
-                                → {WidgetThermostat.formatTemp(setTemp)}
+                                → {WidgetThermostat.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
                             </Typography>
                         </Tooltip>
                     </Box>
 
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderDialog()}
             </Box>
         );

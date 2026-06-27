@@ -2,13 +2,10 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WbCloudy, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-import WidgetGeneric, {
-    getTileStyles,
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import { translateWeather } from './weatherTranslations';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface ForecastDay {
     index: number;
@@ -51,6 +48,13 @@ const DAY0_STATES = [
 ] as const;
 
 export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'WeatherForecast',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly day0Ids: Record<string, string | null> = {};
     /** Multi-day states: key = "ICON1", "TEMP_MIN2", etc. */
     private readonly multiDayIds: Record<string, string | null> = {};
@@ -286,7 +290,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }
@@ -354,14 +358,14 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { icon, weatherState } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -373,15 +377,11 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Weather icon + temp range */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -430,7 +430,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -512,8 +511,8 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
         const { icon, tempMin, tempMax, weatherState, forecastDays } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         // Show up to 5 forecast days
         const visibleDays = forecastDays.filter(d => d.icon || d.tempMin != null || d.tempMax != null).slice(0, 5);
@@ -522,7 +521,7 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -532,15 +531,11 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 4cqi)', right: 'max(12px, 4cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Top: today's forecast */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -608,7 +603,6 @@ export class WidgetWeatherForecast extends WidgetGeneric<WidgetWeatherForecastSt
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

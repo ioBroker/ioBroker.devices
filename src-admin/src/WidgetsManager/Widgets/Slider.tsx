@@ -15,11 +15,20 @@ import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
+    formatFloat,
     isNeumorphicTheme,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { ICON_TUNE, ICON_VALVE, ICON_AIR, ICON_SPEED } from './configIcons';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for Slider, Dimmer, Volume widgets */
+export interface SliderWidgetSettings extends WidgetGenericSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+}
 
 /** Gate valve icon with handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
@@ -74,7 +83,7 @@ interface WidgetSliderState extends WidgetGenericState {
     modeDialogOpen: boolean;
 }
 
-export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
+export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
 
@@ -84,7 +93,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
     /** true when the valve vertical fill bar is shown (compact); false when arc knob is used */
     private verticalDragMode = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -103,6 +112,48 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
             unit: '%',
             statesMap: null,
             modeDialogOpen: false,
+        };
+    }
+
+    static getDefaultSettings(): SliderWidgetSettings {
+        return {
+            ...WidgetGeneric.getDefaultSettings(),
+            sliderType: 'normal',
+            wideSliderStyle: 'horizontal',
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Slider',
+            schema: {
+                type: 'panel',
+                items: {
+                    sliderType: {
+                        type: 'select',
+                        label: 'wm_Slider type',
+                        options: [
+                            { value: 'normal', label: 'wm_slider_normal', icon: ICON_TUNE },
+                            { value: 'valve', label: 'wm_slider_valve', icon: ICON_VALVE },
+                            { value: 'fan', label: 'wm_slider_fan', icon: ICON_AIR },
+                            { value: 'gauge', label: 'wm_slider_gauge', icon: ICON_SPEED },
+                        ],
+                        default: 'normal',
+                        format: 'radio',
+                    },
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                },
+            },
         };
     }
 
@@ -416,7 +467,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
 
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
 
         return (
             <Typography
@@ -544,13 +598,14 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const modeName = this.getCurrentModeName();
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <ButtonBase
                     component="div"
@@ -564,22 +619,11 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -628,7 +672,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-                {this.renderSettingsButton()}
+
                 {this.renderModeDialog()}
             </Box>
         );
@@ -647,7 +691,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const circumference = 2 * Math.PI * r;
         const arcLength = circumference * 0.75;
         const progress = (level / 100) * arcLength;
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
 
         return (
             <Box
@@ -754,15 +801,19 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const { name, level, rawValue, unit, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
         const accentOrDefault = accent || '#1976d2';
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.arcRef}
@@ -783,7 +834,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         touchAction: 'none',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
                     })}
                 >
@@ -802,18 +853,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         }}
                     />
 
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Center icon + value */}
                     <Box
@@ -869,7 +909,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -881,7 +920,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
         const { name, level, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const vb = 100;
         const sw = 8;
@@ -894,7 +934,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.arcRef}
@@ -914,22 +954,11 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     <Box
                         sx={{
@@ -1005,7 +1034,6 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

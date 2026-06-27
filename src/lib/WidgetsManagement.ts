@@ -44,8 +44,11 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     private enabledDevices: DevicesPatternControl[] = [];
     private loaded: Promise<void> | null = null;
     private notifyTimeout: ReturnType<typeof setTimeout> | null = null;
+    private invalidatedIds: string[] = [];
     /** Lazily rebuilt sorted keys cache */
     private _sortedKeys: string[] | null = null;
+    /** Maps alias.0.X folder IDs to a same-named enum.rooms.* category that should subsume them. */
+    private aliasFolderRedirects: Map<string, string> = new Map();
 
     // ── Sorted keys cache ──────────────────────────────────────────────
 
@@ -116,7 +119,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         for (const [id, obj] of Object.entries(this.objects)) {
             if (obj.type === 'enum') {
                 this.enumIds.push(id);
-                const members = (obj as ioBroker.EnumObject).common?.members;
+                const members = obj.common?.members;
                 if (members) {
                     for (const m of members) {
                         if (!ids.includes(m)) {
@@ -174,15 +177,26 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         this.categories = new Map();
 
         const categories = Object.keys(structure).filter(key => {
+            // Always keep ROOT_CATEGORY: room-based categories (enum.rooms.*) are added
+            // later in rebuildEnabledDevices() with parent=ROOT_CATEGORY, so without it
+            // the tree has no root and the GUI falls back to the first room.
+            if (key === ROOT_CATEGORY) {
+                return true;
+            }
             if (structure[key].length) {
                 return true;
             }
-            // Include empty folders marked with showEmpty
-            if (key !== ROOT_CATEGORY && this.objects[key]) {
+            // Include empty folders marked with showEmpty, or that hold plugin/custom widgets
+            if (this.objects[key]) {
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
                     | Record<string, Record<string, unknown>>
                     | undefined;
-                if (custom && Object.values(custom).some(c => c?.showEmpty)) {
+                if (
+                    custom &&
+                    Object.values(custom).some(
+                        c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
+                    )
+                ) {
                     return true;
                 }
             }
@@ -200,8 +214,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 color: this.objects[category] ? this.objects[category].common.color : undefined,
                 parent: category === ROOT_CATEGORY ? undefined : parentId !== 'alias.0' ? parentId : ROOT_CATEGORY,
                 custom:
-                    category !== ROOT_CATEGORY && this.objects[category]
-                        ? this.objects[category].common.custom?.[this.adapter.namespace]
+                    category !== ROOT_CATEGORY
+                        ? this.objects[category]?.common?.custom?.[this.adapter.namespace]
                         : undefined,
             });
         }
@@ -210,6 +224,86 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             if (category.parent && !this.categories.has(category.parent)) {
                 this.categories.delete(id);
             }
+        }
+
+        // Merge alias.0.X folder categories with same-named enum.rooms.* categories
+        // so devices structured under an alias folder and devices assigned to the same-named
+        // room enum appear together as a single room in the GUI.
+        this.mergeAliasFoldersWithRoomEnums();
+    }
+
+    private getObjectDisplayName(obj: ioBroker.Object | undefined): string {
+        const raw = obj?.common?.name;
+        if (!raw) {
+            return '';
+        }
+        if (typeof raw === 'string') {
+            return raw;
+        }
+        const lang = this.adapter.language || 'en';
+        return raw[lang] || raw.en || Object.values(raw).find(Boolean) || '';
+    }
+
+    /**
+     * Build alias→enum redirects, replace alias-folder categories with their enum.rooms.*
+     * counterpart (re-parenting sub-categories) so the merged room shows up only once.
+     */
+    private mergeAliasFoldersWithRoomEnums(): void {
+        this.aliasFolderRedirects = new Map();
+        if (!this.categories) {
+            return;
+        }
+
+        // displayName -> enum.rooms.* id
+        const roomByName = new Map<string, string>();
+        for (const enumId of this.enumIds) {
+            if (!enumId.startsWith('enum.rooms.')) {
+                continue;
+            }
+            const name = this.getObjectDisplayName(this.objects[enumId]);
+            if (name && !roomByName.has(name)) {
+                roomByName.set(name, enumId);
+            }
+        }
+        if (!roomByName.size) {
+            return;
+        }
+
+        for (const [id] of this.categories) {
+            if (!id.startsWith('alias.0.') || this.objects[id]?.type !== 'folder') {
+                continue;
+            }
+            const name = this.getObjectDisplayName(this.objects[id]);
+            const enumId = name ? roomByName.get(name) : undefined;
+            if (enumId && enumId !== id) {
+                this.aliasFolderRedirects.set(id, enumId);
+            }
+        }
+
+        for (const [aliasId, enumId] of this.aliasFolderRedirects) {
+            const aliasCat = this.categories.get(aliasId);
+            if (!aliasCat) {
+                continue;
+            }
+            if (!this.categories.has(enumId)) {
+                const enumObj = this.objects[enumId];
+                this.categories.set(enumId, {
+                    type: 'category',
+                    id: enumId,
+                    name: enumObj ? enumObj.common.name || enumId.split('.').pop() || '' : aliasCat.name,
+                    icon: enumObj?.common.icon ?? aliasCat.icon,
+                    color: enumObj?.common.color ?? aliasCat.color,
+                    parent: ROOT_CATEGORY,
+                    custom: enumObj?.common.custom?.[this.adapter.namespace] ?? aliasCat.custom,
+                });
+            }
+            // Re-parent any direct children of the alias folder onto the enum category
+            for (const child of this.categories.values()) {
+                if (child.parent === aliasId) {
+                    child.parent = enumId;
+                }
+            }
+            this.categories.delete(aliasId);
         }
     }
 
@@ -299,7 +393,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     }
 
     private findIdInEnums(lookForId: string): string {
-        // Try to find room, to which this device belongs to
+        // Try to find room to which this device belongs to
         let useEnum = '';
         for (const enumId of this.enumIds) {
             if (enumId.startsWith('enum.rooms.')) {
@@ -344,8 +438,9 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
      * Rebuild enabledDevices from allDevices (cheap, no I/O, no detection).
      * Only devices with `common.custom[namespace].enabled === true` are included.
      */
-    private rebuildEnabledDevices(): void {
+    private rebuildEnabledDevices(): boolean {
         const customKey = this.adapter.namespace;
+        const oldEnabledDevices = JSON.stringify(this.enabledDevices);
         this.enabledDevices = this.allDevices.filter(
             d => d.storeId && this.objects[d.storeId]?.common?.custom?.[customKey]?.enabled,
         );
@@ -353,7 +448,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         // Special case: the devices not from alias.0
         for (const device of this.enabledDevices) {
             // try to find a parent category
-            let parentId = getParentId(device.storeId);
+            const directParent = getParentId(device.storeId);
+            // If the device's alias folder has been merged into a same-named enum.rooms.*,
+            // route the device to the enum category instead.
+            let parentId = this.aliasFolderRedirects.get(directParent) || directParent;
             if (parentId && this.categories?.has(parentId)) {
                 device.parentId = parentId;
                 continue;
@@ -392,25 +490,28 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     parentCategoryId = getParentId(parentId);
                 }
             } else {
-                // Try to find room, to which this device belongs to
+                // Try to find room to which this device belongs to
                 let useEnum = this.findIdInEnums(device.storeId);
                 useEnum ||= this.findIdInEnums(device.channelId);
                 useEnum ||= this.findIdInEnums(device.deviceId);
                 if (useEnum) {
                     device.parentId = useEnum;
                     let parentCategoryId = getParentId(useEnum);
-                    // if no parent category, assign to root
-                    this.categories?.set(useEnum, {
-                        type: 'category',
-                        id: useEnum,
-                        name: this.objects[useEnum]
-                            ? this.objects[useEnum].common.name || useEnum.split('.').pop() || ''
-                            : '',
-                        icon: this.objects[useEnum] ? this.objects[useEnum].common.icon : undefined,
-                        color: this.objects[useEnum] ? this.objects[useEnum].common.color : undefined,
-                        parent: parentCategoryId.split('.').length > 2 ? parentCategoryId : ROOT_CATEGORY,
-                        custom: this.objects[useEnum]?.common.custom?.[this.adapter.namespace],
-                    });
+                    // Do not overwrite a pre-existing category (e.g. one created by
+                    // mergeAliasFoldersWithRoomEnums, which may carry merged icon/color/custom).
+                    if (!this.categories?.has(useEnum)) {
+                        this.categories?.set(useEnum, {
+                            type: 'category',
+                            id: useEnum,
+                            name: this.objects[useEnum]
+                                ? this.objects[useEnum].common.name || useEnum.split('.').pop() || ''
+                                : '',
+                            icon: this.objects[useEnum] ? this.objects[useEnum].common.icon : undefined,
+                            color: this.objects[useEnum] ? this.objects[useEnum].common.color : undefined,
+                            parent: parentCategoryId.split('.').length > 2 ? parentCategoryId : ROOT_CATEGORY,
+                            custom: this.objects[useEnum]?.common.custom?.[this.adapter.namespace],
+                        });
+                    }
                     parentId = parentCategoryId;
                     parentCategoryId = getParentId(parentId);
                     while (parentId.split('.').length > 2 && parentId && !this.categories?.has(parentId)) {
@@ -434,6 +535,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 }
             }
         }
+
+        return JSON.stringify(this.enabledDevices) !== oldEnabledDevices;
     }
 
     /**
@@ -482,6 +585,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         }
         this.notifyTimeout = setTimeout(async () => {
             this.notifyTimeout = null;
+            this.adapter.log.debug(`Update objects because of: ${this.invalidatedIds.join(', ')}`);
+            this.invalidatedIds = [];
             try {
                 await this.sendCommandToGui({ command: 'all' });
             } catch {
@@ -500,7 +605,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
         // Update local cache
         if (obj) {
-            this.objects[id] = obj;
+            // We must compare only common part
+            if (JSON.stringify(obj.common) !== JSON.stringify(this.objects[id]?.common)) {
+                this.objects[id] = obj;
+            }
         } else {
             delete this.objects[id];
         }
@@ -509,11 +617,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         // Case 1: Enum changed — rebuild enum member IDs + alias IDs, detect only the diff
         if (oldObj?.type === 'enum' || obj?.type === 'enum' || obj?.type === 'folder' || oldObj?.type === 'folder') {
             const oldIds = [...this.idsInEnums];
-            this.rebuildEnumMemberIds();
-            if (obj?.type === 'folder' || oldObj?.type === 'folder') {
-                this.rebuildCategories();
-            }
-            this.rebuildAliasIds();
+            this.rebuildIdsInEnums();
 
             const removed = oldIds.filter(x => !this.idsInEnums.includes(x));
             const added = this.idsInEnums.filter(x => !oldIds.includes(x));
@@ -525,8 +629,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 this.allDevices.push(...this.detectForIds(added));
             }
 
-            this.rebuildEnabledDevices();
-            this.scheduleNotify();
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
+            }
             return;
         }
 
@@ -547,8 +655,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 this.allDevices.push(...this.detectForIds(toDetect));
             }
 
-            this.rebuildEnabledDevices();
-            this.scheduleNotify();
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
+            }
             return;
         }
 
@@ -557,8 +669,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         const oldEnabled = oldObj?.common?.custom?.[customKey]?.enabled;
         const newEnabled = obj?.common?.custom?.[customKey]?.enabled;
         if (oldEnabled !== newEnabled) {
-            this.rebuildEnabledDevices();
-            this.scheduleNotify();
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
+            }
             return;
         }
 
@@ -569,8 +685,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             if (obj) {
                 this.allDevices.push(...this.detectForIds(affected));
             }
-            this.rebuildEnabledDevices();
-            this.scheduleNotify();
+            if (this.rebuildEnabledDevices()) {
+                if (!this.invalidatedIds.includes(id)) {
+                    this.invalidatedIds.push(id);
+                }
+                this.scheduleNotify();
+            }
         }
     }
 
@@ -712,13 +832,18 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     }
                 });
                 if (empty) {
-                    // Keep categories marked with showEmpty in custom settings
+                    // Keep categories marked with showEmpty in custom settings,
+                    // or that contain plugin / custom widgets.
                     const obj = this.objects[id];
                     const custom = (obj?.common as Record<string, unknown>)?.custom as
                         | Record<string, Record<string, unknown>>
                         | undefined;
-                    const hasShowEmpty = custom && Object.values(custom).some(c => c?.showEmpty);
-                    if (!hasShowEmpty) {
+                    const keep =
+                        custom &&
+                        Object.values(custom).some(
+                            c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
+                        );
+                    if (!keep) {
                         this.categories?.delete(id);
                     }
                 }

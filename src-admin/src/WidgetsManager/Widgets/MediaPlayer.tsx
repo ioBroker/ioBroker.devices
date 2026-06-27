@@ -15,12 +15,7 @@ import {
 } from '@mui/icons-material';
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import WidgetGeneric, {
-    getTileStyles,
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-} from './Generic';
+import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetMediaPlayerState extends WidgetGenericState {
     playing: boolean;
@@ -319,13 +314,14 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, playing, title, artist, cover, elapsed, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden', borderRadius: '16px' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     onClick={this.openDialog}
@@ -340,7 +336,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         cursor: 'pointer',
                         userSelect: 'none',
                         position: 'relative',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -388,18 +384,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         }}
                     />
 
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 8,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 8,
-                                zIndex: 2,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Play/Pause indicator */}
                     {cover ? (
@@ -494,7 +479,6 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -505,19 +489,14 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, title, artist, cover, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
                     onClick={this.openDialog}
@@ -530,7 +509,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         position: 'relative',
                         cursor: 'pointer',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                     })}
                 >
                     {/* Cover as full blurred background */}
@@ -630,13 +609,12 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                     {artist}
                                 </Typography>
                             ) : null}
-                            {indicators ? <Box sx={{ position: 'relative', zIndex: 1 }}>{indicators}</Box> : null}
+                            {indicators}
                         </Box>
                         {duration ? this.renderProgressBar(accent || '#1db954', 4) : null}
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -647,19 +625,14 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         const { name, playing, title, artist, cover, elapsed, duration } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{
-                    position: 'relative',
-                    gridColumn: 'span 2',
-                    containerType: 'inline-size',
-                    overflow: 'hidden',
-                    borderRadius: '16px',
-                }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 {/* Sizer to match 1x1 height */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
@@ -672,7 +645,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                         flexDirection: 'column',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
                 >
@@ -740,9 +713,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                             )}
                         </Box>
 
-                        {indicators ? (
-                            <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>{indicators}</Box>
-                        ) : null}
+                        {indicators}
                     </Box>
 
                     {/* Info area (bottom) */}
@@ -812,7 +783,6 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     </Box>
                     {this.renderChart()}
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }
@@ -1086,7 +1056,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     // ── Main render ──────────────────────────────────────────────────
 
     render(): React.JSX.Element {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         let widget: React.JSX.Element;
         if (size === '2x0.5') {
             widget = this.renderWide();

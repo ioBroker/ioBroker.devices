@@ -409,14 +409,16 @@ interface DialogEditDeviceState {
     changeProperties: DialogEditPropertiesState;
     editStates: string | null;
     states: Record<string, { [value: string]: string } | undefined>;
-    /** Dialog for editing alias state common: type, role, min, max, unit */
+    /** Dialog for editing alias state common: name, type, role, min, max, unit */
     editStateCommon: {
         stateId: string;
+        name: string;
         type: ioBroker.CommonType;
         role: string;
         min: string;
         max: string;
         unit: string;
+        originalName: string;
         originalType: ioBroker.CommonType;
         originalRole: string;
         originalMin: string;
@@ -1805,14 +1807,22 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             if (!obj?.common) {
                 return;
             }
+            const commonName = obj.common.name;
+            const nameStr =
+                typeof commonName === 'object'
+                    ? commonName[I18n.getLanguage()] || commonName.en || ''
+                    : commonName || '';
+
             this.setState({
                 editStateCommon: {
                     stateId,
+                    name: nameStr,
                     type: obj.common.type || 'mixed',
                     role: obj.common.role || '',
                     min: obj.common.min != null ? String(obj.common.min) : '',
                     max: obj.common.max != null ? String(obj.common.max) : '',
                     unit: obj.common.unit || '',
+                    originalName: nameStr,
                     originalType: obj.common.type || 'mixed',
                     originalRole: obj.common.role || '',
                     originalMin: obj.common.min != null ? String(obj.common.min) : '',
@@ -1837,7 +1847,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 return;
             }
 
-            // Type and role
+            // Name, type and role
+            obj.common.name = editStateCommon.name;
             obj.common.type = editStateCommon.type;
             obj.common.role = editStateCommon.role;
 
@@ -1877,6 +1888,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         }
 
         const hasChanges =
+            editStateCommon.name !== editStateCommon.originalName ||
             editStateCommon.type !== editStateCommon.originalType ||
             editStateCommon.role !== editStateCommon.originalRole ||
             editStateCommon.min !== editStateCommon.originalMin ||
@@ -1894,7 +1906,19 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             >
                 <DialogTitle>{editStateCommon.stateId.split('.').pop()}</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                    <TextField
+                        label={I18n.t('Name')}
+                        value={editStateCommon.name}
+                        onChange={e =>
+                            this.setState({
+                                editStateCommon: { ...editStateCommon, name: e.target.value },
+                            })
+                        }
+                        size="small"
+                        fullWidth
+                        sx={{ mt: 1 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                         <TextField
                             select
                             label={I18n.t('Type')}

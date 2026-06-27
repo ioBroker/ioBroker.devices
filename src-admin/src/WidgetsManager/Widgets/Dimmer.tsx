@@ -14,11 +14,21 @@ import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-materia
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
+    formatFloat,
+    type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import type { ConfigItemPanel } from '@iobroker/json-config';
+
+/** Settings for Slider/Dimmer/Volume widgets */
+interface SliderWidgetSettings extends WidgetGenericSettings {
+    sliderType?: string;
+    wideSliderStyle?: string;
+    useValueByOn?: boolean;
+    valueByOn?: number;
+}
 
 interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
@@ -33,7 +43,7 @@ interface WidgetDimmerState extends WidgetGenericState {
     dialogOpen: boolean;
 }
 
-export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
+export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetSettings> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly onSetId: string | null;
@@ -45,7 +55,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
     private dragStartPos: { x: number; y: number } | null = null;
     private isDragging = false;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
@@ -72,6 +82,42 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             transitionTime: null,
             transitionMax: 10000,
             dialogOpen: false,
+        };
+    }
+
+    static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'Image settings', // ignored
+            schema: {
+                type: 'panel',
+                items: {
+                    wideSliderStyle: {
+                        type: 'select',
+                        label: 'wm_Wide slider style',
+                        options: [
+                            { value: 'horizontal', label: 'wm_slider_horizontal' },
+                            { value: 'round', label: 'wm_slider_round' },
+                        ],
+                        default: 'horizontal',
+                        format: 'radio',
+                        hidden: "data.size === '1x1'",
+                    },
+                    useValueByOn: {
+                        newLine: true,
+                        type: 'checkbox',
+                        label: 'wm_Set specific value, when activating',
+                        xs: 12,
+                    },
+                    valueByOn: {
+                        newLine: true,
+                        type: 'slider',
+                        label: 'wm_Value by activating',
+                        default: 100,
+                        xs: 12,
+                        hidden: '!data.useValueByOn',
+                    },
+                },
+            },
         };
     }
 
@@ -255,9 +301,18 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         if (this.onSetId) {
             void this.props.stateContext.getSocket().setState(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
-            void this.props.stateContext
-                .getSocket()
-                .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
+            if (
+                !this.state.isOn &&
+                this.props.settings.useValueByOn &&
+                this.props.settings.valueByOn !== undefined &&
+                this.props.settings.valueByOn !== null
+            ) {
+                void this.props.stateContext.getSocket().setState(this.setId, this.props.settings.valueByOn);
+            } else {
+                void this.props.stateContext
+                    .getSocket()
+                    .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
+            }
         }
     };
 
@@ -660,7 +715,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                                     variant="body2"
                                     sx={{ minWidth: 50, textAlign: 'right', whiteSpace: 'nowrap' }}
                                 >
-                                    {transitionTime != null ? `${(transitionTime / 1000).toFixed(1)}s` : '—'}
+                                    {transitionTime != null
+                                        ? `${formatFloat(transitionTime / 1000, 1, this.props.stateContext.isFloatComma)}s`
+                                        : '—'}
                                 </Typography>
                             </Box>
                         </Box>
@@ -675,7 +732,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
         const { name, brightness, dragging } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         // Circular progress parameters — fixed viewBox, sized by CSS percentage
         const vb = 100;
@@ -689,7 +747,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     ref={this.arcRef}
@@ -709,22 +767,11 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         cursor: 'pointer',
                         touchAction: 'none',
                         userSelect: 'none',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),
                     })}
                 >
-                    {indicators ? (
-                        <Box
-                            sx={theme => ({
-                                position: 'absolute',
-                                top: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                right: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 16,
-                                zIndex: 1,
-                            })}
-                        >
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
                     <Box
                         sx={{
                             display: 'flex',
@@ -829,7 +876,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState> {
                         {this.renderTileStatus()}
                     </Box>
                 </Box>
-                {this.renderSettingsButton()}
             </Box>
         );
     }

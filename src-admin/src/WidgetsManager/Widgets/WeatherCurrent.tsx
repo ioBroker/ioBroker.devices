@@ -3,12 +3,14 @@ import { Box, Typography } from '@mui/material';
 import { Air, Opacity, Speed, Thermostat, WaterDrop, WbSunny, WbCloudy } from '@mui/icons-material';
 
 import WidgetGeneric, {
-    getTileStyles,
     isNeumorphicTheme,
+    formatFloat,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import { hideBaseFields } from '../configUtils';
 import { translateWeather } from './weatherTranslations';
+import type { ConfigItemPanel } from '@iobroker/json-config';
 
 interface WidgetWeatherCurrentState extends WidgetGenericState {
     temperature: number | null;
@@ -24,6 +26,13 @@ interface WidgetWeatherCurrentState extends WidgetGenericState {
 }
 
 export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentState> {
+    static override getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        return {
+            name: 'WeatherCurrent',
+            schema: { type: 'panel', items: { ...hideBaseFields('colorActive', 'color') } },
+        };
+    }
+
     private readonly ids: Record<string, string | null>;
 
     constructor(props: WidgetGenericProps) {
@@ -176,7 +185,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
+        const size = this.props.settings?.size || '1x1';
         if (size !== '1x1') {
             return null;
         }
@@ -189,7 +198,9 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     variant="caption"
                     sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
                 >
-                    {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                    {temperature != null
+                        ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                        : '—'}
                 </Typography>
                 {weather ? (
                     <Typography
@@ -220,7 +231,9 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         variant="h5"
                         sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
-                        {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                        {temperature != null
+                            ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                            : '—'}
                     </Typography>
                     {weather ? (
                         <Typography
@@ -280,14 +293,14 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         const { temperature, weather } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -299,15 +312,11 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         aspectRatio: '1',
                         textAlign: 'left',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 8cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 8cqi)', right: 'max(12px, 8cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Weather icon */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -319,7 +328,9 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                                 lineHeight: 1.1,
                             }}
                         >
-                            {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                            {temperature != null
+                                ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                                : '—'}
                         </Typography>
                     </Box>
 
@@ -362,7 +373,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
                 {this.renderChart()}
             </Box>
         );
@@ -382,8 +393,8 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         } = this.state;
         const { name } = this.state;
         const isActive = this.isTileActive();
-        const accent = this.getAccentColor();
-        const indicators = this.renderIndicators();
+        const settingsButton = this.renderSettingsButton();
+        const indicators = this.renderIndicators(settingsButton);
 
         const details: { icon: React.JSX.Element; label: string }[] = [];
         if (humidity != null) {
@@ -413,7 +424,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
         if (realFeel != null) {
             details.push({
                 icon: <Thermostat sx={{ fontSize: 14 }} />,
-                label: `${realFeel.toFixed(1)}°`,
+                label: `${formatFloat(realFeel, 1, this.props.stateContext.isFloatComma)}°`,
             });
         }
         if (uv != null) {
@@ -427,7 +438,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={{ position: 'relative', containerType: 'inline-size', overflow: 'hidden' }}
+                sx={theme => WidgetGeneric.getStyleWideTall(theme)}
             >
                 <Box
                     sx={theme => ({
@@ -437,22 +448,20 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         width: '100%',
                         aspectRatio: '2 / 1',
                         overflow: 'hidden',
-                        ...getTileStyles(theme, isActive, accent),
+                        ...this.applyTileStyles(theme, isActive),
                         padding: 'max(12px, 4cqi)',
                     })}
                 >
-                    {indicators ? (
-                        <Box sx={{ position: 'absolute', top: 'max(12px, 4cqi)', right: 'max(12px, 4cqi)', zIndex: 1 }}>
-                            {indicators}
-                        </Box>
-                    ) : null}
+                    {indicators}
 
                     {/* Top: icon + temp + weather state */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         {this.renderWeatherIcon(52)}
                         <Box>
                             <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
-                                {temperature != null ? `${temperature.toFixed(1)}°` : '—'}
+                                {temperature != null
+                                    ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
+                                    : '—'}
                             </Typography>
                             {weather ? (
                                 <Typography
@@ -500,7 +509,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                         {this.props.settings?.name || name || '...'}
                     </Typography>
                 </Box>
-                {this.renderSettingsButton()}
+
                 {this.renderChart()}
             </Box>
         );

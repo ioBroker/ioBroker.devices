@@ -16,7 +16,7 @@ import {
 import { Close, Settings } from '@mui/icons-material';
 import { I18n, type Connection } from '@iobroker/adapter-react-v5';
 
-import type { ChartSeries } from './Generic';
+import { formatFloat, type ChartSeries } from './Generic';
 
 // ---- Constants ----
 
@@ -41,6 +41,18 @@ export type ChartLineType = 'line' | 'step-start' | 'step-end';
 /** Smoothing window in seconds (0 = off) */
 export type SmoothingWindow = 0 | 30 | 60 | 300 | 600;
 
+/** Smoothing aggregation method */
+export type SmoothingMethod = 'average' | 'min' | 'max' | 'median';
+
+const SMOOTHING_METHOD_OPTIONS: { value: SmoothingMethod; label: string }[] = [
+    { value: 'average', label: 'wm_smooth_average' },
+    { value: 'min', label: 'wm_smooth_min' },
+    { value: 'max', label: 'wm_smooth_max' },
+    { value: 'median', label: 'wm_smooth_median' },
+];
+
+const VALID_SMOOTHING_METHODS = new Set<string>(['average', 'min', 'max', 'median']);
+
 const SMOOTHING_OPTIONS: { value: SmoothingWindow; label: string }[] = [
     { value: 0, label: 'wm_Off' },
     { value: 30, label: 'wm_smooth_30s' },
@@ -54,12 +66,14 @@ const VALID_SMOOTHING_VALUES = new Set<number>([0, 30, 60, 300, 600]);
 export interface ChartSettings {
     chartType: ChartLineType;
     smoothing: SmoothingWindow;
+    smoothingMethod: SmoothingMethod;
     rangeHours: number;
 }
 
 const DEFAULT_CHART_SETTINGS: ChartSettings = {
     chartType: 'line',
     smoothing: 0,
+    smoothingMethod: 'average',
     rangeHours: 24,
 };
 
@@ -73,14 +87,14 @@ function formatTime(ts: number, rangeMs: number): string {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function formatValue(val: number): string {
+function formatValue(val: number, isFloatComma?: boolean): string {
     if (Math.abs(val) >= 1000) {
-        return val.toFixed(0);
+        return formatFloat(val, 0, isFloatComma);
     }
     if (Math.abs(val) >= 10) {
-        return val.toFixed(1);
+        return formatFloat(val, 1, isFloatComma);
     }
-    return val.toFixed(2);
+    return formatFloat(val, 2, isFloatComma);
 }
 
 function niceStep(range: number, ticks: number): number {
@@ -100,8 +114,12 @@ function niceStep(range: number, ticks: number): number {
     return step * pow;
 }
 
-/** Apply sliding window average to time-series data */
-function smoothData(data: { ts: number; val: number }[], windowSec: number): { ts: number; val: number }[] {
+/** Apply sliding window aggregation to time-series data */
+export function smoothData(
+    data: { ts: number; val: number }[],
+    windowSec: number,
+    method: SmoothingMethod = 'average',
+): { ts: number; val: number }[] {
     if (windowSec <= 0 || data.length < 2) {
         return data;
     }
@@ -109,25 +127,67 @@ function smoothData(data: { ts: number; val: number }[], windowSec: number): { t
     const halfWindow = windowMs / 2;
     const result: { ts: number; val: number }[] = [];
 
-    let left = 0;
-    let right = 0; // exclusive upper bound
-    let sum = 0;
-
-    for (let i = 0; i < data.length; i++) {
-        const center = data[i].ts;
-        // Expand the right boundary
-        while (right < data.length && data[right].ts <= center + halfWindow) {
-            sum += data[right].val;
-            right++;
+    if (method === 'average') {
+        let left = 0;
+        let right = 0;
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+            const center = data[i].ts;
+            while (right < data.length && data[right].ts <= center + halfWindow) {
+                sum += data[right].val;
+                right++;
+            }
+            while (left < right && data[left].ts < center - halfWindow) {
+                sum -= data[left].val;
+                left++;
+            }
+            const count = right - left;
+            result.push({ ts: center, val: count > 0 ? sum / count : data[i].val });
         }
-        // Shrink left boundary
-        while (left < right && data[left].ts < center - halfWindow) {
-            sum -= data[left].val;
-            left++;
+    } else {
+        let left = 0;
+        let right = 0;
+        for (let i = 0; i < data.length; i++) {
+            const center = data[i].ts;
+            while (right < data.length && data[right].ts <= center + halfWindow) {
+                right++;
+            }
+            while (left < right && data[left].ts < center - halfWindow) {
+                left++;
+            }
+            if (left >= right) {
+                result.push({ ts: center, val: data[i].val });
+                continue;
+            }
+            let val: number;
+            if (method === 'min') {
+                val = data[left].val;
+                for (let j = left + 1; j < right; j++) {
+                    if (data[j].val < val) {
+                        val = data[j].val;
+                    }
+                }
+            } else if (method === 'max') {
+                val = data[left].val;
+                for (let j = left + 1; j < right; j++) {
+                    if (data[j].val > val) {
+                        val = data[j].val;
+                    }
+                }
+            } else {
+                // median
+                const window = [];
+                for (let j = left; j < right; j++) {
+                    window.push(data[j].val);
+                }
+                window.sort((a, b) => a - b);
+                const mid = window.length >> 1;
+                val = window.length % 2 ? window[mid] : (window[mid - 1] + window[mid]) / 2;
+            }
+            result.push({ ts: center, val });
         }
-        const count = right - left;
-        result.push({ ts: center, val: count > 0 ? sum / count : data[i].val });
     }
+
     return result;
 }
 
@@ -198,14 +258,46 @@ interface InteractiveChartProps {
     title?: string;
     chartType: ChartLineType;
     smoothing: SmoothingWindow;
+    smoothingMethod: SmoothingMethod;
+    isFloatComma?: boolean;
     /** Called 400ms after the last pan/zoom interaction with the new visible time range */
     onViewSettle?: (startTs: number, endTs: number) => void;
+    /**
+     * When set, the visible time range is locked to `[Date.now() - lockedWindowMs, Date.now()]`
+     * and updates once per second (live-scrolling). Pan, zoom and view-settle are disabled.
+     */
+    lockedWindowMs?: number;
+    /** When true, the underlying state is boolean — y-axis is locked to [0,1] and only 0/1 ticks are shown. */
+    isBoolean?: boolean;
 }
 
 function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
-    const { series, width, height, unit, title: chartTitle, chartType, smoothing, onViewSettle } = props;
+    const {
+        series,
+        width,
+        height,
+        unit,
+        title: chartTitle,
+        chartType,
+        smoothing,
+        smoothingMethod,
+        isFloatComma,
+        onViewSettle,
+        lockedWindowMs,
+        isBoolean,
+    } = props;
     const svgRef = useRef<SVGSVGElement>(null);
     const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Live "now" — only ticks when the view is locked to a sliding window.
+    const [nowTs, setNowTs] = useState(() => Date.now());
+    useEffect(() => {
+        if (!lockedWindowMs) {
+            return;
+        }
+        const id = setInterval(() => setNowTs(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [lockedWindowMs]);
 
     // Compute global time & value range from data
     let globalTsMin = Infinity;
@@ -232,24 +324,107 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         globalTsMin = Date.now() - 3_600_000;
         globalTsMax = Date.now();
     }
-    const valRange = globalValMax - globalValMin || 1;
+    let valRange = globalValMax - globalValMin || 1;
     globalValMin -= valRange * 0.05;
     globalValMax += valRange * 0.05;
 
+    // Detect dual-axis mode: exactly 2 series with different, non-empty units
+    const dualAxis = series.length === 2 && !!series[0]?.unit && !!series[1]?.unit && series[0].unit !== series[1].unit;
+
+    let series1ValMin = 0;
+    let series1ValMax = 1;
+
+    if (dualAxis) {
+        // Override global range to only reflect series[0] (left axis)
+        globalValMin = Infinity;
+        globalValMax = -Infinity;
+        for (const p of series[0].data) {
+            if (p.val < globalValMin) {
+                globalValMin = p.val;
+            }
+            if (p.val > globalValMax) {
+                globalValMax = p.val;
+            }
+        }
+        if (globalValMin === Infinity) {
+            globalValMin = 0;
+            globalValMax = 1;
+        }
+        valRange = globalValMax - globalValMin || 1;
+        globalValMin -= valRange * 0.05;
+        globalValMax += valRange * 0.05;
+
+        // Compute series[1] range (right axis)
+        series1ValMin = Infinity;
+        series1ValMax = -Infinity;
+        for (const p of series[1].data) {
+            if (p.val < series1ValMin) {
+                series1ValMin = p.val;
+            }
+            if (p.val > series1ValMax) {
+                series1ValMax = p.val;
+            }
+        }
+        if (series1ValMin === Infinity) {
+            series1ValMin = 0;
+            series1ValMax = 1;
+        }
+        const range1 = series1ValMax - series1ValMin || 1;
+        series1ValMin -= range1 * 0.05;
+        series1ValMax += range1 * 0.05;
+    }
+
+    const marginRight = dualAxis ? 52 : MARGIN.right;
+
     // Pan/zoom state: visible time range
-    const [viewStart, setViewStart] = useState(globalTsMin);
-    const [viewEnd, setViewEnd] = useState(globalTsMax);
+    const [viewStartState, setViewStart] = useState(globalTsMin);
+    const [viewEndState, setViewEnd] = useState(globalTsMax);
+    const viewStart = lockedWindowMs ? nowTs - lockedWindowMs : viewStartState;
+    const viewEnd = lockedWindowMs ? nowTs : viewEndState;
     const [tooltip, setTooltip] = useState<{
         x: number;
         ts: number;
         entries: { val: number; y: number; color: string; name?: string; unit?: string }[];
     } | null>(null);
 
-    // Reset view when data changes
+    // When locked, fit the y-axis to the points actually visible in the window
+    if (lockedWindowMs && !dualAxis) {
+        let visMin = Infinity;
+        let visMax = -Infinity;
+        for (const s of series) {
+            for (const p of s.data) {
+                if (p.ts < viewStart || p.ts > viewEnd) {
+                    continue;
+                }
+                if (p.val < visMin) {
+                    visMin = p.val;
+                }
+                if (p.val > visMax) {
+                    visMax = p.val;
+                }
+            }
+        }
+        if (visMin !== Infinity) {
+            const r = visMax - visMin || 1;
+            globalValMin = visMin - r * 0.05;
+            globalValMax = visMax + r * 0.05;
+        }
+    }
+
+    // Boolean override: lock y-range to [0, 1] so the step chart stays anchored.
+    if (isBoolean && !dualAxis) {
+        globalValMin = -0.1;
+        globalValMax = 1.1;
+    }
+
+    // Reset view when data changes — skipped while the view is locked.
     useEffect(() => {
+        if (lockedWindowMs) {
+            return;
+        }
         setViewStart(globalTsMin);
         setViewEnd(globalTsMax);
-    }, [globalTsMin, globalTsMax]);
+    }, [globalTsMin, globalTsMax, lockedWindowMs]);
 
     // Cleanup settle timer on unmount
     useEffect(
@@ -277,7 +452,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         [onViewSettle],
     );
 
-    const plotW = width - MARGIN.left - MARGIN.right;
+    const plotW = width - MARGIN.left - marginRight;
     const plotH = height - MARGIN.top - MARGIN.bottom;
 
     // Scales
@@ -289,6 +464,10 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         (val: number) => MARGIN.top + plotH - ((val - globalValMin) / (globalValMax - globalValMin)) * plotH,
         [globalValMin, globalValMax, plotH],
     );
+    const valToY2 = useCallback(
+        (val: number) => MARGIN.top + plotH - ((val - series1ValMin) / (series1ValMax - series1ValMin)) * plotH,
+        [series1ValMin, series1ValMax, plotH],
+    );
     const xToTs = useCallback(
         (x: number) => viewStart + ((x - MARGIN.left) / plotW) * (viewEnd - viewStart),
         [viewStart, viewEnd, plotW],
@@ -299,20 +478,20 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
 
     const handlePointerDown = useCallback(
         (e: React.PointerEvent) => {
-            if (e.button !== 0) {
+            if (e.button !== 0 || lockedWindowMs) {
                 return;
             }
             (e.target as SVGSVGElement).setPointerCapture(e.pointerId);
             panRef.current = { startX: e.clientX, startViewStart: viewStart, startViewEnd: viewEnd };
             setTooltip(null);
         },
-        [viewStart, viewEnd],
+        [viewStart, viewEnd, lockedWindowMs],
     );
 
     const handlePointerMove = useCallback(
         (e: React.PointerEvent) => {
             const pan = panRef.current;
-            if (pan) {
+            if (pan && !lockedWindowMs) {
                 const dx = e.clientX - pan.startX;
                 const dtPerPx = (pan.startViewEnd - pan.startViewStart) / plotW;
                 const dt = -dx * dtPerPx;
@@ -326,7 +505,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
                 const mx = e.clientX - rect.left;
                 const my = e.clientY - rect.top;
-                if (mx < MARGIN.left || mx > width - MARGIN.right || my < MARGIN.top || my > height - MARGIN.bottom) {
+                if (mx < MARGIN.left || mx > width - marginRight || my < MARGIN.top || my > height - MARGIN.bottom) {
                     setTooltip(null);
                     return;
                 }
@@ -345,10 +524,12 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
                 // Build entries for all series at bestTs (interpolate if needed)
                 const entries: { val: number; y: number; color: string; name?: string; unit?: string }[] = [];
-                for (const s of series) {
+                for (let si = 0; si < series.length; si++) {
+                    const s = series[si];
                     const val = interpolateAt(s.data, bestTs);
                     if (val != null) {
-                        entries.push({ val, y: valToY(val), color: s.color, name: s.name, unit: s.unit });
+                        const yFn = dualAxis && si === 1 ? valToY2 : valToY;
+                        entries.push({ val, y: yFn(val), color: s.color, name: s.name, unit: s.unit });
                     }
                 }
                 if (entries.length) {
@@ -356,7 +537,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 }
             }
         },
-        [series, plotW, width, height, xToTs, tsToX, valToY],
+        [series, plotW, width, height, xToTs, tsToX, valToY, dualAxis, valToY2, marginRight, lockedWindowMs],
     );
 
     const handlePointerUp = useCallback(
@@ -373,6 +554,9 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
 
     const handleWheel = useCallback(
         (e: React.WheelEvent) => {
+            if (lockedWindowMs) {
+                return;
+            }
             e.preventDefault();
             const rect = svgRef.current?.getBoundingClientRect();
             if (!rect) {
@@ -391,7 +575,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             }
             setTooltip(null);
         },
-        [viewStart, viewEnd, xToTs, scheduleSettle],
+        [viewStart, viewEnd, xToTs, scheduleSettle, lockedWindowMs],
     );
 
     const handlePointerLeave = useCallback(() => {
@@ -410,8 +594,9 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         if (visible.length < 2) {
             continue;
         }
-        const smoothed = smoothing > 0 ? smoothData(visible, smoothing) : visible;
-        const points = smoothed.map(p => ({ x: tsToX(p.ts), y: valToY(p.val) }));
+        const smoothed = smoothing > 0 ? smoothData(visible, smoothing, smoothingMethod) : visible;
+        const yFn = dualAxis && i === 1 ? valToY2 : valToY;
+        const points = smoothed.map(p => ({ x: tsToX(p.ts), y: yFn(p.val) }));
         const d = buildLinePath(points, chartType);
         if (!d) {
             continue;
@@ -419,7 +604,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         // Area fill — need first/last X for closing the area path
         const firstX = points[0].x.toFixed(1);
         const lastX = points[points.length - 1].x.toFixed(1);
-        const baseY = valToY(globalValMin).toFixed(1);
+        const baseY = (MARGIN.top + plotH).toFixed(1);
         paths.push(
             <React.Fragment key={i}>
                 <path
@@ -447,12 +632,26 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
         timeTicks.push(t);
     }
 
-    // Value axis ticks
-    const valStep = niceStep(globalValMax - globalValMin, Math.max(3, Math.floor(plotH / 40)));
+    // Value axis ticks (left axis)
     const valTicks: number[] = [];
-    const firstVal = Math.ceil(globalValMin / valStep) * valStep;
-    for (let v = firstVal; v <= globalValMax; v += valStep) {
-        valTicks.push(v);
+    if (isBoolean && !dualAxis) {
+        valTicks.push(0, 1);
+    } else {
+        const valStep = niceStep(globalValMax - globalValMin, Math.max(3, Math.floor(plotH / 40)));
+        const firstVal = Math.ceil(globalValMin / valStep) * valStep;
+        for (let v = firstVal; v <= globalValMax; v += valStep) {
+            valTicks.push(v);
+        }
+    }
+
+    // Right Y-axis ticks (dual-axis mode)
+    const val2Ticks: number[] = [];
+    if (dualAxis) {
+        const val2Step = niceStep(series1ValMax - series1ValMin, Math.max(3, Math.floor(plotH / 40)));
+        const firstVal2 = Math.ceil(series1ValMin / val2Step) * val2Step;
+        for (let v = firstVal2; v <= series1ValMax; v += val2Step) {
+            val2Ticks.push(v);
+        }
     }
 
     return (
@@ -460,7 +659,11 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
             ref={svgRef}
             width={width}
             height={height}
-            style={{ touchAction: 'none', userSelect: 'none', cursor: panRef.current ? 'grabbing' : 'crosshair' }}
+            style={{
+                touchAction: 'none',
+                userSelect: 'none',
+                cursor: lockedWindowMs ? 'default' : panRef.current ? 'grabbing' : 'crosshair',
+            }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -483,7 +686,7 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                     <line
                         key={`vg${v}`}
                         x1={MARGIN.left}
-                        x2={width - MARGIN.right}
+                        x2={width - marginRight}
                         y1={y}
                         y2={y}
                         stroke="currentColor"
@@ -537,9 +740,15 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                 );
             })}
 
-            {/* Value axis labels */}
-            {valTicks.map(v => {
+            {/* Value axis labels (left) */}
+            {valTicks.map((v, vi) => {
                 const y = valToY(v);
+                const leftUnit = dualAxis ? series[0].unit : unit;
+                const label = isBoolean
+                    ? v >= 0.5
+                        ? I18n.t('wm_true')
+                        : I18n.t('wm_false')
+                    : formatValue(v, isFloatComma);
                 return (
                     <text
                         key={`vl${v}`}
@@ -547,13 +756,34 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                         y={y + 4}
                         textAnchor="end"
                         fontSize={11}
-                        fill="currentColor"
-                        opacity={0.5}
+                        fill={dualAxis ? series[0].color : 'currentColor'}
+                        opacity={dualAxis ? 0.7 : 0.5}
                     >
-                        {formatValue(v)}
+                        {label}
+                        {!isBoolean && vi === valTicks.length - 1 && leftUnit ? ` ${leftUnit}` : ''}
                     </text>
                 );
             })}
+
+            {/* Value axis labels (right, dual-axis mode) */}
+            {dualAxis &&
+                val2Ticks.map((v, vi) => {
+                    const y = valToY2(v);
+                    return (
+                        <text
+                            key={`vr${v}`}
+                            x={width - marginRight + 6}
+                            y={y + 4}
+                            textAnchor="start"
+                            fontSize={11}
+                            fill={series[1].color}
+                            opacity={0.7}
+                        >
+                            {formatValue(v, isFloatComma)}
+                            {vi === val2Ticks.length - 1 && series[1].unit ? ` ${series[1].unit}` : ''}
+                        </text>
+                    );
+                })}
 
             {/* Tooltip crosshair + dots + label */}
             {tooltip
@@ -569,7 +799,12 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                       const labels = entries.map(e => {
                           const displayName = e.name || (series.length === 1 ? chartTitle : undefined);
                           const entryUnit = e.unit || unit;
-                          return `${displayName ? `${displayName}: ` : ''}${formatValue(e.val)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                          const valueLabel = isBoolean
+                              ? e.val >= 0.5
+                                  ? I18n.t('wm_true')
+                                  : I18n.t('wm_false')
+                              : `${formatValue(e.val, isFloatComma)}${entryUnit ? ` ${entryUnit}` : ''}`;
+                          return `${displayName ? `${displayName}: ` : ''}${valueLabel}`;
                       });
 
                       const allLines = [...labels, timeLabel];
@@ -586,8 +821,8 @@ function InteractiveChart(props: InteractiveChartProps): React.JSX.Element {
                       if (boxX < MARGIN.left) {
                           boxX = MARGIN.left;
                       }
-                      if (boxX + boxW > width - MARGIN.right) {
-                          boxX = width - MARGIN.right - boxW;
+                      if (boxX + boxW > width - marginRight) {
+                          boxX = width - marginRight - boxW;
                       }
 
                       return (
@@ -665,10 +900,24 @@ export interface ChartDialogProps {
     historyInstance: string;
     socket: Connection;
     unit?: string;
+    isFloatComma?: boolean;
     /** Widget object ID — used to persist chart settings in custom['devices.0'] */
     widgetId?: string;
     /** Adapter instance ID, e.g. "devices.0" */
     instanceId?: string;
+    /**
+     * In-memory series data. When provided, the dialog renders this data directly
+     * and skips history loading. Used by the "Quick chart" mode for states that
+     * have no history adapter.
+     */
+    quickData?: ChartSeries[];
+    /**
+     * When set together with `quickData`, the visible time range is locked to
+     * `[Date.now() - lockedWindowMs, Date.now()]` and updates live. Pan/zoom is disabled.
+     */
+    lockedWindowMs?: number;
+    /** When true, the underlying state is boolean — forces step-end rendering and hides type/smoothing controls. */
+    isBoolean?: boolean;
 }
 
 function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
@@ -680,9 +929,14 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         historyInstance,
         socket,
         unit: unitProp,
+        isFloatComma,
         widgetId,
         instanceId,
+        quickData,
+        lockedWindowMs,
+        isBoolean,
     } = props;
+    const isQuick = !!quickData;
     // Stabilize historyIds so that a new array reference with the same content doesn't trigger re-fetches
     const historyIdsKey = JSON.stringify(historyIdsProp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -692,22 +946,26 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
     const [rangeHours, setRangeHours] = useState(DEFAULT_CHART_SETTINGS.rangeHours);
     const [chartType, setChartType] = useState<ChartLineType>(DEFAULT_CHART_SETTINGS.chartType);
     const [smoothing, setSmoothing] = useState(DEFAULT_CHART_SETTINGS.smoothing);
+    const [smoothingMethod, setSmoothingMethod] = useState<SmoothingMethod>(DEFAULT_CHART_SETTINGS.smoothingMethod);
     const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dims, setDims] = useState({ w: 600, h: 350 });
-    const [autoUnits, setAutoUnits] = useState<Record<string, string>>({});
     const unit = unitProp || '';
-    const settingsLoadedRef = useRef(false);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     // Load chart settings from custom['devices.0'] on the widget object
     useEffect(() => {
-        if (!open || !widgetId || !instanceId || settingsLoadedRef.current) {
+        if (!open || settingsLoaded) {
+            return;
+        }
+        if (!widgetId || !instanceId) {
+            setSettingsLoaded(true);
             return;
         }
         void (async () => {
             try {
                 const obj = await socket.getObject(widgetId);
-                const custom = (obj?.common as Record<string, any>)?.custom?.[instanceId];
+                const custom = (obj?.common as ioBroker.StateCommon)?.custom?.[instanceId];
                 if (custom) {
                     if (custom.chartType && ['line', 'step-start', 'step-end'].includes(custom.chartType)) {
                         setChartType(custom.chartType);
@@ -718,6 +976,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     ) {
                         setSmoothing(custom.chartSmoothing as SmoothingWindow);
                     }
+                    if (custom.chartSmoothingMethod && VALID_SMOOTHING_METHODS.has(custom.chartSmoothingMethod)) {
+                        setSmoothingMethod(custom.chartSmoothingMethod as SmoothingMethod);
+                    }
                     if (
                         typeof custom.chartRangeHours === 'number' &&
                         RANGE_OPTIONS.some(o => o.hours === custom.chartRangeHours)
@@ -725,17 +986,18 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         setRangeHours(custom.chartRangeHours);
                     }
                 }
-                settingsLoadedRef.current = true;
             } catch {
                 // ignore
+            } finally {
+                setSettingsLoaded(true);
             }
         })();
-    }, [open, widgetId, instanceId, socket]);
+    }, [open, widgetId, instanceId, socket, settingsLoaded]);
 
     // Reset loaded flag when dialog closes
     useEffect(() => {
         if (!open) {
-            settingsLoadedRef.current = false;
+            setSettingsLoaded(false);
         }
     }, [open]);
 
@@ -751,7 +1013,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     if (!obj) {
                         return;
                     }
-                    const common = obj.common as Record<string, any>;
+                    const common = obj.common as ioBroker.StateCommon;
                     common.custom ||= {};
                     common.custom[instanceId] = { ...common.custom[instanceId], [key]: value };
                     await socket.setObject(obj._id, obj);
@@ -765,6 +1027,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
 
     // Resolve alias history IDs (cache)
     const resolvedRef = useRef<Record<string, string | null>>({});
+    const unitRef = useRef<Record<string, string>>({});
 
     const resolveHistoryId = useCallback(
         async (stateId: string): Promise<string | null> => {
@@ -777,6 +1040,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     resolvedRef.current[stateId] = null;
                     return null;
                 }
+                if (obj.common?.unit) {
+                    unitRef.current[stateId] = obj.common.unit;
+                }
                 if (obj.common?.custom?.[historyInstance]?.enabled) {
                     resolvedRef.current[stateId] = stateId;
                     return stateId;
@@ -786,6 +1052,9 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                     const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
                     if (targetId && targetId !== stateId) {
                         const targetObj = (await socket.getObject(targetId)) as ioBroker.StateObject | null;
+                        if (targetObj?.common?.unit && !unitRef.current[stateId]) {
+                            unitRef.current[stateId] = targetObj.common.unit;
+                        }
                         if (targetObj?.common?.custom?.[historyInstance]?.enabled) {
                             resolvedRef.current[stateId] = targetId;
                             return targetId;
@@ -811,7 +1080,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                 setLoading(true);
             }
             const rangeMs = end - start;
-            const aggregate = rangeMs > 6 * 3_600_000 ? 'minmax' : 'none';
+            const aggregate = rangeMs > 3_600_000 ? 'minmax' : 'none';
 
             const result: ChartSeries[] = [];
             for (const { id, color, name } of historyIds) {
@@ -829,6 +1098,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         q: false,
                         addId: false,
                         aggregate,
+                        count: 2000,
                         returnNewestEntries: true,
                     });
                     const data: { ts: number; val: number }[] = [];
@@ -839,7 +1109,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             }
                         }
                     }
-                    result.push({ data, color, name, unit: autoUnits[id] });
+                    result.push({ data, color, name, unit: unitRef.current[id] });
                 } catch (e) {
                     console.warn(`ChartDialog: failed to load history for ${id}:`, e);
                 }
@@ -849,7 +1119,7 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                 setLoading(false);
             }
         },
-        [historyIds, historyInstance, socket, resolveHistoryId, autoUnits],
+        [historyIds, historyInstance, socket, resolveHistoryId],
     );
 
     const loadData = useCallback(
@@ -871,31 +1141,16 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
 
     // Load data when the dialog opens or range changes
     useEffect(() => {
-        if (open) {
-            void loadData(rangeHours, true);
-        }
-    }, [open, rangeHours, loadData]);
-
-    // Auto-detect units for each history state
-    useEffect(() => {
-        if (!open || unitProp || !historyIds.length) {
+        if (!open || !settingsLoaded) {
             return;
         }
-        void (async () => {
-            const units: Record<string, string> = {};
-            for (const { id } of historyIds) {
-                try {
-                    const obj = (await socket.getObject(id)) as ioBroker.StateObject | null;
-                    if (obj?.common?.unit) {
-                        units[id] = obj.common.unit;
-                    }
-                } catch {
-                    // ignore
-                }
-            }
-            setAutoUnits(units);
-        })();
-    }, [open, unitProp, historyIds, socket]);
+        if (quickData) {
+            setSeries(quickData);
+            setLoading(false);
+            return;
+        }
+        void loadData(rangeHours, true);
+    }, [open, settingsLoaded, rangeHours, loadData, quickData]);
 
     // Measure container size
     useEffect(() => {
@@ -912,13 +1167,20 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
         };
         // Measure after dialog animation
         const timer = setTimeout(measure, 100);
+
+        // Observe container resize (e.g. dialog layout changes)
         const observer = new ResizeObserver(measure);
         if (containerRef.current) {
             observer.observe(containerRef.current);
         }
+
+        // Also listen for window resize (orientation change, window drag, etc.)
+        window.addEventListener('resize', measure);
+
         return () => {
             clearTimeout(timer);
             observer.disconnect();
+            window.removeEventListener('resize', measure);
         };
     }, [open]);
 
@@ -948,76 +1210,107 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
             >
                 {/* Time range buttons + settings */}
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                    <ButtonGroup
-                        size="small"
-                        variant="outlined"
-                    >
-                        {RANGE_OPTIONS.map(opt => (
-                            <Button
-                                key={opt.hours}
-                                variant={rangeHours === opt.hours ? 'contained' : 'outlined'}
-                                onClick={() => {
-                                    setRangeHours(opt.hours);
-                                    saveSetting('chartRangeHours', opt.hours);
-                                }}
-                            >
-                                {rangeLabel(opt)}
-                            </Button>
-                        ))}
-                    </ButtonGroup>
-                    <Tooltip title={I18n.t('wm_Settings')}>
-                        <IconButton
+                    {!isQuick && (
+                        <ButtonGroup
                             size="small"
-                            onClick={e => setSettingsAnchor(e.currentTarget)}
+                            variant="outlined"
                         >
-                            <Settings fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                            {RANGE_OPTIONS.map(opt => (
+                                <Button
+                                    key={opt.hours}
+                                    variant={rangeHours === opt.hours ? 'contained' : 'outlined'}
+                                    onClick={() => {
+                                        setRangeHours(opt.hours);
+                                        saveSetting('chartRangeHours', opt.hours);
+                                    }}
+                                >
+                                    {rangeLabel(opt)}
+                                </Button>
+                            ))}
+                        </ButtonGroup>
+                    )}
+                    {!isBoolean && (
+                        <Tooltip title={I18n.t('wm_Settings')}>
+                            <IconButton
+                                size="small"
+                                onClick={e => setSettingsAnchor(e.currentTarget)}
+                            >
+                                <Settings fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     <Popover
-                        open={Boolean(settingsAnchor)}
+                        open={Boolean(settingsAnchor) && !isBoolean}
                         anchorEl={settingsAnchor}
                         onClose={() => setSettingsAnchor(null)}
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     >
                         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 200 }}>
-                            <TextField
-                                select
-                                variant="filled"
-                                size="small"
-                                label={I18n.t('wm_Chart type')}
-                                value={chartType}
-                                onChange={e => {
-                                    const val = e.target.value as ChartLineType;
-                                    setChartType(val);
-                                    saveSetting('chartType', val);
-                                }}
-                            >
-                                <MenuItem value="line">{I18n.t('wm_chart_line')}</MenuItem>
-                                <MenuItem value="step-start">{I18n.t('wm_chart_step_start')}</MenuItem>
-                                <MenuItem value="step-end">{I18n.t('wm_chart_step_end')}</MenuItem>
-                            </TextField>
-                            <TextField
-                                select
-                                variant="filled"
-                                size="small"
-                                label={I18n.t('wm_Smoothing')}
-                                value={smoothing}
-                                onChange={e => {
-                                    const val = Number(e.target.value) as SmoothingWindow;
-                                    setSmoothing(val);
-                                    saveSetting('chartSmoothing', val);
-                                }}
-                            >
-                                {SMOOTHING_OPTIONS.map(opt => (
-                                    <MenuItem
-                                        key={opt.value}
-                                        value={opt.value}
-                                    >
-                                        {I18n.t(opt.label)}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
+                            {!isBoolean && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Chart type')}
+                                    value={chartType}
+                                    onChange={e => {
+                                        const val = e.target.value as ChartLineType;
+                                        setChartType(val);
+                                        saveSetting('chartType', val);
+                                    }}
+                                >
+                                    <MenuItem value="line">{I18n.t('wm_chart_line')}</MenuItem>
+                                    <MenuItem value="step-start">{I18n.t('wm_chart_step_start')}</MenuItem>
+                                    <MenuItem value="step-end">{I18n.t('wm_chart_step_end')}</MenuItem>
+                                </TextField>
+                            )}
+                            {!isBoolean && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Smoothing')}
+                                    value={smoothing}
+                                    onChange={e => {
+                                        const val = Number(e.target.value) as SmoothingWindow;
+                                        setSmoothing(val);
+                                        saveSetting('chartSmoothing', val);
+                                    }}
+                                >
+                                    {SMOOTHING_OPTIONS.map(opt => (
+                                        <MenuItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {I18n.t(opt.label)}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            )}
+                            {!isBoolean && smoothing > 0 && (
+                                <TextField
+                                    select
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Smoothing method')}
+                                    value={smoothingMethod}
+                                    onChange={e => {
+                                        const val = e.target.value as SmoothingMethod;
+                                        setSmoothingMethod(val);
+                                        saveSetting('chartSmoothingMethod', val);
+                                    }}
+                                >
+                                    {SMOOTHING_METHOD_OPTIONS.map(opt => (
+                                        <MenuItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {I18n.t(opt.label)}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            )}
                         </Box>
                     </Popover>
                 </Box>
@@ -1048,9 +1341,13 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                             height={dims.h}
                             unit={unit}
                             title={title}
-                            chartType={chartType}
-                            smoothing={smoothing}
-                            onViewSettle={handleViewSettle}
+                            chartType={isBoolean ? 'step-end' : chartType}
+                            smoothing={isBoolean ? 0 : smoothing}
+                            smoothingMethod={smoothingMethod}
+                            isFloatComma={isFloatComma}
+                            onViewSettle={isQuick ? undefined : handleViewSettle}
+                            lockedWindowMs={lockedWindowMs}
+                            isBoolean={isBoolean}
                         />
                     ) : (
                         <Typography

@@ -2,9 +2,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { DirectionsRun, LightMode } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/adapter-react-v5';
-import moment from 'moment/min/moment-with-locales';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+
+interface AlarmWidgetSettings extends WidgetGenericSettings {
+    hideWhenOk?: boolean;
+}
 
 interface WidgetMotionState extends WidgetGenericState {
     motion: boolean;
@@ -16,12 +19,12 @@ interface WidgetMotionState extends WidgetGenericState {
     lastMotionAgo: string;
 }
 
-export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
+export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
     private readonly brightnessId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps) {
+    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
@@ -51,8 +54,8 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
             this.props.stateContext.getState(this.brightnessId, this.onBrightnessChange);
             void this.loadBrightnessObject();
         }
-        // Update relative time every 30 seconds
-        this.agoTimer = setInterval(() => this.updateAgo(), 30_000);
+        // Update relative time every 60 seconds
+        this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
     private async loadBrightnessObject(): Promise<void> {
@@ -106,11 +109,6 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         }
     }
 
-    private fromNow(ts: number): string {
-        console.log(this.props.language);
-        return moment(ts).locale(this.props.language).fromNow();
-    }
-
     private updateAgo(): void {
         const { lastMotion } = this.state;
         if (lastMotion) {
@@ -161,10 +159,10 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
         const { motion } = this.state;
         const accent = this.getAccentColor();
 
-        // Active: iconActive, fallback to iconInactive (with active color); Inactive: iconInactive only
+        // Active: iconActive, fallback to icon (with active color); Inactive: icon only
         const customIcon = motion
-            ? this.props.settings?.iconActive || this.props.settings?.iconInactive
-            : this.props.settings?.iconInactive;
+            ? this.props.settings?.iconActive || this.props.settings?.icon
+            : this.props.settings?.icon;
         if (customIcon) {
             return (
                 <Icon
@@ -190,8 +188,9 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
-        const size = this.props.settings?.size || this.props.size || '1x1';
-        if (size === '2x0.5') {
+        const size = this.props.settings?.size || '1x1';
+        if (size === '2x0.5' || size === '2x1') {
+            // 2x0.5 has no status row; 2x1 already shows motion text + brightness in renderTileAction
             return null;
         }
 
@@ -211,7 +210,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                     >
                         {motion
                             ? this.props.settings?.textActive || I18n.t('wm_Motion')
-                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
+                            : this.props.settings?.text || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography
@@ -229,7 +228,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                         </Typography>
                     ) : null}
                 </Box>
-                {size !== '2x1' && !motion && lastMotionAgo ? (
+                {!motion && lastMotionAgo ? (
                     <Typography
                         variant="caption"
                         sx={{ fontSize: '0.65rem', color: 'text.disabled', lineHeight: 1.2 }}
@@ -258,7 +257,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState> {
                     >
                         {motion
                             ? this.props.settings?.textActive || I18n.t('wm_Motion')
-                            : this.props.settings?.textInactive || I18n.t('wm_Clear')}
+                            : this.props.settings?.text || I18n.t('wm_Clear')}
                     </Typography>
                     {brightness != null ? (
                         <Typography
