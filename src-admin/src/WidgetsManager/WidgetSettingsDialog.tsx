@@ -58,7 +58,7 @@ interface WidgetSettingsDialogProps {
 
 /** Custom component registry */
 const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps, any>> = {
-    iconSelect: ConfigIconSelect as unknown as typeof ConfigGeneric<ConfigGenericProps, any>,
+    iconSelect: ConfigIconSelect,
 };
 
 /** Build the full json-config schema from base + widget-specific items */
@@ -224,7 +224,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     <JsonConfigComponent
                         socket={props.stateContext.getSocket() as unknown as AdminConnection}
                         themeName={props.theme.name}
-                        themeType={props.theme.palette.mode as 'dark' | 'light'}
+                        themeType={props.theme.palette.mode}
                         adapterName={adapterName}
                         instance={instanceNum}
                         isFloatComma={props.stateContext.isFloatComma ?? false}

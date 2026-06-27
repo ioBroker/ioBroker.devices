@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Onweer",
     "wm_w_Thunderstorm with hail": "Onweersbui met hagel",
     "wm_w_Thunderstorm with heavy hail": "Onweersbui met zware hagel",
-    "wm_w_Violent rain showers": "Heftige regenbuien"
+    "wm_w_Violent rain showers": "Heftige regenbuien",
+    "wm_Location": "Locatie",
+    "wm_No locations found": "Geen locaties gevonden"
 }

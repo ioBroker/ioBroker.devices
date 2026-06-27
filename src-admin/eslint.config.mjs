@@ -30,12 +30,6 @@ export default [
         },
     },
     {
-        ignores: [
-            'build/**/*',
-            'node_modules/**/*',
-            'public/vendor/socket.io.js',
-            'src/icons/html.js',
-            '.__mf__temp/**/*',
-        ],
+        ignores: ['build/**/*', 'node_modules/**/*', 'public/vendor/socket.io.js', '.__mf__temp/**/*'],
     },
 ];

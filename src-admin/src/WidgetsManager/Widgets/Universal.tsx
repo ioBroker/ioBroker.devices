@@ -339,7 +339,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                       }
                     : null,
             ].filter(Boolean) as IconDef[],
-        } as WidgetUniversalSettings;
+        };
     }
 
     private primaryHandler: StateChangeListener | null = null;

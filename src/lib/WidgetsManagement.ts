@@ -119,7 +119,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         for (const [id, obj] of Object.entries(this.objects)) {
             if (obj.type === 'enum') {
                 this.enumIds.push(id);
-                const members = (obj as ioBroker.EnumObject).common?.members;
+                const members = obj.common?.members;
                 if (members) {
                     for (const m of members) {
                         if (!ids.includes(m)) {

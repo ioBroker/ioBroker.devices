@@ -582,11 +582,8 @@ export class WidgetGeneric<
         }
 
         if (this.props.widget.icon && typeof this.props.widget.icon === 'object') {
-            if ((this.props.widget.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (this.props.widget.icon as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onIconChange,
-                );
+            if (this.props.widget.icon.stateId) {
+                this.props.stateContext.getState(this.props.widget.icon.stateId, this.onIconChange);
             }
         } else if (typeof this.props.widget.icon === 'string') {
             state ||= {};
@@ -594,11 +591,8 @@ export class WidgetGeneric<
         }
 
         if (this.props.widget.color && typeof this.props.widget.color === 'object') {
-            if ((this.props.widget.color as { stateId: string; mapping?: Record<string | number, string> }).stateId) {
-                this.props.stateContext.getState(
-                    (this.props.widget.color as { stateId: string; mapping?: Record<string | number, string> }).stateId,
-                    this.onColorChange,
-                );
+            if (this.props.widget.color.stateId) {
+                this.props.stateContext.getState(this.props.widget.color.stateId, this.onColorChange);
             }
         } else if (typeof this.props.widget.color === 'string') {
             state ||= {};
@@ -949,14 +943,11 @@ export class WidgetGeneric<
     }
 
     private onExtraInfoChange = (id: string, state: ioBroker.State): void => {
-        this.setState(
-            prev =>
-                ({
-                    extraInfo: prev.extraInfo.map(e =>
-                        e.id === id ? { ...e, value: state.val as number | string | null } : e,
-                    ),
-                }) as Partial<TState> as TState,
-        );
+        this.setState(prev => ({
+            extraInfo: prev.extraInfo.map(e =>
+                e.id === id ? { ...e, value: state.val as number | string | null } : e,
+            ),
+        }));
     };
 
     private formatExtraInfoValue(entry: ExtraInfoEntry): string {

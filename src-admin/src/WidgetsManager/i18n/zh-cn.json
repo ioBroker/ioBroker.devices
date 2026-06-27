@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "雷雨",
     "wm_w_Thunderstorm with hail": "雷暴伴冰雹",
     "wm_w_Thunderstorm with heavy hail": "雷暴伴有大冰雹",
-    "wm_w_Violent rain showers": "暴雨"
+    "wm_w_Violent rain showers": "暴雨",
+    "wm_Location": "位置",
+    "wm_No locations found": "未找到位置"
 }

@@ -111,7 +111,7 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                         const parts = row.id.split('.');
                         const adapterName = parts[2];
                         if (adapterName) {
-                            result[adapterName] = common.deviceWidgets as any;
+                            result[adapterName] = common.deviceWidgets;
                         }
                     }
                 }

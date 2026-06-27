@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Tormenta",
     "wm_w_Thunderstorm with hail": "Tormenta eléctrica con granizo",
     "wm_w_Thunderstorm with heavy hail": "Tormenta eléctrica con granizo intenso",
-    "wm_w_Violent rain showers": "Fuertes aguaceros"
+    "wm_w_Violent rain showers": "Fuertes aguaceros",
+    "wm_Location": "Ubicación",
+    "wm_No locations found": "No se encontraron ubicaciones"
 }

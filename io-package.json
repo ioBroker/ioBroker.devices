@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "2.1.5",
+    "version": "3.0.0",
     "news": {
+      "3.0.0": {
+        "en": "Corrected universal widget\nAdded open-meteo-weather adapter support\nRead all states anew after the reconnection",
+        "de": "Korrigiertes universelles Widget\nUnterstützung für den Open-Meteo-Weather-Adapter hinzugefügt.\nLesen Sie alle Zustände nach der Wiederverbindung erneut.",
+        "ru": "Исправлен универсальный виджет\nДобавлена поддержка адаптера open-meteo-weather\nПеречитайте все данные по штатам заново после восстановления связи.",
+        "pt": "Widget universal corrigido\nAdicionado suporte ao adaptador open-meteo-weather\nLeia todos os estados novamente após a reconexão.",
+        "nl": "Gecorrigeerde universele widget\nOndersteuning voor open-meteo-weather-adapter toegevoegd\nLees alle statussen opnieuw na de herverbinding.",
+        "fr": "Widget universel corrigé\nAjout de la prise en charge de l'adaptateur open-meteo-weather\nRelisez tous les états après la reconnexion.",
+        "it": "Widget universale corretto\nAggiunto il supporto per l'adattatore open-meteo-weather\nLeggi di nuovo tutti gli stati dopo la riconnessione",
+        "es": "Widget universal corregido\nSe agregó compatibilidad con el adaptador open-meteo-weather.\nLea todos los estados nuevamente después de la reconexión.",
+        "pl": "Poprawiono uniwersalny widget\nDodano obsługę adaptera Open-meteo-weather\nOdczytaj wszystkie stany ponownie po ponownym połączeniu",
+        "uk": "Виправлено універсальний віджет\nДодано підтримку адаптера open-meteo-weather\nЗчитати всі стани заново після повторного підключення",
+        "zh-cn": "已修正的通用小部件\n新增 open-meteo-weather 适配器支持\n重新连接后，请重新阅读所有状态。"
+      },
       "2.1.5": {
         "en": "Added a theme type to context",
         "de": "Hinzufügen eines Thementyps zum Kontext",
@@ -80,19 +93,6 @@
         "pl": "Dodano wiele nowych widżetów.",
         "uk": "Додайте багато нових віджетів.",
         "zh-cn": "添加了许多新部件 ."
-      },
-      "2.0.3": {
-        "en": "Added widgets' visualisation. Now it is possible to create a GUI within the adapter",
-        "de": "Die Visualisierung von Widgets wurde hinzugefügt. Jetzt ist es möglich, eine GUI innerhalb des Adapters zu erstellen",
-        "ru": "Добавлена визуализация виджетов. Теперь можно создать GUI внутри адаптера",
-        "pt": "Visualização de widgets adicionados. Agora é possível criar uma GUI dentro do adaptador",
-        "nl": "Toegevoegd widgets visualisatie. Nu is het mogelijk om een GUI te maken binnen de adapter",
-        "fr": "Ajout de la visualisation des widgets. Maintenant il est possible de créer une interface graphique dans l'adaptateur",
-        "it": "Aggiunta visualizzazione dei widget. Ora è possibile creare una GUI all'interno dell'adattatore",
-        "es": "Visualización de widgets añadidos. Ahora es posible crear un GUI dentro del adaptador",
-        "pl": "Dodano wizualizację widżetów. Teraz jest możliwe stworzenie GUI w adapterze",
-        "uk": "Додано візуалізацію віджетів. Тепер можна створювати GUI в адаптері",
-        "zh-cn": "添加部件的可视化 。 现在可以在适配器内创建图形界面"
       }
     },
     "titleLang": {
@@ -146,6 +146,7 @@
     "type": "general",
     "eraseOnUpload": true,
     "mode": "daemon",
+    "nogit": true,
     "adminTab": {
       "singleton": true,
       "name": {
@@ -181,6 +182,11 @@
       },
       {
         "web": ">=8"
+      }
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
       }
     ]
   },
