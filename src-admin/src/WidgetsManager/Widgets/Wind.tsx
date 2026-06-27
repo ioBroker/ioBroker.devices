@@ -433,7 +433,7 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                             }}
                         >
                             {WidgetWind.renderCompass(
-                                '100%' as unknown as number,
+                                '100%',
                                 direction,
                                 speed,
                                 speedUnit,
@@ -572,7 +572,7 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                         }}
                     >
                         {WidgetWind.renderCompass(
-                            '100%' as unknown as number,
+                            '100%',
                             direction,
                             speed,
                             speedUnit,

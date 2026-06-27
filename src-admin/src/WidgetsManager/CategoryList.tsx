@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, LinearProgress } from '@mui/material';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import { I18n } from '@iobroker/adapter-react-v5';
@@ -244,6 +244,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         latitude: null,
         longitude: null,
         defaultHistory: null,
+        themeType: this.props.themeType,
     });
 
     private lastAliveSubscribe = '';
@@ -2370,6 +2371,14 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     </Box>
                 </ThemeProvider>
             );
+        }
+
+        // While the devices are still being loaded there is no current category yet.
+        // `loading` is `null` before the first load and `true` while loading, becoming
+        // `false` only once the load finished. Show a progress bar instead of the
+        // misleading "Nothing defined" message until loading is actually done.
+        if (this.state.loading !== false) {
+            return <LinearProgress />;
         }
 
         return <div>{I18n.t('wm_Nothing defined')}</div>;

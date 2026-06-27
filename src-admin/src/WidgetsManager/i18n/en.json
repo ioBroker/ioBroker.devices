@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Thunderstorm",
     "wm_w_Thunderstorm with hail": "Thunderstorm with hail",
     "wm_w_Thunderstorm with heavy hail": "Thunderstorm with heavy hail",
-    "wm_w_Violent rain showers": "Violent rain showers"
+    "wm_w_Violent rain showers": "Violent rain showers",
+    "wm_Location": "Location",
+    "wm_No locations found": "No locations found"
 }

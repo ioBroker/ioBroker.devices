@@ -15,6 +15,7 @@ import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/adapter-react-v5';
 
 import WidgetGeneric, {
+    formatFloat,
     isNeumorphicTheme,
     type WidgetGenericSettings,
     type WidgetGenericProps,
@@ -466,7 +467,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
 
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
 
         return (
             <Typography
@@ -687,7 +691,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const circumference = 2 * Math.PI * r;
         const arcLength = circumference * 0.75;
         const progress = (level / 100) * arcLength;
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
 
         return (
             <Box
@@ -796,7 +803,10 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
-        const displayValue = unit === '%' ? `${level}%` : `${Math.round(rawValue)} ${unit}`;
+        const displayValue =
+            unit === '%'
+                ? `${level}%`
+                : `${Number.isInteger(rawValue) ? rawValue : formatFloat(rawValue, 1, this.props.stateContext.isFloatComma)} ${unit}`;
         const accentOrDefault = accent || '#1976d2';
 
         return (

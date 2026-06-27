@@ -111,7 +111,7 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                         const parts = row.id.split('.');
                         const adapterName = parts[2];
                         if (adapterName) {
-                            result[adapterName] = common.deviceWidgets as any;
+                            result[adapterName] = common.deviceWidgets;
                         }
                     }
                 }
@@ -124,5 +124,9 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
 
     private sendReply<T>(reply: T, msg: ioBroker.Message): void {
         this.adapter.sendTo(msg.from, msg.command, reply, msg.callback);
+    }
+
+    public destroy(): void {
+        // do nothing
     }
 }

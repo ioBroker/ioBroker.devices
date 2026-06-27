@@ -456,5 +456,7 @@
     "wm_w_Thunderstorm": "Temporale",
     "wm_w_Thunderstorm with hail": "Temporale con grandine",
     "wm_w_Thunderstorm with heavy hail": "Temporale con grandine intensa",
-    "wm_w_Violent rain showers": "Violenti acquazzoni"
+    "wm_w_Violent rain showers": "Violenti acquazzoni",
+    "wm_Location": "Posizione",
+    "wm_No locations found": "Nessuna posizione trovata"
 }

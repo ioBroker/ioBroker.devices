@@ -114,7 +114,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     default: 1,
                     min: 0,
                     max: 5,
-                    hidden: 'data.stateId && (await getObject(data.stateId))?.common?.type === "number"',
+                    hidden: '!data.stateId || (await getObject(data.stateId))?.common?.type !== "number"',
                 },
                 widgetIcon: { type: 'component', subType: 'iconSelect', label: 'wm_Icon', sm: 6 },
                 widgetIconActive: { type: 'component', subType: 'iconSelect', label: 'wm_Active icon', sm: 6 },
@@ -339,7 +339,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                       }
                     : null,
             ].filter(Boolean) as IconDef[],
-        } as WidgetUniversalSettings;
+        };
     }
 
     private primaryHandler: StateChangeListener | null = null;
@@ -347,6 +347,14 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
     private secondaryHandler: StateChangeListener | null = null;
     private opacityHandler: StateChangeListener | null = null;
     private iconHandlers: (StateChangeListener | null)[] = [];
+
+    /**
+     * Type used to convert the primary raw value. Kept in an instance field (not state) so the
+     * value handler reads it synchronously, independent of React's async setState.
+     */
+    private primaryCommonType: ioBroker.CommonType = 'mixed';
+    /** Last raw value received for the primary state, so it can be re-derived once the type is known */
+    private lastPrimaryRaw: ioBroker.StateValue | null | undefined = undefined;
 
     /** Cached object metadata keyed by state ID */
     private objectCache = new Map<string, ioBroker.StateObject>();
@@ -587,16 +595,15 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
 
         // Primary value
         if (this.props.settings.stateId) {
+            const stateId = this.props.settings.stateId;
+            // Reset per-subscription state (e.g. when the stateId changed)
+            this.primaryCommonType = 'mixed';
+            this.lastPrimaryRaw = undefined;
+
             this.primaryHandler = (_id, state) => {
                 const val = state?.val;
-                let value: number | string | boolean | null;
-                if (this.state.commonType === 'boolean') {
-                    value = val === true || val === 'true' || val === 1 || val === '1' || val === 'ON' || val === 'AN';
-                } else if (this.state.commonType === 'number') {
-                    value = val != null ? Number(val) : null;
-                } else {
-                    value = (val || '').toString();
-                }
+                this.lastPrimaryRaw = val;
+                const value = this.convertPrimaryValue(val);
                 this.setState({ value });
                 // Capture immediately on every state change when QuickChart is on,
                 // so the chart populates without waiting for the next interval tick.
@@ -608,18 +615,40 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
                     this.captureQuickSample(value);
                 }
             };
-            ctx.getState(this.props.settings.stateId, this.primaryHandler);
-            void this.getCachedObject(this.props.settings.stateId).then(obj => {
-                if (obj?.common?.unit) {
-                    this.setState({
-                        unit: obj.common.unit,
-                        commonType: obj.common.type,
-                        commonName: this.getText(obj.common.name),
-                    });
-                } else if (obj?.common?.type) {
-                    this.setState({ commonType: obj.common.type, commonName: this.getText(obj.common.name) });
+
+            // Option 2: resolve the object (→ commonType) FIRST, then subscribe to the value, so the
+            // very first value is already converted with the correct type instead of being stringified raw.
+            void (async () => {
+                try {
+                    const obj = await this.getCachedObject(stateId);
+                    if (obj?.common?.type) {
+                        this.primaryCommonType = obj.common.type;
+                        if (obj.common.unit) {
+                            this.setState({
+                                unit: obj.common.unit,
+                                commonType: obj.common.type,
+                                commonName: this.getText(obj.common.name),
+                            });
+                        } else {
+                            this.setState({
+                                commonType: obj.common.type,
+                                commonName: this.getText(obj.common.name),
+                            });
+                        }
+                        // Option 3: a value may already have arrived before the type was known —
+                        // re-derive it now with the correct type so it gets formatted properly.
+                        if (this.lastPrimaryRaw !== undefined) {
+                            this.setState({ value: this.convertPrimaryValue(this.lastPrimaryRaw) });
+                        }
+                    }
+                } catch {
+                    // Object not found / fetch failed — fall back to 'mixed' handling
                 }
-            });
+                // Subscribe only after we attempted to resolve the type (guard against a fast unmount)
+                if (this.primaryHandler) {
+                    ctx.getState(stateId, this.primaryHandler);
+                }
+            })();
         }
 
         // Secondary value
@@ -807,6 +836,17 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
         return undefined;
     }
 
+    /** Convert a raw state value into the typed value used for display, based on the resolved common type. */
+    private convertPrimaryValue(val: ioBroker.StateValue | null | undefined): number | string | boolean | null {
+        if (this.primaryCommonType === 'boolean') {
+            return val === true || val === 'true' || val === 1 || val === '1' || val === 'ON' || val === 'AN';
+        }
+        if (this.primaryCommonType === 'number') {
+            return val != null ? Number(val) : null;
+        }
+        return (val ?? '').toString();
+    }
+
     private formatValue(val: number | boolean | string, hasIcon: boolean): string | null {
         if (typeof val === 'boolean') {
             if (val) {
@@ -953,11 +993,7 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
      * names) from overflowing the tile when CSS `text-overflow: ellipsis` alone would clip
      * too aggressively.
      */
-    private static calcFontSize(
-        text: string,
-        kind: 'value' | 'name',
-        layout: 'compact' | 'wide' | 'wideTall',
-    ): number {
+    private static calcFontSize(text: string, kind: 'value' | 'name', layout: 'compact' | 'wide' | 'wideTall'): number {
         const len = text.length;
         if (kind === 'name') {
             // Name is the secondary line — keep it readable but compact.

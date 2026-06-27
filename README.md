@@ -135,6 +135,18 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 ### **WORK IN PROGRESS**
 - (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
 
+### 3.0.0 (2026-06-26)
+* (@GermanBluefox) Corrected universal widget
+* (@GermanBluefox) Added open-meteo-weather adapter support
+* (@GermanBluefox) Read all states anew after the reconnection
+
+### 2.1.5 (2026-05-28)
+* (@GermanBluefox) Added a theme type to context
+
+### 2.1.4 (2026-05-27)
+* (@GermanBluefox) Added digits after comma for Display widget
+* (@GermanBluefox) Added an installation script
+
 ### 2.1.2 (2026-05-20)
 * (@GermanBluefox) Extended universal widget
 
@@ -306,6 +318,8 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 
 ### 0.1.0 (2019-08-31)
 * (bluefox) initial release
+
+[Older changelogs can be found there](CHANGELOG_OLD.md)
 
 ## License
 MIT License
