@@ -321,6 +321,7 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
                 deviceToCopy: this.props.deviceToCopy,
                 language: I18n.getLanguage(),
                 objects: this.props.objects,
+                mode: 'duplicate',
             });
             this.props.onClose();
         } else {

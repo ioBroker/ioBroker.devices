@@ -333,7 +333,7 @@ export default function DialogImporter(props: {
     devices: PatternControlEx[];
     objects: Record<string, ioBroker.Object>;
     listItems: ListItem[];
-    onCopyDevice: (fromId: string, toId: string) => Promise<void>;
+    onCopyDevice: (fromId: string, toId: string, mode?: 'move' | 'duplicate' | 'import') => Promise<void>;
     theme: IobTheme;
     themeType: ThemeType;
 }): React.JSX.Element {
@@ -465,7 +465,7 @@ export default function DialogImporter(props: {
 
     const addDevice = async (id: string, el: ListItem): Promise<void> => {
         const newId = `${id}.${el.title.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-        await onCopyDevice(el.id, newId);
+        await onCopyDevice(el.id, newId, 'import');
     };
 
     const checkDeviceInObjects = (name: string, id: string): boolean => {
