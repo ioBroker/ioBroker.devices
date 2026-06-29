@@ -19,7 +19,7 @@ import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/adapter-reac
 
 import UploadImage from '../Components/UploadImage';
 import type { PatternControlEx } from '../types';
-import { copyDevice, getParentId } from '../Components/helpers/utils';
+import { copyDevice, getParentId, normalizeName } from '../Components/helpers/utils';
 
 const styles: Record<string, React.CSSProperties> = {
     paper: {
@@ -176,11 +176,11 @@ function DialogEditFolder(props: {
         } else {
             parentId = getParentId(data!._id);
         }
-        return `${parentId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        return `${parentId}.${normalizeName(name)}`;
     };
 
     const onChangeCopy = async (): Promise<void> => {
-        const parentId = `${getParentId(data!._id)}.${dataEdit.common.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        const parentId = `${getParentId(data!._id)}.${normalizeName(dataEdit.common.name)}`;
 
         // If the new (sanitized) ID is identical to the current one - only the display name changed,
         // e.g. "A B" -> "A.B", both sanitize to "A_B" - there is nothing to move. Just update the
@@ -195,7 +195,10 @@ function DialogEditFolder(props: {
 
         for (let i = 0; i < arrayObjects.length; i++) {
             const el = arrayObjects[i];
-            const newId = el._id.replace(data!._id, parentId);
+            // Every el._id is `data._id` itself or a descendant of it (see arrayObjects filter), so
+            // swap just the id prefix. Using String.replace(data._id, parentId) would also mangle a
+            // parentId that contains `$`/`&` (allowed by FORBIDDEN_CHARS) as a replacement pattern.
+            const newId = `${parentId}${el._id.slice(data!._id.length)}`;
             if (el.type === 'folder') {
                 await addNewFolder(data!._id === el._id ? dataEdit.common : el.common, newId);
             } else {
@@ -227,7 +230,7 @@ function DialogEditFolder(props: {
             setStartTheProcess(true);
             if (newFolder) {
                 const newDataEdit = JSON.parse(JSON.stringify(dataEdit));
-                newDataEdit._id = `${newId}.${name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+                newDataEdit._id = `${newId}.${normalizeName(name)}`;
                 await socket.setObject(newDataEdit._id, newDataEdit);
             } else {
                 // If name and ID were changed
@@ -309,9 +312,7 @@ function DialogEditFolder(props: {
 
                                     if (!newFolder) {
                                         const parentId = getParentId(data!._id);
-                                        setId(
-                                            `${parentId}.${e.target.value.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`,
-                                        );
+                                        setId(`${parentId}.${normalizeName(e.target.value)}`);
                                     }
 
                                     setName(e.target.value);

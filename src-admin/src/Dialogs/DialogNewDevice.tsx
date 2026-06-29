@@ -25,7 +25,7 @@ import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils }
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';
 import type { PatternControlEx } from '../types';
-import { copyDevice, getLastPart, getParentId } from '../Components/helpers/utils';
+import { copyDevice, getLastPart, getParentId, normalizeName } from '../Components/helpers/utils';
 import EnumSelector from '../Components/EnumSelector';
 
 const styles: Record<string, any> = {
@@ -306,10 +306,10 @@ class DialogNewDevice extends React.Component<DialogNewDeviceProps, DialogNewDev
         if (this.props.deviceToCopy) {
             const channelId = this.props.deviceToCopy.channelId;
             const parentId = getParentId(channelId);
-            return `${parentId || this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+            return `${parentId || this.state.root}.${normalizeName(this.state.name)}`;
         }
 
-        return `${this.state.root}.${this.state.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
+        return `${this.state.root}.${normalizeName(this.state.name)}`;
     }
 
     handleOk = async (): Promise<void> => {

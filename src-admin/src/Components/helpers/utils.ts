@@ -164,6 +164,30 @@ export function getParentId(id: string): string {
     return '';
 }
 
+/**
+ * Build a valid ioBroker id segment from a free-text (possibly translated) name.
+ *
+ * Single source of truth for the sanitization that the device manager applies when turning a
+ * user-entered name into an object id: drop characters rejected by `Utils.FORBIDDEN_CHARS`, then
+ * collapse whitespace and dots to `_`. A dot is a valid id character but acts as a hierarchy
+ * separator, so without this a name like "Foo.Bar" would create a nested object path instead of a
+ * single channel/folder. Accepts a translated name object as well, so callers don't crash on a
+ * multilingual `common.name` value.
+ *
+ * NOTE: `/` and `:` are also accepted by `FORBIDDEN_CHARS` and not collapsed here, matching the
+ * historic behavior of every call site. If we ever want to harden those too, this is now the one
+ * place to do it.
+ */
+export function normalizeName(name: ioBroker.StringOrTranslated | undefined, language?: ioBroker.Languages): string {
+    let str: string;
+    if (name && typeof name === 'object') {
+        str = name[language || I18n.getLanguage()] || name.en || name[Object.keys(name)[0] as ioBroker.Languages] || '';
+    } else {
+        str = (name as string) || '';
+    }
+    return str.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
+}
+
 export function getLastPart(id: string): string {
     const pos = id.lastIndexOf('.');
     if (pos !== -1) {
