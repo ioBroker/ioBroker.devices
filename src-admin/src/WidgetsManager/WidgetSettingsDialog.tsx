@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Box,
     Button,
@@ -182,8 +182,15 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         [props, props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
     );
 
+    const wasOpenRef = useRef(false);
+
     useEffect(() => {
-        if (open) {
+        // Only (re)initialize the form when the dialog actually opens. The dialog is modal, so the
+        // user always closes it before editing another widget — i.e. `open` cycles false→true between
+        // widgets. We must NOT re-initialize while it stays open: the parent may hand us a fresh
+        // `settings` object reference on unrelated re-renders (e.g. a live status tick re-publishes the
+        // widget object), which would otherwise wipe the user's in-progress edits ~1s after a change.
+        if (open && !wasOpenRef.current) {
             setValues({
                 ...settings,
                 name: settings.name || objectName || widgetName,
@@ -200,6 +207,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     .catch(() => setHistoryEnabled(false));
             }
         }
+        wasOpenRef.current = open;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, settings]);
 

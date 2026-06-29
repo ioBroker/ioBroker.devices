@@ -50,6 +50,12 @@ export interface CategorySettings {
     wmTheme?: WmThemeId;
     /** Default category ID to show when a page loads without hash (root only) */
     defaultCategory?: string;
+    /** Room value for the power badge. undefined = 'sum' (sum all consumers, default). 'sum' | <stateId>. */
+    powerSource?: string;
+    /** Room value for temperature. undefined = 'first' (first sensor, default). 'first' | 'avg' | <stateId>. */
+    temperatureSource?: string;
+    /** Room value for humidity. Same semantics as temperatureSource. */
+    humiditySource?: string;
 }
 
 export const DEFAULT_CATEGORY_SETTINGS: CategorySettings = {
@@ -66,6 +72,19 @@ export interface CategoryOption {
     icon?: string;
 }
 
+/** A selectable detected state offered as a room-value source in the category settings. */
+export interface StatusCandidate {
+    id: string;
+    label: string;
+}
+
+/** Detected room-value candidates for a category, grouped by metric. */
+export interface StatusCandidates {
+    power: StatusCandidate[];
+    temperature: StatusCandidate[];
+    humidity: StatusCandidate[];
+}
+
 interface CategorySettingsDialogProps {
     open: boolean;
     categoryName: string;
@@ -77,10 +96,13 @@ interface CategorySettingsDialogProps {
     theme: IobTheme;
     /** All available categories for the default-category picker (root only) */
     categoryOptions?: CategoryOption[];
+    /** Detected room-value candidates (power/temperature/humidity) for this category */
+    statusCandidates?: StatusCandidates | null;
 }
 
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
     const { open, categoryName, categoryId, settings, onClose, onSave, theme, categoryOptions, stateContext } = props;
+    const statusCandidates = props.statusCandidates;
     // In admin, files are served under /files/, in web they are at root
     const [local, setLocal] = useState<CategorySettings>(settings);
     const [preview, setPreview] = useState<string>('');
@@ -332,7 +354,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         (isRoot && (local.wmTheme || 'auto') !== (settings.wmTheme || 'auto')) ||
         (isRoot && (local.defaultCategory || '') !== (settings.defaultCategory || '')) ||
         (local.icon || '') !== (settings.icon || '') ||
-        (local.rootIcon || '') !== (settings.rootIcon || '');
+        (local.rootIcon || '') !== (settings.rootIcon || '') ||
+        (local.powerSource || 'sum') !== (settings.powerSource || 'sum') ||
+        (local.temperatureSource || 'first') !== (settings.temperatureSource || 'first') ||
+        (local.humiditySource || 'first') !== (settings.humiditySource || 'first');
 
     const icon = stateContext.getImagePath(local.icon);
 
@@ -657,6 +682,91 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 </MenuItem>
                             ))}
                         </TextField>
+                    ) : null}
+
+                    {statusCandidates &&
+                    (statusCandidates.power.length ||
+                        statusCandidates.temperature.length ||
+                        statusCandidates.humidity.length) ? (
+                        <>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', mt: 2, mb: 0.5 }}
+                            >
+                                {I18n.t('wm_Room status values')}
+                            </Typography>
+                            {statusCandidates.power.length ? (
+                                <TextField
+                                    select
+                                    fullWidth
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Power room value')}
+                                    value={local.powerSource || 'sum'}
+                                    onChange={e => setLocal({ ...local, powerSource: e.target.value })}
+                                    sx={{ mt: 1 }}
+                                >
+                                    <MenuItem value="sum">{I18n.t('wm_Sum all consumers')}</MenuItem>
+                                    {statusCandidates.power.map(c => (
+                                        <MenuItem
+                                            key={c.id}
+                                            value={c.id}
+                                        >
+                                            {c.label}
+                                        </MenuItem>
+                                    ))}
+                                    <MenuItem value="hidden">{I18n.t('wm_Do not show')}</MenuItem>
+                                </TextField>
+                            ) : null}
+                            {statusCandidates.temperature.length ? (
+                                <TextField
+                                    select
+                                    fullWidth
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Temperature room value')}
+                                    value={local.temperatureSource || 'first'}
+                                    onChange={e => setLocal({ ...local, temperatureSource: e.target.value })}
+                                    sx={{ mt: 1 }}
+                                >
+                                    <MenuItem value="first">{I18n.t('wm_First sensor')}</MenuItem>
+                                    <MenuItem value="avg">{I18n.t('wm_Average of all')}</MenuItem>
+                                    {statusCandidates.temperature.map(c => (
+                                        <MenuItem
+                                            key={c.id}
+                                            value={c.id}
+                                        >
+                                            {c.label}
+                                        </MenuItem>
+                                    ))}
+                                    <MenuItem value="hidden">{I18n.t('wm_Do not show')}</MenuItem>
+                                </TextField>
+                            ) : null}
+                            {statusCandidates.humidity.length ? (
+                                <TextField
+                                    select
+                                    fullWidth
+                                    variant="filled"
+                                    size="small"
+                                    label={I18n.t('wm_Humidity room value')}
+                                    value={local.humiditySource || 'first'}
+                                    onChange={e => setLocal({ ...local, humiditySource: e.target.value })}
+                                    sx={{ mt: 1 }}
+                                >
+                                    <MenuItem value="first">{I18n.t('wm_First sensor')}</MenuItem>
+                                    <MenuItem value="avg">{I18n.t('wm_Average of all')}</MenuItem>
+                                    {statusCandidates.humidity.map(c => (
+                                        <MenuItem
+                                            key={c.id}
+                                            value={c.id}
+                                        >
+                                            {c.label}
+                                        </MenuItem>
+                                    ))}
+                                    <MenuItem value="hidden">{I18n.t('wm_Do not show')}</MenuItem>
+                                </TextField>
+                            ) : null}
+                        </>
                     ) : null}
 
                     {isRoot ? (

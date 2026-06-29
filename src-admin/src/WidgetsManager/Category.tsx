@@ -98,7 +98,7 @@ import {
 } from './Widgets';
 
 import type StateContext from './StateContext';
-import type { CategorySettings } from './CategorySettingsDialog';
+import type { CategorySettings, StatusCandidate, StatusCandidates } from './CategorySettingsDialog';
 import { normalizeColor } from './Utils';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import {
@@ -129,7 +129,7 @@ interface CategoryProps {
     widgetSettings: Record<string, WidgetSettingsBase>;
     onOpenSettings?: (widgetId: string | number) => void;
     categorySettings: Record<string, CategorySettings>;
-    onOpenCategorySettings?: (categoryId: string) => void;
+    onOpenCategorySettings?: (categoryId: string, candidates: StatusCandidates) => void;
     onAddCustomWidget?: (categoryId: string) => void;
     onRemoveCustomWidget?: (categoryId: string, widgetId: string) => void;
     onOpenCustomWidgetSettings?: (categoryId: string, widgetId: string) => void;
@@ -218,15 +218,22 @@ const DEFAULT_CATEGORY_STATUS: CategoryStatus = {
     lowBatteryDevices: [],
 };
 
-// Match common power-related detector roles (e.g. value.power, level.power, *.power.*).
-const POWER_ROLE_PATTERN = /(?:^|\.)(?:value|level)\.power(?:\.|$)|(?:^|\.)power(?:\.|$)|watt|consumption/i;
+// Match common active-power detector roles (e.g. value.power, level.power, *.power.*, watt).
+// The badge shows these in watts, so the matching must stay limited to instantaneous power.
+const POWER_ROLE_PATTERN = /(?:^|\.)value\.power(?:\.|$)|(?:^|\.)power(?:\.|$)|watt/i;
+// ...but exclude power-family roles whose unit is NOT watts, so we never mislabel them as "W":
+//   factor   -> power factor (dimensionless)
+//   reactive -> reactive power (var)
+//   apparent -> apparent power (VA)
+//   consum*/energy/kwh -> energy, not power (kWh)
+const NON_WATT_POWER_PATTERN = /factor|reactive|apparent|consum|energy|kwh/i;
 
 type StatusRole = 'temperature' | 'power' | 'humidity' | 'motion' | 'window' | 'door' | 'lowbat' | 'battery' | 'sensor';
 
 interface StatusSubscription {
     stateId: string;
     role: StatusRole;
-    /** Widget name for window/door sensors */
+    /** Widget/sensor display name (used for openings and as candidate label in category settings) */
     widgetName?: string;
     /** Custom widget icon (from `common.icon`) */
     widgetIcon?: string;
@@ -234,6 +241,8 @@ interface StatusSubscription {
     widgetId?: string;
     /** Which category this sensor belongs to (for subcategory status) */
     categoryId?: string;
+    /** common.unit of the state (used to normalize power to watts) */
+    unit?: string;
 }
 
 type OrderedItem = {
@@ -1624,6 +1633,32 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             if (!type) {
                 continue;
             }
+            const wName = this.getWidgetName(w);
+
+            // Power can live in ANY state of a widget (e.g. a socket/light that also exposes a
+            // power-measurement state), so scan every state for an active-power role — not just
+            // ACTUAL. Each matching state becomes its own selectable power source. Run this first
+            // so a power state is claimed as 'power' before the sensor fallback below subscribes it.
+            for (const st of w.control.states) {
+                const stRole = typeof st.stateRole === 'string' ? st.stateRole : '';
+                if (
+                    st.id &&
+                    stRole &&
+                    POWER_ROLE_PATTERN.test(stRole) &&
+                    !NON_WATT_POWER_PATTERN.test(stRole) &&
+                    !this.statusSubs.some(s => s.stateId === st.id && s.categoryId === categoryId)
+                ) {
+                    this.statusSubs.push({
+                        stateId: st.id,
+                        role: 'power',
+                        widgetName: wName,
+                        unit: typeof st.unit === 'string' ? st.unit : undefined,
+                        categoryId,
+                    });
+                    this.props.stateContext.getState(st.id, this.onStatusChange);
+                }
+            }
+
             let role: StatusRole | null = null;
             if (type === Types.temperature) {
                 role = 'temperature';
@@ -1636,32 +1671,19 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             } else if (type === Types.door) {
                 role = 'door';
             }
-            const actual = w.control.states.find(s => s.name === 'ACTUAL');
-            const actualRole =
-                typeof actual?.stateRole === 'string'
-                    ? actual.stateRole
-                    : typeof actual?.role === 'string'
-                      ? actual.role
-                      : '';
-            if (!role && actualRole && POWER_ROLE_PATTERN.test(actualRole)) {
-                role = 'power';
-            }
             if (role) {
-                const stateForSub = actual;
-                if (stateForSub?.id) {
-                    // Avoid duplicate subscriptions for the same state
-                    if (!this.statusSubs.some(s => s.stateId === stateForSub.id && s.categoryId === categoryId)) {
-                        const isOpening = role === 'window' || role === 'door';
-                        this.statusSubs.push({
-                            stateId: stateForSub.id,
-                            role,
-                            widgetName: isOpening ? this.getWidgetName(w) : undefined,
-                            widgetIcon: isOpening ? (typeof w.icon === 'string' ? w.icon : undefined) : undefined,
-                            widgetId: isOpening ? String(w.id) : undefined,
-                            categoryId,
-                        });
-                        this.props.stateContext.getState(stateForSub.id, this.onStatusChange);
-                    }
+                const actual = w.control.states.find(s => s.name === 'ACTUAL');
+                if (actual?.id && !this.statusSubs.some(s => s.stateId === actual.id && s.categoryId === categoryId)) {
+                    const isOpening = role === 'window' || role === 'door';
+                    this.statusSubs.push({
+                        stateId: actual.id,
+                        role,
+                        widgetName: wName,
+                        widgetIcon: isOpening ? (typeof w.icon === 'string' ? w.icon : undefined) : undefined,
+                        widgetId: isOpening ? String(w.id) : undefined,
+                        categoryId,
+                    });
+                    this.props.stateContext.getState(actual.id, this.onStatusChange);
                 }
 
                 // Temperature sensor may have a SECOND state with humidity
@@ -1671,7 +1693,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         second?.id &&
                         !this.statusSubs.some(s => s.stateId === second.id && s.categoryId === categoryId)
                     ) {
-                        this.statusSubs.push({ stateId: second.id, role: 'humidity', categoryId });
+                        this.statusSubs.push({ stateId: second.id, role: 'humidity', widgetName: wName, categoryId });
                         this.props.stateContext.getState(second.id, this.onStatusChange);
                     }
                 }
@@ -1697,7 +1719,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             }
 
             // Subscribe to battery indicators for ALL widget types
-            const wName = this.getWidgetName(w);
             const lowbatState = w.control.states.find(s => s.name === 'LOWBAT');
             if (
                 lowbatState?.id &&
@@ -1750,13 +1771,117 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return val ? 1 : 0;
     }
 
+    /** Normalize a power state value to watts using its unit (kW-style -> *1000). */
+    private static normalizeWatts(val: ioBroker.StateValue, unit?: string): number | null {
+        if (val == null) {
+            return null;
+        }
+        const n = Number(val);
+        if (isNaN(n)) {
+            return null;
+        }
+        return /kw/i.test(unit || '') ? n * 1000 : n;
+    }
+
+    /** Format a watt value as "850 W" or "1.4 kW" (auto switch at 1000 W). */
+    private static formatPower(watts: number, isFloatComma?: boolean): string {
+        return Math.abs(watts) >= 1000
+            ? `${formatFloat(watts / 1000, 1, isFloatComma)} kW`
+            : `${formatFloat(watts, 0, isFloatComma)} W`;
+    }
+
+    /**
+     * Resolve a scalar metric (temperature/humidity) honoring the per-category source:
+     *  - a concrete stateId (still present) -> that state's value
+     *  - 'avg' -> mean of all non-null values
+     *  - 'first'/undefined/stale id -> first non-null value
+     */
+    private static resolveScalar(
+        subs: StatusSubscription[],
+        values: Record<string, ioBroker.StateValue>,
+        source?: string,
+    ): number | null {
+        if (source && source !== 'first' && source !== 'avg' && subs.some(s => s.stateId === source)) {
+            const n = Number(values[source]);
+            return values[source] != null && !isNaN(n) ? n : null;
+        }
+        const nums: number[] = [];
+        for (const sub of subs) {
+            const val = values[sub.stateId];
+            if (val == null) {
+                continue;
+            }
+            const n = Number(val);
+            if (!isNaN(n)) {
+                nums.push(n);
+            }
+        }
+        if (!nums.length) {
+            return null;
+        }
+        if (source === 'avg') {
+            return nums.reduce((a, b) => a + b, 0) / nums.length;
+        }
+        return nums[0];
+    }
+
+    /**
+     * Resolve the power room value (in watts) honoring the per-category source:
+     *  - a concrete stateId (still present) -> that consumer's value
+     *  - 'sum'/undefined/stale id -> sum of all detected consumers
+     */
+    private static resolvePower(
+        subs: StatusSubscription[],
+        values: Record<string, ioBroker.StateValue>,
+        source?: string,
+    ): number | null {
+        if (source && source !== 'sum') {
+            const sub = subs.find(s => s.stateId === source);
+            if (sub) {
+                return Category.normalizeWatts(values[sub.stateId], sub.unit);
+            }
+        }
+        let total: number | null = null;
+        for (const sub of subs) {
+            const w = Category.normalizeWatts(values[sub.stateId], sub.unit);
+            if (w != null) {
+                total = (total ?? 0) + w;
+            }
+        }
+        return total;
+    }
+
     private static computeStatus(
         subs: StatusSubscription[],
         values: Record<string, ioBroker.StateValue>,
+        sources?: { power?: string; temperature?: string; humidity?: string },
     ): CategoryStatus {
-        let temperature: number | null = null;
-        let power: number | null = null;
-        let humidity: number | null = null;
+        // 'hidden' source => the metric badge is suppressed for this category.
+        const temperature =
+            sources?.temperature === 'hidden'
+                ? null
+                : Category.resolveScalar(
+                      subs.filter(s => s.role === 'temperature'),
+                      values,
+                      sources?.temperature,
+                  );
+        const humidity =
+            sources?.humidity === 'hidden'
+                ? null
+                : Category.resolveScalar(
+                      subs.filter(s => s.role === 'humidity'),
+                      values,
+                      sources?.humidity,
+                  );
+        const power =
+            sources?.power === 'hidden'
+                ? null
+                : Category.resolvePower(
+                      subs.filter(s => s.role === 'power'),
+                      values,
+                      sources?.power,
+                  );
+
         let motionActive = false;
         const openings: OpeningSensor[] = [];
         const lowBatteryDevices: LowBatteryDevice[] = [];
@@ -1766,30 +1891,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         for (const sub of subs) {
             const val = values[sub.stateId];
             switch (sub.role) {
-                case 'temperature':
-                    if (temperature === null && val != null) {
-                        const n = Number(val);
-                        if (!isNaN(n)) {
-                            temperature = n;
-                        }
-                    }
-                    break;
-                case 'humidity':
-                    if (humidity === null && val != null) {
-                        const n = Number(val);
-                        if (!isNaN(n)) {
-                            humidity = n;
-                        }
-                    }
-                    break;
-                case 'power':
-                    if (power === null && val != null) {
-                        const n = Number(val);
-                        if (!isNaN(n)) {
-                            power = n;
-                        }
-                    }
-                    break;
                 case 'motion':
                     if (val) {
                         motionActive = true;
@@ -1832,17 +1933,51 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         return { temperature, power, humidity, motionActive, openings, lowBatteryDevices };
     }
 
+    /** Extract the per-metric room-value source settings for a category. */
+    private statusSources(categoryId: string): { power?: string; temperature?: string; humidity?: string } {
+        const cs = this.props.categorySettings[categoryId];
+        return { power: cs?.powerSource, temperature: cs?.temperatureSource, humidity: cs?.humiditySource };
+    }
+
+    /**
+     * Collect the detected room-value candidates (power/temperature/humidity) for a category,
+     * used to populate the selectors in the category settings dialog.
+     * `categoryId === this.props.category.id` -> the current category's own subs (no categoryId).
+     */
+    getStatusCandidates(categoryId: string): StatusCandidates {
+        const ownId = String(this.props.category.id);
+        const relevant = this.statusSubs.filter(s =>
+            categoryId === ownId ? !s.categoryId : s.categoryId === categoryId,
+        );
+        const collect = (roleName: StatusRole): StatusCandidate[] => {
+            const out: StatusCandidate[] = [];
+            const seen = new Set<string>();
+            for (const s of relevant) {
+                if (s.role === roleName && !seen.has(s.stateId)) {
+                    seen.add(s.stateId);
+                    out.push({ id: s.stateId, label: s.widgetName || s.stateId.split('.').pop() || s.stateId });
+                }
+            }
+            return out;
+        };
+        return { power: collect('power'), temperature: collect('temperature'), humidity: collect('humidity') };
+    }
+
     private recalcCategoryStatus(): void {
         // Compute status for the current category (subs without categoryId)
         const currentSubs = this.statusSubs.filter(s => !s.categoryId);
-        const categoryStatus = Category.computeStatus(currentSubs, this.statusValues);
+        const categoryStatus = Category.computeStatus(
+            currentSubs,
+            this.statusValues,
+            this.statusSources(String(this.props.category.id)),
+        );
 
         // Compute status for each subcategory
         const subCategoryStatuses: Record<string, CategoryStatus> = {};
         const catIds = new Set(this.statusSubs.map(s => s.categoryId).filter(Boolean) as string[]);
         for (const catId of catIds) {
             const catSubs = this.statusSubs.filter(s => s.categoryId === catId);
-            subCategoryStatuses[catId] = Category.computeStatus(catSubs, this.statusValues);
+            subCategoryStatuses[catId] = Category.computeStatus(catSubs, this.statusValues, this.statusSources(catId));
         }
 
         this.setState({ categoryStatus, subCategoryStatuses });
@@ -2505,7 +2640,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="caption"
                             sx={{ color: 'text.secondary', fontWeight: 500 }}
                         >
-                            {`${formatFloat(status.power, 1, this.props.stateContext.isFloatComma)} W`}
+                            {Category.formatPower(status.power, this.props.stateContext.isFloatComma)}
                         </Typography>
                     </Box>
                 ) : null}
@@ -2800,7 +2935,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             variant="body2"
                             sx={{ fontWeight: 500, color: 'text.secondary' }}
                         >
-                            {`${formatFloat(power, 1, this.props.stateContext.isFloatComma)} W`}
+                            {Category.formatPower(power, this.props.stateContext.isFloatComma)}
                         </Typography>
                     </Box>
                 ) : null}
@@ -3128,7 +3263,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 <Tooltip title={I18n.t('wm_Category settings')}>
                                     <IconButton
                                         size="small"
-                                        onClick={() => this.props.onOpenCategorySettings!(categoryId)}
+                                        onClick={() =>
+                                            this.props.onOpenCategorySettings!(
+                                                categoryId,
+                                                this.getStatusCandidates(categoryId),
+                                            )
+                                        }
                                         sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
                                     >
                                         <Settings fontSize="small" />

@@ -46,6 +46,8 @@ export interface ItemInfo {
 export interface DevicesDetectorState extends DetectorState {
     id: string;
     stateRole?: string;
+    /** common.unit of the underlying state (delivered by the backend; used e.g. for power W/kW). */
+    unit?: string;
 }
 
 export interface DevicesPatternControl {
@@ -91,6 +93,12 @@ export interface CategoryInfo extends ItemInfo {
         noHumidity?: boolean;
         noTemperature?: boolean;
         noWindows?: boolean;
+        /** Room-value source for the power badge: 'sum' (default) | <stateId>. */
+        powerSource?: string;
+        /** Room-value source for temperature: 'first' (default) | 'avg' | <stateId>. */
+        temperatureSource?: string;
+        /** Room-value source for humidity: 'first' (default) | 'avg' | <stateId>. */
+        humiditySource?: string;
         customWidgets?: CustomWidgetBase[];
         widgetOrder?: string[];
         /** Explicit toggle for groups-vs-sorted-list view. */

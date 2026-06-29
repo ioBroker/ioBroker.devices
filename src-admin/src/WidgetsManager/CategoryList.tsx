@@ -20,7 +20,12 @@ import zhCn from './i18n/zh-cn.json';
 import Communication, { type CommunicationProps, type CommunicationState } from './Communication';
 import StateContext from './StateContext';
 import Category from './Category';
-import { DEFAULT_CATEGORY_SETTINGS, type CategorySettings, type WmThemeId } from './CategorySettingsDialog';
+import {
+    DEFAULT_CATEGORY_SETTINGS,
+    type CategorySettings,
+    type StatusCandidates,
+    type WmThemeId,
+} from './CategorySettingsDialog';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, stripCollapsed, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
@@ -118,6 +123,8 @@ interface CategoryListState extends CommunicationState {
     settingsObjectColor: string;
     categorySettings: Record<string, CategorySettings>;
     categorySettingsCategoryId: string | null;
+    /** Detected room-value candidates for the category whose settings dialog is open */
+    categorySettingsCandidates: StatusCandidates | null;
     customWidgetDialogCategoryId: string | null;
     customWidgetSettingsCategoryId: string | null;
     customWidgetSettingsWidgetId: string | null;
@@ -301,6 +308,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             settingsObjectColor: '',
             categorySettings: {},
             categorySettingsCategoryId: null,
+            categorySettingsCandidates: null,
             customWidgetDialogCategoryId: null,
             customWidgetSettingsCategoryId: null,
             customWidgetSettingsWidgetId: null,
@@ -1204,6 +1212,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             const widgetGroups = cat.custom?.widgetGroups;
             const widgetsGrouped = cat.custom?.widgetsGrouped;
             const icon = typeof cat.icon === 'string' ? cat.icon : '';
+            // Room-value source selection; empty string means "use default" (sum/first)
+            const powerSource = cat.custom?.powerSource || undefined;
+            const temperatureSource = cat.custom?.temperatureSource || undefined;
+            const humiditySource = cat.custom?.humiditySource || undefined;
             categorySettings[id] = {
                 name,
                 color,
@@ -1215,6 +1227,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 widgetGroups,
                 widgetsGrouped,
                 icon,
+                powerSource,
+                temperatureSource,
+                humiditySource,
             };
         }
         // Clean stale widget IDs from order/groups:
@@ -1277,8 +1292,15 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ categorySettings });
     }
 
-    private onOpenCategorySettings = (categoryId: string): void => {
-        this.setState({ categorySettingsCategoryId: categoryId });
+    private onOpenCategorySettings = (categoryId: string, candidates: StatusCandidates): void => {
+        // Room-value source selection is persisted in the category object's common.custom, which
+        // only exists for regular categories. Root/Favorites are virtual (stored in GuiConfig) and
+        // keep the defaults (sum / first), so don't offer the selectors there.
+        const isVirtual = categoryId === ROOT_CATEGORY || categoryId === FAVORITES_CATEGORY;
+        this.setState({
+            categorySettingsCategoryId: categoryId,
+            categorySettingsCandidates: isVirtual ? null : candidates,
+        });
     };
 
     private onSaveCategorySettings = (settings: CategorySettings): void => {
@@ -1382,6 +1404,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     image: settings.image || '',
                     imageScope: settings.imageScope || 'header',
                     ...(settings.widgetOrder ? { widgetOrder: settings.widgetOrder } : {}),
+                    // Room-value source selection for the status badges
+                    powerSource: settings.powerSource || '',
+                    temperatureSource: settings.temperatureSource || '',
+                    humiditySource: settings.humiditySource || '',
                 };
                 await this.props.socket.setObject(categoryId, obj);
             }
@@ -2343,6 +2369,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             onSaveSettings={this.onSaveSettings}
                             onDeleteWidget={this.onDeleteWidget}
                             categorySettingsCategoryId={this.state.categorySettingsCategoryId}
+                            categorySettingsCandidates={this.state.categorySettingsCandidates}
                             categories={this.state.categories}
                             currentCategory={currentCategory}
                             categorySettings={this.state.categorySettings}

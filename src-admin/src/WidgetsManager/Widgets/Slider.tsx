@@ -28,9 +28,18 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 export interface SliderWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     wideSliderStyle?: string;
+    /**
+     * How the set value is confirmed before it is written:
+     * - 'none'   (default) — write immediately;
+     * - 'delay'  — debounce the write by `confirmDelay` ms;
+     * - 'dialog' — ask the user with an OK/Cancel dialog showing the value.
+     */
+    confirmMode?: 'none' | 'delay' | 'dialog';
+    /** Delay in ms before the set value is written when `confirmMode === 'delay'` (default 500). */
+    confirmDelay?: number;
 }
 
-/** Gate valve icon with handle */
+/** Gate valve icon with a handle */
 function ValveIcon(props: React.ComponentProps<typeof SvgIcon>): React.JSX.Element {
     return (
         <SvgIcon
@@ -93,6 +102,12 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     /** true when the valve vertical fill bar is shown (compact); false when arc knob is used */
     private verticalDragMode = false;
 
+    /** Pending debounced ("confirm with delay") write timer and its target raw value */
+    private confirmTimer: ReturnType<typeof setTimeout> | null = null;
+    private pendingRawValue: number | null = null;
+    /** Last real device value (from ACTUAL) — used to snap back when a confirmation is cancelled */
+    private lastConfirmedRaw: number | null = null;
+
     constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
@@ -120,6 +135,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
             ...WidgetGeneric.getDefaultSettings(),
             sliderType: 'normal',
             wideSliderStyle: 'horizontal',
+            confirmMode: 'none',
+            confirmDelay: 500,
         };
     }
 
@@ -152,6 +169,25 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         format: 'radio',
                         hidden: "data.size === '1x1'",
                     },
+                    confirmMode: {
+                        type: 'select',
+                        label: 'wm_Confirm before writing',
+                        options: [
+                            { value: 'none', label: 'wm_confirm_none' },
+                            { value: 'delay', label: 'wm_confirm_delay' },
+                            { value: 'dialog', label: 'wm_confirm_dialog' },
+                        ],
+                        default: 'none',
+                        newLine: true,
+                    },
+                    confirmDelay: {
+                        type: 'number',
+                        label: 'wm_Confirm delay',
+                        default: 500,
+                        min: 0,
+                        unit: 'ms',
+                        hidden: "data.confirmMode !== 'delay'",
+                    },
                 },
             },
         };
@@ -167,6 +203,15 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
     componentWillUnmount(): void {
         super.componentWillUnmount();
+        // Flush a pending delayed writing so the user's chosen value is not lost on unmounting.
+        if (this.confirmTimer) {
+            clearTimeout(this.confirmTimer);
+            this.confirmTimer = null;
+            if (this.setId && this.pendingRawValue !== null) {
+                void this.props.stateContext.getSocket().setState(this.setId, this.pendingRawValue);
+            }
+            this.pendingRawValue = null;
+        }
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onLevelChange);
         }
@@ -231,15 +276,99 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     }
 
     private onLevelChange = (_id: string, state: ioBroker.State): void => {
-        if (this.isDragging) {
+        const rawValue = Number(state.val) || 0;
+        // Always remember the real device value so a cancelled confirmation can snap back to it.
+        this.lastConfirmedRaw = rawValue;
+        // While dragging, while a delayed write is still pending, or while the confirmation dialog is
+        // open, keep showing the user's chosen value instead of snapping back to the not-yet-written one.
+        if (this.isDragging || this.confirmTimer || this.state.confirmDialogOpen) {
             return;
         }
-        const rawValue = Number(state.val) || 0;
         const level = this.rawToPercent(rawValue);
         if (level !== this.state.level || rawValue !== this.state.rawValue) {
             this.setState({ level, rawValue });
         }
     };
+
+    /**
+     * Write a raw value to the SET state, applying the configured confirmation mode:
+     * - 'none'   — write immediately;
+     * - 'delay'  — debounce by `confirmDelay` ms; repeated changes within the window reset the timer,
+     *              so only the final value is written;
+     * - 'dialog' — open an OK/Cancel dialog showing the value; write on OK, snap back on Cancel.
+     */
+    private writeValue(rawValue: number): void {
+        if (!this.setId) {
+            return;
+        }
+        const mode = this.props.settings?.confirmMode || 'none';
+
+        if (mode === 'dialog') {
+            this.pendingRawValue = rawValue;
+            this.showConfirmDialog(
+                'dialog',
+                undefined,
+                I18n.t('wm_Write value %s?', this.formatConfirmValue(rawValue)),
+            );
+            return;
+        }
+
+        if (mode === 'delay') {
+            const delay = this.props.settings?.confirmDelay ?? 500;
+            if (delay > 0) {
+                this.pendingRawValue = rawValue;
+                if (this.confirmTimer) {
+                    clearTimeout(this.confirmTimer);
+                }
+                this.confirmTimer = setTimeout(() => {
+                    this.confirmTimer = null;
+                    this.pendingRawValue = null;
+                    this.commitValue(rawValue);
+                }, delay);
+                return;
+            }
+        }
+
+        this.commitValue(rawValue);
+    }
+
+    /** Write a raw value to the SET state immediately (no confirmation). */
+    private commitValue(rawValue: number): void {
+        if (this.setId) {
+            void this.props.stateContext.getSocket().setState(this.setId, rawValue);
+        }
+    }
+
+    /** Human-readable representation of a raw value for the confirmation dialog. */
+    private formatConfirmValue(rawValue: number): string {
+        if (this.isModeSelectorMode() && this.state.statesMap) {
+            const label = this.state.statesMap[String(rawValue)] || this.state.statesMap[String(Math.round(rawValue))];
+            if (label) {
+                return label;
+            }
+        }
+        const unit = this.state.unit ? ` ${this.state.unit}` : '';
+        const decimals = Number.isInteger(rawValue) ? 0 : 1;
+        return `${formatFloat(rawValue, decimals, this.props.stateContext.isFloatComma)}${unit}`;
+    }
+
+    /** Confirmation dialog accepted: write the pending value. */
+    protected onConfirmDialogSuccess(): void {
+        if (this.pendingRawValue !== null) {
+            const value = this.pendingRawValue;
+            this.pendingRawValue = null;
+            this.commitValue(value);
+        }
+    }
+
+    /** Confirmation dialog cancelled: discard the pending value and snap the UI back to the device value. */
+    protected onConfirmDialogCancel(): void {
+        this.pendingRawValue = null;
+        if (this.lastConfirmedRaw !== null) {
+            const raw = this.lastConfirmedRaw;
+            this.setState({ rawValue: raw, level: this.rawToPercent(raw) });
+        }
+    }
 
     private getSliderType(): string {
         return this.props.settings?.sliderType || 'normal';
@@ -261,9 +390,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
     private selectMode(value: string): void {
         const numValue = Number(value);
-        if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, numValue);
-        }
+        this.writeValue(numValue);
         this.setState({
             rawValue: numValue,
             level: this.rawToPercent(numValue),
@@ -340,9 +467,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         }
         if (this.isDragging) {
             const percent = this.pointerToPercent(e.clientX, e.clientY);
-            if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
-            }
+            this.writeValue(this.percentToRaw(percent));
         }
         this.dragStartPos = null;
         this.isDragging = false;
@@ -358,9 +483,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
     private onSliderCommit = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         const level = value as number;
-        if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(level));
-        }
+        this.writeValue(this.percentToRaw(level));
         this.setState({ level, rawValue: this.percentToRaw(level), dragging: false });
     };
 
@@ -395,9 +518,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         }
         // Toggle between 0 and last value or 100
         const newLevel = this.state.level > 0 ? 0 : 100;
-        if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(newLevel));
-        }
+        this.writeValue(this.percentToRaw(newLevel));
         this.setState({ level: newLevel, rawValue: this.percentToRaw(newLevel) });
     }
 

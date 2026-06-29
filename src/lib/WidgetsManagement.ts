@@ -751,9 +751,12 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 // We must deliver role, as in some widgets it is used to determine the widget type.
                 // Use the actual object's common.role; fall back to the type-detector pattern role
                 // so detection still works when an adapter omits common.role on the state.
+                const role = device.states[i].role;
                 device.states[i].stateRole =
-                    this.objects[device.states[i].id]?.common?.role ??
-                    (typeof device.states[i].role === 'string' ? device.states[i].role : undefined);
+                    this.objects[device.states[i].id]?.common?.role ?? (typeof role === 'string' ? role : undefined);
+                // Deliver the unit so the GUI can normalize/convert values (e.g. power W <-> kW).
+                const unit = (this.objects[device.states[i].id]?.common as ioBroker.StateCommon | undefined)?.unit;
+                device.states[i].unit = typeof unit === 'string' ? unit : undefined;
                 /** Remove useless for GUI information */
                 if (device.states[i].original) {
                     delete device.states[i].original;

@@ -4,7 +4,11 @@ import { Types } from '@iobroker/type-detector';
 
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
-import CategorySettingsDialog, { DEFAULT_CATEGORY_SETTINGS, type CategorySettings } from './CategorySettingsDialog';
+import CategorySettingsDialog, {
+    DEFAULT_CATEGORY_SETTINGS,
+    type CategorySettings,
+    type StatusCandidates,
+} from './CategorySettingsDialog';
 import CustomWidgetDialog from './CustomWidgetDialog';
 import CustomWidgetSettingsDialog from './CustomWidgetSettingsDialog';
 import { findWidgetGroup } from './groupUtils';
@@ -45,6 +49,7 @@ export interface CategoryListDialogsProps {
 
     // --- Category settings dialog ---
     categorySettingsCategoryId: string | null;
+    categorySettingsCandidates: StatusCandidates | null;
     categories: CategoryInfo[];
     currentCategory: CategoryInfo;
     categorySettings: Record<string, CategorySettings>;
@@ -91,6 +96,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         onSaveSettings,
         onDeleteWidget,
         categorySettingsCategoryId,
+        categorySettingsCandidates,
         categories,
         currentCategory,
         categorySettings,
@@ -204,6 +210,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onSave={onSaveCategorySettings}
                 theme={theme}
                 categoryOptions={categoryOptions}
+                statusCandidates={categorySettingsCandidates}
             />
             <CustomWidgetDialog
                 admin={stateContext.admin}

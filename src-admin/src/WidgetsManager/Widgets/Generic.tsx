@@ -1982,6 +1982,12 @@ export class WidgetGeneric<
         // override in subclass
     }
 
+    /** Override in subclass to handle a cancelled/dismissed confirmation */
+    // eslint-disable-next-line class-methods-use-this
+    protected onConfirmDialogCancel(): void {
+        // override in subclass
+    }
+
     protected renderConfirmDialog(): React.JSX.Element | null {
         return (
             <ConfirmDialog
@@ -1993,7 +1999,10 @@ export class WidgetGeneric<
                     this.setState({ confirmDialogOpen: false } as Partial<TState> as TState);
                     this.onConfirmDialogSuccess();
                 }}
-                onClose={() => this.setState({ confirmDialogOpen: false } as Partial<TState> as TState)}
+                onClose={() => {
+                    this.setState({ confirmDialogOpen: false } as Partial<TState> as TState);
+                    this.onConfirmDialogCancel();
+                }}
             />
         );
     }
