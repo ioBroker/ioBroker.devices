@@ -371,7 +371,7 @@ interface DialogEditDeviceProps {
         channelInfo?: PatternControlEx,
     ) => Promise<void>;
     onSaveProperties: (properties: DialogEditPropertiesState, channelInfo: PatternControlEx) => Promise<void>;
-    onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
+    onCopyDevice: (id: string, newChannelId: string, functions?: string[], rooms?: string[]) => Promise<void>;
 }
 
 interface DialogEditDeviceState {
@@ -991,7 +991,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             parts.pop();
             let lastPart = parts.join('.');
             lastPart = `${lastPart}.${this.state.changeProperties.name.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_')}`;
-            await this.props.onCopyDevice(this.channelId, lastPart);
+            await this.props.onCopyDevice(
+                this.channelId,
+                lastPart,
+                this.state.changeProperties.functions,
+                this.state.changeProperties.rooms,
+            );
         }
         this.setState({ startTheProcess: false });
         void this.props.onClose(null);

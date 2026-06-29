@@ -2977,8 +2977,30 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 iotNoCommon={this.state.iotNoCommon}
                 socket={this.props.socket}
                 instance={`${this.props.adapterName}.${this.props.instance}`}
-                onCopyDevice={async (id, newId) => {
+                onCopyDevice={async (id, newId, functions, rooms) => {
+                    // The edits (name, mappings, possibly newly mapped states) were just written to
+                    // the OLD objects. copyDevice reads from the cache, so refresh the channel and its
+                    // states first - otherwise the renamed copy would miss them, or skip a state that
+                    // was mapped in this same session and still has a stale empty id in deviceToCopy.
+                    const dev = this.state.devices.find(device => device.channelId === id);
+                    const refreshIds = [id, ...(dev?.states || []).map(state => `${id}.${state.name}`)];
+                    for (const refreshId of refreshIds) {
+                        try {
+                            const obj = await this.props.socket.getObject(refreshId);
+                            if (obj) {
+                                this.objects[refreshId] = obj;
+                            } else {
+                                delete this.objects[refreshId];
+                            }
+                        } catch {
+                            // ignore
+                        }
+                    }
                     await this.onCopyDevice(id, newId);
+                    // Apply the (possibly changed) room/function selection to the new channel id.
+                    if (functions || rooms) {
+                        await this.setEnumsOfDevice(newId, functions, rooms);
+                    }
                     const copiedDevice = this.state.devices.find(device => device.channelId === id);
                     if (copiedDevice) {
                         await this.deleteDevice(this.state.devices.indexOf(copiedDevice));

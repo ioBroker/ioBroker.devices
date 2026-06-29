@@ -347,7 +347,7 @@ export async function copyDevice(
         }
     }
 
-    const { functions, rooms, icon, states, color, type } = deviceToCopy;
+    const { functions, rooms, states, type } = deviceToCopy;
     const tasks: {
         id: string;
         obj: ioBroker.Object;
@@ -369,10 +369,10 @@ export async function copyDevice(
                 name: options.newName
                     ? ({ [language]: options.newName } as ioBroker.StringOrTranslated)
                     : originalChannelObj.common.name,
-                color: color || undefined,
+                color: originalChannelObj.common.color || undefined,
                 desc: originalChannelObj.common.desc,
                 role: role?.defaultChannelRole || type,
-                icon: (icon?.startsWith('adapter/') ? `../../${icon}` : icon) || undefined,
+                icon: originalChannelObj.common.icon || undefined,
             },
             type: 'channel',
             native: originalChannelObj.native || {},
