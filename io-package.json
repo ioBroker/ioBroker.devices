@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "news": {
+      "3.0.1": {
+        "en": "Adapter requires js-controller >= 6.0.11 now.\nReduced Safari rendering lag of the device list\nAdded consumption values to the categories\nFixed the data loss by the folder renaming",
+        "de": "Der Adapter benötigt jetzt js-controller >= 6.0.11.\nReduzierte Verzögerung beim Rendern der Geräteliste in Safari\nDen Kategorien wurden Verbrauchswerte hinzugefügt.\nDer Datenverlust durch die Umbenennung des Ordners wurde behoben.",
+        "ru": "Для работы адаптера теперь требуется js-controller версии не ниже 6.0.11.\nУменьшена задержка при отображении списка устройств в Safari.\nДобавлены значения потребления в категории.\nИсправлена потеря данных при переименовании папок.",
+        "pt": "O adaptador agora requer js-controller >= 6.0.11.\nRedução do atraso de renderização do Safari na lista de dispositivos\nValores de consumo adicionados às categorias\nCorrigi a perda de dados renomeando a pasta.",
+        "nl": "De adapter vereist nu js-controller >= 6.0.11.\nDe vertraging bij het weergeven van de apparaatlijst in Safari is verminderd.\nToegevoegde verbruikswaarden aan de categorieën\nHet dataverlies als gevolg van het hernoemen van mappen is verholpen.",
+        "fr": "L'adaptateur requiert désormais js-controller >= 6.0.11.\nRéduction du délai d'affichage de la liste des appareils dans Safari\nAjout de valeurs de consommation aux catégories\nCorrection de la perte de données due au renommage des dossiers",
+        "it": "L'adattatore ora richiede js-controller >= 6.0.11.\nRiduzione del ritardo di rendering dell'elenco dei dispositivi in Safari.\nAggiunti i valori di consumo alle categorie\nRisolto il problema della perdita di dati rinominando la cartella.",
+        "es": "El adaptador ahora requiere js-controller >= 6.0.11.\nRetraso de renderizado reducido de Safari en la lista de dispositivos\nValores de consumo añadidos a las categorías\nSe solucionó la pérdida de datos causada por el cambio de nombre de la carpeta.",
+        "pl": "Adapter wymaga teraz js-controller w wersji >= 6.0.11.\nZmniejszone opóźnienie renderowania listy urządzeń w Safari\nDodano wartości zużycia do kategorii\nNaprawiono utratę danych w wyniku zmiany nazwy folderu",
+        "uk": "Адаптер тепер вимагає js-controller >= 6.0.11.\nЗменшено затримку рендерингу списку пристроїв у Safari\nДодано значення споживання до категорій\nВиправлено втрату даних під час перейменування папки",
+        "zh-cn": "适配器现在需要 js-controller >= 6.0.11。\n减少了 Safari 浏览器渲染设备列表的延迟\n为类别添加了消费值\n修复了因文件夹重命名导致的数据丢失问题"
+      },
       "3.0.0": {
         "en": "Corrected universal widget\nAdded open-meteo-weather adapter support\nRead all states anew after the reconnection",
         "de": "Korrigiertes universelles Widget\nUnterstützung für den Open-Meteo-Weather-Adapter hinzugefügt.\nLesen Sie alle Zustände nach der Wiederverbindung erneut.",
@@ -80,19 +93,6 @@
         "pl": "Poprawione ikony pokoi\nDodano 2x2 dla iFrame",
         "uk": "Правильні іконки для кімнат\nДодано 2x2 для iFrame",
         "zh-cn": "修改房间图标\n为 iFrame 添加了 2x2"
-      },
-      "2.0.5": {
-        "en": "Added many new widgets.",
-        "de": "Viele neue Widgets hinzugefügt.",
-        "ru": "Добавлено много новых виджетов.",
-        "pt": "Adicionado muitos widgets novos.",
-        "nl": "Veel nieuwe widgets toegevoegd.",
-        "fr": "Ajout de nombreux nouveaux widgets.",
-        "it": "Aggiunto molti nuovi widget.",
-        "es": "Agregó muchos nuevos widgets.",
-        "pl": "Dodano wiele nowych widżetów.",
-        "uk": "Додайте багато нових віджетів.",
-        "zh-cn": "添加了许多新部件 ."
       }
     },
     "titleLang": {
