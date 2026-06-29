@@ -31,14 +31,19 @@ export default [
     },
     {
         // eslint-plugin-react-hooks@7 promotes the React Compiler rules to "error" in its
-        // `recommended` config (pulled in via @iobroker/eslint-config's reactConfig). This
-        // project does not use the React Compiler yet, so keep these forward-looking rules
-        // as warnings (visible but non-blocking) instead of failing lint/CI.
+        // `recommended` config (pulled in via @iobroker/eslint-config's reactConfig). This project
+        // does not use the React Compiler, so disable these forward-looking rules: they fire on
+        // intentional patterns in the existing class/hook components — seeding local state from
+        // props inside an `open` effect ("Calling setState synchronously within an effect…"),
+        // reading refs during render ("Cannot access refs during render"), calling `Date.now()`
+        // during render ("Cannot call impure function") and manual useMemo/useCallback deps the
+        // compiler infers differently ("Could not preserve existing manual memoization"). They are
+        // noise here and not actionable without the React Compiler.
         rules: {
-            'react-hooks/set-state-in-effect': 'warn',
-            'react-hooks/refs': 'warn',
-            'react-hooks/purity': 'warn',
-            'react-hooks/preserve-manual-memoization': 'warn',
+            'react-hooks/set-state-in-effect': 'off',
+            'react-hooks/refs': 'off',
+            'react-hooks/purity': 'off',
+            'react-hooks/preserve-manual-memoization': 'off',
         },
     },
     {
