@@ -93,6 +93,7 @@ import {
     getLastPart,
     getParentId,
     getSmartName,
+    inheritCommonFromSource,
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
@@ -1237,6 +1238,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         this.applyFilter(listItems, devices);
 
         await this.setStateAsync({ devices, expandedIDs, listItems, loading: false, browse: false });
+
+        // One-time workaround: fix thermostat aliases that still carry the old min=0/max=100
+        // placeholder by inheriting the real range from their source (issue #22).
+        void this.fixThermostatAliasRanges(devices);
 
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
@@ -2580,6 +2585,98 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         }
     };
 
+    /**
+     * Resolve the `common` of the state an alias points to, so the alias can inherit its display
+     * metadata (min/max/unit/step). Issue #22. The id may be a plain string or a `{read, write}` map.
+     */
+    private async getAliasSourceCommon(
+        idEntry: string | { read: string; write: string } | undefined,
+    ): Promise<ioBroker.StateCommon | undefined> {
+        const sourceId = typeof idEntry === 'string' ? idEntry : idEntry?.read || idEntry?.write;
+        if (!sourceId) {
+            return undefined;
+        }
+        let obj = this.objects[sourceId] as ioBroker.StateObject | undefined;
+        if (!obj) {
+            try {
+                obj = ((await this.props.socket.getObject(sourceId)) as ioBroker.StateObject | null) || undefined;
+            } catch {
+                return undefined;
+            }
+        }
+        return obj?.common;
+    }
+
+    /** One-time guard for the thermostat min/max workaround (issue #22). */
+    private thermostatRangesFixed = false;
+
+    /**
+     * Workaround for thermostat aliases created before the min/max inheritance fix: they still carry
+     * the old placeholder range `min=0/max=100` on their temperature state. Read the real range from
+     * the aliased source and write it back. Strictly scoped to thermostat devices + `temperature`
+     * roles + the exact 0/100 signature, so legitimate 0..100 ranges (dimmer level, humidity, valve)
+     * are never touched. Runs once per session; the corrected objects no longer match the signature.
+     */
+    private async fixThermostatAliasRanges(devices: PatternControlEx[]): Promise<void> {
+        if (this.thermostatRangesFixed) {
+            return;
+        }
+        this.thermostatRangesFixed = true;
+        let fixed = 0;
+        for (const device of devices) {
+            if (device.type !== Types.thermostat) {
+                continue;
+            }
+            for (const state of device.states) {
+                if (!state.id || !state.id.startsWith(ALIAS)) {
+                    continue;
+                }
+                const cc = (this.objects[state.id] as ioBroker.StateObject | undefined)?.common;
+                // Only the bogus placeholder range on a temperature state that points to a real source.
+                if (!cc?.alias?.id || cc.min !== 0 || cc.max !== 100 || !/temperature/.test(cc.role || '')) {
+                    continue;
+                }
+                const sourceCommon = await this.getAliasSourceCommon(cc.alias.id);
+                if (!sourceCommon || (sourceCommon.min === undefined && sourceCommon.max === undefined)) {
+                    continue;
+                }
+                try {
+                    const obj = (await this.props.socket.getObject(state.id)) as ioBroker.StateObject | null;
+                    // Re-check on the fresh object so we never overwrite a meanwhile-edited range.
+                    if (!obj?.common || obj.common.min !== 0 || obj.common.max !== 100) {
+                        continue;
+                    }
+                    let changed = false;
+                    if (sourceCommon.min !== undefined) {
+                        obj.common.min = sourceCommon.min;
+                        changed = true;
+                    }
+                    if (sourceCommon.max !== undefined) {
+                        obj.common.max = sourceCommon.max;
+                        changed = true;
+                    }
+                    if (obj.common.step === undefined && sourceCommon.step !== undefined) {
+                        obj.common.step = sourceCommon.step;
+                        changed = true;
+                    }
+                    if (!obj.common.unit && sourceCommon.unit) {
+                        obj.common.unit = sourceCommon.unit;
+                        changed = true;
+                    }
+                    if (changed) {
+                        await this.props.socket.setObject(obj._id, obj);
+                        fixed++;
+                    }
+                } catch (e) {
+                    console.error(`Cannot fix thermostat range for ${state.id}: ${e}`);
+                }
+            }
+        }
+        if (fixed) {
+            console.log(`[devices] Inherited real min/max for ${fixed} thermostat alias state(s) (issue #22)`);
+        }
+    }
+
     onEditFinished = async (
         data: {
             ids: Record<
@@ -2653,6 +2750,13 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                         stateObj.common.states = data.states[state.name];
                                     }
 
+                                    // Inherit min/max/unit/step from the (possibly new) source if the
+                                    // alias does not define them yet — issue #22.
+                                    inheritCommonFromSource(
+                                        stateObj.common,
+                                        await this.getAliasSourceCommon(data.ids[state.name]),
+                                    );
+
                                     await this.props.socket.setObject(stateObj._id, stateObj);
                                 }
                             }
@@ -2717,24 +2821,17 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 : state.type
                             : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
 
-                        /*if (state.defaultMin !== undefined) {
-                            common.min = state.defaultMin;
-                        } else */
-                        if (state.min !== undefined) {
-                            common.min = 0;
-                        }
+                        // Inherit min/max/unit/step from the aliased source state — issue #22.
+                        // Only fill fields the alias does not define yet.
+                        inheritCommonFromSource(common, await this.getAliasSourceCommon(data.ids[state.name]));
 
-                        /*if (state.defaultMax !== undefined) {
-                            common.max = state.defaultMax;
-                        } else */
-                        if (state.max !== undefined) {
-                            common.max = 100;
-                        }
-
-                        if (state.defaultUnit) {
-                            common.unit = state.defaultUnit;
-                        } else if (state.unit) {
-                            common.unit = state.unit;
+                        // Fall back to the pattern's default unit if neither alias nor source has one.
+                        if (!common.unit) {
+                            if (state.defaultUnit) {
+                                common.unit = state.defaultUnit;
+                            } else if (state.unit) {
+                                common.unit = state.unit;
+                            }
                         }
                         somethingChanged = true;
 
@@ -3219,20 +3316,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     common.states = state.defaultStates;
                 }
 
-                /*if (state.defaultMin !== undefined) {
-                    common.min = state.defaultMin;
-                } else */
-                if (state.min !== undefined) {
-                    common.min = 0;
-                }
-
-                /*if (state.defaultMax !== undefined) {
-                    common.max = state.defaultMax;
-                } else */
-                if (state.max !== undefined) {
-                    common.max = 100;
-                }
-
+                // min/max/step are intentionally left unset here: at creation the alias has no source
+                // yet (alias.id === ''). They are inherited from the source when an id is assigned in
+                // the editor (issue #22). Only the pattern's default unit is applied up-front.
                 if (state.defaultUnit) {
                     common.unit = state.defaultUnit;
                 } else if (state.unit) {

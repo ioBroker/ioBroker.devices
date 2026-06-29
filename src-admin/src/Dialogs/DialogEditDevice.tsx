@@ -409,7 +409,7 @@ interface DialogEditDeviceState {
     changeProperties: DialogEditPropertiesState;
     editStates: string | null;
     states: Record<string, { [value: string]: string } | undefined>;
-    /** Dialog for editing alias state common: name, type, role, min, max, unit */
+    /** Dialog for editing alias state common: name, type, role, min, max, unit, step */
     editStateCommon: {
         stateId: string;
         name: string;
@@ -418,12 +418,14 @@ interface DialogEditDeviceState {
         min: string;
         max: string;
         unit: string;
+        step: string;
         originalName: string;
         originalType: ioBroker.CommonType;
         originalRole: string;
         originalMin: string;
         originalMax: string;
         originalUnit: string;
+        originalStep: string;
     } | null;
     dialogAddState: {
         editState: string | null;
@@ -1827,12 +1829,14 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     min: obj.common.min != null ? String(obj.common.min) : '',
                     max: obj.common.max != null ? String(obj.common.max) : '',
                     unit: obj.common.unit || '',
+                    step: obj.common.step != null ? String(obj.common.step) : '',
                     originalName: nameStr,
                     originalType: obj.common.type || 'mixed',
                     originalRole: obj.common.role || '',
                     originalMin: obj.common.min != null ? String(obj.common.min) : '',
                     originalMax: obj.common.max != null ? String(obj.common.max) : '',
                     originalUnit: obj.common.unit || '',
+                    originalStep: obj.common.step != null ? String(obj.common.step) : '',
                 },
             });
         } catch {
@@ -1857,10 +1861,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             obj.common.type = editStateCommon.type;
             obj.common.role = editStateCommon.role;
 
-            // Min/Max/Unit — only meaningful for number type
+            // Min/Max/Unit/Step — only meaningful for number type
             if (editStateCommon.type === 'number') {
                 const minVal = editStateCommon.min.trim() === '' ? undefined : parseFloat(editStateCommon.min);
                 const maxVal = editStateCommon.max.trim() === '' ? undefined : parseFloat(editStateCommon.max);
+                const stepVal = editStateCommon.step.trim() === '' ? undefined : parseFloat(editStateCommon.step);
 
                 if (minVal !== undefined && !isNaN(minVal)) {
                     obj.common.min = minVal;
@@ -1873,10 +1878,16 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     delete obj.common.max;
                 }
                 obj.common.unit = editStateCommon.unit || '';
+                if (stepVal !== undefined && !isNaN(stepVal)) {
+                    obj.common.step = stepVal;
+                } else {
+                    delete obj.common.step;
+                }
             } else {
                 delete obj.common.min;
                 delete obj.common.max;
                 delete obj.common.unit;
+                delete obj.common.step;
             }
 
             await this.props.socket.setObject(editStateCommon.stateId, obj);
@@ -1898,7 +1909,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             editStateCommon.role !== editStateCommon.originalRole ||
             editStateCommon.min !== editStateCommon.originalMin ||
             editStateCommon.max !== editStateCommon.originalMax ||
-            editStateCommon.unit !== editStateCommon.originalUnit;
+            editStateCommon.unit !== editStateCommon.originalUnit ||
+            editStateCommon.step !== editStateCommon.originalStep;
 
         const isNumber = editStateCommon.type === 'number';
 
@@ -1983,6 +1995,18 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     onChange={e =>
                                         this.setState({
                                             editStateCommon: { ...editStateCommon, max: e.target.value },
+                                        })
+                                    }
+                                    size="small"
+                                    fullWidth
+                                />
+                                <TextField
+                                    label="Step"
+                                    type="number"
+                                    value={editStateCommon.step}
+                                    onChange={e =>
+                                        this.setState({
+                                            editStateCommon: { ...editStateCommon, step: e.target.value },
                                         })
                                     }
                                     size="small"

@@ -197,6 +197,39 @@ export function getLastPart(id: string): string {
     return id;
 }
 
+/**
+ * Copy display metadata (min/max/unit/step) from an aliased *source* state's common into the alias
+ * state's common — but only for fields the alias does not define yet, so values edited manually via
+ * the "edit state common" dialog are preserved. Fixes issue #22 (aliased states did not inherit e.g.
+ * min/max from their source state). Returns true if anything was changed.
+ */
+export function inheritCommonFromSource(
+    aliasCommon: ioBroker.StateCommon,
+    sourceCommon: ioBroker.StateCommon | undefined,
+): boolean {
+    if (!sourceCommon) {
+        return false;
+    }
+    let changed = false;
+    if (aliasCommon.min === undefined && sourceCommon.min !== undefined) {
+        aliasCommon.min = sourceCommon.min;
+        changed = true;
+    }
+    if (aliasCommon.max === undefined && sourceCommon.max !== undefined) {
+        aliasCommon.max = sourceCommon.max;
+        changed = true;
+    }
+    if (!aliasCommon.unit && sourceCommon.unit) {
+        aliasCommon.unit = sourceCommon.unit;
+        changed = true;
+    }
+    if (aliasCommon.step === undefined && sourceCommon.step !== undefined) {
+        aliasCommon.step = sourceCommon.step;
+        changed = true;
+    }
+    return changed;
+}
+
 async function addToEnum(enumId: string, id: string, socket: AdminConnection): Promise<void> {
     const obj: ioBroker.EnumObject | null | undefined = (await socket.getObject(enumId)) as
         | ioBroker.EnumObject
@@ -268,7 +301,7 @@ export async function processTasks(
                     }
                 }
             }
-            // Object delete ?
+            // Object delete?
         }
     }
 }
@@ -314,7 +347,7 @@ export function getAddedChannelStates(
 }[] {
     const channelIds: string[] = getChannelItems(objects, channelInfo.channelId);
 
-    // Add states, that could not be detected by type-detector
+    // Add states that could not be detected by type-detector
     return channelIds
         .filter(key => !channelInfo.states.find(item => item.id === key) && objects[key].type === 'state')
         .map(key => {
@@ -381,6 +414,14 @@ export async function copyDevice(
          * - `import`: drop all custom (a fresh alias from a native source state).
          */
         mode?: 'move' | 'duplicate' | 'import';
+        /**
+         * Room/function enum membership for the new channel. When omitted, the copied device's
+         * existing `rooms`/`functions` are kept. The rename flow passes the values edited in the same
+         *  session, so a *deselected* room is dropped on the new channel (the new channel starts with no
+         * enum membership, so assigning exactly this set is enough — no separate add/remove needed).
+         */
+        functions?: string[];
+        rooms?: string[];
     },
 ): Promise<void> {
     const language = options.language || I18n.getLanguage();
@@ -436,7 +477,7 @@ export async function copyDevice(
             type: 'channel',
             native: originalChannelObj.native || {},
         },
-        enums: rooms.concat(functions),
+        enums: (options.rooms ?? rooms).concat(options.functions ?? functions),
     };
 
     if (!newChannelObj.obj.common.color) {
