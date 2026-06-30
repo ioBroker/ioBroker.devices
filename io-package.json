@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "3.0.1",
+    "version": "3.0.2",
     "news": {
+      "3.0.2": {
+        "en": "Added support for widget icons",
+        "de": "Zusätzliche Unterstützung für Widget-Icons",
+        "ru": "Добавлена поддержка значков виджетов",
+        "pt": "Adicionado suporte para ícones de widget",
+        "nl": "Ondersteuning voor widgetpictogrammen toegevoegd",
+        "fr": "Ajout du support pour les icônes de widget",
+        "it": "Aggiunto supporto per le icone dei widget",
+        "es": "Añadido soporte para iconos widget",
+        "pl": "Dodano obsługę ikon widget",
+        "uk": "Додано підтримку іконок віджету",
+        "zh-cn": "添加部件图标支持"
+      },
       "3.0.1": {
         "en": "Adapter requires js-controller >= 6.0.11 now.\nReduced Safari rendering lag of the device list\nAdded consumption values to the categories\nFixed the data loss by the folder renaming",
         "de": "Der Adapter benötigt jetzt js-controller >= 6.0.11.\nReduzierte Verzögerung beim Rendern der Geräteliste in Safari\nDen Kategorien wurden Verbrauchswerte hinzugefügt.\nDer Datenverlust durch die Umbenennung des Ordners wurde behoben.",
@@ -80,19 +93,6 @@
         "pl": "Poprawione przeciąganie widżetów",
         "uk": "Виправлено перетягування віджетів",
         "zh-cn": "已更正部件拖曳"
-      },
-      "2.0.19": {
-        "en": "Corrected icons for rooms\nAdded 2x2 for iFrame",
-        "de": "Korrigierte Symbole für Zimmer\n2x2 für iFrame hinzugefügt",
-        "ru": "Исправленные иконки для комнат\nДобавлено 2x2 для iFrame",
-        "pt": "Ícones corrigidos para quartos\nAdicionado 2x2 para iFrame",
-        "nl": "Gecorrigeerde iconen voor kamers\nToegevoegd 2x2 voor iFrame",
-        "fr": "Des icônes corrigées pour les chambres\nAjouté 2x2 pour iFrame",
-        "it": "Icone corrette per le camere\nAggiunto 2x2 per iFrame",
-        "es": "Iconos corregidos para habitaciones\nAñadido 2x2 para iFrame",
-        "pl": "Poprawione ikony pokoi\nDodano 2x2 dla iFrame",
-        "uk": "Правильні іконки для кімнат\nДодано 2x2 для iFrame",
-        "zh-cn": "修改房间图标\n为 iFrame 添加了 2x2"
       }
     },
     "titleLang": {

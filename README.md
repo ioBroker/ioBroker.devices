@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 3.0.2 (2026-06-30)
 * (@GermanBluefox) Added support for widget icons
 
 ### 3.0.1 (2026-06-29)
@@ -151,9 +151,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 ### 2.1.4 (2026-05-27)
 * (@GermanBluefox) Added digits after comma for Display widget
 * (@GermanBluefox) Added an installation script
-
-### 2.1.2 (2026-05-20)
-* (@GermanBluefox) Extended universal widget
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

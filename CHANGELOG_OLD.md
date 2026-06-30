@@ -1,4 +1,7 @@
 # Older changes
+## 2.1.2 (2026-05-20)
+* (@GermanBluefox) Extended universal widget
+
 ## 2.1.0 (2026-05-17)
 * (@GermanBluefox) Corrected dragging of widgets
 
