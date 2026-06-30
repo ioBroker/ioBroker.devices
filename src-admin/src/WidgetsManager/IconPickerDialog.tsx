@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Box,
     Button,
@@ -8,17 +8,18 @@ import {
     DialogTitle,
     IconButton,
     SvgIcon,
-    ToggleButton,
-    ToggleButtonGroup,
+    Tab,
+    Tabs,
     Tooltip,
     Typography,
 } from '@mui/material';
-import { Close, CloudUpload, Delete, FolderOpen, GridView } from '@mui/icons-material';
+import { Close, CloudUpload, Delete, Extension, FolderOpen, GridView } from '@mui/icons-material';
 import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
 
 import { PREDEFINED_ICONS, ICON_CATEGORIES, pathToDataUri, type PredefinedIcon } from './predefinedIcons';
+import { loadWidgetSetIcons, type WidgetSetIcon } from './widgetSetIcons';
 
-type IconSource = 'predefined' | 'upload' | 'iobroker';
+type IconSource = 'predefined' | 'widgetSets' | 'upload' | 'iobroker';
 
 interface IconPickerDialogProps {
     open: boolean;
@@ -48,7 +49,28 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
     const { open, title, value, onClose, onSelect, socket, theme, admin } = props;
     const [source, setSource] = useState<IconSource>('predefined');
     const [fileDialogOpen, setFileDialogOpen] = useState(false);
+    const [widgetSetIcons, setWidgetSetIcons] = useState<WidgetSetIcon[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Lazily load the icons contributed by installed adapters' widget sets (cached across dialogs).
+    useEffect(() => {
+        if (open) {
+            loadWidgetSetIcons(socket, admin, I18n.getLanguage())
+                .then(setWidgetSetIcons)
+                .catch(() => setWidgetSetIcons([]));
+        }
+    }, [open, socket, admin]);
+
+    // Group the flat icon list per adapter/set for display.
+    const widgetSetGroups: { adapter: string; setName: string; icons: WidgetSetIcon[] }[] = [];
+    for (const ic of widgetSetIcons) {
+        let group = widgetSetGroups.find(g => g.adapter === ic.adapter);
+        if (!group) {
+            group = { adapter: ic.adapter, setName: ic.setName, icons: [] };
+            widgetSetGroups.push(group);
+        }
+        group.icons.push(ic);
+    }
 
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
         const file = e.target.files?.[0];
@@ -123,31 +145,45 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                     ) : null}
 
                     {/* Source selector */}
-                    <ToggleButtonGroup
+                    <Tabs
                         value={source}
-                        exclusive
-                        onChange={(_, v) => {
-                            if (v) {
-                                setSource(v);
-                            }
-                        }}
-                        size="small"
-                        fullWidth
-                        sx={{ mb: 2 }}
+                        onChange={(_, v: IconSource) => setSource(v)}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        allowScrollButtonsMobile
+                        sx={{ mb: 2, minHeight: 40, borderBottom: 1, borderColor: 'divider' }}
                     >
-                        <ToggleButton value="predefined">
-                            <GridView sx={{ fontSize: 16, mr: 0.5 }} />
-                            {I18n.t('wm_Predefined')}
-                        </ToggleButton>
-                        <ToggleButton value="upload">
-                            <CloudUpload sx={{ fontSize: 16, mr: 0.5 }} />
-                            {I18n.t('wm_Upload')}
-                        </ToggleButton>
-                        <ToggleButton value="iobroker">
-                            <FolderOpen sx={{ fontSize: 16, mr: 0.5 }} />
-                            ioBroker
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                        <Tab
+                            value="predefined"
+                            icon={<GridView sx={{ fontSize: 18 }} />}
+                            iconPosition="start"
+                            label={I18n.t('wm_Predefined')}
+                            sx={{ minHeight: 40, textTransform: 'none' }}
+                        />
+                        {widgetSetGroups.length ? (
+                            <Tab
+                                value="widgetSets"
+                                icon={<Extension sx={{ fontSize: 18 }} />}
+                                iconPosition="start"
+                                label={I18n.t('wm_Widget sets')}
+                                sx={{ minHeight: 40, textTransform: 'none' }}
+                            />
+                        ) : null}
+                        <Tab
+                            value="upload"
+                            icon={<CloudUpload sx={{ fontSize: 18 }} />}
+                            iconPosition="start"
+                            label={I18n.t('wm_Upload')}
+                            sx={{ minHeight: 40, textTransform: 'none' }}
+                        />
+                        <Tab
+                            value="iobroker"
+                            icon={<FolderOpen sx={{ fontSize: 18 }} />}
+                            iconPosition="start"
+                            label="ioBroker"
+                            sx={{ minHeight: 40, textTransform: 'none' }}
+                        />
+                    </Tabs>
 
                     {/* Predefined icons grid */}
                     {source === 'predefined' ? (
@@ -204,6 +240,57 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                                     </Box>
                                 );
                             })}
+                        </Box>
+                    ) : null}
+
+                    {/* Widget-set icons (contributed by installed adapters) */}
+                    {source === 'widgetSets' ? (
+                        <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                            {widgetSetGroups.map(group => (
+                                <Box
+                                    key={group.adapter}
+                                    sx={{ mb: 1.5 }}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}
+                                    >
+                                        {group.setName}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {group.icons.map(icon => {
+                                            const selected = value === icon.icon;
+                                            return (
+                                                <Tooltip
+                                                    key={`${icon.adapter}_${icon.id}`}
+                                                    title={icon.label}
+                                                >
+                                                    <Box
+                                                        onClick={() => onSelect(icon.icon)}
+                                                        sx={t => ({
+                                                            width: 36,
+                                                            height: 36,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            borderRadius: 1,
+                                                            cursor: 'pointer',
+                                                            border: `2px solid ${selected ? t.palette.primary.main : 'transparent'}`,
+                                                            bgcolor: selected ? 'action.selected' : 'action.hover',
+                                                            '&:hover': { bgcolor: 'action.focus' },
+                                                        })}
+                                                    >
+                                                        <Icon
+                                                            src={icon.icon}
+                                                            style={{ width: 22, height: 22 }}
+                                                        />
+                                                    </Box>
+                                                </Tooltip>
+                                            );
+                                        })}
+                                    </Box>
+                                </Box>
+                            ))}
                         </Box>
                     ) : null}
 
