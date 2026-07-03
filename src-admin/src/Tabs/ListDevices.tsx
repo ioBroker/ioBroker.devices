@@ -97,7 +97,7 @@ import {
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
-import SmartDetector from '../Devices/SmartDetector';
+import SmartDetector, { removeForeignAliasStates } from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
 import LocalUtils from '../Components/helpers/LocalUtils';
@@ -1207,7 +1207,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 _keysOptional: keys,
                 ignoreCache: true,
             });
-            result?.forEach(device => devices.push(device as PatternControlEx));
+            result?.forEach(device => {
+                // #597/#536: drop indicator datapoints that leaked in from sibling
+                // channels of an alias-device grouping before they reach the UI.
+                removeForeignAliasStates(device, this.objects);
+                devices.push(device as PatternControlEx);
+            });
             if (di % DETECT_CHUNK === DETECT_CHUNK - 1) {
                 await new Promise(resolve => setTimeout(resolve));
                 if (detectGen !== this.detectGeneration) {

@@ -52,6 +52,7 @@ import {
     extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
+import { removeForeignAliasStates } from '../Devices/SmartDetector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
@@ -787,6 +788,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         if (!detected?.length) {
             return;
         }
+
+        // #597/#536: strip indicator datapoints that leaked in from sibling channels
+        // of an alias-device grouping so auto-fill does not re-introduce them.
+        detected.forEach(control => removeForeignAliasStates(control, this.props.objects));
 
         // Use the first detection result matching our device type
         const match = detected.find(d => d.type === deviceType);
