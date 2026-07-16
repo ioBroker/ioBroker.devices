@@ -1,4 +1,5 @@
 {
+    "An object with this name already exists in the target folder": "Объект с таким именем уже существует в целевой папке",
     "Add": "Добавить",
     "Add new folder to \"%s\"": "Добавить новую папку в \"%s\"",
     "Add state": "Добавить состояние",

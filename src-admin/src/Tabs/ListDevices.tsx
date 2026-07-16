@@ -2542,13 +2542,19 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 targetPath = `${parentId}.${lastPart}`;
             }
 
-            // Validate drop target
+            // Structural targets cannot receive a drop — reject them silently (they are already
+            // marked red while dragging).
             if (
                 !dropTarget.id?.includes('alias.0') ||
                 dropTarget.id?.includes('automatically_detected') ||
-                dropTarget.id?.includes('linked_devices') ||
-                this.objects[targetPath]
+                dropTarget.id?.includes('linked_devices')
             ) {
+                return;
+            }
+            // The target looks droppable, but an object with this name already exists there — tell
+            // the user instead of silently doing nothing.
+            if (this.objects[targetPath]) {
+                this.setState({ message: I18n.t('An object with this name already exists in the target folder') });
                 return;
             }
 
