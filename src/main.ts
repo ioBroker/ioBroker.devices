@@ -48,6 +48,8 @@ export default class DevicesAdapter extends Adapter {
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');
+        // Repair missing instance monitoring objects (see #603) so the admin does not show us red.
+        await this.ensureInstanceStateObjects();
         await this.onInstall(true);
 
         // Upload one picture to devices.0, so it will be available in the File selector
@@ -66,6 +68,40 @@ export default class DevicesAdapter extends Adapter {
         // the instance must either run `usePureWebSockets` or delegate the socket layer to a
         // `ws.X` adapter instance via `native.socketio`.
         await this.checkWebInstances();
+    }
+
+    /**
+     * Ensure the instance monitoring objects `alive` and `connected` exist.
+     *
+     * js-controller creates these when the instance is set up, but on some upgraded
+     * installations the objects go missing while their state values persist. That makes the
+     * admin "Instances" tab render this instance red for a few seconds whenever the tab is
+     * opened, because the object-based state snapshot skips object-less states (issue #603).
+     * `setForeignObjectNotExistsAsync` is idempotent, so healthy instances stay untouched.
+     */
+    private async ensureInstanceStateObjects(): Promise<void> {
+        await this.setForeignObjectNotExistsAsync(`system.adapter.${this.namespace}.alive`, {
+            type: 'state',
+            common: {
+                name: `${this.namespace} alive`,
+                type: 'boolean',
+                read: true,
+                write: true,
+                role: 'indicator.state',
+            },
+            native: {},
+        });
+        await this.setForeignObjectNotExistsAsync(`system.adapter.${this.namespace}.connected`, {
+            type: 'state',
+            common: {
+                name: `${this.namespace} is connected`,
+                type: 'boolean',
+                read: true,
+                write: false,
+                role: 'indicator.state',
+            },
+            native: {},
+        });
     }
 
     private async checkWebInstances(): Promise<void> {
