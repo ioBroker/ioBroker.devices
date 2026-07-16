@@ -1782,12 +1782,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     renderDeleteDialog(): React.JSX.Element | null {
         if (this.state.deleteFolderAndDevice) {
-            const time = parseInt(
-                window.localStorage.getItem(
-                    this.state.deleteFolderAndDevice.device ? 'DeleteDeviceTime' : 'DeleteFolderTime',
-                ) || '0',
-                10,
-            );
+            // Deleting a folder is recursive (removes all contained devices and states), so it
+            // always requires an explicit confirmation. Only single devices may be removed without
+            // re-confirmation within the 5-minute window.
+            const time = this.state.deleteFolderAndDevice.device
+                ? parseInt(window.localStorage.getItem('DeleteDeviceTime') || '0', 10)
+                : 0;
             if (time && Date.now() - time < 5 * 60_000) {
                 const deleteFolderAndDevice: { id: string; device?: false } | { index: number; device: true } =
                     JSON.parse(JSON.stringify(this.state.deleteFolderAndDevice));
