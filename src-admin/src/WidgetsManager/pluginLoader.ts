@@ -71,21 +71,26 @@ function snapshotFederationInstances(): Set<string> {
 }
 
 /**
- * Read the React version declared by the remote that appeared after `before` was taken.
- * Returns null if it cannot be determined - e.g. because the remote does not share React at all
- * but takes it from `window.__iobrokerShared__`, which is fine.
+ * Read the react / react-dom versions declared by the remote that appeared after `before` was
+ * taken. Both matter: a react-dom built for another major reads React internals that no longer
+ * exist (e.g. "ReactCurrentOwner"), which throws instead of rendering.
+ * Packages missing from the result cannot be determined - e.g. because the remote does not share
+ * them at all but takes them from `window.__iobrokerShared__`, which is fine.
  */
-function detectRemoteReactVersion(before: Set<string>): string | null {
+function detectRemoteReactVersions(before: Set<string>): Record<string, string> {
+    const found: Record<string, string> = {};
     for (const instance of getFederationInstances()) {
         if (before.has(instance.name)) {
             continue;
         }
-        const versions = Object.keys(instance.shareScopeMap?.default?.react || {});
-        if (versions.length) {
-            return versions[0];
+        for (const packageName of ['react', 'react-dom']) {
+            const versions = Object.keys(instance.shareScopeMap?.default?.[packageName] || {});
+            if (versions.length && !found[packageName]) {
+                found[packageName] = versions[0];
+            }
         }
     }
-    return null;
+    return found;
 }
 
 /** In-flight load promises keyed by "url!module" for deduplication */
@@ -148,11 +153,14 @@ export async function loadPluginComponent(
                         // against is known. A plugin built against another React major creates
                         // elements this React refuses to render, which tears down the whole app -
                         // so refuse the plugin instead of the page.
-                        const remoteReact = detectRemoteReactVersion(knownInstances);
-                        if (remoteReact && parseInt(remoteReact.split('.')[0], 10) !== HOST_REACT_MAJOR) {
+                        const remoteVersions = detectRemoteReactVersions(knownInstances);
+                        const mismatch = Object.entries(remoteVersions).find(
+                            ([, version]) => parseInt(version.split('.')[0], 10) !== HOST_REACT_MAJOR,
+                        );
+                        if (mismatch) {
                             throw new Error(
-                                `Widget plugin "${adapterName}" was built against React ${remoteReact}, but this ` +
-                                    `page runs React ${React.version}. Its widgets cannot be rendered. ` +
+                                `Widget plugin "${adapterName}" was built against ${mismatch[0]} ${mismatch[1]}, but ` +
+                                    `this page runs React ${React.version}. Its widgets cannot be rendered. ` +
                                     `Please update the "${adapterName}" adapter.`,
                             );
                         }
