@@ -1,4 +1,4 @@
-import { type Connection } from '@iobroker/adapter-react-v5';
+import { type Connection } from '@iobroker/gui-components';
 import type { RetVal } from '@iobroker/dm-utils';
 import type { WmResponseItems } from './api';
 

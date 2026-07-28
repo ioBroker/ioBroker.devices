@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, LinearProgress } from '@mui/material';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
 
 import de from './i18n/de.json';
@@ -581,7 +581,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
-    onConfigChanged = (id: string, obj: ioBroker.ChannelObject | null | undefined): void => {
+    onConfigChanged = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (id === this.rootSettingsStateId && obj?.native) {
             const guiConfig = obj.native as GuiConfig;
             this.guiConfigCache = guiConfig;

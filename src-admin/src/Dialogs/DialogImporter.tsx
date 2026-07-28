@@ -30,7 +30,7 @@ import {
     type IobTheme,
     type ThemeType,
     DeviceTypeIcon,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import type { Types } from '@iobroker/type-detector';
 
 import TreeView from '../Components/TreeView';

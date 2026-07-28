@@ -9,7 +9,7 @@ import {
     GenericApp,
     type GenericAppProps,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import TabDevices from './Tabs/ListDevices';
 

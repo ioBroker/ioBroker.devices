@@ -1,7 +1,7 @@
 import React from 'react';
 import { Switch as MuiSwitch, Typography } from '@mui/material';
 import { PowerSettingsNew } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
 

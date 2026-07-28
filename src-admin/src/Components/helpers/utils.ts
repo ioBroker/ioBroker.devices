@@ -1,5 +1,5 @@
 import type { PatternControlEx } from '../../types';
-import { type AdminConnection, I18n, Utils } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Utils } from '@iobroker/gui-components';
 import type { PatternControl } from '@iobroker/type-detector';
 import { getChannelItems } from './search';
 

@@ -1,4 +1,4 @@
-import {} from '@iobroker/adapter-react-v5';
+import {} from '@iobroker/gui-components';
 export class WmProtocol {
     selectedInstance;
     socket;

@@ -7,7 +7,7 @@ import { Menu, MenuItem, Tooltip, IconButton } from '@mui/material';
 
 import { Crop as CropIcon } from '@mui/icons-material';
 
-import { IconPicker, I18n } from '@iobroker/adapter-react-v5';
+import { IconPicker, I18n } from '@iobroker/gui-components';
 
 const styles: Record<string, React.CSSProperties> = {
     image: {
@@ -59,7 +59,7 @@ interface UploadImageState {
 }
 
 class UploadImage extends Component<UploadImageProps, UploadImageState> {
-    private readonly cropperRef: React.RefObject<ReactCropperElement>;
+    private readonly cropperRef: React.RefObject<ReactCropperElement | null>;
 
     constructor(props: UploadImageProps) {
         super(props);

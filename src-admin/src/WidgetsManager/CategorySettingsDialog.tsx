@@ -18,7 +18,7 @@ import {
     Typography,
 } from '@mui/material';
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
-import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
 
 import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
 import type { WidgetGroup } from './groupUtils';
@@ -636,7 +636,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 max={200}
                                 step={5}
                                 onChange={(_e, val) => {
-                                    const v = val as number;
+                                    const v = val;
                                     setWidgetScale(v);
                                     localStorage.setItem('wm_widgetScale', String(v));
                                     window.dispatchEvent(new Event('wm_widgetScaleChanged'));

@@ -17,7 +17,7 @@ export default defineConfig(() => {
                 '@mui/system',
                 '@emotion/react',
                 '@emotion/styled',
-                '@iobroker/adapter-react-v5',
+                '@iobroker/gui-components',
             ],
             alias: {
                 react: path.resolve(__dirname, 'node_modules/react'),

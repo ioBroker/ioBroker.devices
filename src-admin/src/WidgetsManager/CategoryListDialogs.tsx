@@ -1,5 +1,5 @@
 import React from 'react';
-import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
 
 import Category from './Category';

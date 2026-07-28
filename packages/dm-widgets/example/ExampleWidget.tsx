@@ -23,7 +23,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Speed } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 // Import types and base class — at runtime, the host provides the real implementation
 import WidgetGeneric, {

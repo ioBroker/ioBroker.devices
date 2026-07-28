@@ -4,7 +4,7 @@ import { Button, Dialog, DialogActions, DialogContent, Checkbox, DialogTitle, Fo
 
 import { Close as IconClose, Delete as IconDelete } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 const styles: Record<string, React.CSSProperties> = {
     paper: {

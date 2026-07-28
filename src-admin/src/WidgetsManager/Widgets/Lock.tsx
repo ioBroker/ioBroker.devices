@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
 import { Lock, LockOpen, MeetingRoom, SensorDoor } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import type { ConfigItemPanel } from '@iobroker/json-config';

@@ -10,7 +10,7 @@ import {
     Switch,
 } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
-import { I18n, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, type IobTheme } from '@iobroker/gui-components';
 import type { AdminConnection } from '@iobroker/socket-client';
 
 import { type WidgetSettingsBase } from '../../../packages/dm-widgets/src/index';
@@ -240,7 +240,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         schema={schema}
                         data={values}
                         onError={() => {}}
-                        onChange={(data: Record<string, any>) => setValues(data as WidgetSettingsBase)}
+                        onChange={(data: Record<string, any> | null) => data && setValues(data as WidgetSettingsBase)}
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded

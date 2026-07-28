@@ -4,7 +4,7 @@ import { Types } from '@iobroker/type-detector';
 import { FcGoogle } from 'react-icons/fc';
 import { BsAlexa as Alexa } from 'react-icons/bs';
 
-import { I18n, Material as MaterialIcon } from '@iobroker/adapter-react-v5';
+import { I18n, Material as MaterialIcon } from '@iobroker/gui-components';
 
 export type ApplicationType = 'alexa' | 'alisa' | 'google' | 'material';
 
@@ -18,6 +18,7 @@ const TYPE_OPTIONS: Record<Types, Record<ApplicationType, boolean>> = {
     [Types.ct]: { alexa: true, alisa: true, google: true, material: false },
     [Types.dimmer]: { alexa: true, alisa: true, google: true, material: true },
     [Types.door]: { alexa: false, alisa: true, google: true, material: false },
+    [Types.fillLevel]: { alexa: false, alisa: false, google: false, material: false },
     [Types.fireAlarm]: { alexa: false, alisa: false, google: false, material: false },
     [Types.floodAlarm]: { alexa: false, alisa: false, google: false, material: false },
     [Types.gate]: { alexa: false, alisa: false, google: false, material: false },

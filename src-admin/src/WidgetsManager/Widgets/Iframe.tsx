@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Box, Dialog, DialogContent, IconButton, Typography } from '@mui/material';
 import { Close, OpenInNew } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import type { Theme } from '@mui/material/styles';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';

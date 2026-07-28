@@ -16,7 +16,7 @@ import {
     Whatshot,
     Tune,
 } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
     formatFloat,
@@ -741,9 +741,9 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             step={setStep}
                             onMouseDown={() => this.setState({ dragging: true })}
                             onTouchStart={() => this.setState({ dragging: true })}
-                            onChange={(_e, value) => this.setState({ setTemp: value as number })}
+                            onChange={(_e, value) => this.setState({ setTemp: value })}
                             onChangeCommitted={(_e, value) => {
-                                this.sendSetTemp(value as number);
+                                this.sendSetTemp(value);
                                 this.setState({ dragging: false });
                             }}
                             sx={{

@@ -27,7 +27,7 @@ import {
     WbCloudy,
     WrapText,
 } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import type { CustomWidgetType } from '../../../packages/dm-widgets/src/index';
 import { resolveTranslated } from './Widgets';

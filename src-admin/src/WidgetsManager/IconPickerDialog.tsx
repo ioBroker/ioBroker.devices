@@ -14,7 +14,7 @@ import {
     Typography,
 } from '@mui/material';
 import { Close, CloudUpload, Delete, Extension, FolderOpen, GridView } from '@mui/icons-material';
-import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
 
 import { PREDEFINED_ICONS, ICON_CATEGORIES, pathToDataUri, type PredefinedIcon } from './predefinedIcons';
 import { loadWidgetSetIcons, type WidgetSetIcon } from './widgetSetIcons';

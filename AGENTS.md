@@ -5,7 +5,7 @@
 Tab-only ioBroker adapter with **two separate codebases**:
 
 - **Backend** (`src/`): Minimal TypeScript adapter (`src/main.ts`) using `@iobroker/dm-utils` for device management. `src/lib/WidgetsManagement.ts` (733 lines) detects physical devices via `@iobroker/type-detector` and exposes them as `dm-utils` controls (switches, sliders, buttons). Runs as an ioBroker adapter process.
-- **Frontend** (`src-admin/src/`): React 18 + TypeScript + MUI 6 + Vite SPA. Entry: `App.tsx` → `Tabs/ListDevices.tsx` (3644 lines, main UI). Creates/edits virtual alias devices in the `alias.0` namespace. Uses `@dnd-kit` for drag-and-drop, `@iobroker/adapter-react-v5` for admin integration.
+- **Frontend** (`src-admin/src/`): React 18 + TypeScript + MUI 6 + Vite SPA. Entry: `App.tsx` → `Tabs/ListDevices.tsx` (3644 lines, main UI). Creates/edits virtual alias devices in the `alias.0` namespace. Uses `@dnd-kit` for drag-and-drop, `@iobroker/gui-components` for admin integration.
 
 **Data flow**: Physical adapter states → `@iobroker/type-detector` detects device patterns → user maps states to alias devices via the React UI → alias objects written to ioBroker object DB → consumed by Material UI, IoT, Matter adapters.
 
@@ -44,7 +44,7 @@ Full `npm test` requires network access to ioBroker servers — use `test/packag
 
 - **Two ESLint configs**: root `eslint.config.mjs` (backend, ignores `src-admin/`) and `src-admin/eslint.config.mjs` (React rules via `@iobroker/eslint-config`). Both use `@iobroker/eslint-config` as base.
 - **Prettier**: shared config from `@iobroker/eslint-config/prettier.config.mjs`.
-- **i18n**: 11 languages in `src-admin/src/i18n/*.json`. All UI strings go through `I18n.t()` from `@iobroker/adapter-react-v5`. Backend labels use inline `{ en: '...', de: '...' }` objects.
+- **i18n**: 11 languages in `src-admin/src/i18n/*.json`. All UI strings go through `I18n.t()` from `@iobroker/gui-components`. Backend labels use inline `{ en: '...', de: '...' }` objects.
 - **Type detection**: `@iobroker/type-detector` `Types` enum defines device types (dimmer, thermostat, blind, etc.). `PatternControl` describes detected state patterns. Extended as `PatternControlEx` in `src-admin/src/types.d.ts` with rooms/functions metadata.
 - **Alias namespace**: Virtual devices are created under `alias.0.*` in ioBroker's object tree.
 - **No runtime backend logic**: `src/main.ts` is near-empty (reads language config). All heavy logic is in `WidgetsManagement.ts` (device detection + control building) using the `dm-utils` framework.

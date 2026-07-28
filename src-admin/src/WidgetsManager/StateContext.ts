@@ -1,4 +1,4 @@
-import { type Connection, I18n, type ThemeType } from '@iobroker/adapter-react-v5';
+import { type Connection, I18n, type ThemeType } from '@iobroker/gui-components';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 export type ObjectChangeListener = (

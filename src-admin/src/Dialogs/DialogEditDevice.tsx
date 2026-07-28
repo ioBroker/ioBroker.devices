@@ -32,7 +32,7 @@ import {
     Publish as IconPublish,
     Edit as IconEdit,
     OpenInNew as IconExtended,
-    HelpOutline as IconHelpOutline,
+    HelpOutlined as IconHelpOutline,
     ImportExport as ImportExportIcon,
     Clear as ClearIcon,
 } from '@mui/icons-material';
@@ -50,7 +50,7 @@ import {
     Icon,
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
@@ -1183,7 +1183,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 editFxFor={`${this.props.channelId}.${this.state.editFxFor}`}
                 fxRead={this.fx[this.state.editFxFor]?.read}
                 fxWrite={this.fx[this.state.editFxFor]?.write}
-                onClose={(result: { read?: string; write?: string }): void => {
+                onClose={(result?: { read?: string; write?: string }): void => {
                     if (result) {
                         this.fx[this.state.editFxFor] = { read: result.read, write: result.write };
                     }

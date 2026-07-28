@@ -11,7 +11,7 @@ import {
     Typography,
 } from '@mui/material';
 import { AutoFixHigh, Close, LightbulbOutlined, Timer } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
     isNeumorphicTheme,
@@ -707,8 +707,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                     min={0}
                                     max={transitionMax}
                                     step={100}
-                                    onChange={(_e, value) => this.setState({ transitionTime: value as number })}
-                                    onChangeCommitted={(_e, value) => this.setTransitionTime(value as number)}
+                                    onChange={(_e, value) => this.setState({ transitionTime: value })}
+                                    onChangeCommitted={(_e, value) => this.setTransitionTime(value)}
                                     sx={{ flex: 1 }}
                                 />
                                 <Typography

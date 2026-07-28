@@ -1,4 +1,4 @@
-import { type Connection, type IobTheme, type ThemeName, type ThemeType } from '@iobroker/adapter-react-v5';
+import { type Connection, type IobTheme, type ThemeName, type ThemeType } from '@iobroker/gui-components';
 import {
     Backdrop,
     Button,

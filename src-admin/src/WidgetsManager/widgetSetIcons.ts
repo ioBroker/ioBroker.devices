@@ -1,4 +1,4 @@
-import { type Connection } from '@iobroker/adapter-react-v5';
+import { type Connection } from '@iobroker/gui-components';
 
 import { resolveTranslated } from './Widgets/Generic';
 

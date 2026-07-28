@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, type Theme, Typography } from '@mui/material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 

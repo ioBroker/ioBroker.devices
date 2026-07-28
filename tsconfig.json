@@ -13,26 +13,16 @@
         "skipLibCheck": true, // Don't report errors in 3rd party definitions
         "noEmitOnError": true,
         "outDir": "./build/",
+        "rootDir": "./src/",
         "removeComments": false,
         "module": "Node16",
         "moduleResolution": "node16",
         "esModuleInterop": true,
-        // this is necessary for the automatic typing of the adapter config
         "resolveJsonModule": true,
-
-        // Set this to false if you want to disable the very strict rules (not recommended)
         "strict": true,
-        // Or enable some of those features for more fine-grained control
-        // "strictNullChecks": true,
-        // "strictPropertyInitialization": true,
-        // "strictBindCallApply": true,
-        // "noImplicitAny": true,
-        // "noUnusedLocals": true,
-        // "noUnusedParameters": true,
-
-        // Consider targeting es2022 or higher if you only support Node.js 12+
+        "strictNullChecks": true,
+        "strictPropertyInitialization": true,
         "target": "es2022",
-
         "sourceMap": true,
         "inlineSourceMap": false,
         "useUnknownInCatchVariables": false,

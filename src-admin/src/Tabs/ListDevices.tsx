@@ -85,7 +85,7 @@ import {
     type ThemeName,
     Loader,
     DeviceTypeIcon,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import {
     copyDevice,
@@ -829,9 +829,9 @@ function DndWrapper(props: {
 }
 
 export default class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
-    private readonly inputRef: RefObject<HTMLInputElement>;
+    private readonly inputRef: RefObject<HTMLInputElement | null>;
 
-    private readonly splitContainerRef: RefObject<HTMLDivElement>;
+    private readonly splitContainerRef: RefObject<HTMLDivElement | null>;
     private readonly customKey = `${this.props.adapterName}.${this.props.instance}`;
 
     private updateTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -839,7 +839,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     private deleteTimeout: ReturnType<typeof setTimeout> | null = null;
     private filterTimer: ReturnType<typeof setTimeout> | null = null;
 
-    private enumIDs: string[];
+    private enumIDs: string[] = [];
 
     private objects: Record<string, ioBroker.Object>;
 
@@ -847,7 +847,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     private enumObj: Record<string, ioBroker.EnumObject>;
 
-    private prefix: string;
+    private prefix: string = 'alias.0';
 
     private typesWords: Partial<Record<Types, string>> = {};
 
@@ -855,15 +855,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     private filter: string;
 
-    private editCreatedId: string | null;
+    private editCreatedId: string | null = null;
 
     private readonly patterns: {
         [type: string]: ExternalPatternControl;
     };
 
-    private funcEnums: string[];
+    private funcEnums: string[] | null = null;
 
-    private roomsEnums: string[];
+    private roomsEnums: string[] | null = null;
 
     private readonly detector: SmartDetector;
 
@@ -1423,7 +1423,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         return prepareList(stateIds, null, objects);
     };
 
-    updateEnumsForOneDevice(device: PatternControlEx, funcEnums?: string[], roomsEnums?: string[]): void {
+    updateEnumsForOneDevice(device: PatternControlEx, funcEnums?: string[] | null, roomsEnums?: string[] | null): void {
         funcEnums ||= this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums ||= this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         if (!device) {
@@ -2378,7 +2378,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             <Select
                 variant="standard"
                 value={this.state.filter.type || '_'}
-                onChange={e => this.changeFilter(undefined, undefined, e.target.value as Types | '_' | '')}
+                onChange={e => this.changeFilter(undefined, undefined, e.target.value)}
             >
                 <MenuItem value={'_'}>
                     <span style={{ color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040' }}>

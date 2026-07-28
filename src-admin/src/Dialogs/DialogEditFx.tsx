@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
-import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n } from '@iobroker/gui-components';
 import { Clear as ClearIcon } from '@mui/icons-material';
 
 const styles: Record<string, React.CSSProperties> = {

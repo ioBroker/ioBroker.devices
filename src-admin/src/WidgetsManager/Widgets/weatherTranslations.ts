@@ -1,4 +1,4 @@
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 /**
  * Mapping of OpenWeatherMap condition strings (lowercase) → i18n keys.

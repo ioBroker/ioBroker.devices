@@ -4,7 +4,7 @@
  * MIT License
  *
  */
-import { Utils, I18n } from '@iobroker/adapter-react-v5';
+import { Utils, I18n } from '@iobroker/gui-components';
 
 class LocalUtils {
     static getObjectName(

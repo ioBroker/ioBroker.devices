@@ -35,7 +35,7 @@ import {
     WifiOff,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 import moment from 'moment/min/moment-with-locales';
 
 import {
@@ -289,12 +289,14 @@ export function PinPadDialog(props: PinPadDialogProps): React.JSX.Element | null
             open
             onClose={onClose}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
-            PaperProps={{
-                sx: {
-                    borderRadius: '24px',
-                    p: 3,
-                    minWidth: 280,
-                    maxWidth: 320,
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: '24px',
+                        p: 3,
+                        minWidth: 280,
+                        maxWidth: 320,
+                    },
                 },
             }}
         >
@@ -849,8 +851,12 @@ export class WidgetGeneric<
         }
     };
 
-    onNameChange = (id: string, property: string, value: ioBroker.StringOrTranslated): void => {
-        const text = this.getText(value);
+    onNameChange = (
+        id: string,
+        property: string,
+        value: string | boolean | number | ioBroker.StringOrTranslated,
+    ): void => {
+        const text = this.getText(typeof value === 'boolean' || typeof value === 'number' ? String(value) : value);
         const struct = this.props.widget.name as { objectId: string; property: string };
         if (this.props.widget.name && typeof this.props.widget.name === 'object' && struct.objectId) {
             if (struct.objectId === id && struct.property === property && text !== this.state.name) {

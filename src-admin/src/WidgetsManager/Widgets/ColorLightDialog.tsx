@@ -12,7 +12,7 @@ import {
     Typography,
 } from '@mui/material';
 import { Close, Palette, Thermostat } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb } from './colorUtils';
 
@@ -145,8 +145,10 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
             onClose={onClose}
             fullWidth
             maxWidth="xs"
-            PaperProps={{
-                sx: { borderRadius: '16px' },
+            slotProps={{
+                paper: {
+                    sx: { borderRadius: '16px' },
+                },
             }}
         >
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>

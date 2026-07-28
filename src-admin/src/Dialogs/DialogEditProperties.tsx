@@ -9,7 +9,7 @@ import React, { Component } from 'react';
 import { TextField, Switch, FormControlLabel, Box, IconButton } from '@mui/material';
 import { Clear as ClearIcon } from '@mui/icons-material';
 
-import { I18n, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, type AdminConnection } from '@iobroker/gui-components';
 
 import UploadImage from '../Components/UploadImage';
 import { findMainStateId, getParentId, getSmartName } from '../Components/helpers/utils';

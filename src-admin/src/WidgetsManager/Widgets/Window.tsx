@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { SensorWindow, SensorWindowOutlined } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 

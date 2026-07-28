@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, ListItemIcon, ListItemText, MenuItem, Select, Typography } from '@mui/material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import { GROUP_ORDER, type WidgetGroup } from './groupUtils';
 import { getGroupIcon } from './groupIcons';

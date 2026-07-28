@@ -19,7 +19,7 @@ function moduleFederationShared(packageJson) {
     const list = [
         '@emotion/react',
         '@emotion/styled',
-        '@iobroker/adapter-react-v5',
+        '@iobroker/gui-components',
         '@iobroker/dm-widgets',
         '@iobroker/type-detector',
         '@mui/icons-material',
