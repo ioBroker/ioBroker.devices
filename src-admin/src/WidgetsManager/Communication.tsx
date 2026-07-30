@@ -42,6 +42,8 @@ export type CommunicationState = {
  */
 export default class Communication<P extends CommunicationProps, S extends CommunicationState> extends Component<P, S> {
     private protocol: WmProtocol;
+    /** Instance the current `protocol` talks to. Used to detect a change of `selectedInstance` */
+    private protocolInstance: string;
     private responseTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor(props: P) {
@@ -54,9 +56,19 @@ export default class Communication<P extends CommunicationProps, S extends Commu
             selectedInstance: this.props.selectedInstance ?? (window.localStorage.getItem('wmSelectedInstance') || ''),
         } as S;
 
-        this.protocol = new WmProtocol(this.state.selectedInstance, this.props.socket);
+        this.protocolInstance = this.state.selectedInstance;
+        this.protocol = new WmProtocol(this.protocolInstance, this.props.socket);
 
         this.props.registerHandler?.(() => this.loadItemsList());
+    }
+
+    /** The selected instance may change during the lifetime of this component */
+    private getProtocol(): WmProtocol {
+        if (this.protocolInstance !== this.state.selectedInstance) {
+            this.protocolInstance = this.state.selectedInstance;
+            this.protocol = new WmProtocol(this.protocolInstance, this.props.socket);
+        }
+        return this.protocol;
     }
 
     componentWillUnmount(): void {
@@ -66,9 +78,16 @@ export default class Communication<P extends CommunicationProps, S extends Commu
         }
     }
 
+    /** @returns false if the instance is not running and therefore nothing was requested */
     // eslint-disable-next-line react/no-unused-class-component-methods
-    loadItems(callback: LoadItemsCallback): Promise<void> {
-        return this.protocol.loadItems(callback);
+    loadItems(callback: LoadItemsCallback): Promise<boolean> {
+        return this.getProtocol().loadItems(callback);
+    }
+
+    /** Check if the backend instance is running. Nothing may be sent to it otherwise */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    isBackendAlive(): Promise<boolean> {
+        return this.getProtocol().isAlive();
     }
 
     // eslint-disable-next-line class-methods-use-this

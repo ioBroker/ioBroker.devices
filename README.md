@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Migrated to react 19 and MUI 9
+
 ### 3.0.2 (2026-06-30)
 * (@GermanBluefox) Added support for widget icons
 
