@@ -24,12 +24,13 @@ const __mfImport = (src) =>
     : import(src);
 
 
+
 (async () => {
-  const __mfHostInit = await __mfImport("./hostInit-Bio8g9m1.js");
+  const __mfHostInit = await __mfImport("./hostInit-CK4MFd_8.js");
   await __mfHostInit.__tla;
   const { initHost } = __mfHostInit;
   await initHost();
   if (__mfModuleCache.pendingShareLoads) {
     await Promise.all(__mfModuleCache.pendingShareLoads);
   }
-})().then(() => __mfImport("./index-CPn-rNho.js"));
+})().then(() => __mfImport("./index-D4Tnuvul.js"));

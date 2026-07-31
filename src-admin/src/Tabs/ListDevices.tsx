@@ -661,7 +661,10 @@ const styles: Record<string, any> = {
     },
     table: (theme: IobTheme): SxProps => ({
         '& th': {
-            background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white',
+            // Taken from the palette instead of being picked per theme name: the previous list only
+            // knew "dark" and "blue", so every new theme - "modernDark" above all - fell into the
+            // final branch and got a white header on a dark table.
+            background: theme.palette.background.paper,
         },
     }),
     spaceBetween: {
