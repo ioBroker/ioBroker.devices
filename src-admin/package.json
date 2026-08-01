@@ -8,8 +8,8 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
-        "@iobroker/gui-components": "^10.0.9",
-        "@iobroker/json-config": "^9.0.12",
+        "@iobroker/gui-components": "^10.0.11",
+        "@iobroker/json-config": "^9.0.14",
         "@iobroker/type-detector": "^5.0.15",
         "@iobroker/types": "^7.2.2",
         "@module-federation/runtime": "^2.8.1",
@@ -55,6 +55,6 @@
         ]
     },
     "devDependencies": {
-        "@types/leaflet": "^1.9.21"
+        "@types/leaflet": "^1.9.22"
     }
 }
