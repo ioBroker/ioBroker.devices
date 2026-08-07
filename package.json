@@ -36,7 +36,7 @@
     "@types/node": "^22.20.1",
     "colorette": "^2.0.20",
     "puppeteer": "^25.4.0",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.2"
   },
   "main": "build/main.js",
   "files": [
