@@ -163,7 +163,7 @@ interface CategoryProps {
     onCloseWidgetDialog?: () => void;
 }
 
-/** 0 = closed, 1 = open, 2 = tilted */
+/** Official value.window: 0 = CLOSED, 1 = TILTED, 2 = OPEN */
 type OpeningState = 0 | 1 | 2;
 
 interface OpeningSensor {
@@ -1666,7 +1666,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 role = 'humidity';
             } else if (type === Types.motion) {
                 role = 'motion';
-            } else if (type === Types.window) {
+            } else if (type === Types.window || type === Types.windowTilt) {
                 role = 'window';
             } else if (type === Types.door) {
                 role = 'door';
@@ -1761,14 +1761,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
 
     private static toOpeningState(val: ioBroker.StateValue): OpeningState {
         if (typeof val === 'number') {
-            // 0 = closed, 1 = open, 2 = tilted
-            if (val === 2) {
-                return 2;
+            // value.window: 0=CLOSED, 1=TILTED, 2=OPEN
+            if (val === 1) {
+                return 1;
             }
-            return val ? 1 : 0;
+            return val ? 2 : 0;
         }
-        // boolean: true = open, false = closed
-        return val ? 1 : 0;
+        // sensor.window boolean: true = OPEN, false = CLOSED
+        return val ? 2 : 0;
     }
 
     /** Normalize a power state value to watts using its unit (kW-style -> *1000). */
@@ -2160,7 +2160,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetTemperature;
         } else if (type === Types.motion) {
             Widget = WidgetMotion;
-        } else if (type === Types.window) {
+        } else if (type === Types.window || type === Types.windowTilt) {
             Widget = WidgetWindow;
         } else if (type === Types.gate) {
             Widget = WidgetGate;
@@ -2699,7 +2699,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                             sx={{
                                                 fontSize: 16,
                                                 color,
-                                                transform: sensor.state === 2 ? 'rotate(15deg)' : undefined,
+                                                transform: sensor.state === 1 ? 'rotate(15deg)' : undefined,
                                                 transition: 'color 0.25s ease',
                                             }}
                                         />
@@ -2860,7 +2860,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         if (sensor.state === 0) {
             return `${label}: ${I18n.t('wm_Closed')}`;
         }
-        if (sensor.state === 2) {
+        if (sensor.state === 1) {
             return `${label}: ${I18n.t('wm_Tilted')}`;
         }
         return `${label}: ${I18n.t('wm_Open')}`;
@@ -2871,6 +2871,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const sx = { fontSize: size, color: 'grey' };
         switch (type) {
             case Types.window:
+            case Types.windowTilt:
                 return <SensorWindow sx={sx} />;
             case Types.door:
                 return <SensorDoor sx={sx} />;
@@ -2891,7 +2892,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         if (sensor.state === 0) {
             return 'text.disabled';
         }
-        if (sensor.state === 2) {
+        if (sensor.state === 1) {
             return 'info.main';
         }
         return 'warning.main';
@@ -3000,7 +3001,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                             sx={{
                                                 fontSize: 20,
                                                 color,
-                                                transform: sensor.state === 2 ? 'rotate(15deg)' : undefined,
+                                                transform: sensor.state === 1 ? 'rotate(15deg)' : undefined,
                                                 transition: 'color 0.25s ease, transform 0.25s ease',
                                             }}
                                         />

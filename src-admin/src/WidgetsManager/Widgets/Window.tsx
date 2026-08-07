@@ -9,7 +9,8 @@ interface AlarmWidgetSettings extends WidgetGenericSettings {
     hideWhenOk?: boolean;
 }
 
-/** 0 = closed, 1 = open, 2 = tilted */
+/** Official value.window: 0 = CLOSED, 1 = TILTED, 2 = OPEN */
+// acording to: https://www.iobroker.net/#en/documentation/dev/stateroles.md?info
 type WindowOpenState = 0 | 1 | 2;
 
 interface WidgetWindowState extends WidgetGenericState {
@@ -71,9 +72,11 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
     onWindowChange = (_id: string, state: ioBroker.State): void => {
         let openState: WindowOpenState;
         if (typeof state.val === 'number') {
-            openState = state.val === 2 ? 2 : state.val ? 1 : 0;
+            // value.window: 0=CLOSED, 1=TILTED, 2=OPEN
+            openState = state.val === 1 ? 1 : state.val ? 2 : 0;
         } else {
-            openState = state.val ? 1 : 0;
+            // sensor.window boolean: true=OPEN, false=CLOSED
+            openState = state.val ? 2 : 0;
         }
         const isOpen = openState !== 0;
         const lc = state.lc || state.ts || Date.now();
@@ -89,7 +92,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
     }
 
     protected getWindowStatusText(): string {
-        if (this.state.openState === 2) {
+        if (this.state.openState === 1) {
             return I18n.t('wm_Tilted');
         }
         return this.state.isOpen
@@ -120,7 +123,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
         }
 
         // Tilted: rotated filled icon
-        if (openState === 2) {
+        if (openState === 1) {
             return (
                 <SensorWindow
                     sx={theme => ({
@@ -171,7 +174,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
                     sx={theme => ({
                         fontWeight: 600,
                         color:
-                            openState === 2
+                            openState === 1
                                 ? accent || theme.palette.info.main
                                 : isOpen
                                   ? accent || theme.palette.warning.main
@@ -205,7 +208,7 @@ export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSe
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
                         color:
-                            openState === 2
+                            openState === 1
                                 ? accent || theme.palette.info.main
                                 : isOpen
                                   ? accent || theme.palette.warning.main

@@ -148,6 +148,7 @@ const ALARM_ICON_TYPES = new Set([
     Types.fireAlarm,
     Types.motion,
     Types.window,
+    Types.windowTilt,
     Types.door,
     Types.warning,
 ]);
