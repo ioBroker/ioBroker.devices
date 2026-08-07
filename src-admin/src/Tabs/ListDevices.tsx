@@ -93,6 +93,7 @@ import {
     getLastPart,
     getParentId,
     getSmartName,
+    getStateCommonType,
     inheritCommonFromSource,
     setSmartName,
 } from '../Components/helpers/utils';
@@ -142,14 +143,6 @@ const actionsMapping: Record<string, { color: string; icon: IconType; desc: stri
 
     setLockState: { color: colorSet, icon: IconLock, desc: 'Set lock state' },
     getLockState: { color: colorRead, icon: IconLock, desc: 'Read lock state' },
-};
-
-const TYPES_MAPPING: Record<string, 'boolean' | 'number'> = {
-    button: 'boolean',
-    value: 'number',
-    level: 'number',
-    indicator: 'boolean',
-    action: 'boolean',
 };
 
 const UNSUPPORTED_TYPES = [Types.unknown];
@@ -2818,11 +2811,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             stateObj.common.alias!.write = data.fx[state.name].write;
                         }
 
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         // Inherit min/max/unit/step from the aliased source state — issue #22.
                         // Only fill fields the alias does not define yet.
@@ -2924,11 +2913,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
                         }
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         /*if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
@@ -3304,11 +3289,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 const common: ioBroker.StateCommon = {
                     name: state.name,
                     role: state.defaultRole,
-                    type: state.type
-                        ? typeof state.type === 'object'
-                            ? state.type[0]
-                            : state.type
-                        : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed',
+                    type: getStateCommonType(state),
                     read: state.read === undefined ? true : state.read,
                     write: state.write === undefined ? false : state.write,
                     alias: {
