@@ -1,7 +1,32 @@
 import type { PatternControlEx } from '../../types';
 import { type AdminConnection, I18n, Utils } from '@iobroker/gui-components';
-import type { DetectorState, PatternControl } from '@iobroker/type-detector';
+import type { DetectorState, ExternalDetectorState, PatternControl } from '@iobroker/type-detector';
 import { getChannelItems } from './search';
+
+const ROLE_PREFIX_TO_TYPE: Record<string, 'boolean' | 'number'> = {
+    button: 'boolean',
+    value: 'number',
+    level: 'number',
+    indicator: 'boolean',
+    action: 'boolean',
+};
+
+/**
+ * `type` is the detection constraint and may be absent or ambiguous; `defaultType` is what the pattern
+ * wants the created object to be. Deriving the type from the role prefix alone gets `ERROR` wrong — its
+ * role is `indicator.error` but it carries a string.
+ */
+export function getStateCommonType(
+    state: Pick<ExternalDetectorState, 'defaultType' | 'type' | 'defaultRole'>,
+): ioBroker.CommonType {
+    if (state.defaultType) {
+        return state.defaultType;
+    }
+    if (state.type) {
+        return typeof state.type === 'object' ? state.type[0] : state.type;
+    }
+    return ROLE_PREFIX_TO_TYPE[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+}
 
 /**
  * A pattern may declare the same state name twice with different types (`airCondition` has SWING as
