@@ -1,4 +1,5 @@
 {
+    "An object with this name already exists in the target folder": "Un objet portant ce nom existe déjà dans le dossier cible",
     "Add": "Ajouter",
     "Add new folder to \"%s\"": "Ajouter un nouveau dossier à \"%s\"",
     "Add state": "Ajouter un état",
