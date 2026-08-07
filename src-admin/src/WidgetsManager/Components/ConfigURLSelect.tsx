@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconButton, InputAdornment, TextField } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import { ConfigGeneric, type ConfigGenericProps } from '@iobroker/json-config';
 import { DETECT_APPLICATIONS } from '../Utils';

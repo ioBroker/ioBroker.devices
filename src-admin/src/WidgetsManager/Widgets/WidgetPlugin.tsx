@@ -6,12 +6,40 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { CustomWidgetPlugin } from '../../../../packages/dm-widgets/src/index';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
-import { loadPluginComponent } from '../pluginLoader';
+import { describePluginError, loadPluginComponent } from '../pluginLoader';
 
 interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
     loading: boolean;
     error: string | null;
+}
+
+interface PluginErrorBoundaryProps {
+    children: React.ReactNode;
+    onError: (error: Error) => void;
+}
+
+/**
+ * A plugin that was built against another React version throws while rendering and would tear
+ * down the whole widget tree with it. Keep the damage inside the single tile.
+ */
+class PluginErrorBoundary extends React.Component<PluginErrorBoundaryProps, { failed: boolean }> {
+    constructor(props: PluginErrorBoundaryProps) {
+        super(props);
+        this.state = { failed: false };
+    }
+
+    static getDerivedStateFromError(): { failed: boolean } {
+        return { failed: true };
+    }
+
+    componentDidCatch(error: Error): void {
+        this.props.onError(error);
+    }
+
+    render(): React.ReactNode {
+        return this.state.failed ? null : this.props.children;
+    }
 }
 
 export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetPlugin> {
@@ -68,10 +96,22 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
             })
             .catch(err => {
                 if (this.mounted) {
-                    this.setState({ loading: false, error: String(err?.message || err) });
+                    this.setState({ loading: false, error: describePluginError(pluginAdapter, err) });
                 }
             });
     }
+
+    private onPluginError = (error: Error): void => {
+        const { pluginAdapter, pluginComponent } = this.props.settings;
+        console.error(`Widget plugin "${pluginAdapter}/${pluginComponent}" crashed while rendering: ${error.message}`);
+        if (this.mounted) {
+            this.setState({
+                PluginComp: null,
+                loading: false,
+                error: describePluginError(pluginAdapter || '', error),
+            });
+        }
+    };
 
     render(): React.JSX.Element {
         const { PluginComp, loading, error } = this.state;
@@ -143,16 +183,18 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
 
         // Render the loaded plugin component with full WidgetGenericProps
         const comp = (
-            <PluginComp
-                widget={this.props.widget}
-                stateContext={this.props.stateContext}
-                settings={this.props.settings}
-                onOpenSettings={this.props.onOpenSettings}
-                openDialogId={this.props.openDialogId}
-                onOpenWidgetDialog={this.props.onOpenWidgetDialog}
-                onCloseWidgetDialog={this.props.onCloseWidgetDialog}
-                onHide={this.props.onHide}
-            />
+            <PluginErrorBoundary onError={this.onPluginError}>
+                <PluginComp
+                    widget={this.props.widget}
+                    stateContext={this.props.stateContext}
+                    settings={this.props.settings}
+                    onOpenSettings={this.props.onOpenSettings}
+                    openDialogId={this.props.openDialogId}
+                    onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                    onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                    onHide={this.props.onHide}
+                />
+            </PluginErrorBoundary>
         );
 
         // Enforce correct height for 2x1 plugins via the sizer pattern

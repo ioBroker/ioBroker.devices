@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Speed, Tune } from '@mui/icons-material';
 import type { Theme } from '@mui/material/styles';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
     formatFloat,

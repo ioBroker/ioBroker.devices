@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
 import { Delete } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import { ConfigGeneric, type ConfigGenericProps, type ConfigGenericState } from '@iobroker/json-config';
 import IconPickerDialog from '../IconPickerDialog';

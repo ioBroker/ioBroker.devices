@@ -19,7 +19,7 @@ import {
     ListItemButton,
 } from '@mui/material';
 
-import { I18n, Utils, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon } from '@iobroker/gui-components';
 
 const styles: Record<string, React.CSSProperties> = {
     header: {

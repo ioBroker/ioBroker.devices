@@ -12,7 +12,7 @@ import {
     Typography,
 } from '@mui/material';
 import { Check, Close, ContentCopy, Download } from '@mui/icons-material';
-import { I18n, type Connection } from '@iobroker/adapter-react-v5';
+import { I18n, type Connection } from '@iobroker/gui-components';
 
 import ioBrokerLogo from './assets/ioBrokerLogo.png';
 

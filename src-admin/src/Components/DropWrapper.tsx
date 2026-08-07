@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 
 import { TableRow, type SxProps } from '@mui/material';
 
-import { Utils, I18n } from '@iobroker/adapter-react-v5';
+import { Utils, I18n } from '@iobroker/gui-components';
 
 import type { PatternControlEx } from '../types';
 import { getLastPart } from './helpers/utils';

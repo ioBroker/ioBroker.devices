@@ -1,4 +1,5 @@
 import React from 'react';
+import type { SvgIconProps } from '@mui/material';
 import {
     Blinds,
     Info,
@@ -11,7 +12,7 @@ import {
     Widgets,
 } from '@mui/icons-material';
 
-const GROUP_ICONS: Record<string, React.ReactElement> = {
+const GROUP_ICONS: Record<string, React.ReactElement<SvgIconProps>> = {
     lights: <Lightbulb sx={{ fontSize: 18 }} />,
     climate: <Thermostat sx={{ fontSize: 18 }} />,
     blinds: <Blinds sx={{ fontSize: 18 }} />,
@@ -23,6 +24,6 @@ const GROUP_ICONS: Record<string, React.ReactElement> = {
     other: <MoreHoriz sx={{ fontSize: 18 }} />,
 };
 
-export function getGroupIcon(groupId: string): React.ReactElement | null {
+export function getGroupIcon(groupId: string): React.ReactElement<SvgIconProps> | null {
     return GROUP_ICONS[groupId] || null;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { SensorDoor, MeetingRoom } from '@mui/icons-material';
-import { Icon } from '@iobroker/adapter-react-v5';
+import { Icon } from '@iobroker/gui-components';
 
 import { WidgetWindow } from './Window';
 

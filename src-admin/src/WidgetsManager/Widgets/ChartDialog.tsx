@@ -14,7 +14,7 @@ import {
     Typography,
 } from '@mui/material';
 import { Close, Settings } from '@mui/icons-material';
-import { I18n, type Connection } from '@iobroker/adapter-react-v5';
+import { I18n, type Connection } from '@iobroker/gui-components';
 
 import { formatFloat, type ChartSeries } from './Generic';
 

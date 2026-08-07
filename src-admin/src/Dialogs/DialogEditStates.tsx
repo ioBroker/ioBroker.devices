@@ -38,7 +38,7 @@ import {
     DragHandle as IconDragHandle,
 } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 function SortableItem(props: {
     id: string;
@@ -177,7 +177,7 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
         this.setState({ states });
     };
 
-    onChange = (i: number, value: string, label: string): void => {
+    onChange = (i: number, value?: string, label?: string): void => {
         const states: { label: string; value: string }[] = JSON.parse(JSON.stringify(this.state.states));
         if (value !== undefined) {
             states[i].value = value;

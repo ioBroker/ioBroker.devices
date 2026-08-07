@@ -15,7 +15,7 @@ import {
 
 import { Close as IconClose, Check as IconCheck, Clear as ClearIcon } from '@mui/icons-material';
 
-import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Theme, type AdminConnection } from '@iobroker/gui-components';
 
 import UploadImage from '../Components/UploadImage';
 import type { PatternControlEx } from '../types';

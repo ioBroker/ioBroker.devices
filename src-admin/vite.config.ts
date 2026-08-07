@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import commonjs from 'vite-plugin-commonjs';
-import viteTsConfigPaths from 'vite-tsconfig-paths';
 import { federation } from '@module-federation/vite';
+
 export default defineConfig({
     plugins: [
         federation({
@@ -14,7 +14,6 @@ export default defineConfig({
             manifest: true,
         }),
         react(),
-        viteTsConfigPaths(),
         commonjs(),
     ],
     server: {
@@ -57,6 +56,7 @@ export default defineConfig({
     },
     resolve: {
         dedupe: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+        tsconfigPaths: true,
     },
     base: './',
     build: {

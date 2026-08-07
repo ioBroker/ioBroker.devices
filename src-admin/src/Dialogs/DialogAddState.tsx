@@ -21,7 +21,7 @@ import {
 
 import { Close as IconClose, Check as IconCheck, Clear as ClearIcon } from '@mui/icons-material';
 
-import { I18n, Theme, Utils, type AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, Theme, Utils, type AdminConnection } from '@iobroker/gui-components';
 import type { DetectorState } from '@iobroker/type-detector';
 
 const styles: Record<string, any> = {
@@ -219,7 +219,7 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                                 variant="standard"
                                 fullWidth
                                 value={type || ''}
-                                onChange={e => setType(e.target.value as ioBroker.CommonType)}
+                                onChange={e => setType(e.target.value)}
                             >
                                 {typeArray.map(key => (
                                     <MenuItem

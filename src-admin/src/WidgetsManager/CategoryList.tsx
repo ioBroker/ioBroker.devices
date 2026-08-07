@@ -2,8 +2,7 @@ import React from 'react';
 import { Box, LinearProgress } from '@mui/material';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 
-import { I18n } from '@iobroker/adapter-react-v5';
-import { Types } from '@iobroker/type-detector';
+import { I18n } from '@iobroker/gui-components';
 
 import de from './i18n/de.json';
 import en from './i18n/en.json';
@@ -141,16 +140,6 @@ interface CategoryListState extends CommunicationState {
 
 const ROOT_CATEGORY = '__root__';
 const FAVORITES_CATEGORY = '__favorites__';
-
-/** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
-const ALARM_ICON_TYPES = new Set([
-    Types.floodAlarm,
-    Types.fireAlarm,
-    Types.motion,
-    Types.window,
-    Types.door,
-    Types.warning,
-]);
 
 /**
  * Device List Component
@@ -502,34 +491,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
         window.addEventListener('hashchange', this.onHashChange);
 
-        let alive = false;
-
-        if (this.state.alive === null && this.state.selectedInstance) {
-            try {
-                // check if the instance is alive
-                const stateAlive = await this.props.socket.getState(
-                    `system.adapter.${this.state.selectedInstance}.alive`,
-                );
-                if (stateAlive?.val) {
-                    alive = true;
-                }
-            } catch (error) {
-                console.error(error);
-            }
-            this.lastAliveSubscribe = this.state.selectedInstance;
-            this.setState({ alive }, () =>
-                this.props.socket.subscribeState(
-                    `system.adapter.${this.state.selectedInstance}.alive`,
-                    this.aliveHandler,
-                ),
-            );
-        } else if (this.state.alive !== null) {
-            alive = this.state.alive;
-        }
-
-        if (alive) {
-            this.loadItemsList();
-        }
+        // `loadItemsList` subscribes to the alive state, checks it and requests the data
+        // from the backend only if the instance is really running
+        this.loadItemsList();
 
         // Load system settings from system.config
         try {
@@ -581,7 +545,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
-    onConfigChanged = (id: string, obj: ioBroker.ChannelObject | null | undefined): void => {
+    onConfigChanged = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (id === this.rootSettingsStateId && obj?.native) {
             const guiConfig = obj.native as GuiConfig;
             this.guiConfigCache = guiConfig;
@@ -652,7 +616,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.loadingInProgress = true;
         this.setState({ loading: true }, async () => {
             console.log(`Loading items for ${this.state.selectedInstance}...`);
-            let alive = this.state.alive;
 
             if (this.state.selectedInstance !== this.lastAliveSubscribe) {
                 if (this.lastAliveSubscribe) {
@@ -667,108 +630,101 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
                 if (this.state.selectedInstance) {
                     this.stateContext.setInstanceId(this.state.selectedInstance);
-                    try {
-                        // check if the instance is alive
-                        const stateAlive = await this.props.socket.getState(
-                            `system.adapter.${this.state.selectedInstance}.alive`,
-                        );
-                        if (stateAlive?.val) {
-                            alive = true;
-                        }
-                    } catch (error) {
-                        console.error(error);
-                    }
                     await this.props.socket.subscribeState(
                         `system.adapter.${this.state.selectedInstance}.alive`,
                         this.aliveHandler,
                     );
-                } else {
-                    alive = false;
                 }
             }
 
+            // Ask for the current alive state instead of trusting `this.state.alive`:
+            // it can be outdated and a `sendTo` to a stopped instance is never answered,
+            // so the GUI would stay in the loading state forever
+            const alive = await this.isBackendAlive();
+
             try {
-                this.setState({ loading: !!alive, alive });
-                if (alive) {
-                    await this.loadItems(result => {
-                        // Build widget settings first so Favorites can be resolved
-                        const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
-
-                        // In admin mode, always start at root (ignore hash and favorites).
-                        // In web mode, restore from hash or fall back to the default category.
-                        let currentCategory: CategoryInfo | undefined;
-                        let openDialogId: string | null = null;
-
-                        let hash = window.location.hash;
-                        // '' = no hash at all → fall back to default/favorites
-                        // '#root' or '#Kitchen/...' = explicit path → resolve from hash
-                        let hasHash = hash.length > 1;
-
-                        // Restore from localStorage if no hash (e.g. Android WebView reopen)
-                        if (!hasHash && !this.props.admin) {
-                            try {
-                                const stored = localStorage.getItem('wm_lastHash');
-                                if (stored && stored.length > 1) {
-                                    hash = stored;
-                                    hasHash = true;
-                                }
-                            } catch {
-                                // ignore
-                            }
-                        }
-
-                        if (hasHash) {
-                            const parsed = CategoryList.parseHash(hash);
-                            openDialogId = parsed.dialogId;
-                            const hashForResolve = parsed.path ? `#${parsed.path}` : '';
-                            currentCategory = this.resolveCategoryFromHash(
-                                hashForResolve,
-                                result.categories,
-                                widgetSettings,
-                            );
-                        }
-
-                        if (!currentCategory && !this.props.admin) {
-                            const defaultCatId = this.guiConfigCache?.root?.defaultCategory;
-                            // Only fall back to default category (favorites) when there is no hash at all
-                            if (!hasHash && defaultCatId) {
-                                if (defaultCatId === FAVORITES_CATEGORY) {
-                                    currentCategory = this.buildFavoritesCategory(widgetSettings) || undefined;
-                                } else {
-                                    currentCategory = result.categories.find(c => String(c.id) === defaultCatId);
-                                }
-                            }
-                        }
-
-                        if (!currentCategory) {
-                            currentCategory =
-                                result.categories.find(c => c.id === ROOT_CATEGORY) || result.categories[0];
-                        }
-
-                        this.setState({
-                            categories: result.categories,
-                            widgets: result.widgets,
-                            loading: false,
-                            currentCategory,
-                            widgetSettings,
-                            openDialogId,
-                            adapterWidgets: result.adapterWidgets || {},
-                        });
-                        // Update hash to reflect the resolved category (preserve dialog if present)
-                        this.updateHash(currentCategory, openDialogId);
-                        console.log(
-                            `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
-                        );
-                        // Extract category settings from category.custom delivered by backend
-                        // Pass result.widgets because this.state.widgets hasn't been committed yet
-                        this.extractCategorySettings(result.categories, result.widgets);
-                        this.loadingInProgress = false;
-                    });
-                } else {
-                    this.loadingInProgress = false;
+                this.setState({ loading: alive, alive });
+                if (!alive) {
+                    console.warn(`Instance "${this.state.selectedInstance}" is not running. Items were not requested`);
+                    return;
                 }
+
+                await this.loadItems(result => {
+                    // Build widget settings first so Favorites can be resolved
+                    const widgetSettings = CategoryList.extractWidgetSettingsFromWidgets(result.widgets);
+
+                    // In admin mode, always start at root (ignore hash and favorites).
+                    // In web mode, restore from hash or fall back to the default category.
+                    let currentCategory: CategoryInfo | undefined;
+                    let openDialogId: string | null = null;
+
+                    let hash = window.location.hash;
+                    // '' = no hash at all → fall back to default/favorites
+                    // '#root' or '#Kitchen/...' = explicit path → resolve from hash
+                    let hasHash = hash.length > 1;
+
+                    // Restore from localStorage if no hash (e.g. Android WebView reopen)
+                    if (!hasHash && !this.props.admin) {
+                        try {
+                            const stored = localStorage.getItem('wm_lastHash');
+                            if (stored && stored.length > 1) {
+                                hash = stored;
+                                hasHash = true;
+                            }
+                        } catch {
+                            // ignore
+                        }
+                    }
+
+                    if (hasHash) {
+                        const parsed = CategoryList.parseHash(hash);
+                        openDialogId = parsed.dialogId;
+                        const hashForResolve = parsed.path ? `#${parsed.path}` : '';
+                        currentCategory = this.resolveCategoryFromHash(
+                            hashForResolve,
+                            result.categories,
+                            widgetSettings,
+                        );
+                    }
+
+                    if (!currentCategory && !this.props.admin) {
+                        const defaultCatId = this.guiConfigCache?.root?.defaultCategory;
+                        // Only fall back to default category (favorites) when there is no hash at all
+                        if (!hasHash && defaultCatId) {
+                            if (defaultCatId === FAVORITES_CATEGORY) {
+                                currentCategory = this.buildFavoritesCategory(widgetSettings) || undefined;
+                            } else {
+                                currentCategory = result.categories.find(c => String(c.id) === defaultCatId);
+                            }
+                        }
+                    }
+
+                    if (!currentCategory) {
+                        currentCategory = result.categories.find(c => c.id === ROOT_CATEGORY) || result.categories[0];
+                    }
+
+                    this.setState({
+                        categories: result.categories,
+                        widgets: result.widgets,
+                        loading: false,
+                        currentCategory,
+                        widgetSettings,
+                        openDialogId,
+                        adapterWidgets: result.adapterWidgets || {},
+                    });
+                    // Update hash to reflect the resolved category (preserve dialog if present)
+                    this.updateHash(currentCategory, openDialogId);
+                    console.log(
+                        `Loaded ${result.categories.length} categories and ${result.widgets.length} widgets...`,
+                    );
+                    // Extract category settings from category.custom delivered by backend
+                    // Pass result.widgets because this.state.widgets hasn't been committed yet
+                    this.extractCategorySettings(result.categories, result.widgets);
+                });
             } catch (error) {
                 console.error(error);
+                this.setState({ loading: false });
+            } finally {
                 this.loadingInProgress = false;
             }
         });
@@ -1001,14 +957,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return result;
     }
 
-    /**
-     * Persist widget settings to `common.custom[instanceId]` in the ioBroker object.
-     * For alarm-type widgets: icon → `common.icon`, iconActive → `custom.iconActive`
-     */
+    /** Persist widget settings to `common.custom[instanceId]` in the ioBroker object. */
     private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettingsBase): Promise<void> {
         const instanceId = this.state.selectedInstance;
-        const widget = this.state.widgets.find(w => String(w.id) === widgetId);
-        const isAlarmType = widget?.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
 
         try {
             const obj = await this.props.socket.getObject(widgetId);
@@ -1032,15 +983,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     }
                     continue;
                 }
-                if (key === 'icon' && isAlarmType) {
-                    if (settingsRecord.icon) {
-                        common.icon = settingsRecord.icon as string;
-                    } else {
-                        delete common.icon;
-                    }
-                    continue;
-                }
-                if (key === 'icon' && !isAlarmType) {
+                if (key === 'icon') {
                     if (settingsRecord.icon) {
                         common.icon = settingsRecord.icon as string;
                     } else {

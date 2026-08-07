@@ -12,7 +12,7 @@ import {
     DirectionsRun,
     ElectricBolt,
     DragIndicator,
-    ErrorOutline,
+    ErrorOutlined as ErrorOutline,
     ExpandMore,
     Lightbulb,
     LightbulbOutlined,
@@ -52,7 +52,7 @@ import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@d
 import { CSS } from '@dnd-kit/utilities';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 
 import { detectBrowser } from './SidePanelInstallDialog';
 import {
@@ -1983,8 +1983,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         this.setState({ categoryStatus, subCategoryStatuses });
     }
 
-    onNameChange = (id: string, property: string, value: ioBroker.StringOrTranslated): void => {
-        const text = this.getText(value);
+    onNameChange = (
+        id: string,
+        property: string,
+        value: string | boolean | number | ioBroker.StringOrTranslated,
+    ): void => {
+        const text = this.getText(typeof value === 'boolean' || typeof value === 'number' ? String(value) : value);
         const struct = this.props.category.name as { objectId: string; property: string };
         let changed = false;
         if (this.props.category.name && typeof this.props.category.name === 'object' && struct.objectId) {
@@ -2186,6 +2190,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetVolume;
         } else if (type === Types.media) {
             Widget = WidgetMediaPlayer;
+        } else if (type === Types.fillLevel) {
+            Widget = WidgetTank;
         } else if (type === Types.slider || type === Types.percentage) {
             Widget = WidgetSlider;
         } else if (

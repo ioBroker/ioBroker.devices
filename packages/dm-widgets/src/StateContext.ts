@@ -4,7 +4,7 @@
  * This is a compilable mirror of the host's StateContext.
  * At runtime, Module Federation provides the host's real implementation.
  */
-import type { Connection, ThemeType } from '@iobroker/adapter-react-v5';
+import type { Connection, ThemeType } from '@iobroker/gui-components';
 
 export type StateChangeListener = (id: string, state: ioBroker.State) => void;
 

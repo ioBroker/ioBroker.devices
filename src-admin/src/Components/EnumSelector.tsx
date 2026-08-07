@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Checkbox, Chip, FormControl, InputLabel, MenuItem, Select, type SxProps } from '@mui/material';
 
-import { I18n, Icon, Utils } from '@iobroker/adapter-react-v5';
+import { I18n, Icon, Utils } from '@iobroker/gui-components';
 
 const styles: Record<string, React.CSSProperties> = {
     renderValueWrapper: {

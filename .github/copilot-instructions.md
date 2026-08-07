@@ -164,4 +164,4 @@ The GitHub workflow (`.github/workflows/test-and-release.yml`) performs:
 - **TypeScript + React**: Modern web development stack
 - **Material-UI**: Google Material Design components
 - **Vite build system**: Fast development and production builds
-- **ioBroker integration**: Uses @iobroker/adapter-react-v5 for admin integration
+- **ioBroker integration**: Uses @iobroker/gui-components for admin integration

@@ -55,6 +55,6 @@ export const MuiMaterial = _shared['@mui/material'];
 export const MuiIcons = _shared['@mui/icons-material'];
 /** Host's moment instance — use this instead of importing 'moment' directly in plugins */
 export const moment = _shared.moment;
-/** Host's adapter-react-v5 instance — use this instead of importing '@iobroker/adapter-react-v5' directly in plugins */
-export const AdapterReact = _shared['@iobroker/adapter-react-v5'];
+/** Host's adapter-react-v5 instance — use this instead of importing '@iobroker/gui-components' directly in plugins */
+export const AdapterReact = _shared['@iobroker/gui-components'];
 //# sourceMappingURL=index.js.map

@@ -32,7 +32,7 @@ import {
     Publish as IconPublish,
     Edit as IconEdit,
     OpenInNew as IconExtended,
-    HelpOutline as IconHelpOutline,
+    HelpOutlined as IconHelpOutline,
     ImportExport as ImportExportIcon,
     Clear as ClearIcon,
 } from '@mui/icons-material';
@@ -50,7 +50,7 @@ import {
     Icon,
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
@@ -1183,7 +1183,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 editFxFor={`${this.props.channelId}.${this.state.editFxFor}`}
                 fxRead={this.fx[this.state.editFxFor]?.read}
                 fxWrite={this.fx[this.state.editFxFor]?.write}
-                onClose={(result: { read?: string; write?: string }): void => {
+                onClose={(result?: { read?: string; write?: string }): void => {
                     if (result) {
                         this.fx[this.state.editFxFor] = { read: result.read, write: result.write };
                     }
@@ -2051,7 +2051,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     renderVariables(): React.JSX.Element {
-        const processed: string[] = [];
+        const mainStates = this.state.channelInfo.states.filter(item => !item.indicator && item.defaultRole);
+        const mainNames = mainStates.map(item => item.name);
+        const indicatorStates = this.state.channelInfo.states.filter(
+            item => item.indicator && item.defaultRole && (!mainNames.includes(item.name) || item.id),
+        );
+
         return (
             <div
                 key="vars"
@@ -2065,12 +2070,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     paddingBottom: 12,
                 }}
             >
-                {this.state.channelInfo.states
-                    .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
-                    .map((item, i) => {
-                        processed.push(item.name);
-                        return this.renderVariable(item, 'def', i);
-                    })}
+                {mainStates.map((item, i) => this.renderVariable(item, 'def', i))}
 
                 {this.state.extendedAvailable &&
                     this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
@@ -2085,14 +2085,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 {this.state.indicatorsVisible &&
                     this.state.showIndicators &&
                     this.state.indicatorsAvailable &&
-                    this.state.channelInfo.states
-                        .filter(
-                            item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id),
-                        )
-                        .map((item, i) => {
-                            processed.push(item.name);
-                            return this.renderVariable(item, 'indicators', i);
-                        })}
+                    indicatorStates.map((item, i) => this.renderVariable(item, 'indicators', i))}
             </div>
         );
     }

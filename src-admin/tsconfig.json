@@ -3,29 +3,34 @@
 {
     "compilerOptions": {
         "module": "esnext",
-        "moduleResolution": "node",
-        // check JS files
-        "allowJs": true,
+        "moduleResolution": "bundler",
         // This is necessary for the automatic typing of the adapter config
         "resolveJsonModule": true,
-        // If you want to disable the stricter type checks (not recommended), uncomment the following line
-        // "strict": false,
-        // And enable some of those features for more fine-grained control
+        "strict": true,
         "strictNullChecks": true,
-        // "strictPropertyInitialization": true,
-        // "strictBindCallApply": true,
-        // "noUnusedLocals": true,
-        // "noUnusedParameters": true,
         "useUnknownInCatchVariables": false,
         "target": "ES2022",
-        "baseUrl": "./",
         "paths": {
-            "@iobroker/dm-widgets": ["../packages/dm-widgets/build/index.d.ts"]
+            "@iobroker/dm-widgets": ["../packages/dm-widgets/build/index.d.ts"],
+            // The dm-widgets sources are compiled as part of this project, but they resolve their
+            // dependencies against packages/dm-widgets/node_modules. Pin the shared libraries to this
+            // project's copies, otherwise React/MUI types are structurally identical but nominally distinct.
+            "@mui/material": ["./node_modules/@mui/material"],
+            "@mui/material/*": ["./node_modules/@mui/material/*"],
+            "@mui/icons-material": ["./node_modules/@mui/icons-material"],
+            "@mui/icons-material/*": ["./node_modules/@mui/icons-material/*"],
+            "@iobroker/gui-components": ["./node_modules/@iobroker/gui-components"],
+            "@iobroker/type-detector": ["./node_modules/@iobroker/type-detector"]
         },
         "allowSyntheticDefaultImports": true,
         "checkJs": false,
-        "noEmit": false,
-        "outDir": "./build",
+        // Vite produces the bundle; tsc is only used to type check. Emitting here would race with
+        // Vite's emptyOutDir and leave stray .js files in build/ that get shipped to admin/.
+        "noEmit": true,
+        // src-admin also type checks sources from ../packages/dm-widgets and ../src, so the
+        // implied rootDir (./src) would be too narrow. Nothing is written because of "noEmit".
+        "rootDir": "..",
+        "strictPropertyInitialization": true,
         "sourceMap": true,
         "sourceRoot": "./src",
         "noImplicitAny": true,

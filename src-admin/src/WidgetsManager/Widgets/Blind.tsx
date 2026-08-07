@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
     isNeumorphicTheme,
@@ -471,7 +471,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
     };
 
-    private onTiltSliderChange = (_e: Event, value: number | number[]): void => {
+    private onTiltSliderChange = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         if (this.tiltSetId) {
             void this.props.stateContext.getSocket().setState(this.tiltSetId, value as number);
         }

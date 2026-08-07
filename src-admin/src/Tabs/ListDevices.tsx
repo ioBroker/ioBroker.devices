@@ -85,7 +85,7 @@ import {
     type ThemeName,
     Loader,
     DeviceTypeIcon,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import {
     copyDevice,
@@ -93,6 +93,7 @@ import {
     getLastPart,
     getParentId,
     getSmartName,
+    getStateCommonType,
     inheritCommonFromSource,
     setSmartName,
 } from '../Components/helpers/utils';
@@ -142,14 +143,6 @@ const actionsMapping: Record<string, { color: string; icon: IconType; desc: stri
 
     setLockState: { color: colorSet, icon: IconLock, desc: 'Set lock state' },
     getLockState: { color: colorRead, icon: IconLock, desc: 'Read lock state' },
-};
-
-const TYPES_MAPPING: Record<string, 'boolean' | 'number'> = {
-    button: 'boolean',
-    value: 'number',
-    level: 'number',
-    indicator: 'boolean',
-    action: 'boolean',
 };
 
 const UNSUPPORTED_TYPES = [Types.unknown];
@@ -661,7 +654,10 @@ const styles: Record<string, any> = {
     },
     table: (theme: IobTheme): SxProps => ({
         '& th': {
-            background: theme.name === 'dark' ? '#202020' : theme.name === 'blue' ? '#22292d' : 'white',
+            // Taken from the palette instead of being picked per theme name: the previous list only
+            // knew "dark" and "blue", so every new theme - "modernDark" above all - fell into the
+            // final branch and got a white header on a dark table.
+            background: theme.palette.background.paper,
         },
     }),
     spaceBetween: {
@@ -829,9 +825,9 @@ function DndWrapper(props: {
 }
 
 export default class ListDevices extends Component<ListDevicesProps, ListDevicesState> {
-    private readonly inputRef: RefObject<HTMLInputElement>;
+    private readonly inputRef: RefObject<HTMLInputElement | null>;
 
-    private readonly splitContainerRef: RefObject<HTMLDivElement>;
+    private readonly splitContainerRef: RefObject<HTMLDivElement | null>;
     private readonly customKey = `${this.props.adapterName}.${this.props.instance}`;
 
     private updateTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -839,7 +835,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     private deleteTimeout: ReturnType<typeof setTimeout> | null = null;
     private filterTimer: ReturnType<typeof setTimeout> | null = null;
 
-    private enumIDs: string[];
+    private enumIDs: string[] = [];
 
     private objects: Record<string, ioBroker.Object>;
 
@@ -847,7 +843,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     private enumObj: Record<string, ioBroker.EnumObject>;
 
-    private prefix: string;
+    private prefix: string = 'alias.0';
 
     private typesWords: Partial<Record<Types, string>> = {};
 
@@ -855,15 +851,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     private filter: string;
 
-    private editCreatedId: string | null;
+    private editCreatedId: string | null = null;
 
     private readonly patterns: {
         [type: string]: ExternalPatternControl;
     };
 
-    private funcEnums: string[];
+    private funcEnums: string[] | null = null;
 
-    private roomsEnums: string[];
+    private roomsEnums: string[] | null = null;
 
     private readonly detector: SmartDetector;
 
@@ -1423,7 +1419,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         return prepareList(stateIds, null, objects);
     };
 
-    updateEnumsForOneDevice(device: PatternControlEx, funcEnums?: string[], roomsEnums?: string[]): void {
+    updateEnumsForOneDevice(device: PatternControlEx, funcEnums?: string[] | null, roomsEnums?: string[] | null): void {
         funcEnums ||= this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums ||= this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         if (!device) {
@@ -2378,7 +2374,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             <Select
                 variant="standard"
                 value={this.state.filter.type || '_'}
-                onChange={e => this.changeFilter(undefined, undefined, e.target.value as Types | '_' | '')}
+                onChange={e => this.changeFilter(undefined, undefined, e.target.value)}
             >
                 <MenuItem value={'_'}>
                     <span style={{ color: this.props.themeType === 'dark' ? '#FFFFFF40' : '#00000040' }}>
@@ -2815,11 +2811,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             stateObj.common.alias!.write = data.fx[state.name].write;
                         }
 
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         // Inherit min/max/unit/step from the aliased source state — issue #22.
                         // Only fill fields the alias does not define yet.
@@ -2921,11 +2913,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
                         }
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         /*if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
@@ -3301,11 +3289,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 const common: ioBroker.StateCommon = {
                     name: state.name,
                     role: state.defaultRole,
-                    type: state.type
-                        ? typeof state.type === 'object'
-                            ? state.type[0]
-                            : state.type
-                        : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed',
+                    type: getStateCommonType(state),
                     read: state.read === undefined ? true : state.read,
                     write: state.write === undefined ? false : state.write,
                     alias: {

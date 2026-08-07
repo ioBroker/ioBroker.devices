@@ -13,7 +13,7 @@ import {
     PowerInput,
     WbSunny,
 } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/gui-components';
 import type { ConfigItemAny, ConfigItemPanel, ConfigItemTable } from '@iobroker/json-config';
 // xyflow's bezier-path helper — gives us nicely shaped, position-aware Bézier curves with proper
 // handle tangents. We don't pull in the full <ReactFlow> component (too heavy + unwanted pan/zoom),

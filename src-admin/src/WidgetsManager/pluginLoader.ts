@@ -11,7 +11,7 @@ import * as MuiMaterial from '@mui/material';
 import moment from 'moment/min/moment-with-locales';
 import { registerRemotes, loadRemote, createInstance } from '@module-federation/runtime';
 
-import * as AdapterReact from '@iobroker/adapter-react-v5';
+import * as AdapterReact from '@iobroker/gui-components';
 import type { ConfigItemPanel, ConfigItemTabs } from '@iobroker/json-config';
 import type WidgetGeneric from '../../../packages/dm-widgets/src/index';
 
@@ -27,7 +27,7 @@ type WidgetComponent = typeof WidgetGeneric<any, any>;
     'react-dom': ReactDOM,
     '@mui/material': MuiMaterial,
     '@mui/icons-material': IconsMaterial,
-    '@iobroker/adapter-react-v5': AdapterReact,
+    '@iobroker/gui-components': AdapterReact,
     moment,
 };
 
@@ -45,8 +45,111 @@ console.log(
     '[MF] Host React version:',
     React.version,
     '| React identity:',
-    (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ? 'OK' : 'MISSING INTERNALS',
+    // React 19 renamed __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
+    (React as any).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE ? 'OK' : 'MISSING INTERNALS',
 );
+
+const HOST_REACT_MAJOR = parseInt(React.version.split('.')[0], 10);
+
+interface FederationInstance {
+    name: string;
+    shareScopeMap?: Record<string, Record<string, Record<string, unknown>>>;
+}
+
+function getFederationInstances(): FederationInstance[] {
+    return ((window as any).__FEDERATION__?.__INSTANCES__ as FederationInstance[]) || [];
+}
+
+/**
+ * Both matter: a react-dom built for another major reads React internals that no longer exist
+ * (e.g. "ReactCurrentOwner"), which throws instead of rendering.
+ */
+const REACT_PACKAGES = ['react', 'react-dom'];
+
+/**
+ * Collect `react@19.2.8`-like entries from every share scope of every federation instance.
+ *
+ * A remote does not necessarily register an instance of its own - depending on how it was built it
+ * declares its versions in the share scope of the host instance instead. So all instances and all
+ * scopes have to be looked at, and the remote is identified by diffing against a snapshot taken
+ * before its entry was executed.
+ */
+function collectSharedReactVersions(): Set<string> {
+    const found = new Set<string>();
+    for (const instance of getFederationInstances()) {
+        for (const shareScope of Object.values(instance.shareScopeMap || {})) {
+            for (const packageName of REACT_PACKAGES) {
+                for (const version of Object.keys(shareScope?.[packageName] || {})) {
+                    found.add(`${packageName}@${version}`);
+                }
+            }
+        }
+    }
+    return found;
+}
+
+/**
+ * Find a react / react-dom version that appeared after `before` was taken and does not match the
+ * React major this page runs with.
+ *
+ * @param before versions that were already known before the remote entry was executed
+ * @returns the offending `react-dom@18.3.1`-like entry or null. Null also means "cannot be
+ * determined" - a remote that does not share react at all but takes it from
+ * `window.__iobrokerShared__` declares nothing here, which is fine.
+ */
+function findReactMajorMismatch(before: Set<string>): string | null {
+    for (const entry of collectSharedReactVersions()) {
+        if (before.has(entry)) {
+            continue;
+        }
+        const version = entry.split('@').pop() || '';
+        if (parseInt(version.split('.')[0], 10) !== HOST_REACT_MAJOR) {
+            return entry;
+        }
+    }
+    return null;
+}
+
+/**
+ * React keeps its internals under a different name in every major version, so a plugin that
+ * bundles the "wrong" react-dom or jsx-runtime crashes while reading them from our React.
+ * The share scope only reveals the version if the plugin declares react as shared - plugins that
+ * take it from `window.__iobrokerShared__` do not, and for those this crash is the only signal.
+ */
+const REACT_INTERNALS_SYMPTOMS = [
+    'ReactCurrentOwner',
+    'ReactCurrentDispatcher',
+    'ReactCurrentBatchConfig',
+    'ReactCurrentActQueue',
+    '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED',
+    '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE',
+];
+
+function isReactMajorMismatch(error: unknown): boolean {
+    const { message, stack } = (error || {}) as Partial<Error>;
+    const text = `${message || String(error)} ${stack || ''}`;
+    return REACT_INTERNALS_SYMPTOMS.some(symptom => text.includes(symptom));
+}
+
+/**
+ * Turn a plugin failure into a message that says what the user has to do.
+ * A bare "Cannot read properties of undefined (reading 'ReactCurrentOwner')" gives no hint that
+ * the plugin adapter is outdated.
+ *
+ * @param adapterName adapter that provides the plugin
+ * @param error whatever the plugin threw while loading or rendering
+ * @param detail overrides the technical explanation appended in brackets
+ */
+export function describePluginError(adapterName: string, error: unknown, detail?: string): string {
+    if (detail || isReactMajorMismatch(error)) {
+        return (
+            `Widget plugin "${adapterName}" was built against another React version than this page ` +
+            `(React ${React.version}). Its widgets cannot be rendered. Please update the ` +
+            `"${adapterName}" adapter. (${detail || (error as Error)?.message || String(error)})`
+        );
+    }
+    return String((error as Error)?.message || error);
+}
 
 /** In-flight load promises keyed by "url!module" for deduplication */
 const runningLoads: Record<string, Promise<{ default: Record<string, WidgetComponent> }>> = {};
@@ -82,6 +185,7 @@ export async function loadPluginComponent(
 
     let setPromise = runningLoads[loadKey];
     if (!(setPromise instanceof Promise)) {
+        const knownReactVersions = collectSharedReactVersions();
         try {
             registerRemotes([
                 {
@@ -102,12 +206,24 @@ export async function loadPluginComponent(
                 )
                     .then(translations => AdapterReact.I18n.extendTranslations(translations.default))
                     .catch(error => console.error(`Cannot load translations for ${uniqueName}: ${error}`))
-                    .then(
-                        () =>
-                            loadRemote(`${uniqueName}/Components`) as Promise<{
-                                default: Record<string, WidgetComponent>;
-                            }>,
-                    );
+                    .then(() => {
+                        // The remote entry has been executed by now, so the version it was built
+                        // against is known. A plugin built against another React major creates
+                        // elements this React refuses to render, which tears down the whole app -
+                        // so refuse the plugin instead of the page.
+                        const mismatch = findReactMajorMismatch(knownReactVersions);
+                        if (mismatch) {
+                            throw new Error(describePluginError(adapterName, null, mismatch));
+                        }
+                        return loadRemote(`${uniqueName}/Components`) as Promise<{
+                            default: Record<string, WidgetComponent>;
+                        }>;
+                    })
+                    .catch(error => {
+                        // Plugins that do not share react cannot be checked upfront: they only fail
+                        // while their own bundled react-dom evaluates against our React
+                        throw new Error(describePluginError(adapterName, error));
+                    });
             runningLoads[loadKey] = setPromise;
         } catch (error) {
             throw new Error(`Cannot register remote "${adapterName}" from ${url}: ${error}`);

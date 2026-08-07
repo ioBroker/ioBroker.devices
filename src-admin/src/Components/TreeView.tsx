@@ -35,7 +35,7 @@ import {
 import { MdCheck as IconOK, MdCancel as IconCancel } from 'react-icons/md';
 import { CreateNewFolder as CreateNewFolderIcon, Clear as ClearIcon } from '@mui/icons-material';
 
-import { I18n, Utils, Icon, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
+import { I18n, Utils, Icon, type IobTheme, type ThemeType } from '@iobroker/gui-components';
 
 const LEVEL_OFFSET = 14;
 

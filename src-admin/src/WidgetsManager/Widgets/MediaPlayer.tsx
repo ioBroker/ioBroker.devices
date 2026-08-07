@@ -13,7 +13,7 @@ import {
     VolumeOff,
     KeyboardArrowDown,
 } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -914,7 +914,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 size="small"
                                 onChange={(_e, val) => {
                                     if (this.elapsedId) {
-                                        this.send(this.elapsedId, val as number);
+                                        this.send(this.elapsedId, val);
                                     }
                                 }}
                                 sx={{
@@ -1033,7 +1033,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 min={0}
                                 max={100}
                                 size="small"
-                                onChange={(_e, val) => this.send(this.volumeId, val as number)}
+                                onChange={(_e, val) => this.send(this.volumeId, val)}
                                 sx={{
                                     color: accent,
                                     '& .MuiSlider-thumb': {

@@ -9,7 +9,7 @@ import {
     type GenericAppProps,
     type GenericAppState,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import { CategoryList } from '../../src-admin/src/WidgetsManager';
 

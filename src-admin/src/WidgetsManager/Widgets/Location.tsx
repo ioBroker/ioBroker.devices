@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Dialog, DialogContent, IconButton, Typography } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 

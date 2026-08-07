@@ -9,7 +9,8 @@ import {
     GenericApp,
     type GenericAppProps,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+    ScrollbarStyles,
+} from '@iobroker/gui-components';
 
 import TabDevices from './Tabs/ListDevices';
 
@@ -85,6 +86,7 @@ export default class App extends GenericApp {
         return (
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
+                    <ScrollbarStyles theme={this.state.theme} />
                     <Paper
                         square
                         elevation={0}

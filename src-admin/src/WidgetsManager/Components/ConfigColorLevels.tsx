@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, IconButton, TextField, Typography } from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import { ConfigGeneric, type ConfigGenericProps, type ConfigGenericState } from '@iobroker/json-config';
 
 interface ColorLevel {

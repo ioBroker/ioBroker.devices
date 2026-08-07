@@ -20,7 +20,7 @@ import {
 import { Check as IconCheck, Close as IconClose, Clear as ClearIcon } from '@mui/icons-material';
 
 import { Types, type ExternalDetectorState } from '@iobroker/type-detector';
-import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, DeviceTypeSelector, I18n, type ThemeType, Utils } from '@iobroker/gui-components';
 
 import TYPE_OPTIONS, { ICONS_TYPE } from '../Components/TypeOptions';
 import type SmartDetector from '../Devices/SmartDetector';

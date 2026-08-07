@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Typography, type Theme } from '@mui/material';
 import { Garage, KeyboardArrowDown, KeyboardArrowUp, Stop } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 

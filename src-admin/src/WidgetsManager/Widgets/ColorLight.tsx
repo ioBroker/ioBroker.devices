@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Slider, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
 import { LightbulbOutlined } from '@mui/icons-material';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
 
 import WidgetGeneric, {

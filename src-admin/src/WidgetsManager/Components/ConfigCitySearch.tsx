@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, CircularProgress, List, ListItemButton, ListItemText, TextField, Typography } from '@mui/material';
 import { MyLocation } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import { ConfigGeneric, type ConfigGenericProps, type ConfigGenericState } from '@iobroker/json-config';
 
 interface GeoResult {
