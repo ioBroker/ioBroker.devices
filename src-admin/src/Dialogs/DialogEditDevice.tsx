@@ -950,7 +950,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         const array = this.state.addedStates.filter(item => Object.keys(this.state.ids).includes(item.name));
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
-            const stateObj = this.props.objects[item.id];
+            const stateObj = this.props.objects[item.id] as ioBroker.Object | undefined;
+            if (!stateObj) {
+                // The object may not be in the cache yet (e.g. a freshly created/mapped state);
+                // skip it instead of crashing on `stateObj.common` below.
+                continue;
+            }
             stateObj.common ||= {} as ioBroker.StateCommon;
             stateObj.common.alias ||= {};
             stateObj.common.alias.id = this.state.ids[item.name];
