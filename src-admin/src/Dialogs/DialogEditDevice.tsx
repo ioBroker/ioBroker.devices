@@ -52,6 +52,7 @@ import {
     extendDeviceTypeTranslation,
 } from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
+import { removeForeignAliasStates } from '../Devices/SmartDetector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
@@ -788,6 +789,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             return;
         }
 
+        // #597/#536: strip indicator datapoints that leaked in from sibling channels
+        // of an alias-device grouping so auto-fill does not re-introduce them.
+        detected.forEach(control => removeForeignAliasStates(control, this.props.objects));
+
         // Use the first detection result matching our device type
         const match = detected.find(d => d.type === deviceType);
         if (!match?.states) {
@@ -945,7 +950,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         const array = this.state.addedStates.filter(item => Object.keys(this.state.ids).includes(item.name));
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
-            const stateObj = this.props.objects[item.id];
+            const stateObj = this.props.objects[item.id] as ioBroker.Object | undefined;
+            if (!stateObj) {
+                // The object may not be in the cache yet (e.g. a freshly created/mapped state);
+                // skip it instead of crashing on `stateObj.common` below.
+                continue;
+            }
             stateObj.common ||= {} as ioBroker.StateCommon;
             stateObj.common.alias ||= {};
             stateObj.common.alias.id = this.state.ids[item.name];
@@ -2051,7 +2061,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     renderVariables(): React.JSX.Element {
-        const processed: string[] = [];
+        const mainStates = this.state.channelInfo.states.filter(item => !item.indicator && item.defaultRole);
+        const mainNames = mainStates.map(item => item.name);
+        const indicatorStates = this.state.channelInfo.states.filter(
+            item => item.indicator && item.defaultRole && (!mainNames.includes(item.name) || item.id),
+        );
+
         return (
             <div
                 key="vars"
@@ -2065,12 +2080,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     paddingBottom: 12,
                 }}
             >
-                {this.state.channelInfo.states
-                    .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
-                    .map((item, i) => {
-                        processed.push(item.name);
-                        return this.renderVariable(item, 'def', i);
-                    })}
+                {mainStates.map((item, i) => this.renderVariable(item, 'def', i))}
 
                 {this.state.extendedAvailable &&
                     this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
@@ -2085,14 +2095,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 {this.state.indicatorsVisible &&
                     this.state.showIndicators &&
                     this.state.indicatorsAvailable &&
-                    this.state.channelInfo.states
-                        .filter(
-                            item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id),
-                        )
-                        .map((item, i) => {
-                            processed.push(item.name);
-                            return this.renderVariable(item, 'indicators', i);
-                        })}
+                    indicatorStates.map((item, i) => this.renderVariable(item, 'indicators', i))}
             </div>
         );
     }

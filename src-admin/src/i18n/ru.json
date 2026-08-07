@@ -1,4 +1,5 @@
 {
+    "An object with this name already exists in the target folder": "Объект с таким именем уже существует в целевой папке",
     "Add": "Добавить",
     "Add new folder to \"%s\"": "Добавить новую папку в \"%s\"",
     "Add state": "Добавить состояние",
@@ -52,6 +53,7 @@
     "Filter": "Фильтр",
     "Folder name": "Имя папки",
     "Folder will be deleted. Are you sure?": "Папка будет удалена. Подтвердить?",
+    "Folder and all its devices and states will be deleted. Are you sure?": "Папка и все её устройства и состояния будут удалены. Подтвердить?",
     "Function": "Функция",
     "Functions": "Функции",
     "GUI": "Графический интерфейс пользователя",

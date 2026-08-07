@@ -48,19 +48,21 @@ export default function DialogDeleteFolder(props: {
                 {I18n.t(
                     device
                         ? 'Device and all states will be deleted. Are you sure?'
-                        : 'Folder will be deleted. Are you sure?',
+                        : 'Folder and all its devices and states will be deleted. Are you sure?',
                 )}
-                <div style={styles.showDialog}>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={checked}
-                                onChange={e => setChecked(e.target.checked)}
-                            />
-                        }
-                        label={I18n.t('Do not show dialog for 5 minutes')}
-                    />
-                </div>
+                {device ? (
+                    <div style={styles.showDialog}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={checked}
+                                    onChange={e => setChecked(e.target.checked)}
+                                />
+                            }
+                            label={I18n.t('Do not show dialog for 5 minutes')}
+                        />
+                    </div>
+                ) : null}
             </DialogContent>
             <DialogActions>
                 <Button

@@ -31,6 +31,38 @@ function getParentId(id: string): string {
     return pos !== -1 ? id.substring(0, pos) : '';
 }
 
+/**
+ * Devices-side guard for type-detector issue #597 / #536 (twin of
+ * `removeForeignAliasStates` in src-admin/src/Devices/SmartDetector.ts).
+ *
+ * When several independent aliases are grouped under one alias device, the
+ * type-detector fills the detected device's slots — indicators as well as regular
+ * states — from the sibling channels of that grouping, so the device ends up
+ * carrying datapoints of completely different devices. We drop mappings that are
+ * aliases sitting in a different alias channel than the device's primary (required)
+ * state. Required states are never dropped, and real hardware states carry no
+ * `common.alias`, so genuine device-level indicators on a neighbouring channel stay.
+ */
+function removeForeignAliasStates(device: DevicesPatternControl, objects: Record<string, ioBroker.Object>): void {
+    const primaryId = findMainStateId(device) || device.states.find(s => s.id)?.id;
+    if (!primaryId) {
+        return;
+    }
+    const homeChannel = getParentId(primaryId);
+    for (const state of device.states) {
+        if (!state.id || state.required) {
+            continue;
+        }
+        const common = objects[state.id]?.common as ioBroker.StateCommon | undefined;
+        if (!common?.alias) {
+            continue;
+        }
+        if (getParentId(state.id) !== homeChannel) {
+            state.id = '';
+        }
+    }
+}
+
 export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesAdapter> {
     private readonly detector = new ChannelDetector();
     private objects: Record<string, ioBroker.Object> = {};
@@ -369,6 +401,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             if (detected) {
                 for (const device of detected) {
                     const d = device as DevicesPatternControl;
+                    // #597/#536: strip datapoints leaked from sibling channels of an alias grouping
+                    removeForeignAliasStates(d, this.objects);
                     this.resolveChannelId(d);
                     if (d.storeId) {
                         result.push(d);

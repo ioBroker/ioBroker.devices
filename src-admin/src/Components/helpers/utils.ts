@@ -1,13 +1,81 @@
 import type { PatternControlEx } from '../../types';
 import { type AdminConnection, I18n, Utils } from '@iobroker/gui-components';
-import type { PatternControl } from '@iobroker/type-detector';
+import type { DetectorState, ExternalDetectorState, PatternControl } from '@iobroker/type-detector';
 import { getChannelItems } from './search';
+
+const ROLE_PREFIX_TO_TYPE: Record<string, 'boolean' | 'number'> = {
+    button: 'boolean',
+    value: 'number',
+    level: 'number',
+    indicator: 'boolean',
+    action: 'boolean',
+};
+
+/**
+ * `type` is the detection constraint and may be absent or ambiguous; `defaultType` is what the pattern
+ * wants the created object to be. Deriving the type from the role prefix alone gets `ERROR` wrong — its
+ * role is `indicator.error` but it carries a string.
+ */
+export function getStateCommonType(
+    state: Pick<ExternalDetectorState, 'defaultType' | 'type' | 'defaultRole'>,
+): ioBroker.CommonType {
+    if (state.defaultType) {
+        return state.defaultType;
+    }
+    if (state.type) {
+        return typeof state.type === 'object' ? state.type[0] : state.type;
+    }
+    return ROLE_PREFIX_TO_TYPE[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+}
+
+/**
+ * A pattern may declare the same state name twice with different types (`airCondition` has SWING as
+ * number and as boolean). The detector maps the matched object both onto the entry that really matched
+ * and onto the first entry carrying that name, so one object arrives on two entries. Keep the variant
+ * whose `defaultRole` is the object's actual role — otherwise the editor shows two rows for one state
+ * and they overwrite each other's role and type on save.
+ */
+function dropDuplicateIdVariants(channelInfo: PatternControlEx, objects: Record<string, ioBroker.Object>): void {
+    const groups = new Map<string, DetectorState[]>();
+    for (const state of channelInfo.states) {
+        if (!state.id) {
+            continue;
+        }
+        const key = `${state.id}\u0000${state.name}`;
+        const group = groups.get(key);
+        if (group) {
+            group.push(state);
+        } else {
+            groups.set(key, [state]);
+        }
+    }
+
+    const dropped = new Set<DetectorState>();
+    for (const group of groups.values()) {
+        if (group.length < 2) {
+            continue;
+        }
+        const role = (objects[group[0].id]?.common as ioBroker.StateCommon | undefined)?.role;
+        const keep = group.find(state => state.defaultRole && state.defaultRole === role) || group[0];
+        for (const state of group) {
+            if (state !== keep) {
+                dropped.add(state);
+            }
+        }
+    }
+
+    if (dropped.size) {
+        channelInfo.states = channelInfo.states.filter(state => !dropped.has(state));
+    }
+}
 
 export function renameMultipleEntries(
     channelInfo: PatternControlEx,
     objects: Record<string, ioBroker.Object>,
     language?: ioBroker.Languages,
 ): void {
+    dropDuplicateIdVariants(channelInfo, objects);
+
     // Rename double names
     const counts: Record<string, number> = {};
     channelInfo.states.forEach(state => {

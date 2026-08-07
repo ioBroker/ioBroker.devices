@@ -3,7 +3,6 @@ import { Box, LinearProgress } from '@mui/material';
 import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import { I18n } from '@iobroker/gui-components';
-import { Types } from '@iobroker/type-detector';
 
 import de from './i18n/de.json';
 import en from './i18n/en.json';
@@ -141,17 +140,6 @@ interface CategoryListState extends CommunicationState {
 
 const ROOT_CATEGORY = '__root__';
 const FAVORITES_CATEGORY = '__favorites__';
-
-/** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
-const ALARM_ICON_TYPES = new Set([
-    Types.floodAlarm,
-    Types.fireAlarm,
-    Types.motion,
-    Types.window,
-    Types.windowTilt,
-    Types.door,
-    Types.warning,
-]);
 
 /**
  * Device List Component
@@ -969,14 +957,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return result;
     }
 
-    /**
-     * Persist widget settings to `common.custom[instanceId]` in the ioBroker object.
-     * For alarm-type widgets: icon → `common.icon`, iconActive → `custom.iconActive`
-     */
+    /** Persist widget settings to `common.custom[instanceId]` in the ioBroker object. */
     private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettingsBase): Promise<void> {
         const instanceId = this.state.selectedInstance;
-        const widget = this.state.widgets.find(w => String(w.id) === widgetId);
-        const isAlarmType = widget?.control?.type ? ALARM_ICON_TYPES.has(widget.control.type) : false;
 
         try {
             const obj = await this.props.socket.getObject(widgetId);
@@ -1000,15 +983,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     }
                     continue;
                 }
-                if (key === 'icon' && isAlarmType) {
-                    if (settingsRecord.icon) {
-                        common.icon = settingsRecord.icon as string;
-                    } else {
-                        delete common.icon;
-                    }
-                    continue;
-                }
-                if (key === 'icon' && !isAlarmType) {
+                if (key === 'icon') {
                     if (settingsRecord.icon) {
                         common.icon = settingsRecord.icon as string;
                     } else {

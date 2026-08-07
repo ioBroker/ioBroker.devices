@@ -23,8 +23,8 @@ import type {
 import WidgetGeneric from './Widgets/Generic';
 import type StateContext from './StateContext';
 
-/** Widget types where the icon is stored in `common.icon` and iconActive in `common.custom` */
-const ALARM_ICON_TYPES = new Set([
+/** Widget types whose settings offer a separate icon for the active state */
+const ALARM_ICON_TYPES = new Set<Types>([
     Types.floodAlarm,
     Types.fireAlarm,
     Types.motion,

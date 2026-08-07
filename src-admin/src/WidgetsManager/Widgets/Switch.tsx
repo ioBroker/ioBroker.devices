@@ -17,7 +17,8 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
         super(props);
         const states = props.widget.control.states;
         const set = states.find(s => s.name === 'SET');
-        const actual = states.find(s => s.name === 'ACTUAL');
+        // `socket` names the feedback state ACTUAL, `light` names it ON_ACTUAL
+        const actual = states.find(s => s.name === 'ACTUAL') ?? states.find(s => s.name === 'ON_ACTUAL');
         this.setId = set?.id ?? null;
         this.listenId = actual?.id ?? set?.id ?? null;
         this.state = {

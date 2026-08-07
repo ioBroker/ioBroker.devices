@@ -93,11 +93,12 @@ import {
     getLastPart,
     getParentId,
     getSmartName,
+    getStateCommonType,
     inheritCommonFromSource,
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
-import SmartDetector from '../Devices/SmartDetector';
+import SmartDetector, { removeForeignAliasStates } from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
 import LocalUtils from '../Components/helpers/LocalUtils';
@@ -142,14 +143,6 @@ const actionsMapping: Record<string, { color: string; icon: IconType; desc: stri
 
     setLockState: { color: colorSet, icon: IconLock, desc: 'Set lock state' },
     getLockState: { color: colorRead, icon: IconLock, desc: 'Read lock state' },
-};
-
-const TYPES_MAPPING: Record<string, 'boolean' | 'number'> = {
-    button: 'boolean',
-    value: 'number',
-    level: 'number',
-    indicator: 'boolean',
-    action: 'boolean',
 };
 
 const UNSUPPORTED_TYPES = [Types.unknown];
@@ -1210,7 +1203,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 _keysOptional: keys,
                 ignoreCache: true,
             });
-            result?.forEach(device => devices.push(device as PatternControlEx));
+            result?.forEach(device => {
+                // #597/#536: drop indicator datapoints that leaked in from sibling
+                // channels of an alias-device grouping before they reach the UI.
+                removeForeignAliasStates(device, this.objects);
+                devices.push(device as PatternControlEx);
+            });
             if (di % DETECT_CHUNK === DETECT_CHUNK - 1) {
                 await new Promise(resolve => setTimeout(resolve));
                 if (detectGen !== this.detectGeneration) {
@@ -1782,12 +1780,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     renderDeleteDialog(): React.JSX.Element | null {
         if (this.state.deleteFolderAndDevice) {
-            const time = parseInt(
-                window.localStorage.getItem(
-                    this.state.deleteFolderAndDevice.device ? 'DeleteDeviceTime' : 'DeleteFolderTime',
-                ) || '0',
-                10,
-            );
+            // Deleting a folder is recursive (removes all contained devices and states), so it
+            // always requires an explicit confirmation. Only single devices may be removed without
+            // re-confirmation within the 5-minute window.
+            const time = this.state.deleteFolderAndDevice.device
+                ? parseInt(window.localStorage.getItem('DeleteDeviceTime') || '0', 10)
+                : 0;
             if (time && Date.now() - time < 5 * 60_000) {
                 const deleteFolderAndDevice: { id: string; device?: false } | { index: number; device: true } =
                     JSON.parse(JSON.stringify(this.state.deleteFolderAndDevice));
@@ -2542,13 +2540,19 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 targetPath = `${parentId}.${lastPart}`;
             }
 
-            // Validate drop target
+            // Structural targets cannot receive a drop — reject them silently (they are already
+            // marked red while dragging).
             if (
                 !dropTarget.id?.includes('alias.0') ||
                 dropTarget.id?.includes('automatically_detected') ||
-                dropTarget.id?.includes('linked_devices') ||
-                this.objects[targetPath]
+                dropTarget.id?.includes('linked_devices')
             ) {
+                return;
+            }
+            // The target looks droppable, but an object with this name already exists there — tell
+            // the user instead of silently doing nothing.
+            if (this.objects[targetPath]) {
+                this.setState({ message: I18n.t('An object with this name already exists in the target folder') });
                 return;
             }
 
@@ -2818,11 +2822,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             stateObj.common.alias!.write = data.fx[state.name].write;
                         }
 
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         // Inherit min/max/unit/step from the aliased source state — issue #22.
                         // Only fill fields the alias does not define yet.
@@ -2924,11 +2924,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
                         }
-                        common.type = state.type
-                            ? typeof state.type === 'object'
-                                ? state.type[0]
-                                : state.type
-                            : TYPES_MAPPING[state.defaultRole?.split('.')[0] || ''] || 'mixed';
+                        common.type = getStateCommonType(state);
 
                         /*if (state.defaultMin !== undefined) {
                             common.min = state.defaultMin;
@@ -3304,11 +3300,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 const common: ioBroker.StateCommon = {
                     name: state.name,
                     role: state.defaultRole,
-                    type: state.type
-                        ? typeof state.type === 'object'
-                            ? state.type[0]
-                            : state.type
-                        : TYPES_MAPPING[state.defaultRole.split('.')[0]] || 'mixed',
+                    type: getStateCommonType(state),
                     read: state.read === undefined ? true : state.read,
                     write: state.write === undefined ? false : state.write,
                     alias: {

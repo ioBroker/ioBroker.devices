@@ -35,6 +35,7 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.motion]: 'security',
     [Types.floodAlarm]: 'security',
     [Types.fireAlarm]: 'security',
+    [Types.camera]: 'security',
 
     [Types.volume]: 'media',
     [Types.volumeGroup]: 'media',
@@ -45,12 +46,18 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.illuminance]: 'info',
     [Types.info]: 'info',
     [Types.slider]: 'info',
+    [Types.percentage]: 'info',
+    [Types.fillLevel]: 'info',
     [Types.location]: 'info',
     [Types.locationOne]: 'info',
     [Types.warning]: 'info',
     [Types.image]: 'info',
     [Types.weatherCurrent]: 'info',
     [Types.weatherForecast]: 'info',
+
+    [Types.button]: 'other',
+    [Types.buttonSensor]: 'other',
+    [Types.vacuumCleaner]: 'other',
 };
 
 export const GROUP_ORDER: { id: string; name: string }[] = [

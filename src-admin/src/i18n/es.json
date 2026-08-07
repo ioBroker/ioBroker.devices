@@ -1,4 +1,5 @@
 {
+    "An object with this name already exists in the target folder": "Ya existe un objeto con este nombre en la carpeta de destino",
     "Add": "Añadir",
     "Add new folder to \"%s\"": "Agregar nueva carpeta a \"%s\"",
     "Add state": "Agregar estado",
@@ -52,6 +53,7 @@
     "Filter": "Filtrar",
     "Folder name": "Nombre de la carpeta",
     "Folder will be deleted. Are you sure?": "Se eliminará la carpeta. ¿Está seguro?",
+    "Folder and all its devices and states will be deleted. Are you sure?": "Se eliminarán la carpeta y todos sus dispositivos y estados. ¿Está seguro?",
     "Function": "Función",
     "Functions": "Las funciones",
     "GUI": "Interfaz gráfica de usuario",
