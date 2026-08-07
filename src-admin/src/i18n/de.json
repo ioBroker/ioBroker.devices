@@ -52,6 +52,7 @@
     "Filter": "Filter",
     "Folder name": "Ordnername",
     "Folder will be deleted. Are you sure?": "Der Ordner wird gelöscht. Bist du sicher?",
+    "Folder and all its devices and states will be deleted. Are you sure?": "Der Ordner und alle enthaltenen Geräte und Zustände werden gelöscht. Bist du sicher?",
     "Function": "Funktion",
     "Functions": "Funktionen",
     "GUI": "GUI",
