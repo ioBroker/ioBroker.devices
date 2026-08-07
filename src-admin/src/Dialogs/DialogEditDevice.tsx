@@ -2051,7 +2051,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     renderVariables(): React.JSX.Element {
-        const processed: string[] = [];
+        const mainStates = this.state.channelInfo.states.filter(item => !item.indicator && item.defaultRole);
+        const mainNames = mainStates.map(item => item.name);
+        const indicatorStates = this.state.channelInfo.states.filter(
+            item => item.indicator && item.defaultRole && (!mainNames.includes(item.name) || item.id),
+        );
+
         return (
             <div
                 key="vars"
@@ -2065,12 +2070,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     paddingBottom: 12,
                 }}
             >
-                {this.state.channelInfo.states
-                    .filter(item => !item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id))
-                    .map((item, i) => {
-                        processed.push(item.name);
-                        return this.renderVariable(item, 'def', i);
-                    })}
+                {mainStates.map((item, i) => this.renderVariable(item, 'def', i))}
 
                 {this.state.extendedAvailable &&
                     this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
@@ -2085,14 +2085,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 {this.state.indicatorsVisible &&
                     this.state.showIndicators &&
                     this.state.indicatorsAvailable &&
-                    this.state.channelInfo.states
-                        .filter(
-                            item => item.indicator && item.defaultRole && (!processed.includes(item.name) || item.id),
-                        )
-                        .map((item, i) => {
-                            processed.push(item.name);
-                            return this.renderVariable(item, 'indicators', i);
-                        })}
+                    indicatorStates.map((item, i) => this.renderVariable(item, 'indicators', i))}
             </div>
         );
     }
