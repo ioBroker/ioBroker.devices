@@ -69,6 +69,7 @@ import {
     CreateNewFolder as CreateNewFolderIcon,
     PlayArrow,
     VerticalSplit as VerticalSplitIcon,
+    type SvgIconComponent,
 } from '@mui/icons-material';
 
 import { Types, type ExternalPatternControl, type ExternalDetectorState } from '@iobroker/type-detector';
@@ -98,6 +99,7 @@ import {
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
+import { getIconForRole } from '../Components/helpers/roleIcons';
 import SmartDetector, { removeForeignAliasStates } from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
@@ -929,7 +931,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 room: window.localStorage.getItem('Devices.filter.room') || '',
                 type: (window.localStorage.getItem('Devices.filter.type') as Types | '_') || '',
                 text: window.localStorage.getItem('Devices.filter.text') || '',
-                noInfo: window.localStorage.getItem('Devices.filter.noInfo') !== 'false',
+                // Info devices are shown by default — hiding them silently swallowed deliberately
+                // created aliases whose channel role is "info".
+                noInfo: window.localStorage.getItem('Devices.filter.noInfo') === 'true',
             },
             selected,
             iotInstance: '',
@@ -1009,6 +1013,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         window.addEventListener('resize', this.onResize, false);
         void this.props.socket.subscribeObject('*', this.onObjectChanged);
         window.addEventListener('hashchange', this.onHashChange, false);
+        // Leftover from when folder deletion could be suppressed for 5 minutes — it is always
+        // confirmed now, so the timestamp is never read again.
+        window.localStorage.removeItem('DeleteFolderTime');
 
         setTimeout(() => {
             const el = document.getElementById(`td_${this.state.selected}`);
@@ -1825,11 +1832,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     onClose={(result, suppressQuestion) => {
                         const newState: Partial<ListDevicesState> = { deleteFolderAndDevice: null };
                         if (result) {
-                            if (suppressQuestion) {
-                                window.localStorage.setItem(
-                                    this.state.deleteFolderAndDevice!.device ? 'DeleteDeviceTime' : 'DeleteFolderTime',
-                                    Date.now().toString(),
-                                );
+                            // Only devices offer the "do not ask again" checkbox — folder deletion is
+                            // recursive and always asks, so there is no folder timestamp to store.
+                            if (suppressQuestion && this.state.deleteFolderAndDevice!.device) {
+                                window.localStorage.setItem('DeleteDeviceTime', Date.now().toString());
                             }
 
                             if (
@@ -1866,6 +1872,31 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             );
         }
         return null;
+    }
+
+    /**
+     * Icon for a detected device derived from the role/unit of its primary state — the same
+     * mapping the widget manager uses, so a device looks the same in both views.
+     *
+     * @param device Detected device
+     * @returns Icon component, or null when no pattern matches
+     */
+    private getRoleIcon(device: PatternControlEx): SvgIconComponent | null {
+        const state = device.states.find(s => s.id && s.name === 'ACTUAL') || device.states.find(s => s.id);
+        const common = state?.id ? (this.objects[state.id] as ioBroker.StateObject | undefined)?.common : undefined;
+        if (!common) {
+            return null;
+        }
+        const icon = getIconForRole(common.role || '', common.unit || '');
+        if (icon) {
+            return icon;
+        }
+        // Aliases often carry only a generic `state` role; the meaningful one sits on the physical
+        // source. That is also the role the backend hands to the GUI, so following it keeps both views in sync.
+        const aliasId = common.alias?.id;
+        const targetId = typeof aliasId === 'object' ? aliasId?.read : aliasId;
+        const target = targetId ? (this.objects[targetId] as ioBroker.StateObject | undefined)?.common : undefined;
+        return target ? getIconForRole(target.role || '', target.unit || '') : null;
     }
 
     renderOneItem(items: ListItem[], item: ListItem, idx: number): (React.JSX.Element | null)[] | null {
@@ -1983,6 +2014,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             iconStyle.color = background;
         }
 
+        // Prefer the role/unit based symbol the GUI uses for this device (a sun for illuminance, a
+        // thermometer for temperature, …). Only as a fallback: an explicitly configured object icon
+        // always wins, and without a role match the device type icon is still used.
+        const roleIconComp = !item.icon && device ? this.getRoleIcon(device) : null;
+        const roleIcon = roleIconComp ? { Comp: roleIconComp } : null;
+
         const WrapperRow = item.type === 'folder' ? DropWrapper : DragWrapper;
         const inner = (
             <WrapperRow
@@ -2035,11 +2072,18 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                         style={{ background: background || undefined }}
                                         sx={styles.tableIcon}
                                     >
-                                        <DeviceTypeIcon
-                                            src={item.icon}
-                                            style={{ ...styles.tableIconImg, color }}
-                                            type={item.role as Types}
-                                        />
+                                        {roleIcon ? (
+                                            <roleIcon.Comp style={{ ...styles.tableIconImg, color }} />
+                                        ) : (
+                                            <DeviceTypeIcon
+                                                src={item.icon}
+                                                style={{ ...styles.tableIconImg, color }}
+                                                // DeviceTypeIcon ignores `src` as soon as `type` is set,
+                                                // which silently dropped the icon the user picked for
+                                                // the widget. Fall back to the type icon only.
+                                                type={item.icon ? undefined : (item.role as Types)}
+                                            />
+                                        )}
                                     </Box>
                                 </Tooltip>
                             )}
@@ -3509,10 +3553,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     </Tooltip>
                     <Tooltip
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                        title={I18n.t('Hide info devices')}
+                        title={I18n.t(this.state.filter.noInfo ? 'Show info devices' : 'Hide info devices')}
                     >
+                        {/* Highlighted while the filter is active, i.e. while info devices are hidden.
+                            The colour is set via `sx` (not the `color` prop) so it also reaches the
+                            react-icons SVG, which does not pick up the IconButton colour variant. */}
                         <IconButton
-                            color={this.state.filter.noInfo ? 'inherit' : 'primary'}
+                            sx={theme => ({
+                                color: this.state.filter.noInfo ? theme.palette.primary.main : 'inherit',
+                            })}
                             onClick={() =>
                                 this.changeFilter(undefined, undefined, undefined, undefined, !this.state.filter.noInfo)
                             }

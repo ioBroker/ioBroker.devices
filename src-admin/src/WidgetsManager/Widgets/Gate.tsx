@@ -333,6 +333,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
                     {this.renderChart()}
                 </Box>

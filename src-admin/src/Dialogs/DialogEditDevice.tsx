@@ -950,11 +950,19 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         const array = this.state.addedStates.filter(item => Object.keys(this.state.ids).includes(item.name));
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
-            const stateObj = this.props.objects[item.id] as ioBroker.Object | undefined;
+            let stateObj = this.props.objects[item.id] as ioBroker.Object | undefined;
             if (!stateObj) {
-                // The object may not be in the cache yet (e.g. a freshly created/mapped state);
-                // skip it instead of crashing on `stateObj.common` below.
-                continue;
+                // A freshly created/mapped state may not be in the local object cache yet. Read it
+                // directly — silently skipping would drop the alias assignment without telling anyone.
+                try {
+                    stateObj = (await this.props.socket.getObject(item.id)) as ioBroker.Object | undefined;
+                } catch (error) {
+                    console.warn(`Cannot read ${item.id}: ${error as Error}`);
+                }
+                if (!stateObj) {
+                    console.warn(`Cannot assign alias for "${item.name}": object ${item.id} does not exist`);
+                    continue;
+                }
             }
             stateObj.common ||= {} as ioBroker.StateCommon;
             stateObj.common.alias ||= {};

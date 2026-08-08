@@ -118,6 +118,8 @@ interface CategoryListState extends CommunicationState {
     widgetSettings: Record<string, WidgetSettingsBase>;
     settingsWidgetId: string | number | null;
     chartAvailable: boolean;
+    /** Resolved `system.config.common.defaultHistory` ('' when no history adapter is configured) */
+    defaultHistory: string;
     settingsObjectName: string;
     settingsObjectColor: string;
     categorySettings: Record<string, CategorySettings>;
@@ -191,15 +193,16 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(245,245,245,0.65)',
         textDisabled: 'rgba(245,245,245,0.4)',
     },
+    // Deep navy, close to the mobile app look: near-black blue page, slightly lifted navy tiles.
     blueDark: {
         mode: 'dark',
-        primary: '#5eb8ff',
-        secondary: '#82b1ff',
-        bgDefault: '#000000',
-        bgPaper: '#1b2838',
-        textPrimary: '#e0e6ed',
-        textSecondary: 'rgba(224,230,237,0.65)',
-        textDisabled: 'rgba(224,230,237,0.4)',
+        primary: '#3d9bfd',
+        secondary: '#7bb8ff',
+        bgDefault: '#070c18',
+        bgPaper: '#0d1726',
+        textPrimary: '#e8eef7',
+        textSecondary: 'rgba(232,238,247,0.6)',
+        textDisabled: 'rgba(232,238,247,0.38)',
     },
     'styling-grey': {
         mode: 'dark',
@@ -293,6 +296,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             widgetSettings: {},
             settingsWidgetId: null,
             chartAvailable: false,
+            defaultHistory: '',
             settingsObjectName: '',
             settingsObjectColor: '',
             categorySettings: {},
@@ -787,14 +791,12 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     private onOpenSettings = (widgetId: string | number): void => {
-        this.setState({
-            settingsWidgetId: widgetId,
-            chartAvailable: false,
-            settingsObjectName: '',
-            settingsObjectColor: '',
-        });
-        void this.checkChartAvailable(widgetId);
+        this.setState({ chartAvailable: false, settingsObjectName: '', settingsObjectColor: '' });
         void this.loadObjectSettings(widgetId);
+        // The dialog is opened only after the history availability is known: JsonConfigComponent
+        // builds its form from the schema when it mounts, so the chart/trend/min-max fields would
+        // never appear if `chartAvailable` only turned true afterwards.
+        void this.checkChartAvailable(widgetId).finally(() => this.setState({ settingsWidgetId: widgetId }));
     };
 
     private async loadObjectSettings(widgetId: string | number): Promise<void> {
@@ -810,12 +812,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     }
 
+    /**
+     * Decide whether the history-based options (chart period, trend arrow, min/max) are offered
+     * for the widget whose settings dialog is opening, and publish the resolved default history
+     * instance so the dialog can render its "record history" switch.
+     *
+     * The options appear as soon as a history adapter is configured system-wide — not only once
+     * recording is already enabled for this very state. Gating them on "already enabled" is a dead
+     * end, because the switch that enables recording sits inside the very same dialog.
+     */
     private async checkChartAvailable(widgetId: string | number): Promise<void> {
-        const widget = this.state.widgets.find(w => w.id === widgetId);
-        if (!widget?.control?.states?.length) {
-            return;
-        }
-
         if (!this.stateContext.defaultHistory) {
             try {
                 const sysConfig = await this.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
@@ -825,54 +831,18 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             }
         }
 
-        if (!this.stateContext.defaultHistory) {
+        const defaultHistory = this.stateContext.defaultHistory || '';
+        if (this.state.defaultHistory !== defaultHistory) {
+            this.setState({ defaultHistory });
+        }
+        if (!defaultHistory) {
             return;
         }
 
-        for (const s of widget.control.states) {
-            if (!s.id) {
-                continue;
-            }
-            try {
-                if (await this.hasHistoryEnabled(s.id)) {
-                    this.setState({ chartAvailable: true });
-                    return;
-                }
-            } catch {
-                // ignore
-            }
+        const widget = this.state.widgets.find(w => String(w.id) === String(widgetId));
+        if (widget?.control?.states?.some(s => s.id)) {
+            this.setState({ chartAvailable: true });
         }
-    }
-
-    private async hasHistoryEnabled(stateId: string): Promise<boolean> {
-        let obj: ioBroker.StateObject | undefined;
-        try {
-            obj = await this.stateContext.getObject<ioBroker.StateObject>(stateId);
-        } catch {
-            return false;
-        }
-        if (!obj) {
-            return false;
-        }
-        if (obj.common?.custom?.[this.stateContext.defaultHistory!]?.enabled) {
-            return true;
-        }
-        // Follow alias to the target and check there
-        const aliasId = obj.common?.alias?.id;
-        if (aliasId) {
-            const targetId = typeof aliasId === 'object' ? aliasId.read : aliasId;
-            if (targetId && targetId !== stateId) {
-                try {
-                    const targetObj = await this.stateContext.getObject<ioBroker.StateObject>(targetId);
-                    if (targetObj?.common?.custom?.[this.stateContext.defaultHistory!]?.enabled) {
-                        return true;
-                    }
-                } catch {
-                    // ignore
-                }
-            }
-        }
-        return false;
     }
 
     private onSaveSettings = (settings: WidgetSettingsBase): void => {
@@ -2306,6 +2276,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             settingsWidgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
                             widgetSettings={this.state.widgetSettings}
                             chartAvailable={this.state.chartAvailable}
+                            defaultHistory={this.state.defaultHistory || undefined}
                             settingsObjectName={this.state.settingsObjectName}
                             settingsObjectColor={this.state.settingsObjectColor}
                             onCloseSettings={this.onCloseSettings}

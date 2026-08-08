@@ -622,6 +622,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                             {indicators}
                         </Box>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
 
                     {extraStates ? <Box sx={{ position: 'relative', zIndex: 1 }}>{extraStates}</Box> : null}
@@ -707,6 +708,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
 
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>

@@ -596,13 +596,19 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                             >
                                 <Box
                                     component="span"
-                                    sx={theme => ({ color: theme.palette.text.secondary })}
+                                    sx={theme => ({
+                                        color: theme.palette.text.secondary,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    })}
                                 >
                                     {I18n.t('wm_Speed')}:
                                 </Box>{' '}
                                 <Box
                                     component="span"
-                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                    sx={{ fontWeight: 700, minWidth: 40, flexShrink: 0, whiteSpace: 'nowrap' }}
                                 >
                                     {WidgetWind.formatValue(speed, speedUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
@@ -621,13 +627,19 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                             >
                                 <Box
                                     component="span"
-                                    sx={theme => ({ color: theme.palette.text.secondary })}
+                                    sx={theme => ({
+                                        color: theme.palette.text.secondary,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    })}
                                 >
                                     {I18n.t('wm_Wind gusts')}:
                                 </Box>{' '}
                                 <Box
                                     component="span"
-                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                    sx={{ fontWeight: 700, minWidth: 40, flexShrink: 0, whiteSpace: 'nowrap' }}
                                 >
                                     {WidgetWind.formatValue(gusts, gustsUnit, this.props.stateContext.isFloatComma)}
                                 </Box>
@@ -646,13 +658,19 @@ export class WidgetWind extends WidgetGeneric<WidgetWindState, WidgetWindSetting
                             >
                                 <Box
                                     component="span"
-                                    sx={theme => ({ color: theme.palette.text.secondary })}
+                                    sx={theme => ({
+                                        color: theme.palette.text.secondary,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    })}
                                 >
                                     {I18n.t('wm_Direction')}:
                                 </Box>{' '}
                                 <Box
                                     component="span"
-                                    sx={{ fontWeight: 700, minWidth: 40 }}
+                                    sx={{ fontWeight: 700, minWidth: 40, flexShrink: 0, whiteSpace: 'nowrap' }}
                                 >
                                     {Math.round(direction)}°
                                 </Box>

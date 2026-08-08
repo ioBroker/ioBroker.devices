@@ -8,6 +8,7 @@ import {
     DialogTitle,
     FormControlLabel,
     Switch,
+    alpha,
 } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/gui-components';
@@ -18,6 +19,7 @@ import { SIZE_OPTIONS } from './CustomWidgetConfigs';
 import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
 import ConfigIconSelect from './Components/ConfigIconSelect';
+import { resolveHistoryTarget } from './Utils';
 import {
     type ConfigGenericProps,
     type ConfigItemPanel,
@@ -161,6 +163,17 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
             max: 1440,
             hidden: '!data.showTrendArrow',
         };
+        items.minMaxPeriod = {
+            type: 'select',
+            label: 'wm_Min/Max',
+            options: [
+                { value: 'off', label: 'wm_Off' },
+                { value: '24h', label: 'wm_Last 24h' },
+                { value: 'today', label: 'wm_Today' },
+            ],
+            default: 'off',
+            format: 'radio',
+        };
     }
 
     return {
@@ -175,6 +188,8 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     const [values, setValues] = useState<WidgetSettingsBase>({} as WidgetSettingsBase);
     const [historyEnabled, setHistoryEnabled] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
+    /** Object that carries the history settings — the alias target when the widget shows an alias */
+    const [historyTargetId, setHistoryTargetId] = useState('');
 
     const schema = useMemo(
         () => buildSchema(props),
@@ -196,15 +211,14 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                 name: settings.name || objectName || widgetName,
                 colorActive: settings.colorActive || objectColor || '',
             });
-            // Load history enabled state
+            // Load history enabled state — following the alias, because that is where recording runs
             if (props.primaryStateId && props.defaultHistory) {
-                void props.stateContext
-                    .getObject<ioBroker.StateObject>(props.primaryStateId)
-                    .then(obj => {
-                        const enabled = !!obj?.common?.custom?.[props.defaultHistory!]?.enabled;
+                void resolveHistoryTarget(props.stateContext, props.primaryStateId, props.defaultHistory).then(
+                    ({ id, enabled }) => {
+                        setHistoryTargetId(id);
                         setHistoryEnabled(enabled);
-                    })
-                    .catch(() => setHistoryEnabled(false));
+                    },
+                );
             }
         }
         wasOpenRef.current = open;
@@ -255,11 +269,24 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             <Switch
                                 checked={historyEnabled}
                                 disabled={historyLoading}
+                                // The neumorphic presets render `primary` in a near-grey, so an
+                                // enabled switch is indistinguishable from a disabled one. Accent
+                                // the "on" state explicitly.
+                                sx={theme => ({
+                                    '& .MuiSwitch-switchBase.Mui-checked': {
+                                        color: theme.palette.success.main,
+                                        '&:hover': { backgroundColor: alpha(theme.palette.success.main, 0.1) },
+                                    },
+                                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                        backgroundColor: theme.palette.success.main,
+                                        opacity: 0.5,
+                                    },
+                                })}
                                 onChange={async (_e, checked) => {
                                     setHistoryLoading(true);
                                     try {
                                         const obj = await props.stateContext.getObject<ioBroker.StateObject>(
-                                            props.primaryStateId!,
+                                            historyTargetId || props.primaryStateId!,
                                         );
                                         if (obj?.common) {
                                             const common = obj.common;

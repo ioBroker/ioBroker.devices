@@ -52,7 +52,11 @@ export default class IOBChannelDetector {
  * neighbouring channel (e.g. a Homematic LOWBAT on the .0 channel) stay untouched.
  */
 export function removeForeignAliasStates(control: PatternControl, objects: Record<string, ioBroker.Object>): void {
-    const primary = control.states.find(s => s.id && s.required) || control.states.find(s => s.id);
+    // Only a required state may define the home channel. A detected control always has all its
+    // required states filled, so this never bails out in practice — but falling back to "the first
+    // state with an ID" would be dangerous: in a leaked grouping that may well be the foreign one,
+    // and we would then drop the device's real states instead of the leaked ones.
+    const primary = control.states.find(s => s.id && s.required);
     if (!primary?.id) {
         return;
     }

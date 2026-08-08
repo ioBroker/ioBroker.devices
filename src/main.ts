@@ -31,10 +31,209 @@ export default class DevicesAdapter extends Adapter {
                     instance.value.common.mode = 'daemon';
                     await this.setForeignObjectAsync(instance.value._id, instance.value);
                 }
+                await this.ensureInstanceIndicatorObjects(instance.value._id);
             }
         }
         if (!noTerminate) {
             this.terminate ? this.terminate('install finished', 0) : process.exit(0);
+        }
+    }
+
+    /**
+     * Recreate the instance indicator objects (`alive`, `connected`, `cpu`, …) if they are missing.
+     *
+     * This adapter used to be `common.mode: "none"`, and js-controller creates the daemon monitoring
+     * objects only when an instance is created — never for a `none` instance. `onInstall()` flips the
+     * mode of pre-existing instances to `daemon`, but nobody creates the missing child objects. The
+     * heartbeat keeps writing the *state values* (the states DB does not need an object), so the admin
+     * "Instances" tab shows the instance red for a few seconds on every load: its object-driven state
+     * snapshot skips the object-less states, and `!alive || !connected` evaluates to red until the live
+     * subscription delivers a heartbeat (issue #603).
+     *
+     * The definitions mirror `getInstanceIndicatorObjects()` from js-controller. `setForeignObjectNotExists`
+     * is idempotent, so healthy instances stay untouched and no state value is lost.
+     *
+     * @param instanceId Instance object ID, e.g. `system.adapter.devices.0`
+     */
+    private async ensureInstanceIndicatorObjects(instanceId: string): Promise<void> {
+        const namespace = instanceId.substring('system.adapter.'.length);
+        const indicators: { id: string; common: ioBroker.StateCommon }[] = [
+            {
+                id: 'alive',
+                common: {
+                    name: `${namespace} alive`,
+                    type: 'boolean',
+                    read: true,
+                    write: true,
+                    role: 'indicator.state',
+                },
+            },
+            {
+                id: 'connected',
+                common: {
+                    name: `${namespace} is connected`,
+                    type: 'boolean',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                },
+            },
+            {
+                id: 'compactMode',
+                common: {
+                    name: `${namespace}.compactMode`,
+                    type: 'boolean',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                },
+            },
+            {
+                id: 'cpu',
+                common: {
+                    name: `${namespace}.cpu`,
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: '% of one core',
+                },
+            },
+            {
+                id: 'cputime',
+                common: {
+                    name: `${namespace}.cputime`,
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: 'seconds',
+                },
+            },
+            {
+                id: 'memHeapUsed',
+                common: {
+                    name: `${namespace} heap actually Used`,
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: 'MB',
+                },
+            },
+            {
+                id: 'memHeapTotal',
+                common: {
+                    name: `${namespace} total Size of the Heap`,
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: 'MB',
+                },
+            },
+            {
+                id: 'memRss',
+                common: {
+                    name: `${namespace} resident Set Size`,
+                    desc: 'Resident set size',
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: 'MB',
+                },
+            },
+            {
+                id: 'uptime',
+                common: {
+                    name: `${namespace} uptime`,
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'indicator.state',
+                    unit: 'seconds',
+                },
+            },
+            {
+                id: 'inputCount',
+                common: {
+                    name: `${namespace} events input counter`,
+                    desc: "State's inputs in 15 seconds",
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'state',
+                    unit: 'events/15 seconds',
+                },
+            },
+            {
+                id: 'outputCount',
+                common: {
+                    name: `${namespace} events output counter`,
+                    desc: "State's outputs in 15 seconds",
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'state',
+                    unit: 'events/15 seconds',
+                },
+            },
+            {
+                id: 'eventLoopLag',
+                common: {
+                    name: `${namespace} Node.js event loop lag`,
+                    desc: 'Node.js event loop lag in ms averaged over 15 seconds',
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'state',
+                    unit: 'ms',
+                },
+            },
+            {
+                id: 'sigKill',
+                common: {
+                    name: `${namespace} kill signal`,
+                    desc: 'Process id that must survive. All other IDs must terminate itself',
+                    type: 'number',
+                    read: true,
+                    write: false,
+                    role: 'state',
+                },
+            },
+            {
+                id: 'logLevel',
+                common: {
+                    name: `${namespace} loglevel`,
+                    desc: 'Loglevel of the adapter. Will be set on start with defined value but can be overridden during runtime',
+                    type: 'string',
+                    read: true,
+                    write: true,
+                    role: 'state',
+                },
+            },
+        ];
+
+        const created: string[] = [];
+        for (const { id, common } of indicators) {
+            const fullId = `${instanceId}.${id}`;
+            try {
+                if (await this.getForeignObjectAsync(fullId)) {
+                    continue;
+                }
+                await this.setForeignObjectAsync(fullId, { type: 'state', common, native: {} });
+                created.push(id);
+            } catch (error) {
+                this.log.warn(`Cannot create ${fullId}: ${error as Error}`);
+            }
+        }
+
+        if (created.length) {
+            this.log.info(
+                `Recreated missing instance objects for ${instanceId}: ${created.join(', ')}. ` +
+                    `They were never created because the instance predates the switch to "daemon" mode.`,
+            );
         }
     }
 
@@ -48,8 +247,8 @@ export default class DevicesAdapter extends Adapter {
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');
-        // Repair missing instance monitoring objects (see #603) so the admin does not show us red.
-        await this.ensureInstanceStateObjects();
+        // Migrates `common.mode` of pre-existing instances and repairs their missing monitoring
+        // objects (see #603), so the admin does not show us red.
         await this.onInstall(true);
 
         // Upload one picture to devices.0, so it will be available in the File selector
@@ -68,40 +267,6 @@ export default class DevicesAdapter extends Adapter {
         // the instance must either run `usePureWebSockets` or delegate the socket layer to a
         // `ws.X` adapter instance via `native.socketio`.
         await this.checkWebInstances();
-    }
-
-    /**
-     * Ensure the instance monitoring objects `alive` and `connected` exist.
-     *
-     * js-controller creates these when the instance is set up, but on some upgraded
-     * installations the objects go missing while their state values persist. That makes the
-     * admin "Instances" tab render this instance red for a few seconds whenever the tab is
-     * opened, because the object-based state snapshot skips object-less states (issue #603).
-     * `setForeignObjectNotExistsAsync` is idempotent, so healthy instances stay untouched.
-     */
-    private async ensureInstanceStateObjects(): Promise<void> {
-        await this.setForeignObjectNotExistsAsync(`system.adapter.${this.namespace}.alive`, {
-            type: 'state',
-            common: {
-                name: `${this.namespace} alive`,
-                type: 'boolean',
-                read: true,
-                write: true,
-                role: 'indicator.state',
-            },
-            native: {},
-        });
-        await this.setForeignObjectNotExistsAsync(`system.adapter.${this.namespace}.connected`, {
-            type: 'state',
-            common: {
-                name: `${this.namespace} is connected`,
-                type: 'boolean',
-                read: true,
-                write: false,
-                role: 'indicator.state',
-            },
-            native: {},
-        });
     }
 
     private async checkWebInstances(): Promise<void> {

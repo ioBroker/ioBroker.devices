@@ -112,6 +112,9 @@ export interface CategoryInfo extends ItemInfo {
     };
 }
 
+/** Period over which the min/max values are calculated from history */
+export type MinMaxPeriod = 'off' | '24h' | 'today';
+
 export interface WidgetSettingsBase {
     size: '1x1' | '2x0.5' | '2x1' | '2x2';
     name: string;
@@ -124,6 +127,8 @@ export interface WidgetSettingsBase {
     trendMinutes?: number;
     showTrendArrow?: boolean;
     chartHours: number;
+    /** Show min/max values from history: 'off' (default), last 24 hours or since midnight */
+    minMaxPeriod?: MinMaxPeriod;
 
     /** Custom widget icon URL/base64 (for non-alarm widgets, stored in `common.icon`) */
     icon: string;

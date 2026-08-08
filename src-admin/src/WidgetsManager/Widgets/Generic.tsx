@@ -40,6 +40,7 @@ import moment from 'moment/min/moment-with-locales';
 
 import {
     WidgetGeneric as WidgetGenericBase,
+    type MinMaxPeriod,
     type WidgetGenericProps as WidgetGenericPropsBase,
     type WidgetSettingsBase,
 } from '../../../../packages/dm-widgets/src/index';
@@ -53,6 +54,8 @@ export interface WidgetGenericSettings extends WidgetSettingsBase {
     showTrendArrow?: boolean;
     /** Trend calculation period in minutes (default 30) */
     trendMinutes?: number;
+    /** Show min/max values from history: 'off' (default), last 24 hours or since midnight */
+    minMaxPeriod?: MinMaxPeriod;
 }
 
 export interface WidgetGenericProps<
@@ -103,6 +106,16 @@ export interface ChartSeries {
     unit?: string;
 }
 
+/** Min/max values of the primary state over the configured period, read from the history adapter */
+export interface MinMaxValues {
+    min: number;
+    max: number;
+    /** Timestamp of the minimum */
+    minTs: number;
+    /** Timestamp of the maximum */
+    maxTs: number;
+}
+
 export interface ExtraInfoEntry {
     id: string;
     stateName: string;
@@ -124,6 +137,8 @@ export interface WidgetGenericState {
     chartDialogOpen: boolean;
     /** Trend direction based on recent history: 'up', 'down', 'stable', or null if unknown */
     trend: 'up' | 'down' | 'stable' | null;
+    /** Min/max values over the configured period, or null if disabled/unknown */
+    minMax: MinMaxValues | null;
     /** Chart line type synced from chart dialog settings */
     chartType: ChartLineType;
     /** Smoothing window synced from chart dialog settings */
@@ -171,6 +186,11 @@ export function isNeumorphicTheme(theme: Theme): boolean {
     return (theme as Theme & { wmPreset?: string }).wmPreset === 'styling-grey';
 }
 
+/** Check if the current theme is the deep-navy "blueDark" preset */
+export function isBlueDarkTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'blueDark';
+}
+
 export function getTileStyles(
     theme: Theme,
     isActive: boolean,
@@ -196,6 +216,24 @@ export function getTileStyles(
             boxShadow: isActive
                 ? `6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025), inset 0 0 0 1px ${alpha(accent, 0.1)}`
                 : '6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025)',
+            ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+        };
+    }
+
+    // Deep-navy styling for the blueDark theme: the tile is a lifted navy panel rather than a
+    // white overlay, so it keeps the blue cast of the page instead of turning grey.
+    if (isBlueDarkTheme(theme) && !inactiveColor) {
+        const paper = theme.palette.background.paper;
+        return {
+            borderRadius: '16px',
+            boxSizing: 'border-box',
+            padding: theme.spacing(2),
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: isActive
+                ? `linear-gradient(160deg, ${alpha(accent, 0.26)}, ${alpha(accent, 0.05)} 65%, transparent), ${paper}`
+                : `linear-gradient(160deg, ${alpha(theme.palette.common.white, 0.05)}, ${alpha(theme.palette.common.white, 0.012)}), ${paper}`,
+            border: `1px solid ${isActive ? alpha(accent, 0.35) : alpha(theme.palette.primary.main, 0.12)}`,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.45)',
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }
@@ -526,6 +564,9 @@ export class WidgetGeneric<
     private historyInstance: string | null = null;
     private chartTimer: ReturnType<typeof setInterval> | null = null;
     private trendTimer: ReturnType<typeof setInterval> | null = null;
+    private minMaxTimer: ReturnType<typeof setInterval> | null = null;
+    /** `common.unit` of the primary history state — resolved lazily for the min/max display */
+    private minMaxUnit: string | null = null;
     protected nameRef = React.createRef<HTMLSpanElement>();
 
     constructor(props: WidgetGenericProps<TSettings>) {
@@ -540,6 +581,7 @@ export class WidgetGeneric<
             infoDialogOpen: props.openDialogId === `${props.widget.id}_info`,
             chartDialogOpen: props.openDialogId === `${props.widget.id}_chart`,
             trend: null,
+            minMax: null,
             chartType: 'line',
             chartSmoothing: 0,
             chartSmoothingMethod: 'average' as SmoothingMethod,
@@ -635,6 +677,7 @@ export class WidgetGeneric<
         // Start chart data loading if configured
         this.startChartRefresh();
         this.startTrendRefresh();
+        this.startMinMaxRefresh();
         this.adjustNameFontSize();
         this.loadChartType();
     }
@@ -647,6 +690,10 @@ export class WidgetGeneric<
         if (this.trendTimer) {
             clearInterval(this.trendTimer);
             this.trendTimer = null;
+        }
+        if (this.minMaxTimer) {
+            clearInterval(this.minMaxTimer);
+            this.minMaxTimer = null;
         }
         for (const name of INDICATOR_NAMES) {
             const id = this.indicatorIds[name];
@@ -670,6 +717,9 @@ export class WidgetGeneric<
             (prevProps.settings?.trendMinutes ?? 30) !== (this.props.settings?.trendMinutes ?? 30)
         ) {
             this.startTrendRefresh();
+        }
+        if ((prevProps.settings?.minMaxPeriod || 'off') !== (this.props.settings?.minMaxPeriod || 'off')) {
+            this.startMinMaxRefresh();
         }
 
         // Sync name/icon/color from widget props when they change
@@ -719,6 +769,7 @@ export class WidgetGeneric<
             colorActive: '',
             showTrendArrow: false,
             trendMinutes: 30,
+            minMaxPeriod: 'off',
             favorite: false,
             icon: '',
             iconActive: '',
@@ -905,21 +956,27 @@ export class WidgetGeneric<
 
     // --- Extra info (ELECTRIC_POWER, CURRENT, VOLTAGE, etc.) ---
 
-    private async loadExtraInfoMetadata(): Promise<void> {
-        // Ensure history instance is resolved before checking history availability
+    /** Resolve (and cache) the default history instance. Returns '' when no history adapter is configured. */
+    private async ensureHistoryInstance(): Promise<string> {
         if (this.historyInstance === null) {
             if (this.props.stateContext.defaultHistory) {
                 this.historyInstance = this.props.stateContext.defaultHistory;
             } else {
                 try {
-                    const cfg = await this.props.stateContext.getSocket().getObject('system.config');
-                    this.historyInstance =
-                        ((cfg?.common as unknown as Record<string, unknown>)?.defaultHistory as string) || '';
+                    const sysConfig =
+                        await this.props.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
+                    this.historyInstance = sysConfig?.common?.defaultHistory || '';
                 } catch {
                     this.historyInstance = '';
                 }
             }
         }
+        return this.historyInstance;
+    }
+
+    private async loadExtraInfoMetadata(): Promise<void> {
+        // Ensure history instance is resolved before checking history availability
+        await this.ensureHistoryInstance();
 
         const entries: ExtraInfoEntry[] = [];
         for (const { id, stateName } of this.extraInfoIds) {
@@ -1623,20 +1680,8 @@ export class WidgetGeneric<
 
         const socket = this.props.stateContext.getSocket();
 
-        if (this.historyInstance === null) {
-            if (this.props.stateContext.defaultHistory) {
-                this.historyInstance = this.props.stateContext.defaultHistory;
-            } else {
-                try {
-                    const sysConfig =
-                        await this.props.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
-                    this.historyInstance = sysConfig?.common?.defaultHistory || '';
-                } catch {
-                    this.historyInstance = '';
-                }
-            }
-        }
-        if (!this.historyInstance) {
+        const instance = await this.ensureHistoryInstance();
+        if (!instance) {
             return;
         }
 
@@ -1653,7 +1698,7 @@ export class WidgetGeneric<
                     continue;
                 }
                 const result = await socket.getHistory(historyId, {
-                    instance: this.historyInstance,
+                    instance,
                     start,
                     end,
                     from: false,
@@ -1704,20 +1749,8 @@ export class WidgetGeneric<
     /** Load recent history for the primary state and compute trend direction */
     private async loadTrend(stateId: string): Promise<void> {
         // Ensure history instance is resolved
-        if (this.historyInstance === null) {
-            if (this.props.stateContext.defaultHistory) {
-                this.historyInstance = this.props.stateContext.defaultHistory;
-            } else {
-                try {
-                    const sysConfig =
-                        await this.props.stateContext.getObject<ioBroker.SystemConfigObject>('system.config');
-                    this.historyInstance = sysConfig?.common?.defaultHistory || '';
-                } catch {
-                    this.historyInstance = '';
-                }
-            }
-        }
-        if (!this.historyInstance) {
+        const instance = await this.ensureHistoryInstance();
+        if (!instance) {
             return;
         }
 
@@ -1731,7 +1764,7 @@ export class WidgetGeneric<
         const start = end - minutes * 60_000;
         try {
             const result = await this.props.stateContext.getSocket().getHistory(historyId, {
-                instance: this.historyInstance,
+                instance,
                 start,
                 end,
                 from: false,
@@ -1802,6 +1835,158 @@ export class WidgetGeneric<
         } catch {
             // ignore
         }
+    }
+
+    // --- Min/Max ---
+
+    /** Start/stop the periodic min/max refresh according to the `minMaxPeriod` setting */
+    private startMinMaxRefresh(): void {
+        if (this.minMaxTimer) {
+            clearInterval(this.minMaxTimer);
+            this.minMaxTimer = null;
+        }
+        const period = this.props.settings?.minMaxPeriod || 'off';
+        if (period === 'off') {
+            if (this.state.minMax) {
+                this.setState({ minMax: null } as Partial<TState> as TState);
+            }
+            return;
+        }
+        const historyIds = this.getHistoryIds();
+        if (!historyIds.length) {
+            return;
+        }
+        void this.loadMinMax(historyIds[0].id);
+        this.minMaxTimer = setInterval(() => void this.loadMinMax(historyIds[0].id), 300_000);
+    }
+
+    /** Begin of the min/max period: midnight for 'today', 24 hours back otherwise */
+    private getMinMaxStart(): number {
+        if (this.props.settings?.minMaxPeriod === 'today') {
+            const midnight = new Date();
+            midnight.setHours(0, 0, 0, 0);
+            return midnight.getTime();
+        }
+        return Date.now() - 24 * 3_600_000;
+    }
+
+    /** Read the minimum and maximum of the primary state over the configured period from history */
+    private async loadMinMax(stateId: string): Promise<void> {
+        const instance = await this.ensureHistoryInstance();
+        if (!instance) {
+            return;
+        }
+        const historyId = await this.resolveHistoryId(stateId);
+        if (!historyId) {
+            return;
+        }
+
+        if (this.minMaxUnit === null) {
+            try {
+                const obj = await this.props.stateContext.getObject<ioBroker.StateObject>(stateId);
+                this.minMaxUnit = obj?.common?.unit || '';
+            } catch {
+                this.minMaxUnit = '';
+            }
+        }
+
+        try {
+            // 'minmax' keeps the extremes of every interval, so the true min/max survives the aggregation
+            const result = await this.props.stateContext.getSocket().getHistory(historyId, {
+                instance,
+                start: this.getMinMaxStart(),
+                end: Date.now(),
+                from: false,
+                ack: false,
+                q: false,
+                addId: false,
+                aggregate: 'minmax',
+                count: 500,
+                returnNewestEntries: true,
+            });
+            if (!Array.isArray(result)) {
+                return;
+            }
+
+            let minMax: MinMaxValues | null = null;
+            for (const p of result) {
+                if (p.val == null || isNaN(Number(p.val))) {
+                    continue;
+                }
+                const val = Number(p.val);
+                if (!minMax) {
+                    minMax = { min: val, max: val, minTs: p.ts, maxTs: p.ts };
+                } else if (val < minMax.min) {
+                    minMax.min = val;
+                    minMax.minTs = p.ts;
+                } else if (val > minMax.max) {
+                    minMax.max = val;
+                    minMax.maxTs = p.ts;
+                }
+            }
+            if (!minMax) {
+                return;
+            }
+
+            const current = this.state.minMax;
+            if (
+                !current ||
+                current.min !== minMax.min ||
+                current.max !== minMax.max ||
+                current.minTs !== minMax.minTs ||
+                current.maxTs !== minMax.maxTs
+            ) {
+                this.setState({ minMax } as Partial<TState> as TState);
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    /** Renders the "▼ min ▲ max" line below the tile status. Returns null when disabled or not loaded yet. */
+    protected renderMinMax(): React.JSX.Element | null {
+        const period = this.props.settings?.minMaxPeriod || 'off';
+        const minMax = this.state.minMax;
+        if (period === 'off' || !minMax) {
+            return null;
+        }
+
+        const unit = this.getChartUnit() ?? this.minMaxUnit ?? '';
+        const decimals = Math.max(Math.abs(minMax.min), Math.abs(minMax.max)) >= 100 ? 0 : 1;
+        const format = (value: number): string =>
+            `${formatFloat(value, decimals, this.props.stateContext.isFloatComma)}${unit ? ` ${unit}` : ''}`;
+        const time = (ts: number): string => moment(ts).locale(this.props.stateContext.language).format('LT');
+        const periodLabel = I18n.t(period === 'today' ? 'wm_Today' : 'wm_Last 24h');
+
+        return (
+            <Tooltip
+                title={`${periodLabel}: ${I18n.t('wm_Minimum')} ${format(minMax.min)} (${time(minMax.minTs)}), ${I18n.t(
+                    'wm_Maximum',
+                )} ${format(minMax.max)} (${time(minMax.maxTs)})`}
+            >
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        color: 'text.secondary',
+                        fontSize: '0.7rem',
+                        lineHeight: 1.3,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+                        <ArrowDownward sx={{ fontSize: '1em', color: 'info.main' }} />
+                        {format(minMax.min)}
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+                        <ArrowUpward sx={{ fontSize: '1em', color: 'warning.main' }} />
+                        {format(minMax.max)}
+                    </Box>
+                </Box>
+            </Tooltip>
+        );
     }
 
     protected renderChartDialog(): React.JSX.Element | null {
@@ -2226,6 +2411,7 @@ export class WidgetGeneric<
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
@@ -2304,6 +2490,7 @@ export class WidgetGeneric<
                             {indicators}
                         </Box>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
 
                     {trendArrow ? (
@@ -2396,6 +2583,7 @@ export class WidgetGeneric<
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
 
                     {trendArrow ? (
