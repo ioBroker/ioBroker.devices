@@ -77,6 +77,7 @@ export type {
     DevicesDetectorState,
     DevicesPatternControl,
     ItemInfo,
+    MinMaxPeriod,
     WidgetGenericState,
     WidgetInfo,
     WidgetSettingsBase,

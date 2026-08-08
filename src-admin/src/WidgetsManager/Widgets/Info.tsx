@@ -452,6 +452,7 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
                     >
                         {this.props.settings?.name || name || '...'}
                     </Typography>
+                    {this.renderMinMax()}
                 </Box>
                 {this.renderSettingsButton()}
                 {this.renderChart()}

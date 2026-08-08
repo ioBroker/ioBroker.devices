@@ -1,1 +1,1 @@
-import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__iobroker_devices__remoteEntry_js-B2unGD8N.js";export{t as get,e as init};
+import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__iobroker_devices__remoteEntry_js-qA3Lqotu.js";export{t as get,e as init};

@@ -1106,6 +1106,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             {party ? <Celebration sx={{ fontSize: 'max(12px, 7cqi)', color: '#ff9800' }} /> : null}
                             {modeLabel ? WidgetThermostat.renderModeIcon(modeLabel, 14) : null}
                         </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>{this.renderMinMax()}</Box>
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
@@ -1222,6 +1223,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                     </Tooltip>
                                 ) : null}
                             </Box>
+                            {this.renderMinMax()}
                         </Box>
 
                         <Tooltip title={I18n.t('wm_Set temperature')}>

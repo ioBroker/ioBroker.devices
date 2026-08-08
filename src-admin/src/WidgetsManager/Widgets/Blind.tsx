@@ -755,6 +755,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
                 </Box>
             </Box>

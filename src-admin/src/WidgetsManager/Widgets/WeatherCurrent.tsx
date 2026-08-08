@@ -372,6 +372,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     >
                         {this.props.settings?.name || name || '...'}
                     </Typography>
+                    {this.renderMinMax()}
                 </Box>
 
                 {this.renderChart()}
@@ -508,6 +509,7 @@ export class WidgetWeatherCurrent extends WidgetGeneric<WidgetWeatherCurrentStat
                     >
                         {this.props.settings?.name || name || '...'}
                     </Typography>
+                    {this.renderMinMax()}
                 </Box>
 
                 {this.renderChart()}

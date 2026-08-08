@@ -44,7 +44,9 @@ function getParentId(id: string): string {
  * `common.alias`, so genuine device-level indicators on a neighbouring channel stay.
  */
 function removeForeignAliasStates(device: DevicesPatternControl, objects: Record<string, ioBroker.Object>): void {
-    const primaryId = findMainStateId(device) || device.states.find(s => s.id)?.id;
+    // Only a required state may define the home channel — see the twin for why there is no fallback
+    // to "the first state with an ID".
+    const primaryId = findMainStateId(device);
     if (!primaryId) {
         return;
     }

@@ -51,3 +51,55 @@ export function getTranslation(
 
     return noTranslation ? text : I18n.t(text);
 }
+
+/** Minimal object-reading capability needed by {@link resolveHistoryTarget} (the widget StateContext) */
+export interface ObjectReader {
+    getObject: <T>(id: string) => Promise<T | undefined>;
+}
+
+/**
+ * Resolve which object actually carries the history configuration for a state.
+ *
+ * Alias states (`alias.0.*`) normally do not record themselves — the history adapter is enabled on
+ * the physical source state the alias points at. Looking only at the alias would therefore report
+ * "not recording" although a chart is happily drawn from the source, and switching recording on
+ * would log the same value a second time instead of toggling the existing one.
+ *
+ * Mirrors the lookup `WidgetGeneric.resolveHistoryId()` uses to read chart data.
+ *
+ * @param stateContext Object reader (the widget StateContext)
+ * @param stateId State the widget shows, may be an alias
+ * @param historyInstance Instance ID of the history adapter, e.g. `history.0`
+ * @returns The ID that carries (or should carry) the history settings and whether recording is on
+ */
+export async function resolveHistoryTarget(
+    stateContext: ObjectReader,
+    stateId: string,
+    historyInstance: string,
+): Promise<{ id: string; enabled: boolean }> {
+    let obj: ioBroker.StateObject | undefined;
+    try {
+        obj = await stateContext.getObject<ioBroker.StateObject>(stateId);
+    } catch {
+        return { id: stateId, enabled: false };
+    }
+    if (obj?.common?.custom?.[historyInstance]?.enabled) {
+        return { id: stateId, enabled: true };
+    }
+
+    const aliasId = obj?.common?.alias?.id;
+    const targetId = typeof aliasId === 'object' ? aliasId?.read : aliasId;
+    if (targetId && targetId !== stateId) {
+        try {
+            const target = await stateContext.getObject<ioBroker.StateObject>(targetId);
+            if (target?.common?.custom?.[historyInstance]?.enabled) {
+                return { id: targetId, enabled: true };
+            }
+        } catch {
+            // ignore — fall through to "not recorded anywhere"
+        }
+    }
+
+    // Recorded nowhere: offer to switch it on for the state the widget itself uses
+    return { id: stateId, enabled: false };
+}

@@ -874,6 +874,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                             {name ?? '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
                 </Box>
             </Box>

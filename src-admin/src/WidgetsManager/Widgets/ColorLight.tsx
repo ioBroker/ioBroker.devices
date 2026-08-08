@@ -820,6 +820,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         {this.renderTileStatus()}
+                        {this.renderMinMax()}
                     </Box>
                     {this.renderChart()}
                 </Box>

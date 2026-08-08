@@ -1257,6 +1257,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             ) : null}
                             {modeLabel ? WidgetAirCondition.renderModeIcon(modeLabel, 14) : null}
                         </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>{this.renderMinMax()}</Box>
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
@@ -1393,6 +1394,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     </Typography>
                                 ) : null}
                             </Box>
+                            {this.renderMinMax()}
                         </Box>
                     </Box>
                     {this.renderChart()}

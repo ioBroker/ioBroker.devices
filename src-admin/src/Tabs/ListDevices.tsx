@@ -1009,6 +1009,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         window.addEventListener('resize', this.onResize, false);
         void this.props.socket.subscribeObject('*', this.onObjectChanged);
         window.addEventListener('hashchange', this.onHashChange, false);
+        // Leftover from when folder deletion could be suppressed for 5 minutes — it is always
+        // confirmed now, so the timestamp is never read again.
+        window.localStorage.removeItem('DeleteFolderTime');
 
         setTimeout(() => {
             const el = document.getElementById(`td_${this.state.selected}`);
@@ -1825,11 +1828,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     onClose={(result, suppressQuestion) => {
                         const newState: Partial<ListDevicesState> = { deleteFolderAndDevice: null };
                         if (result) {
-                            if (suppressQuestion) {
-                                window.localStorage.setItem(
-                                    this.state.deleteFolderAndDevice!.device ? 'DeleteDeviceTime' : 'DeleteFolderTime',
-                                    Date.now().toString(),
-                                );
+                            // Only devices offer the "do not ask again" checkbox — folder deletion is
+                            // recursive and always asks, so there is no folder timestamp to store.
+                            if (suppressQuestion && this.state.deleteFolderAndDevice!.device) {
+                                window.localStorage.setItem('DeleteDeviceTime', Date.now().toString());
                             }
 
                             if (
