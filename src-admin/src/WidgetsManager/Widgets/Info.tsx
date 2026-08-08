@@ -1,25 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import {
-    Air,
-    Bolt,
-    ElectricalServices,
-    ElectricMeter,
-    EnergySavingsLeaf,
-    Explore,
-    Grass,
-    Hearing,
-    LightMode,
-    Opacity,
-    Speed,
-    Thermostat,
-    Visibility,
-    Water,
-    WaterDrop,
-    WbSunny,
-    Waves,
-    type SvgIconComponent,
-} from '@mui/icons-material';
+import { ElectricMeter } from '@mui/icons-material';
 
 import WidgetGeneric, {
     formatFloat,
@@ -29,39 +10,8 @@ import WidgetGeneric, {
     type WidgetGenericState,
 } from './Generic';
 import { hideBaseFields } from '../configUtils';
+import { getIconForRole } from '../../Components/helpers/roleIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
-
-/** Map ioBroker roles / units to icons */
-const ROLE_ICON_MAP: [RegExp, SvgIconComponent][] = [
-    [/pressure|baro/i, Speed],
-    [/voltage/i, Bolt],
-    [/current(?!.*weather)/i, ElectricalServices],
-    [/power|watt/i, ElectricMeter],
-    [/energy|consumption|kwh/i, EnergySavingsLeaf],
-    [/frequency|hertz|hz/i, Waves],
-    [/humidity|moisture/i, WaterDrop],
-    [/temperature|temp/i, Thermostat],
-    [/wind.*speed/i, Air],
-    [/wind.*dir/i, Explore],
-    [/precipitation|rain/i, Opacity],
-    [/uv/i, WbSunny],
-    [/visibility/i, Visibility],
-    [/air.*quality|aqi|pm2|pm10|co2/i, Air],
-    [/noise|decibel|dba/i, Hearing],
-    [/water.*level|tank/i, Water],
-    [/soil/i, Grass],
-    [/light|lux|illumin/i, LightMode],
-];
-
-function getIconForRole(role: string, unit: string): SvgIconComponent | null {
-    const combined = `${role} ${unit}`;
-    for (const [regex, Icon] of ROLE_ICON_MAP) {
-        if (regex.test(combined)) {
-            return Icon;
-        }
-    }
-    return null;
-}
 
 interface InfoState {
     id: string;

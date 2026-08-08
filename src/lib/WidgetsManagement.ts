@@ -195,8 +195,13 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     }
                 }
             } else if (this.objects[key].type === 'device' || this.objects[key].type === 'channel') {
-                // get parent
-                const parent = getParentId(key);
+                // A widget moved to another category counts towards *that* category, otherwise the
+                // target folder would be dropped as "empty" below and take the widget down with it.
+                const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
+                const override = custom?.[this.adapter.namespace]?.parent as string | undefined;
+                const parent = override && this.objects[override]?.type === 'folder' ? override : getParentId(key);
                 if (this.objects[parent]?.type === 'folder' || parent === 'alias.0') {
                     if (parent === 'alias.0') {
                         structure[ROOT_CATEGORY].push(key);
@@ -834,13 +839,25 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
             // Support of categories only in aliases.
             const customData = obj.common.custom?.[this.adapter.namespace];
+            // A widget assigned to a category whose object is gone (folder deleted or renamed)
+            // would end up in no category at all and silently disappear from the GUI — with the
+            // "show in GUI" switch seemingly doing nothing. Fall back to the object tree instead.
+            // Only a *missing object* counts: a category that merely got filtered out this round
+            // must keep its widgets, otherwise a deliberate assignment would be undone silently.
+            let parent = customData?.parent || device.parentId;
+            if (customData?.parent && customData.parent !== ROOT_CATEGORY && !this.objects[customData.parent]) {
+                this.adapter.log.warn(
+                    `Widget ${device.storeId} is assigned to the no longer existing category "${customData.parent}" — showing it in "${device.parentId}". Move it once to store the new category.`,
+                );
+                parent = device.parentId;
+            }
             this.widgets.set(device.storeId, {
                 type: 'widget',
                 id: device.storeId,
                 name,
                 icon,
                 color,
-                parent: customData?.parent || device.parentId,
+                parent,
                 control: {
                     type: device.type,
                     states: device.states,

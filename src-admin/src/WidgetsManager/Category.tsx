@@ -2809,29 +2809,57 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         : {}),
                 })}
             >
-                {icon ? (
-                    <Icon
-                        src={icon}
-                        style={{
-                            width: Math.round(28 * scale),
-                            height: Math.round(28 * scale),
+                {/* The icon sits in a round badge tinted with the category colour, so the rows read
+                    as a list of distinguishable places instead of a column of loose glyphs. */}
+                <Box
+                    sx={theme => {
+                        const badge = tileColor || theme.palette.primary.main;
+                        const size = Math.round(44 * scale);
+                        return {
+                            width: size,
+                            height: size,
                             flexShrink: 0,
-                            color: tileColor || undefined,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             position: 'relative',
                             zIndex: 1,
-                        }}
-                    />
-                ) : (
-                    <MeetingRoom
-                        sx={theme => ({
-                            fontSize: Math.round(28 * scale),
-                            color: tileColor || theme.palette.primary.main,
-                            flexShrink: 0,
-                            position: 'relative',
-                            zIndex: 1,
-                        })}
-                    />
-                )}
+                            background: `linear-gradient(145deg, ${alpha(badge, 0.3)}, ${alpha(badge, 0.1)})`,
+                            border: `1px solid ${alpha(badge, 0.25)}`,
+                        };
+                    }}
+                >
+                    {icon ? (
+                        <Icon
+                            src={icon}
+                            style={{
+                                width: Math.round(24 * scale),
+                                height: Math.round(24 * scale),
+                                flexShrink: 0,
+                                color: tileColor || undefined,
+                            }}
+                            // Emoji icons (e.g. the ⭐ of the favourites category) are rendered by
+                            // `Icon` as a span with a hard-coded `marginTop: -8`, which pushes the
+                            // glyph off the centre of the badge. Reset it and let the font size do
+                            // the sizing instead of the fixed height.
+                            styleUTF8={{
+                                marginTop: 0,
+                                height: 'auto',
+                                lineHeight: 1,
+                                fontSize: Math.round(24 * scale),
+                            }}
+                        />
+                    ) : (
+                        <MeetingRoom
+                            sx={theme => ({
+                                fontSize: Math.round(24 * scale),
+                                color: tileColor || theme.palette.primary.main,
+                                flexShrink: 0,
+                            })}
+                        />
+                    )}
+                </Box>
 
                 <Box sx={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
                     <Typography

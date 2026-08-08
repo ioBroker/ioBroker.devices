@@ -8,6 +8,7 @@ import {
     DialogTitle,
     FormControlLabel,
     Switch,
+    alpha,
 } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/gui-components';
@@ -268,6 +269,19 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                             <Switch
                                 checked={historyEnabled}
                                 disabled={historyLoading}
+                                // The neumorphic presets render `primary` in a near-grey, so an
+                                // enabled switch is indistinguishable from a disabled one. Accent
+                                // the "on" state explicitly.
+                                sx={theme => ({
+                                    '& .MuiSwitch-switchBase.Mui-checked': {
+                                        color: theme.palette.success.main,
+                                        '&:hover': { backgroundColor: alpha(theme.palette.success.main, 0.1) },
+                                    },
+                                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                        backgroundColor: theme.palette.success.main,
+                                        opacity: 0.5,
+                                    },
+                                })}
                                 onChange={async (_e, checked) => {
                                     setHistoryLoading(true);
                                     try {

@@ -186,6 +186,11 @@ export function isNeumorphicTheme(theme: Theme): boolean {
     return (theme as Theme & { wmPreset?: string }).wmPreset === 'styling-grey';
 }
 
+/** Check if the current theme is the deep-navy "blueDark" preset */
+export function isBlueDarkTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'blueDark';
+}
+
 export function getTileStyles(
     theme: Theme,
     isActive: boolean,
@@ -211,6 +216,24 @@ export function getTileStyles(
             boxShadow: isActive
                 ? `6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025), inset 0 0 0 1px ${alpha(accent, 0.1)}`
                 : '6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025)',
+            ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+        };
+    }
+
+    // Deep-navy styling for the blueDark theme: the tile is a lifted navy panel rather than a
+    // white overlay, so it keeps the blue cast of the page instead of turning grey.
+    if (isBlueDarkTheme(theme) && !inactiveColor) {
+        const paper = theme.palette.background.paper;
+        return {
+            borderRadius: '16px',
+            boxSizing: 'border-box',
+            padding: theme.spacing(2),
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: isActive
+                ? `linear-gradient(160deg, ${alpha(accent, 0.26)}, ${alpha(accent, 0.05)} 65%, transparent), ${paper}`
+                : `linear-gradient(160deg, ${alpha(theme.palette.common.white, 0.05)}, ${alpha(theme.palette.common.white, 0.012)}), ${paper}`,
+            border: `1px solid ${isActive ? alpha(accent, 0.35) : alpha(theme.palette.primary.main, 0.12)}`,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.45)',
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }

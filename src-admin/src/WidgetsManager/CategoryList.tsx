@@ -193,15 +193,16 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(245,245,245,0.65)',
         textDisabled: 'rgba(245,245,245,0.4)',
     },
+    // Deep navy, close to the mobile app look: near-black blue page, slightly lifted navy tiles.
     blueDark: {
         mode: 'dark',
-        primary: '#5eb8ff',
-        secondary: '#82b1ff',
-        bgDefault: '#000000',
-        bgPaper: '#1b2838',
-        textPrimary: '#e0e6ed',
-        textSecondary: 'rgba(224,230,237,0.65)',
-        textDisabled: 'rgba(224,230,237,0.4)',
+        primary: '#3d9bfd',
+        secondary: '#7bb8ff',
+        bgDefault: '#070c18',
+        bgPaper: '#0d1726',
+        textPrimary: '#e8eef7',
+        textSecondary: 'rgba(232,238,247,0.6)',
+        textDisabled: 'rgba(232,238,247,0.38)',
     },
     'styling-grey': {
         mode: 'dark',
