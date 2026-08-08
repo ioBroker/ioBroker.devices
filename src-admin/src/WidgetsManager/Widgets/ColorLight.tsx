@@ -382,35 +382,34 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
 
     protected sendColor(hex: string): void {
         const type = this.props.widget.control.type;
-        const socket = this.props.stateContext.getSocket();
         const [r, g, b] = hexToRgb(hex);
 
         if (type === Types.rgbSingle && this.rgbId) {
-            void socket.setState(this.rgbId, hex.replace(/^#/, ''));
+            void this.setValue(this.rgbId, hex.replace(/^#/, ''));
         } else if (type === Types.rgbwSingle && this.rgbwId) {
             // Keep existing white channel
-            void socket.setState(this.rgbwId, `${hex.replace(/^#/, '')}00`);
+            void this.setValue(this.rgbwId, `${hex.replace(/^#/, '')}00`);
         } else if (type === Types.rgb) {
             if (this.redId) {
-                void socket.setState(this.redId, r);
+                void this.setValue(this.redId, r);
             }
             if (this.greenId) {
-                void socket.setState(this.greenId, g);
+                void this.setValue(this.greenId, g);
             }
             if (this.blueId) {
-                void socket.setState(this.blueId, b);
+                void this.setValue(this.blueId, b);
             }
         } else if (type === Types.hue) {
             const [h, s] = rgbToHsv(r, g, b);
             if (this.hueId) {
-                void socket.setState(this.hueId, Math.round(h));
+                void this.setValue(this.hueId, Math.round(h));
             }
             if (this.saturationId) {
-                void socket.setState(this.saturationId, Math.round(s * 100));
+                void this.setValue(this.saturationId, Math.round(s * 100));
             }
         } else if (type === Types.cie && this.cieId) {
             const [cx, cy] = rgbToCie(r, g, b);
-            void socket.setState(this.cieId, `${cx.toFixed(4)},${cy.toFixed(4)}`);
+            void this.setValue(this.cieId, `${cx.toFixed(4)},${cy.toFixed(4)}`);
         }
         // CT is not set from RGB hex — it has its own control
     }
@@ -419,7 +418,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
 
     private toggleOnOff = (): void => {
         if (this.onSetId) {
-            void this.props.stateContext.getSocket().setState(this.onSetId, !this.state.isOn);
+            void this.setValue(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
             const onPercent = this.props.settings?.onBrightness ?? 100;
             void this.props.stateContext
@@ -431,10 +430,10 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     private onSliderChange = (_e: Event, value: number | number[]): void => {
         const percent = value as number;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+            void this.setValue(this.setId, this.percentToRaw(percent));
         }
         if (this.onSetId && !this.state.isOn && percent > 0) {
-            void this.props.stateContext.getSocket().setState(this.onSetId, true);
+            void this.setValue(this.onSetId, true);
         }
     };
 
@@ -453,17 +452,17 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     private onDialogBrightnessChange = (percent: number): void => {
         this.setState({ brightness: percent, isOn: percent > 0 });
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+            void this.setValue(this.setId, this.percentToRaw(percent));
         }
         if (this.onSetId && !this.state.isOn && percent > 0) {
-            void this.props.stateContext.getSocket().setState(this.onSetId, true);
+            void this.setValue(this.onSetId, true);
         }
     };
 
     private onDialogCtChange = (kelvin: number): void => {
         this.setState({ ctValue: kelvin });
         if (this.ctId) {
-            void this.props.stateContext.getSocket().setState(this.ctId, kelvin);
+            void this.setValue(this.ctId, kelvin);
         }
     };
 
@@ -560,10 +559,10 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         if (this.isDragging) {
             const percent = this.pointerToPercent(e.clientX, e.clientY);
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+                void this.setValue(this.setId, this.percentToRaw(percent));
             }
             if (this.onSetId && !this.state.isOn && percent > 0) {
-                void this.props.stateContext.getSocket().setState(this.onSetId, true);
+                void this.setValue(this.onSetId, true);
             }
         } else if (this.onSetId || this.setId) {
             // Tap with power control — toggle on/off
@@ -678,6 +677,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                 />
                 {this.setId ? (
                     <Slider
+                        disabled={this.isReadOnly}
                         value={brightness}
                         min={0}
                         max={100}

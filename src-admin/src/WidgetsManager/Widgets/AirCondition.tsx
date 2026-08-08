@@ -280,7 +280,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     private togglePower = (): void => {
         if (this.powerId) {
             const newVal = !this.state.power;
-            void this.props.stateContext.getSocket().setState(this.powerId, newVal);
+            void this.setValue(this.powerId, newVal);
             this.setState({ power: newVal });
         }
     };
@@ -288,28 +288,28 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     private toggleBoost = (): void => {
         if (this.boostId) {
             const newVal = !this.state.boost;
-            void this.props.stateContext.getSocket().setState(this.boostId, newVal);
+            void this.setValue(this.boostId, newVal);
             this.setState({ boost: newVal });
         }
     };
 
     private setMode = (value: number): void => {
         if (this.modeId) {
-            void this.props.stateContext.getSocket().setState(this.modeId, value);
+            void this.setValue(this.modeId, value);
             this.setState({ mode: value });
         }
     };
 
     private setSpeed = (value: number): void => {
         if (this.speedId) {
-            void this.props.stateContext.getSocket().setState(this.speedId, value);
+            void this.setValue(this.speedId, value);
             this.setState({ speed: value });
         }
     };
 
     private setSwing = (value: number | boolean): void => {
         if (this.swingId) {
-            void this.props.stateContext.getSocket().setState(this.swingId, value);
+            void this.setValue(this.swingId, value);
             this.setState({ swing: value });
         }
     };
@@ -317,7 +317,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     private sendSetTemp(value: number): void {
         if (this.setId) {
             const clamped = Math.max(this.state.setMin, Math.min(this.state.setMax, value));
-            void this.props.stateContext.getSocket().setState(this.setId, clamped);
+            void this.setValue(this.setId, clamped);
         }
     }
 
@@ -859,6 +859,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             <Remove />
                         </IconButton>
                         <Slider
+                            disabled={this.isReadOnly}
                             value={setTemp ?? setMin}
                             min={setMin}
                             max={setMax}

@@ -432,7 +432,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     setPosition = (_e: Event, value: number | number[]): void => {
         const percent = value as number;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+            void this.setValue(this.setId, this.percentToRaw(percent));
         }
     };
 
@@ -449,31 +449,31 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             e.stopPropagation();
         }
         if (this.stopId) {
-            void this.props.stateContext.getSocket().setState(this.stopId, true);
+            void this.setValue(this.stopId, true);
         }
     };
 
     private open = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.openId) {
-            void this.props.stateContext.getSocket().setState(this.openId, true);
+            void this.setValue(this.openId, true);
         } else if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.state.max);
+            void this.setValue(this.setId, this.state.max);
         }
     };
 
     private close = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.closeId) {
-            void this.props.stateContext.getSocket().setState(this.closeId, true);
+            void this.setValue(this.closeId, true);
         } else if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.state.min);
+            void this.setValue(this.setId, this.state.min);
         }
     };
 
     private onTiltSliderChange = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         if (this.tiltSetId) {
-            void this.props.stateContext.getSocket().setState(this.tiltSetId, value as number);
+            void this.setValue(this.tiltSetId, value as number);
         }
         this.setState({ tiltPosition: value as number });
     };
@@ -527,13 +527,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             const delta = ((isCurtain ? d : -d) / span) * 100;
             const percent = Math.max(0, Math.min(100, Math.round(this.dragStartPosition + delta)));
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+                void this.setValue(this.setId, this.percentToRaw(percent));
             }
         } else {
             // Tap — toggle between fully open and closed
             if (this.setId) {
                 const target = this.state.position > 50 ? this.state.min : this.state.max;
-                void this.props.stateContext.getSocket().setState(this.setId, target);
+                void this.setValue(this.setId, target);
             }
         }
 
@@ -610,6 +610,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {/* Position slider */}
                 <Slider
+                    disabled={this.isReadOnly}
                     value={position}
                     min={0}
                     max={100}
@@ -628,6 +629,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                             <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
                             <Slider
+                                disabled={this.isReadOnly}
                                 value={tiltPosition}
                                 min={0}
                                 max={100}

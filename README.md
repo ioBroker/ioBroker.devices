@@ -133,6 +133,17 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@SimonFischer04) Added WindowTilt support in the widgets GUI (#609)
+* (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history (#610)
+* (@GermanBluefox) Reworked the "Blue dark" theme into a deep navy look and gave the category icons a coloured round badge
+* (@GermanBluefox) Added role icons for UV index, knots, rpm, operating hours and W/kW/Wh
+* (@GermanBluefox) The device list now shows the icon configured for a widget, and falls back to the role icon instead of the generic type icon
+* (@GermanBluefox) Info devices are no longer hidden by default; the "i" button in the toolbar now shows whether the filter is active
+* (@GermanBluefox) Fixed widgets vanishing from the GUI when they were assigned to a category that no longer exists
+* (@GermanBluefox) Fixed categories being dropped as empty although widgets had been moved into them
+* (@GermanBluefox) Fixed the "record history" switch: it now follows the alias to the recorded source and is highlighted while recording
+* (@GermanBluefox) Fixed clipped values in the wind widget
+* (@GermanBluefox) Fixed emoji icons sitting off-centre in the category badges and header
+* (@GermanBluefox) Fixed an alias assignment being dropped silently when saving a device whose state was not cached yet
 
 ### 4.0.0 (2026-08-03)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history

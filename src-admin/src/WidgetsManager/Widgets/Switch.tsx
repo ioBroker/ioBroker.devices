@@ -50,7 +50,7 @@ export class WidgetSwitch extends WidgetGeneric<WidgetSwitchState> {
 
     toggle = (): void => {
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, !this.state.isOn);
+            void this.setValue(this.setId, !this.state.isOn);
         }
     };
 

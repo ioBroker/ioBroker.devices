@@ -69,6 +69,8 @@ export const AdapterReact = _shared['@iobroker/gui-components'];
 export type { WidgetGenericProps, IndicatorValues, ChartSeries, ExtraInfoEntry } from './WidgetGeneric';
 export type { StateChangeListener, ObjectChangeListener, IStateContext } from './StateContext';
 export type {
+    AclLevel,
+    WmAcl,
     CategoryInfo,
     CustomWidgetBase,
     CustomWidgetPlugin,

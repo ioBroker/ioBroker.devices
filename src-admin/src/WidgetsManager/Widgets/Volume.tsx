@@ -103,7 +103,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
     private toggleMute = (): void => {
         const newVol = this.state.volume > 0 ? 0 : this.lastNonZeroVolume;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, newVol);
+            void this.setValue(this.setId, newVol);
         }
         if (newVol > 0) {
             this.lastNonZeroVolume = newVol;
@@ -174,7 +174,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
         if (this.isDragging) {
             const percent = this.pointerToPercent(e.clientX, e.clientY);
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, percent);
+                void this.setValue(this.setId, percent);
             }
             if (percent > 0) {
                 this.lastNonZeroVolume = percent;
@@ -197,7 +197,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
     private onSliderCommit = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         const volume = value as number;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, volume);
+            void this.setValue(this.setId, volume);
         }
         if (volume > 0) {
             this.lastNonZeroVolume = volume;
@@ -350,6 +350,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
 
         return (
             <Slider
+                disabled={this.isReadOnly}
                 value={volume}
                 min={0}
                 max={100}

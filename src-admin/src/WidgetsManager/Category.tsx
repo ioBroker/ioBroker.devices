@@ -100,6 +100,7 @@ import {
 import type StateContext from './StateContext';
 import type { CategorySettings, StatusCandidate, StatusCandidates } from './CategorySettingsDialog';
 import { normalizeColor } from './Utils';
+import { AclContext } from './AclContext';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import {
     moveWidgetToGroup,
@@ -143,6 +144,8 @@ interface CategoryProps {
     configMode?: boolean;
     /** Toggle between config and play mode. If undefined, no toggle button is shown. */
     onToggleConfigMode?: () => void;
+    /** "View as …" selector, rendered in the header while in config mode */
+    viewAsSelect?: React.ReactNode;
     /** Open the "Install as Side Panel" dialog */
     onInstallSidePanel?: () => void;
     /** Move a widget to a different category (drag & drop between groups) */
@@ -1430,6 +1433,9 @@ function GroupedContent(props: {
 }
 
 export default class Category extends Component<CategoryProps, CategoryState> {
+    static contextType = AclContext;
+    declare context: React.ContextType<typeof AclContext>;
+
     private internalValues: {
         names: { [categoryId: string]: string };
         icons: { [categoryId: string]: string };
@@ -1464,7 +1470,15 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     }
 
     private get widgets(): WidgetInfo[] {
-        return this.props.widgets.filter(w => w.parent === this.props.category.id);
+        const categoryId = this.props.category.id;
+        return this.props.widgets.filter(
+            w =>
+                w.parent === categoryId ||
+                // A widget may be shown in further categories — used to lift a single device into
+                // an otherwise restricted view without moving it out of its own room.
+                (w.parent !== categoryId &&
+                    this.props.widgetSettings[String(w.id)]?.extraParents?.includes(String(categoryId))),
+        );
     }
 
     private get subCategories(): CategoryInfo[] {
@@ -2116,15 +2130,25 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const catSettings = this.props.categorySettings[categoryId];
         const customWidgets = catSettings?.customWidgets || [];
         const order = catSettings?.widgetOrder;
+        const acl = this.context;
 
         const items: Array<{
             type: 'category' | 'widget' | 'custom';
             id: string;
             data: CategoryInfo | WidgetInfo | CustomWidgetBase;
         }> = [
-            ...this.subCategories.map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
-            ...this.widgets.map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
-            ...customWidgets.map(cw => ({ type: 'custom' as const, id: cw.id, data: cw })),
+            // Single choke point for what gets rendered — the permissions are applied here and
+            // only here. `subscribeCategoryStatus()` deliberately keeps using the unfiltered lists,
+            // otherwise the room values would silently drop the hidden devices' contributions.
+            ...this.subCategories
+                .filter(c => acl.categoryLevel(String(c.id)) !== 'hidden')
+                .map(c => ({ type: 'category' as const, id: String(c.id), data: c })),
+            ...this.widgets
+                .filter(w => acl.widgetLevel(this.props.widgetSettings[String(w.id)]?.acl, categoryId) !== 'hidden')
+                .map(w => ({ type: 'widget' as const, id: String(w.id), data: w })),
+            ...customWidgets
+                .filter(cw => acl.widgetLevel(cw.acl, categoryId) !== 'hidden')
+                .map(cw => ({ type: 'custom' as const, id: cw.id, data: cw })),
         ];
 
         if (!order?.length) {
@@ -3150,6 +3174,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </IconButton>
                             </Tooltip>
                         ) : null}
+                        {this.props.configMode ? this.props.viewAsSelect : null}
                         {this.props.onToggleConfigMode ? (
                             <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
                                 <IconButton
@@ -3224,6 +3249,15 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                             <Icon
                                                 src={headerIcon}
                                                 style={{ width: 28, height: 28, color: catColor || undefined }}
+                                                // Emoji icons are rendered by `Icon` as a span with a
+                                                // hard-coded `marginTop: -8`, lifting the glyph off
+                                                // the header baseline.
+                                                styleUTF8={{
+                                                    marginTop: 0,
+                                                    height: 'auto',
+                                                    lineHeight: 1,
+                                                    fontSize: 28,
+                                                }}
                                             />
                                         ) : null;
                                     })()}
@@ -3253,6 +3287,15 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                             <Icon
                                                 src={headerIcon}
                                                 style={{ width: 28, height: 28, color: catColor || undefined }}
+                                                // Emoji icons are rendered by `Icon` as a span with a
+                                                // hard-coded `marginTop: -8`, lifting the glyph off
+                                                // the header baseline.
+                                                styleUTF8={{
+                                                    marginTop: 0,
+                                                    height: 'auto',
+                                                    lineHeight: 1,
+                                                    fontSize: 28,
+                                                }}
                                             />
                                         ) : null;
                                     })()}
@@ -3324,6 +3367,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                     </IconButton>
                                 </Tooltip>
                             ) : null}
+                            {this.props.configMode ? this.props.viewAsSelect : null}
                             {this.props.onToggleConfigMode ? (
                                 <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
                                     <IconButton

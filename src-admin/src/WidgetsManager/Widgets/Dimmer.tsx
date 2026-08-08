@@ -216,14 +216,14 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
 
     private setEffect = (value: number | string): void => {
         if (this.effectId) {
-            void this.props.stateContext.getSocket().setState(this.effectId, value);
+            void this.setValue(this.effectId, value);
             this.setState({ effect: value });
         }
     };
 
     private setTransitionTime = (value: number): void => {
         if (this.transitionTimeId) {
-            void this.props.stateContext.getSocket().setState(this.transitionTimeId, value);
+            void this.setValue(this.transitionTimeId, value);
             this.setState({ transitionTime: value });
         }
     };
@@ -290,16 +290,16 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     setBrightness = (_e: Event, value: number | number[]): void => {
         const percent = value as number;
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+            void this.setValue(this.setId, this.percentToRaw(percent));
         }
         if (this.onSetId && !this.state.isOn && percent > 0) {
-            void this.props.stateContext.getSocket().setState(this.onSetId, true);
+            void this.setValue(this.onSetId, true);
         }
     };
 
     toggleOnOff = (): void => {
         if (this.onSetId) {
-            void this.props.stateContext.getSocket().setState(this.onSetId, !this.state.isOn);
+            void this.setValue(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
             if (
                 !this.state.isOn &&
@@ -307,7 +307,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 this.props.settings.valueByOn !== undefined &&
                 this.props.settings.valueByOn !== null
             ) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.props.settings.valueByOn);
+                void this.setValue(this.setId, this.props.settings.valueByOn);
             } else {
                 void this.props.stateContext
                     .getSocket()
@@ -392,10 +392,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             // Drag end — send final brightness and activate if off
             const percent = this.pointerToPercent(e.clientX, e.clientY);
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.percentToRaw(percent));
+                void this.setValue(this.setId, this.percentToRaw(percent));
             }
             if (this.onSetId && !this.state.isOn && percent > 0) {
-                void this.props.stateContext.getSocket().setState(this.onSetId, true);
+                void this.setValue(this.onSetId, true);
             }
         } else {
             // Tap — toggle on/off
@@ -583,6 +583,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     this.renderArcKnob()
                 ) : (
                     <Slider
+                        disabled={this.isReadOnly}
                         value={brightness}
                         min={0}
                         max={100}
@@ -703,6 +704,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
                                 <Slider
+                                    disabled={this.isReadOnly}
                                     value={transitionTime ?? 0}
                                     min={0}
                                     max={transitionMax}

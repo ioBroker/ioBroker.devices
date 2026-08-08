@@ -25,6 +25,17 @@ import {
     type StatusCandidates,
     type WmThemeId,
 } from './CategorySettingsDialog';
+import { AclContext } from './AclContext';
+import {
+    ADMIN_USER_ID,
+    createAclResolver,
+    isEditor,
+    ALLOW_ALL,
+    type AclSubject,
+    type AclResolver,
+    type WmAcl,
+} from './acl';
+import ViewAsSelect from './ViewAsSelect';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { autoGroupItems, flattenGroups, moveWidgetToGroup, stripCollapsed, type WidgetGroup } from './groupUtils';
 import CategoryListDialogs from './CategoryListDialogs';
@@ -63,7 +74,6 @@ interface GuiConfig {
         /** Default category ID to show when a page is opened without hash */
         defaultCategory?: string;
         /** Hide the config/play toggle button in play mode (root only) */
-        hideConfigButton?: boolean;
         /** Explicit grouping toggle. true = render a grouped list, false/undefined = sorted list. */
         widgetsGrouped?: boolean;
         customWidgets?: CustomWidgetBase[];
@@ -120,6 +130,10 @@ interface CategoryListState extends CommunicationState {
     chartAvailable: boolean;
     /** Resolved `system.config.common.defaultHistory` ('' when no history adapter is configured) */
     defaultHistory: string;
+    /** Logged-in user and groups, or null while the permissions do not apply (admin, no login) */
+    aclSubject: AclSubject | null;
+    /** Subject currently simulated via "view as …" — local preview only, never persisted */
+    viewAs: AclSubject | null;
     settingsObjectName: string;
     settingsObjectColor: string;
     categorySettings: Record<string, CategorySettings>;
@@ -297,6 +311,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             settingsWidgetId: null,
             chartAvailable: false,
             defaultHistory: '',
+            aclSubject: null,
+            viewAs: null,
             settingsObjectName: '',
             settingsObjectColor: '',
             categorySettings: {},
@@ -455,7 +471,76 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
+    /**
+     * Determine the logged-in user and their groups for the permission resolution.
+     *
+     * In the admin tab the user is an administrator by definition, and without authentication on
+     * the `web` instance everybody is `system.user.admin` — in both cases the permissions stay off
+     * (`aclSubject` remains null) instead of pretending to have an effect.
+     */
+    /** Cache so the resolver is only rebuilt when its inputs actually change */
+    private aclCache: { categories: unknown; settings: unknown; subject: unknown; resolver: AclResolver } | null = null;
+
+    /**
+     * Resolver for the current user, built from the category tree and the stored rules.
+     *
+     * @returns A resolver; {@link ALLOW_ALL} while the permissions do not apply
+     */
+    private getAclResolver(): AclResolver {
+        const { categories, categorySettings, aclSubject, viewAs } = this.state;
+        const subject = viewAs || aclSubject;
+        // Off by default: an installation with a single user never sees the concept, and stored
+        // rules stay dormant until the switch on the root category is turned on.
+        if (!subject || !categorySettings[ROOT_CATEGORY]?.multiUser) {
+            return ALLOW_ALL;
+        }
+        if (
+            this.aclCache &&
+            this.aclCache.categories === categories &&
+            this.aclCache.settings === categorySettings &&
+            this.aclCache.subject === subject
+        ) {
+            return this.aclCache.resolver;
+        }
+        const nodes = categories.map(c => ({
+            id: String(c.id),
+            parent: c.parent ? String(c.parent) : undefined,
+            acl: categorySettings[String(c.id)]?.acl,
+        }));
+        const editors = categorySettings[ROOT_CATEGORY]?.editors;
+        let resolver = createAclResolver(nodes, subject, editors, ROOT_CATEGORY);
+        if (viewAs) {
+            // While previewing, the editor keeps their own edit right — otherwise picking a
+            // preview would hide the very selector needed to switch back.
+            resolver = { ...resolver, canEdit: aclSubject ? isEditor(editors, aclSubject) : true };
+        }
+        this.aclCache = { categories, settings: categorySettings, subject, resolver };
+        return resolver;
+    }
+
+    private async loadAclSubject(): Promise<void> {
+        if (this.props.admin) {
+            return;
+        }
+        try {
+            const name = await this.props.socket.getCurrentUser();
+            const userId = name.startsWith('system.user.') ? name : `system.user.${name}`;
+            if (userId === ADMIN_USER_ID) {
+                return;
+            }
+            const groups = await this.props.socket.getGroups();
+            const groupIds = groups
+                .filter(g => (g.common?.members as string[] | undefined)?.includes(userId))
+                .map(g => g._id as string);
+            this.setState({ aclSubject: { userId, groupIds } });
+        } catch (e) {
+            // Without an identity the permissions cannot be applied — stay permissive and say so
+            console.warn(`Cannot determine the current user, widget permissions are not applied: ${e as Error}`);
+        }
+    }
+
     async componentDidMount(): Promise<void> {
+        void this.loadAclSubject();
         this.rootSettingsStateId = `${this.state.selectedInstance}.${this.props.rootSettingsStateId || 'config'}`;
         const guiConfigState = await this.props.socket.getObject(this.rootSettingsStateId);
         if (guiConfigState) {
@@ -567,7 +652,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                             rootIcon: guiConfig.root.rootIcon || '',
                             wmTheme: guiConfig.root.wmTheme,
                             defaultCategory: guiConfig.root.defaultCategory || '',
-                            hideConfigButton: guiConfig.root.hideConfigButton,
                             widgetsGrouped: guiConfig.root.widgetsGrouped,
                             customWidgets: guiConfig.root.customWidgets,
                             widgetOrder: guiConfig.root.widgetOrder,
@@ -928,6 +1012,29 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     /** Persist widget settings to `common.custom[instanceId]` in the ioBroker object. */
+    /**
+     * Write the permissions of an arbitrary node — used by the overview matrix, which edits many
+     * nodes at once instead of the one the dialog happens to be about.
+     *
+     * @param kind Whether `id` names a category or a widget
+     * @param id Category or widget ID
+     * @param acl New rules, undefined to clear them
+     */
+    private onSetNodeAcl = (kind: 'category' | 'widget', id: string, acl: WmAcl | undefined): void => {
+        if (kind === 'category') {
+            const settings = { ...(this.state.categorySettings[id] || DEFAULT_CATEGORY_SETTINGS), acl };
+            this.setState(prev => ({ categorySettings: { ...prev.categorySettings, [id]: settings } }));
+            void this.saveCategorySettingsToObject(id, settings);
+        } else {
+            const settings = {
+                ...(this.state.widgetSettings[id] || WidgetGeneric.getDefaultSettings()),
+                acl,
+            } as WidgetSettingsBase;
+            this.setState(prev => ({ widgetSettings: { ...prev.widgetSettings, [id]: settings } }));
+            void this.saveWidgetSettingsToObject(id, settings);
+        }
+    };
+
     private async saveWidgetSettingsToObject(widgetId: string, settings: WidgetSettingsBase): Promise<void> {
         const instanceId = this.state.selectedInstance;
 
@@ -1084,7 +1191,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 rootIcon: rootConfig.rootIcon || '',
                 wmTheme: rootConfig.wmTheme,
                 defaultCategory: rootConfig.defaultCategory || '',
-                hideConfigButton: rootConfig.hideConfigButton,
                 widgetsGrouped: rootConfig.widgetsGrouped,
                 customWidgets: rootConfig.customWidgets,
                 widgetOrder: rootConfig.widgetOrder,
@@ -1236,7 +1342,6 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         rootIcon: settings.rootIcon || '',
                         wmTheme: settings.wmTheme || undefined,
                         defaultCategory: settings.defaultCategory || undefined,
-                        hideConfigButton: settings.hideConfigButton || undefined,
                     },
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
@@ -2136,12 +2241,13 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 ? this.state.widgets.find(w => w.id === this.state.settingsWidgetId)
                 : null;
 
-        const hideConfigButton =
-            this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton && !this.stateContext.admin;
-        // When the config toggle is hidden (web mode + hideConfigButton), force runtime mode —
-        // localStorage may carry configMode=true from a previous session, but the user has no
-        // way to switch back, so editing callbacks and any per-tile config UI must stay off.
-        const effectiveConfigMode = this.state.configMode && !hideConfigButton;
+        const acl = this.getAclResolver();
+        // Only editors may configure — see `editors` on the root category. This replaces the old
+        // `hideConfigButton`, which merely hid the toggle and was bypassable via localStorage.
+        const mayConfigure = acl.canEdit;
+        // Force runtime mode for everybody else: localStorage may carry configMode=true from an
+        // earlier session, but without the toggle they could not switch back.
+        const effectiveConfigMode = this.state.configMode && mayConfigure;
         // Editing callbacks are enabled only when showSettingsButton AND (effective) configMode are both true
         const editing = !!this.props.showSettingsButton && effectiveConfigMode;
 
@@ -2195,122 +2301,135 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
         if (currentCategory) {
             return (
-                <ThemeProvider theme={this.getWidgetTheme()}>
-                    {/* The outer admin/GenericApp theme leaks colours into this subtree via
+                <AclContext.Provider value={acl}>
+                    <ThemeProvider theme={this.getWidgetTheme()}>
+                        {/* The outer admin/GenericApp theme leaks colours into this subtree via
                         CSS inheritance — MUI's inner ThemeProvider only re-styles styled
                         components, not the wrapping div or things behind transparent widget
                         backgrounds. Paint the box explicitly AND force the common MUI surface
                         colours (paper / text.secondary) on every descendant so e.g. Hell theme
                         on a dark-mode admin doesn't show through transparent tile overlays. */}
-                    <Box
-                        sx={theme => ({
-                            width: '100%',
-                            height: '100%',
-                            color: theme.palette.text.primary,
-                            backgroundColor: theme.palette.background.default,
-                            // Repaint paper-backed surfaces (Cards, Menus inline, etc.) so widget
-                            // backgrounds that use `background.paper` don't leak the outer dark
-                            // shade through. Limited to children of this container, so dialogs
-                            // rendered in a Portal at the document root are unaffected.
-                            '& .MuiPaper-root': {
-                                backgroundColor: theme.palette.background.paper,
+                        <Box
+                            sx={theme => ({
+                                width: '100%',
+                                height: '100%',
                                 color: theme.palette.text.primary,
-                            },
-                            // CSS custom properties — picked up by MUI 5 when CssVarsProvider is
-                            // active and by any consumer that reads them directly.
-                            '--mui-palette-mode': theme.palette.mode,
-                            '--mui-palette-background-default': theme.palette.background.default,
-                            '--mui-palette-background-paper': theme.palette.background.paper,
-                            '--mui-palette-text-primary': theme.palette.text.primary,
-                            '--mui-palette-text-secondary': theme.palette.text.secondary,
-                            '--mui-palette-divider': theme.palette.divider,
-                        })}
-                    >
-                        <Category
-                            key={currentCategory.id}
-                            category={currentCategory}
-                            categories={categories}
-                            widgets={widgets}
-                            stateContext={this.stateContext}
-                            onNavigate={(category: CategoryInfo) => {
-                                this.setState({ currentCategory: category });
-                                this.updateHash(category);
-                            }}
-                            widgetSettings={this.state.widgetSettings}
-                            onOpenSettings={editing ? this.onOpenSettings : undefined}
-                            categorySettings={categorySettings}
-                            onOpenCategorySettings={editing ? this.onOpenCategorySettings : undefined}
-                            onAddCustomWidget={editing ? this.onOpenCustomWidgetDialog : undefined}
-                            onRemoveCustomWidget={editing ? this.onRemoveCustomWidget : undefined}
-                            onOpenCustomWidgetSettings={editing ? this.onOpenCustomWidgetSettings : undefined}
-                            onWidgetOrderChange={editing ? this.onWidgetOrderChange : undefined}
-                            onWidgetGroupsChange={this.onWidgetGroupsChange}
-                            onToggleGrouping={editing ? this.onToggleGrouping : undefined}
-                            onMoveWidgetToCategory={editing ? this.onMoveWidgetToCategory : undefined}
-                            configMode={effectiveConfigMode}
-                            onToggleConfigMode={
-                                this.props.showSettingsButton && !hideConfigButton
-                                    ? () =>
-                                          this.setState(prev => {
-                                              const next = !prev.configMode;
-                                              try {
-                                                  localStorage.setItem('wm_configMode', JSON.stringify(next));
-                                              } catch {
-                                                  // ignore
-                                              }
-                                              return { configMode: next };
-                                          })
-                                    : undefined
-                            }
-                            onBackToDevices={this.props.onBackToDevices}
-                            onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
-                            onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
-                            onToggleFavorite={editing ? this.onToggleFavorite : undefined}
-                            onToggleCustomWidgetFavorite={this.onToggleCustomWidgetFavorite}
-                            openDialogId={this.state.openDialogId}
-                            onOpenWidgetDialog={this.onOpenWidgetDialog}
-                            onCloseWidgetDialog={this.onCloseWidgetDialog}
-                        />
-                        <CategoryListDialogs
-                            settingsWidget={settingsWidget || null}
-                            settingsWidgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
-                            widgetSettings={this.state.widgetSettings}
-                            chartAvailable={this.state.chartAvailable}
-                            defaultHistory={this.state.defaultHistory || undefined}
-                            settingsObjectName={this.state.settingsObjectName}
-                            settingsObjectColor={this.state.settingsObjectColor}
-                            onCloseSettings={this.onCloseSettings}
-                            onSaveSettings={this.onSaveSettings}
-                            onDeleteWidget={this.onDeleteWidget}
-                            categorySettingsCategoryId={this.state.categorySettingsCategoryId}
-                            categorySettingsCandidates={this.state.categorySettingsCandidates}
-                            categories={this.state.categories}
-                            currentCategory={currentCategory}
-                            categorySettings={this.state.categorySettings}
-                            rootCategory={ROOT_CATEGORY}
-                            onCloseCategorySettings={this.onCloseCategorySettings}
-                            onSaveCategorySettings={this.onSaveCategorySettings}
-                            customWidgetDialogCategoryId={this.state.customWidgetDialogCategoryId}
-                            onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
-                            onAddCustomWidget={this.onAddCustomWidget}
-                            onCreateCategory={this.onCreateCategory}
-                            adapterWidgets={this.state.adapterWidgets}
-                            onAddPluginWidget={this.onAddPluginWidget}
-                            customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
-                            customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
-                            onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}
-                            onSaveCustomWidgetSettings={this.onSaveCustomWidgetSettings}
-                            onDeleteCustomWidgetFromSettings={this.onDeleteCustomWidgetFromSettings}
-                            sidePanelDialogOpen={this.state.sidePanelDialogOpen}
-                            onCloseSidePanel={() => this.setState({ sidePanelDialogOpen: false })}
-                            theme={this.props.theme}
-                            settingsWidgetId={this.state.settingsWidgetId}
-                            onWidgetGroupMove={this.onWidgetGroupMove}
-                            getCategoryName={this.getCategoryName}
-                            stateContext={this.stateContext}
-                        />
-                    </Box>
-                </ThemeProvider>
+                                backgroundColor: theme.palette.background.default,
+                                // Repaint paper-backed surfaces (Cards, Menus inline, etc.) so widget
+                                // backgrounds that use `background.paper` don't leak the outer dark
+                                // shade through. Limited to children of this container, so dialogs
+                                // rendered in a Portal at the document root are unaffected.
+                                '& .MuiPaper-root': {
+                                    backgroundColor: theme.palette.background.paper,
+                                    color: theme.palette.text.primary,
+                                },
+                                // CSS custom properties — picked up by MUI 5 when CssVarsProvider is
+                                // active and by any consumer that reads them directly.
+                                '--mui-palette-mode': theme.palette.mode,
+                                '--mui-palette-background-default': theme.palette.background.default,
+                                '--mui-palette-background-paper': theme.palette.background.paper,
+                                '--mui-palette-text-primary': theme.palette.text.primary,
+                                '--mui-palette-text-secondary': theme.palette.text.secondary,
+                                '--mui-palette-divider': theme.palette.divider,
+                            })}
+                        >
+                            <Category
+                                key={currentCategory.id}
+                                category={currentCategory}
+                                categories={categories}
+                                widgets={widgets}
+                                stateContext={this.stateContext}
+                                onNavigate={(category: CategoryInfo) => {
+                                    this.setState({ currentCategory: category });
+                                    this.updateHash(category);
+                                }}
+                                widgetSettings={this.state.widgetSettings}
+                                onOpenSettings={editing ? this.onOpenSettings : undefined}
+                                categorySettings={categorySettings}
+                                onOpenCategorySettings={editing ? this.onOpenCategorySettings : undefined}
+                                onAddCustomWidget={editing ? this.onOpenCustomWidgetDialog : undefined}
+                                onRemoveCustomWidget={editing ? this.onRemoveCustomWidget : undefined}
+                                onOpenCustomWidgetSettings={editing ? this.onOpenCustomWidgetSettings : undefined}
+                                onWidgetOrderChange={editing ? this.onWidgetOrderChange : undefined}
+                                onWidgetGroupsChange={this.onWidgetGroupsChange}
+                                onToggleGrouping={editing ? this.onToggleGrouping : undefined}
+                                onMoveWidgetToCategory={editing ? this.onMoveWidgetToCategory : undefined}
+                                configMode={effectiveConfigMode}
+                                viewAsSelect={
+                                    mayConfigure && this.state.categorySettings[ROOT_CATEGORY]?.multiUser ? (
+                                        <ViewAsSelect
+                                            value={this.state.viewAs}
+                                            onChange={viewAs => this.setState({ viewAs })}
+                                            stateContext={this.stateContext}
+                                        />
+                                    ) : undefined
+                                }
+                                onToggleConfigMode={
+                                    this.props.showSettingsButton && mayConfigure
+                                        ? () =>
+                                              this.setState(prev => {
+                                                  const next = !prev.configMode;
+                                                  try {
+                                                      localStorage.setItem('wm_configMode', JSON.stringify(next));
+                                                  } catch {
+                                                      // ignore
+                                                  }
+                                                  return { configMode: next };
+                                              })
+                                        : undefined
+                                }
+                                onBackToDevices={this.props.onBackToDevices}
+                                onInstallSidePanel={() => this.setState({ sidePanelDialogOpen: true })}
+                                onDeleteWidgetById={editing ? this.onDeleteWidgetById : undefined}
+                                onToggleFavorite={editing ? this.onToggleFavorite : undefined}
+                                onToggleCustomWidgetFavorite={this.onToggleCustomWidgetFavorite}
+                                openDialogId={this.state.openDialogId}
+                                onOpenWidgetDialog={this.onOpenWidgetDialog}
+                                onCloseWidgetDialog={this.onCloseWidgetDialog}
+                            />
+                            <CategoryListDialogs
+                                settingsWidget={settingsWidget || null}
+                                settingsWidgetName={settingsWidget ? this.getWidgetName(settingsWidget) : ''}
+                                widgetSettings={this.state.widgetSettings}
+                                chartAvailable={this.state.chartAvailable}
+                                defaultHistory={this.state.defaultHistory || undefined}
+                                settingsObjectName={this.state.settingsObjectName}
+                                settingsObjectColor={this.state.settingsObjectColor}
+                                onCloseSettings={this.onCloseSettings}
+                                onSaveSettings={this.onSaveSettings}
+                                onDeleteWidget={this.onDeleteWidget}
+                                categorySettingsCategoryId={this.state.categorySettingsCategoryId}
+                                categorySettingsCandidates={this.state.categorySettingsCandidates}
+                                categories={this.state.categories}
+                                widgets={this.state.widgets}
+                                onSetNodeAcl={this.onSetNodeAcl}
+                                currentCategory={currentCategory}
+                                categorySettings={this.state.categorySettings}
+                                rootCategory={ROOT_CATEGORY}
+                                onCloseCategorySettings={this.onCloseCategorySettings}
+                                onSaveCategorySettings={this.onSaveCategorySettings}
+                                customWidgetDialogCategoryId={this.state.customWidgetDialogCategoryId}
+                                onCloseCustomWidgetDialog={this.onCloseCustomWidgetDialog}
+                                onAddCustomWidget={this.onAddCustomWidget}
+                                onCreateCategory={this.onCreateCategory}
+                                adapterWidgets={this.state.adapterWidgets}
+                                onAddPluginWidget={this.onAddPluginWidget}
+                                customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
+                                customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
+                                onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}
+                                onSaveCustomWidgetSettings={this.onSaveCustomWidgetSettings}
+                                onDeleteCustomWidgetFromSettings={this.onDeleteCustomWidgetFromSettings}
+                                sidePanelDialogOpen={this.state.sidePanelDialogOpen}
+                                onCloseSidePanel={() => this.setState({ sidePanelDialogOpen: false })}
+                                theme={this.props.theme}
+                                settingsWidgetId={this.state.settingsWidgetId}
+                                onWidgetGroupMove={this.onWidgetGroupMove}
+                                getCategoryName={this.getCategoryName}
+                                stateContext={this.stateContext}
+                            />
+                        </Box>
+                    </ThemeProvider>
+                </AclContext.Provider>
             );
         }
 

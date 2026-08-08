@@ -4,6 +4,7 @@ import { Types } from '@iobroker/type-detector';
 
 import Category from './Category';
 import WidgetSettingsDialog from './WidgetSettingsDialog';
+import AclMatrixDialog from './AclMatrixDialog';
 import CategorySettingsDialog, {
     DEFAULT_CATEGORY_SETTINGS,
     type CategorySettings,
@@ -20,6 +21,7 @@ import type {
     CustomWidgetType,
     WidgetInfo,
 } from '../../../packages/dm-widgets/src/index';
+import type { WmAcl } from './acl';
 import WidgetGeneric from './Widgets/Generic';
 import type StateContext from './StateContext';
 
@@ -52,6 +54,8 @@ export interface CategoryListDialogsProps {
     categorySettingsCategoryId: string | null;
     categorySettingsCandidates: StatusCandidates | null;
     categories: CategoryInfo[];
+    widgets: WidgetInfo[];
+    onSetNodeAcl: (kind: 'category' | 'widget', id: string, acl: WmAcl | undefined) => void;
     currentCategory: CategoryInfo;
     categorySettings: Record<string, CategorySettings>;
     rootCategory: string;
@@ -121,6 +125,9 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
         stateContext,
     } = props;
 
+    const [aclMatrixOpen, setAclMatrixOpen] = React.useState(false);
+    const multiUser = !!categorySettings[rootCategory]?.multiUser;
+
     // Build category options for default-category picker (root settings only)
     const categoryOptions = React.useMemo(() => {
         const opts: Array<{ id: string; label: string; icon?: string }> = [];
@@ -145,6 +152,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
     return (
         <>
             <WidgetSettingsDialog
+                categoryOptions={categoryOptions}
+                multiUser={multiUser}
                 open={settingsWidget != null}
                 widgetName={settingsWidgetName}
                 settings={
@@ -211,6 +220,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onSave={onSaveCategorySettings}
                 theme={theme}
                 categoryOptions={categoryOptions}
+                onOpenAclMatrix={() => setAclMatrixOpen(true)}
+                multiUser={multiUser}
                 statusCandidates={categorySettingsCandidates}
             />
             <CustomWidgetDialog
@@ -264,6 +275,18 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onClose={onCloseSidePanel}
                 admin={stateContext.admin}
                 socket={stateContext.getSocket()}
+            />
+            <AclMatrixDialog
+                open={aclMatrixOpen}
+                onClose={() => setAclMatrixOpen(false)}
+                categories={categories}
+                widgets={props.widgets}
+                categorySettings={categorySettings}
+                widgetSettings={widgetSettings}
+                onChange={props.onSetNodeAcl}
+                stateContext={stateContext}
+                getCategoryName={getCategoryName}
+                rootCategory={rootCategory}
             />
         </>
     );

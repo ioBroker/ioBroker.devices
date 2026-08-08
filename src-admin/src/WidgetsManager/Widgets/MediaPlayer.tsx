@@ -109,7 +109,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
 
     private send(id: string | null, value: boolean | number): void {
         if (id) {
-            void this.props.stateContext.getSocket().setState(id, value);
+            void this.setValue(id, value);
         }
     }
 
@@ -908,6 +908,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     {duration ? (
                         <Box>
                             <Slider
+                                disabled={this.isReadOnly}
                                 value={elapsed}
                                 min={0}
                                 max={duration}
@@ -1029,6 +1030,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 )}
                             </IconButton>
                             <Slider
+                                disabled={this.isReadOnly}
                                 value={volume}
                                 min={0}
                                 max={100}

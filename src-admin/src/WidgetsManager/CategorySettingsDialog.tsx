@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Box,
     Button,
-    Checkbox,
+    FormControlLabel,
+    Switch,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControlLabel,
     IconButton,
     MenuItem,
     Slider,
+    Tab,
+    Tabs,
     TextField,
     ToggleButton,
     ToggleButtonGroup,
@@ -20,15 +22,20 @@ import {
 import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
 import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
 
-import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
+import type { CustomWidgetBase, WmAcl } from '../../../packages/dm-widgets/src/index';
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
+import AclEditor, { EditorsEditor } from './AclEditor';
 import type StateContext from './StateContext';
 
 /** Available theme presets */
 export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark' | 'styling-grey';
 
 export interface CategorySettings {
+    /** View permissions of this category (see WidgetsManager/PERMISSIONS.md) */
+    acl?: WmAcl;
+    /** Who may configure at all — only evaluated on the root category. Empty = admin only. */
+    editors?: { groups?: string[]; users?: string[] };
     name: string;
     color: string;
     backgroundColor: string;
@@ -40,8 +47,6 @@ export interface CategorySettings {
     widgetGroups?: WidgetGroup[];
     /** Explicit toggle: true = render grouped, false/undefined = sorted list. */
     widgetsGrouped?: boolean;
-    /** Hide the config/play toggle button (root category only) */
-    hideConfigButton?: boolean;
     /** PWA / Chrome extension icon path — used as a favicon in browser (root only) */
     icon?: string;
     /** Icon shown in front of the root category name (root only) */
@@ -50,6 +55,12 @@ export interface CategorySettings {
     wmTheme?: WmThemeId;
     /** Default category ID to show when a page loads without hash (root only) */
     defaultCategory?: string;
+    /**
+     * Master switch for the per-user view permissions (root only). While off, the permission tabs
+     * stay hidden and every stored rule is ignored — a single-user installation is not bothered
+     * with the concept at all.
+     */
+    multiUser?: boolean;
     /** Room value for the power badge. undefined = 'sum' (sum all consumers, default). 'sum' | <stateId>. */
     powerSource?: string;
     /** Room value for temperature. undefined = 'first' (first sensor, default). 'first' | 'avg' | <stateId>. */
@@ -98,6 +109,10 @@ interface CategorySettingsDialogProps {
     categoryOptions?: CategoryOption[];
     /** Detected room-value candidates (power/temperature/humidity) for this category */
     statusCandidates?: StatusCandidates | null;
+    /** Opens the permission overview — root category only */
+    onOpenAclMatrix?: () => void;
+    /** Whether the multi-user permissions are switched on (read from the root category) */
+    multiUser?: boolean;
 }
 
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
@@ -113,7 +128,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const [iconFileDialogOpen, setIconFileDialogOpen] = useState(false);
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const [rootIconPickerOpen, setRootIconPickerOpen] = useState(false);
-    const [hideConfigWarning, setHideConfigWarning] = useState(false);
+    const [tab, setTab] = useState(0);
     const [widgetScale, setWidgetScale] = useState(() => {
         const stored = localStorage.getItem('wm_widgetScale');
         return stored ? Number(stored) : 100;
@@ -125,6 +140,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
     useEffect(() => {
         if (open) {
+            setTab(0);
             setLocal({
                 ...settings,
                 name: settings.name || categoryName,
@@ -343,6 +359,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     }, [open, stopCamera]);
 
     const isRoot = categoryId === '__root__';
+    // On the root the switch is edited in this very dialog, so follow the local value — the tab
+    // must appear the moment it is turned on.
+    const multiUser = isRoot ? !!local.multiUser : !!props.multiUser;
 
     const hasChanges =
         local.name !== (settings.name || categoryName) ||
@@ -350,9 +369,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
         local.backgroundColor !== (settings.backgroundColor || '') ||
         local.image !== (settings.image || '') ||
         local.imageScope !== (settings.imageScope || 'header') ||
-        (isRoot && !!local.hideConfigButton !== !!settings.hideConfigButton) ||
         (isRoot && (local.wmTheme || 'auto') !== (settings.wmTheme || 'auto')) ||
         (isRoot && (local.defaultCategory || '') !== (settings.defaultCategory || '')) ||
+        (isRoot && !!local.multiUser !== !!settings.multiUser) ||
         (local.icon || '') !== (settings.icon || '') ||
         (local.rootIcon || '') !== (settings.rootIcon || '') ||
         (local.powerSource || 'sum') !== (settings.powerSource || 'sum') ||
@@ -370,7 +389,51 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 fullWidth
             >
                 <DialogTitle>{categoryName}</DialogTitle>
-                <DialogContent>
+                {multiUser ? (
+                    <Tabs
+                        value={tab}
+                        onChange={(_e, value: number) => setTab(value)}
+                        variant="fullWidth"
+                    >
+                        <Tab label={I18n.t('wm_acl_settings_tab')} />
+                        <Tab label={I18n.t('wm_acl_tab')} />
+                    </Tabs>
+                ) : null}
+                <DialogContent sx={{ display: multiUser && tab === 1 ? 'block' : 'none' }}>
+                    <AclEditor
+                        acl={local.acl}
+                        onChange={acl => setLocal(prev => ({ ...prev, acl }))}
+                        stateContext={stateContext}
+                        hint={I18n.t('wm_acl_category_hint')}
+                    />
+                    {/* Who may configure at all — a single global setting, only on the root */}
+                    {isRoot ? (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography sx={{ fontWeight: 600 }}>{I18n.t('wm_acl_editors')}</Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                {I18n.t('wm_acl_editors_hint')}
+                            </Typography>
+                            <EditorsEditor
+                                editors={local.editors}
+                                onChange={editors => setLocal(prev => ({ ...prev, editors }))}
+                                stateContext={stateContext}
+                            />
+                            {props.onOpenAclMatrix ? (
+                                <Button
+                                    variant="outlined"
+                                    sx={{ mt: 2 }}
+                                    onClick={props.onOpenAclMatrix}
+                                >
+                                    {I18n.t('wm_acl_matrix')}
+                                </Button>
+                            ) : null}
+                        </Box>
+                    ) : null}
+                </DialogContent>
+                <DialogContent sx={{ display: !multiUser || tab === 0 ? 'block' : 'none' }}>
                     <TextField
                         fullWidth
                         variant="filled"
@@ -653,6 +716,30 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                         </Box>
                     ) : null}
 
+                    {isRoot ? (
+                        <FormControlLabel
+                            sx={{ mt: 2 }}
+                            control={
+                                <Switch
+                                    size="small"
+                                    checked={!!local.multiUser}
+                                    onChange={(_e, v) => setLocal(prev => ({ ...prev, multiUser: v || undefined }))}
+                                />
+                            }
+                            label={
+                                <Box>
+                                    <Typography>{I18n.t('wm_acl_multiuser')}</Typography>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary' }}
+                                    >
+                                        {I18n.t('wm_acl_multiuser_hint')}
+                                    </Typography>
+                                </Box>
+                            }
+                        />
+                    ) : null}
+
                     {isRoot && categoryOptions ? (
                         <TextField
                             select
@@ -767,26 +854,6 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                 </TextField>
                             ) : null}
                         </>
-                    ) : null}
-
-                    {isRoot ? (
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={!!local.hideConfigButton}
-                                    onChange={(_e, v) => {
-                                        if (v && !stateContext.admin) {
-                                            setHideConfigWarning(true);
-                                        } else {
-                                            setLocal({ ...local, hideConfigButton: v });
-                                        }
-                                    }}
-                                    size="small"
-                                />
-                            }
-                            label={I18n.t('wm_Hide config button')}
-                            sx={{ mt: 1 }}
-                        />
                     ) : null}
 
                     {isRoot ? (
@@ -1033,28 +1100,6 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             </Dialog>
 
             {/* Warning: hiding config button from web */}
-            <Dialog
-                open={hideConfigWarning}
-                onClose={() => setHideConfigWarning(false)}
-                maxWidth="xs"
-            >
-                <DialogTitle>{I18n.t('wm_Warning')}</DialogTitle>
-                <DialogContent>
-                    <Typography>{I18n.t('wm_Hide config warning')}</Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        onClick={() => {
-                            setLocal(prev => ({ ...prev, hideConfigButton: true }));
-                            setHideConfigWarning(false);
-                        }}
-                        color="warning"
-                    >
-                        {I18n.t('wm_OK')}
-                    </Button>
-                    <Button onClick={() => setHideConfigWarning(false)}>{I18n.t('wm_Cancel')}</Button>
-                </DialogActions>
-            </Dialog>
         </>
     );
 }

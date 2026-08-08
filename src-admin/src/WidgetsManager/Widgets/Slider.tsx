@@ -208,7 +208,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
             clearTimeout(this.confirmTimer);
             this.confirmTimer = null;
             if (this.setId && this.pendingRawValue !== null) {
-                void this.props.stateContext.getSocket().setState(this.setId, this.pendingRawValue);
+                void this.setValue(this.setId, this.pendingRawValue);
             }
             this.pendingRawValue = null;
         }
@@ -335,7 +335,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     /** Write a raw value to the SET state immediately (no confirmation). */
     private commitValue(rawValue: number): void {
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, rawValue);
+            void this.setValue(this.setId, rawValue);
         }
     }
 

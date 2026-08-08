@@ -158,11 +158,11 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
     private executeAction(action: 'toggle' | 'open'): void {
         if (action === 'toggle') {
             if (this.setId) {
-                void this.props.stateContext.getSocket().setState(this.setId, !this.state.isLocked);
+                void this.setValue(this.setId, !this.state.isLocked);
             }
         } else if (action === 'open') {
             if (this.openId) {
-                void this.props.stateContext.getSocket().setState(this.openId, true);
+                void this.setValue(this.openId, true);
             }
         }
     }

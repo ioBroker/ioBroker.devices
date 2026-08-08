@@ -7,7 +7,12 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
+    MenuItem,
     Switch,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
     alpha,
 } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
@@ -20,6 +25,8 @@ import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
 import ConfigIconSelect from './Components/ConfigIconSelect';
 import { resolveHistoryTarget } from './Utils';
+import AclEditor from './AclEditor';
+import type { CategoryOption } from './CategorySettingsDialog';
 import {
     type ConfigGenericProps,
     type ConfigItemPanel,
@@ -56,6 +63,10 @@ interface WidgetSettingsDialogProps {
     showAlarmFields?: boolean;
     /** Show icon picker for non-alarm widgets */
     showIcon?: boolean;
+    /** All categories, for the "also show in" picker */
+    categoryOptions?: CategoryOption[];
+    /** Whether the multi-user permissions are switched on (root category setting) */
+    multiUser?: boolean;
 }
 
 /** Custom component registry */
@@ -190,6 +201,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     const [historyLoading, setHistoryLoading] = useState(false);
     /** Object that carries the history settings — the alias target when the widget shows an alias */
     const [historyTargetId, setHistoryTargetId] = useState('');
+    const [tab, setTab] = useState(0);
 
     const schema = useMemo(
         () => buildSchema(props),
@@ -206,6 +218,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         // `settings` object reference on unrelated re-renders (e.g. a live status tick re-publishes the
         // widget object), which would otherwise wipe the user's in-progress edits ~1s after a change.
         if (open && !wasOpenRef.current) {
+            setTab(0);
             setValues({
                 ...settings,
                 name: settings.name || objectName || widgetName,
@@ -225,9 +238,14 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, settings]);
 
-    const hasChanges = Object.keys(schema.items).some(key => {
-        return (values as Record<string, any>)[key] !== (settings as Record<string, any>)[key];
-    });
+    const hasChanges =
+        Object.keys(schema.items).some(key => {
+            return (values as Record<string, any>)[key] !== (settings as Record<string, any>)[key];
+        }) ||
+        // `acl` is edited outside the json-config schema, so it needs its own comparison —
+        // otherwise Save would stay disabled after changing only the permissions.
+        JSON.stringify(values.acl ?? null) !== JSON.stringify(settings.acl ?? null) ||
+        JSON.stringify(values.extraParents ?? null) !== JSON.stringify(settings.extraParents ?? null);
 
     const adapterName = props.stateContext.instanceId?.replace(/\.\d+$/, '') || 'devices';
     const instanceNum = parseInt(props.stateContext.instanceId?.match(/\.(\d+)$/)?.[1] || '0', 10);
@@ -241,7 +259,67 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
             slotProps={{ paper: { sx: { maxHeight: '90vh' } } }}
         >
             <DialogTitle>{props.configSchema?.name ? I18n.t(props.configSchema.name) : widgetName}</DialogTitle>
-            <DialogContent dividers>
+            {props.multiUser ? (
+                <Tabs
+                    value={tab}
+                    onChange={(_e, value: number) => setTab(value)}
+                    variant="fullWidth"
+                >
+                    <Tab label={I18n.t('wm_acl_settings_tab')} />
+                    <Tab label={I18n.t('wm_acl_tab')} />
+                </Tabs>
+            ) : null}
+            <DialogContent
+                dividers
+                sx={{ display: props.multiUser && tab === 1 ? 'block' : 'none' }}
+            >
+                <AclEditor
+                    acl={values.acl}
+                    onChange={acl => setValues(prev => ({ ...prev, acl }))}
+                    stateContext={props.stateContext}
+                />
+                {/* Placement escape hatch: a hidden category hides everything inside it, so a single
+                    device that should stay visible is lifted into another category here. */}
+                {props.categoryOptions?.length ? (
+                    <Box sx={{ mt: 3 }}>
+                        <Typography sx={{ fontWeight: 600 }}>{I18n.t('wm_acl_extra_parents')}</Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            {I18n.t('wm_acl_extra_parents_hint')}
+                        </Typography>
+                        <TextField
+                            select
+                            fullWidth
+                            variant="standard"
+                            slotProps={{ select: { multiple: true } }}
+                            value={values.extraParents || []}
+                            onChange={e =>
+                                setValues(prev => ({
+                                    ...prev,
+                                    extraParents: (e.target.value as unknown as string[]).filter(Boolean),
+                                }))
+                            }
+                        >
+                            {props.categoryOptions.map(c => (
+                                <MenuItem
+                                    key={c.id}
+                                    value={c.id}
+                                >
+                                    {c.label}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Box>
+                ) : null}
+            </DialogContent>
+            {/* The settings tab stays mounted: JsonConfigComponent builds its form when it mounts,
+                so unmounting it on a tab switch would reset the user's in-progress edits. */}
+            <DialogContent
+                dividers
+                sx={{ display: !props.multiUser || tab === 0 ? 'block' : 'none' }}
+            >
                 {props.theme ? (
                     <JsonConfigComponent
                         socket={props.stateContext.getSocket() as unknown as AdminConnection}

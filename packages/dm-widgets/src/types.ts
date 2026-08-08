@@ -115,6 +115,30 @@ export interface CategoryInfo extends ItemInfo {
 /** Period over which the min/max values are calculated from history */
 export type MinMaxPeriod = 'off' | '24h' | 'today';
 
+/**
+ * What a subject may do with a widget or a category.
+ *
+ * `hidden` — not rendered at all; `read` — shown, but every writing interaction is disabled;
+ * `control` — unrestricted (the default when no rule matches).
+ *
+ * This governs the presentation only. Hidden widgets still reach the browser, so this is a view
+ * control, not an access control — see `src-admin/src/WidgetsManager/PERMISSIONS.md`.
+ */
+export type AclLevel = 'hidden' | 'read' | 'control';
+
+/**
+ * Access rules of a single node (widget or category).
+ *
+ * Keys are full ioBroker object IDs — `system.group.kids`, `system.user.lena` — so they can be
+ * compared with `system.group.*.common.members` without any conversion.
+ */
+export interface WmAcl {
+    /** Applies to every subject not listed below */
+    default?: AclLevel;
+    groups?: Record<string, AclLevel>;
+    users?: Record<string, AclLevel>;
+}
+
 export interface WidgetSettingsBase {
     size: '1x1' | '2x0.5' | '2x1' | '2x2';
     name: string;
@@ -129,6 +153,11 @@ export interface WidgetSettingsBase {
     chartHours: number;
     /** Show min/max values from history: 'off' (default), last 24 hours or since midnight */
     minMaxPeriod?: MinMaxPeriod;
+
+    /** View permissions. Absent means everybody may control the widget. */
+    acl?: WmAcl;
+    /** Additional categories this widget appears in, besides the one derived from its object tree */
+    extraParents?: string[];
 
     /** Custom widget icon URL/base64 (for non-alarm widgets, stored in `common.icon`) */
     icon: string;

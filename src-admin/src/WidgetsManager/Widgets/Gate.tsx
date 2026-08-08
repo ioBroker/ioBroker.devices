@@ -71,29 +71,29 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
             if (this.actualId) {
                 // Has position: toggle between 0 and 100
                 const target = this.state.position > 50 ? 0 : 100;
-                void this.props.stateContext.getSocket().setState(this.setId, target);
+                void this.setValue(this.setId, target);
             } else {
                 // Boolean: toggle
-                void this.props.stateContext.getSocket().setState(this.setId, !this.state.position);
+                void this.setValue(this.setId, !this.state.position);
             }
         }
     };
 
     private open = (): void => {
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.actualId ? 100 : true);
+            void this.setValue(this.setId, this.actualId ? 100 : true);
         }
     };
 
     private close = (): void => {
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, this.actualId ? 0 : false);
+            void this.setValue(this.setId, this.actualId ? 0 : false);
         }
     };
 
     private stop = (): void => {
         if (this.stopId) {
-            void this.props.stateContext.getSocket().setState(this.stopId, true);
+            void this.setValue(this.stopId, true);
         }
     };
 

@@ -41,7 +41,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendOpen = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.openId) {
-            void this.props.stateContext.getSocket().setState(this.openId, true);
+            void this.setValue(this.openId, true);
         }
         this.setState({ direction: 1 });
     };
@@ -49,7 +49,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendStop = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.stopId) {
-            void this.props.stateContext.getSocket().setState(this.stopId, true);
+            void this.setValue(this.stopId, true);
         }
         this.setState({ direction: 0 });
     };
@@ -57,7 +57,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendClose = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.closeId) {
-            void this.props.stateContext.getSocket().setState(this.closeId, true);
+            void this.setValue(this.closeId, true);
         }
         this.setState({ direction: 2 });
     };

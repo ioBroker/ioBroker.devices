@@ -27,6 +27,7 @@ import {
     Error as ErrorIcon,
     InfoOutlined,
     LinkOff,
+    Lock,
     Settings,
     Sync,
     TrendingDown,
@@ -46,6 +47,8 @@ import {
 } from '../../../../packages/dm-widgets/src/index';
 import type StateContext from '../StateContext';
 import { normalizeColor } from '../Utils';
+import { AclContext } from '../AclContext';
+import type { AclLevel } from '../acl';
 import ChartDialog, { type ChartLineType, type SmoothingWindow, type SmoothingMethod, smoothData } from './ChartDialog';
 
 /** Generic settings used by WidgetGeneric base class */
@@ -256,6 +259,18 @@ export function getTileStyles(
         backgroundColor: isActive ? alpha(accent, 0.12) : bgInactive,
         border: `1.5px solid ${isActive ? alpha(accent, 0.3) : borderInactive}`,
         ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+    };
+}
+
+/**
+ * Visual cue for a read-only widget: dimmed and without the pressed-state animation, so a tile
+ * that cannot be operated does not pretend otherwise. Spread after {@link getTileStyles}.
+ */
+export function getReadOnlyTileStyles(): Record<string, unknown> {
+    return {
+        opacity: 0.72,
+        cursor: 'default',
+        '&:active': { transform: 'none' },
     };
 }
 
@@ -555,6 +570,9 @@ export class WidgetGeneric<
     TState extends WidgetGenericState = WidgetGenericState,
     TSettings extends WidgetGenericSettings = WidgetGenericSettings,
 > extends WidgetGenericBase<TState, TSettings> {
+    static contextType = AclContext;
+    declare context: React.ContextType<typeof AclContext>;
+
     /** Indicator state IDs mapped by name */
     private readonly indicatorIds: Partial<Record<(typeof INDICATOR_NAMES)[number], string>> = {};
     /** Extra info state IDs (ELECTRIC_POWER, CURRENT, etc.) */
@@ -1308,13 +1326,48 @@ export class WidgetGeneric<
         opts: { interactive?: boolean; accent?: string; inactiveColor?: string } = {},
     ): Record<string, unknown> {
         const { interactive = true, accent, inactiveColor } = opts;
-        return getTileStyles(
+        const styles = getTileStyles(
             theme,
             isActive,
             accent !== undefined ? accent : this.getAccentColor(),
             interactive,
             inactiveColor !== undefined ? inactiveColor : this.getInactiveColor(),
         );
+        return this.isReadOnly ? { ...styles, ...getReadOnlyTileStyles() } : styles;
+    }
+
+    // --- Permissions ---
+
+    /** View permission the current user has on this widget. */
+    protected get aclLevel(): AclLevel {
+        return this.context.widgetLevel(this.props.settings?.acl, this.props.widget.parent);
+    }
+
+    /** True when the widget may be shown but not operated. */
+    protected get isReadOnly(): boolean {
+        return this.aclLevel === 'read';
+    }
+
+    /**
+     * Write a state on behalf of this widget.
+     *
+     * The single write path of every widget, so that `read` cannot be circumvented by any control
+     * — whichever slider, button or dialog triggered it.
+     *
+     * @param id State to write
+     * @param value New value
+     */
+    protected async setValue(id: string, value: ioBroker.StateValue): Promise<void> {
+        if (this.isReadOnly) {
+            console.warn(`Ignored write to ${id}: widget ${String(this.props.widget.id)} is read-only`);
+            return;
+        }
+        await this.props.stateContext.getSocket().setState(id, value);
+    }
+
+    /** True when clicking the tile triggers its action — never in read-only mode. */
+    protected tileClickable(): boolean {
+        return this.hasTileAction() && !this.isReadOnly;
     }
 
     /** Format a timestamp as a localized "time ago" string using moment */
@@ -1513,6 +1566,19 @@ export class WidgetGeneric<
                             },
                         }}
                     />
+                </Tooltip>,
+            );
+        }
+
+        // Read-only widgets look exactly like operable ones — the write path is blocked in
+        // `setValue()`, but nothing tells the user why nudging the slider does nothing.
+        if (this.isReadOnly) {
+            items.unshift(
+                <Tooltip
+                    key="readOnly"
+                    title={I18n.t('wm_acl_read_only')}
+                >
+                    <Lock sx={{ fontSize: INDICATOR_ICON_SIZE, color: 'text.disabled' }} />
                 </Tooltip>,
             );
         }
@@ -2324,7 +2390,7 @@ export class WidgetGeneric<
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
-        const clickable = this.hasTileAction() || chartAction;
+        const clickable = this.tileClickable() || chartAction;
 
         return (
             <Box
@@ -2429,7 +2495,7 @@ export class WidgetGeneric<
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
-        const clickable = this.hasTileAction() || chartAction;
+        const clickable = this.tileClickable() || chartAction;
 
         return (
             <Box
@@ -2512,7 +2578,7 @@ export class WidgetGeneric<
         const indicators = this.renderIndicators(settingsButton);
         const trendArrow = this.renderTrendArrow();
         const chartAction = this.hasChartAction();
-        const clickable = this.hasTileAction() || chartAction;
+        const clickable = this.tileClickable() || chartAction;
 
         return (
             <Box

@@ -886,17 +886,17 @@ export class WidgetUniversal extends WidgetGeneric<WidgetUniversalState, WidgetU
             } else {
                 val = actionValue != null ? String(actionValue) : '';
             }
-            await socket.setState(actionStateId, val);
+            await this.setValue(actionStateId, val);
         } else if (obj) {
             const state = await socket.getState(actionStateId);
             if (commonType === 'boolean') {
-                void socket.setState(actionStateId, !state?.val);
+                void this.setValue(actionStateId, !state?.val);
             } else if (commonType === 'number') {
                 const min = obj?.common.min ?? 0;
                 const max = obj?.common.max ?? 100;
-                void socket.setState(actionStateId, state?.val === min ? max : min);
+                void this.setValue(actionStateId, state?.val === min ? max : min);
             } else {
-                void socket.setState(actionStateId, !state?.val);
+                void this.setValue(actionStateId, !state?.val);
             }
         }
     }

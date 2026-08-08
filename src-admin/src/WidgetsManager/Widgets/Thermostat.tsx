@@ -222,7 +222,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     private togglePower = (): void => {
         if (this.powerId) {
             const newVal = !this.state.power;
-            void this.props.stateContext.getSocket().setState(this.powerId, newVal);
+            void this.setValue(this.powerId, newVal);
             this.setState({ power: newVal });
         }
     };
@@ -230,7 +230,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     private toggleParty = (): void => {
         if (this.partyId) {
             const newVal = !this.state.party;
-            void this.props.stateContext.getSocket().setState(this.partyId, newVal);
+            void this.setValue(this.partyId, newVal);
             this.setState({ party: newVal });
         }
     };
@@ -245,7 +245,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
 
     private setMode = (value: number): void => {
         if (this.modeId) {
-            void this.props.stateContext.getSocket().setState(this.modeId, value);
+            void this.setValue(this.modeId, value);
             this.setState({ mode: value });
         }
     };
@@ -326,7 +326,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     private sendSetTemp(value: number): void {
         if (this.setId) {
             const clamped = Math.max(this.state.setMin, Math.min(this.state.setMax, value));
-            void this.props.stateContext.getSocket().setState(this.setId, clamped);
+            void this.setValue(this.setId, clamped);
         }
     }
 
@@ -735,6 +735,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                             <Remove />
                         </IconButton>
                         <Slider
+                            disabled={this.isReadOnly}
                             value={setTemp ?? setMin}
                             min={setMin}
                             max={setMax}
