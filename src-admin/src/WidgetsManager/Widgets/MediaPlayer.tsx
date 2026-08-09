@@ -24,6 +24,7 @@ interface WidgetMediaPlayerState extends WidgetGenericState {
     album: string;
     cover: string;
     volume: number;
+    muted: boolean;
     duration: number;
     elapsed: number;
     dialogOpen: boolean;
@@ -43,10 +44,15 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     private readonly albumId: string | null;
     private readonly coverId: string | null;
     private readonly volumeId: string | null;
+    private readonly volumeActualId: string | null;
+    private readonly muteId: string | null;
     private readonly durationId: string | null;
     private readonly elapsedId: string | null;
 
     private readonly handlers: { id: string; handler: StateChangeHandler }[] = [];
+
+    /** Level to restore when unmuting a player that has no MUTE state */
+    private volumeBeforeMute = 50;
 
     constructor(props: WidgetGenericProps) {
         super(props);
@@ -64,6 +70,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         this.albumId = find('ALBUM');
         this.coverId = find('COVER');
         this.volumeId = find('VOLUME') || find('SET');
+        this.volumeActualId = find('VOLUME_ACTUAL') ?? this.volumeId;
+        this.muteId = find('MUTE');
         this.durationId = find('DURATION');
         this.elapsedId = find('ELAPSED');
 
@@ -75,6 +83,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
             album: '',
             cover: '',
             volume: 0,
+            muted: false,
             duration: 0,
             elapsed: 0,
             dialogOpen: false,
@@ -88,7 +97,8 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         this.sub(this.artistId, this.onArtist);
         this.sub(this.albumId, this.onAlbum);
         this.sub(this.coverId, this.onCover);
-        this.sub(this.volumeId, this.onVolume);
+        this.sub(this.volumeActualId, this.onVolume);
+        this.sub(this.muteId, this.onMute);
         this.sub(this.durationId, this.onDuration);
         this.sub(this.elapsedId, this.onElapsed);
     }
@@ -153,8 +163,18 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
 
     private onVolume = (_id: string, state: ioBroker.State): void => {
         const volume = Math.round(Number(state.val) || 0);
+        if (volume > 0) {
+            this.volumeBeforeMute = volume;
+        }
         if (volume !== this.state.volume) {
             this.setState({ volume });
+        }
+    };
+
+    private onMute = (_id: string, state: ioBroker.State): void => {
+        const muted = !!state.val;
+        if (muted !== this.state.muted) {
+            this.setState({ muted });
         }
     };
 
@@ -185,6 +205,36 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
     private onPrev = (): void => this.send(this.prevId, true);
     private onNext = (): void => this.send(this.nextId, true);
     private onStop = (): void => this.send(this.stopId || this.stateId, this.stopId ? true : false);
+
+    /** True while the player is silent — either via MUTE or, without it, a level of 0 */
+    private get isMuted(): boolean {
+        return this.muteId ? this.state.muted : this.state.volume === 0;
+    }
+
+    private toggleMute = (): void => {
+        if (this.muteId) {
+            const muted = !this.state.muted;
+            this.send(this.muteId, muted);
+            this.setState({ muted });
+            return;
+        }
+        if (!this.volumeId) {
+            return;
+        }
+        const volume = this.state.volume > 0 ? 0 : this.volumeBeforeMute;
+        this.send(this.volumeId, volume);
+        this.setState({ volume });
+    };
+
+    private onVolumeChange = (volume: number): void => {
+        // A player with only VOLUME_ACTUAL has nowhere to write to — moving the slider would show a
+        // level the device never received and never corrects.
+        if (!this.volumeId) {
+            return;
+        }
+        this.send(this.volumeId, volume);
+        this.setState({ volume });
+    };
 
     private openDialog = (): void => this.setState({ dialogOpen: true });
     private closeDialog = (): void => this.setState({ dialogOpen: false });
@@ -302,6 +352,32 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         );
     }
 
+    /**
+     * Small "muted" marker for the cover overlays. Only shown when the device actually has a MUTE
+     * state — a level of 0 is not the same claim, and the tile offers no way to undo it.
+     */
+    private renderMutedBadge(size: number): React.JSX.Element | null {
+        if (!this.muteId || !this.state.muted) {
+            return null;
+        }
+        return (
+            <Box
+                sx={{
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    borderRadius: '8px',
+                    width: size,
+                    height: size,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(4px)',
+                }}
+            >
+                <VolumeOff sx={{ fontSize: size * 0.6, color: '#fff' }} />
+            </Box>
+        );
+    }
+
     // No action buttons on tile — controls are in the dialog
     // eslint-disable-next-line class-methods-use-this
     protected renderTileAction(): React.JSX.Element {
@@ -394,20 +470,29 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 bottom: 'calc(50% + 4px)',
                                 left: 8,
                                 zIndex: 2,
-                                backgroundColor: 'rgba(0,0,0,0.5)',
-                                borderRadius: '6px',
-                                width: 28,
-                                height: 28,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
+                                gap: 0.5,
                             }}
                         >
-                            {playing ? (
-                                <Pause sx={{ fontSize: 18, color: '#fff' }} />
-                            ) : (
-                                <PlayArrow sx={{ fontSize: 18, color: '#fff' }} />
-                            )}
+                            <Box
+                                sx={{
+                                    backgroundColor: 'rgba(0,0,0,0.5)',
+                                    borderRadius: '6px',
+                                    width: 28,
+                                    height: 28,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                {playing ? (
+                                    <Pause sx={{ fontSize: 18, color: '#fff' }} />
+                                ) : (
+                                    <PlayArrow sx={{ fontSize: 18, color: '#fff' }} />
+                                )}
+                            </Box>
+                            {this.renderMutedBadge(28)}
                         </Box>
                     ) : null}
 
@@ -696,21 +781,30 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 position: 'absolute',
                                 bottom: 8,
                                 right: 12,
-                                backgroundColor: 'rgba(0,0,0,0.55)',
-                                borderRadius: '8px',
-                                width: 36,
-                                height: 36,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                backdropFilter: 'blur(4px)',
+                                gap: 0.5,
                             }}
                         >
-                            {playing ? (
-                                <Pause sx={{ fontSize: 22, color: '#fff' }} />
-                            ) : (
-                                <PlayArrow sx={{ fontSize: 22, color: '#fff' }} />
-                            )}
+                            {this.renderMutedBadge(36)}
+                            <Box
+                                sx={{
+                                    backgroundColor: 'rgba(0,0,0,0.55)',
+                                    borderRadius: '8px',
+                                    width: 36,
+                                    height: 36,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backdropFilter: 'blur(4px)',
+                                }}
+                            >
+                                {playing ? (
+                                    <Pause sx={{ fontSize: 22, color: '#fff' }} />
+                                ) : (
+                                    <PlayArrow sx={{ fontSize: 22, color: '#fff' }} />
+                                )}
+                            </Box>
                         </Box>
 
                         {indicators}
@@ -795,6 +889,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
         }
 
         const { playing, title, artist, album, cover, volume, elapsed, duration } = this.state;
+        const muted = this.isMuted;
         const accent = this.getAccentColor() || '#1db954';
 
         return (
@@ -1015,37 +1110,49 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     ) : null}
 
                     {/* Volume control */}
-                    {this.volumeId ? (
+                    {this.volumeId || this.muteId ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1 }}>
                             <IconButton
                                 size="small"
-                                onClick={() => this.send(this.volumeId, volume > 0 ? 0 : 50)}
-                                sx={theme => ({ color: theme.palette.text.secondary, p: 0.5 })}
+                                onClick={this.toggleMute}
+                                title={muted ? I18n.t('wm_Unmute') : I18n.t('wm_Mute')}
+                                sx={theme => ({
+                                    color: muted ? accent : theme.palette.text.secondary,
+                                    p: 0.5,
+                                })}
                             >
-                                {volume === 0 ? (
-                                    <VolumeOff sx={{ fontSize: 20 }} />
-                                ) : (
-                                    <VolumeDown sx={{ fontSize: 20 }} />
-                                )}
+                                {muted ? <VolumeOff sx={{ fontSize: 20 }} /> : <VolumeDown sx={{ fontSize: 20 }} />}
                             </IconButton>
-                            <Slider
-                                value={volume}
-                                min={0}
-                                max={100}
-                                size="small"
-                                onChange={(_e, val) => this.send(this.volumeId, val)}
-                                sx={{
-                                    color: accent,
-                                    '& .MuiSlider-thumb': {
-                                        width: 12,
-                                        height: 12,
-                                    },
-                                    '& .MuiSlider-rail': {
-                                        opacity: 0.2,
-                                    },
-                                }}
-                            />
-                            <VolumeUp sx={theme => ({ fontSize: 20, color: theme.palette.text.secondary })} />
+                            {this.volumeId ? (
+                                <>
+                                    <Slider
+                                        value={volume}
+                                        min={0}
+                                        max={100}
+                                        size="small"
+                                        disabled={muted && !!this.muteId}
+                                        onChange={(_e, val) => this.onVolumeChange(val)}
+                                        sx={{
+                                            color: accent,
+                                            '& .MuiSlider-thumb': {
+                                                width: 12,
+                                                height: 12,
+                                            },
+                                            '& .MuiSlider-rail': {
+                                                opacity: 0.2,
+                                            },
+                                        }}
+                                    />
+                                    <VolumeUp sx={theme => ({ fontSize: 20, color: theme.palette.text.secondary })} />
+                                </>
+                            ) : (
+                                <Typography
+                                    variant="body2"
+                                    sx={theme => ({ color: theme.palette.text.secondary, flex: 1 })}
+                                >
+                                    {muted ? I18n.t('wm_Muted') : I18n.t('wm_Unmuted')}
+                                </Typography>
+                            )}
                         </Box>
                     ) : null}
                 </Box>
