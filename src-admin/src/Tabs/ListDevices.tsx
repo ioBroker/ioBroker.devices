@@ -3372,9 +3372,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 };
                 await this.props.socket.setObject(`${options.id}.${state.name}`, obj);
             }
-
-            await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
         }
+
+        await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
 
         this.editCreatedId = obj._id;
     }
