@@ -1,6 +1,13 @@
 import React from 'react';
 import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp, Stop, SwapVert } from '@mui/icons-material';
+import {
+    KeyboardArrowDown,
+    KeyboardArrowUp,
+    KeyboardDoubleArrowDown,
+    KeyboardDoubleArrowUp,
+    Stop,
+    SwapVert,
+} from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
@@ -23,6 +30,8 @@ interface WidgetBlindState extends WidgetGenericState {
     min: number;
     max: number;
     tiltPosition: number | null;
+    tiltMin: number;
+    tiltMax: number;
 }
 
 interface BlindSvgProps {
@@ -298,6 +307,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     private readonly closeId: string | null;
     private readonly tiltSetId: string | null;
     private readonly tiltActualId: string | null;
+    private readonly tiltStopId: string | null;
+    private readonly tiltOpenId: string | null;
+    private readonly tiltCloseId: string | null;
 
     private tileRef = React.createRef<HTMLDivElement>();
     private dragStartPos: { x: number; y: number } | null = null;
@@ -322,6 +334,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         this.closeId = close?.id ?? null;
         this.tiltSetId = tiltSet?.id ?? null;
         this.tiltActualId = tiltActual?.id ?? tiltSet?.id ?? null;
+        this.tiltStopId = states.find(s => s.name === 'TILT_STOP')?.id ?? null;
+        this.tiltOpenId = states.find(s => s.name === 'TILT_OPEN')?.id ?? null;
+        this.tiltCloseId = states.find(s => s.name === 'TILT_CLOSE')?.id ?? null;
 
         this.state = {
             ...this.state,
@@ -330,6 +345,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             min: 0,
             max: 100,
             tiltPosition: null,
+            tiltMin: 0,
+            tiltMax: 100,
         };
     }
 
@@ -370,6 +387,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             this.props.stateContext.getState(this.tiltActualId, this.onTiltChange);
         }
         void this.loadBlindObject();
+        void this.loadTiltRange();
     }
 
     componentWillUnmount(): void {
@@ -379,6 +397,27 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
         if (this.tiltActualId) {
             this.props.stateContext.removeState(this.tiltActualId, this.onTiltChange);
+        }
+    }
+
+    /** `level.tilt` is often 0..90 degrees or 0..255, not percent. */
+    private async loadTiltRange(): Promise<void> {
+        const id = this.tiltSetId ?? this.tiltActualId;
+        if (!id) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(id)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            const min = obj?.common?.min != null ? Number(obj.common.min) : 0;
+            const max = obj?.common?.max != null ? Number(obj.common.max) : 100;
+            if (!isNaN(min) && !isNaN(max) && max > min) {
+                this.setState({ tiltMin: min, tiltMax: max });
+            }
+        } catch {
+            // keep the 0..100 default
         }
     }
 
@@ -476,6 +515,21 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             void this.props.stateContext.getSocket().setState(this.tiltSetId, value as number);
         }
         this.setState({ tiltPosition: value as number });
+    };
+
+    /**
+     * The range is only known after `common.min`/`max` have been read, and a value can arrive before
+     * that — an unclamped one pushes the slider thumb off its track.
+     */
+    private clampTilt(value: number): number {
+        return Math.min(this.state.tiltMax, Math.max(this.state.tiltMin, value));
+    }
+
+    private sendTilt = (id: string | null) => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (id) {
+            void this.props.stateContext.getSocket().setState(id, true);
+        }
     };
 
     // --- Vertical drag interaction ---
@@ -584,7 +638,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         const accent = this.getAccentColor();
 
         const posText = position === 100 ? I18n.t('wm_Open') : position === 0 ? I18n.t('wm_Closed') : `${position}%`;
-        const tiltText = tiltPosition != null && this.tiltSetId ? ` ↕${tiltPosition}%` : '';
+        const tiltUnit = this.state.tiltMin === 0 && this.state.tiltMax === 100 ? '%' : '';
+        const tiltText = tiltPosition != null ? ` ↕${this.clampTilt(tiltPosition)}${tiltUnit}` : '';
 
         return (
             <Typography
@@ -628,9 +683,9 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                             <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
                             <Slider
-                                value={tiltPosition}
-                                min={0}
-                                max={100}
+                                value={this.clampTilt(tiltPosition)}
+                                min={this.state.tiltMin}
+                                max={this.state.tiltMax}
                                 size="small"
                                 onClick={e => e.stopPropagation()}
                                 onChangeCommitted={this.onTiltSliderChange}
@@ -642,6 +697,41 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                             />
                         </Box>
                     </Tooltip>
+                ) : null}
+                {/* Tilt open/close are the ends of the tilt slider, so they only appear without one. */}
+                {this.tiltStopId || (!this.tiltSetId && (this.tiltOpenId || this.tiltCloseId)) ? (
+                    <Box sx={{ display: 'flex', gap: 0 }}>
+                        {!this.tiltSetId && this.tiltOpenId ? (
+                            <IconButton
+                                size="small"
+                                onClick={this.sendTilt(this.tiltOpenId)}
+                                title={I18n.t('wm_Tilt open')}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
+                                <KeyboardDoubleArrowUp fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                        {this.tiltStopId ? (
+                            <IconButton
+                                size="small"
+                                onClick={this.sendTilt(this.tiltStopId)}
+                                title={I18n.t('wm_Tilt stop')}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
+                                <Stop fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                        {!this.tiltSetId && this.tiltCloseId ? (
+                            <IconButton
+                                size="small"
+                                onClick={this.sendTilt(this.tiltCloseId)}
+                                title={I18n.t('wm_Tilt close')}
+                                sx={{ color: 'text.secondary', p: 0.25 }}
+                            >
+                                <KeyboardDoubleArrowDown fontSize="small" />
+                            </IconButton>
+                        ) : null}
+                    </Box>
                 ) : null}
                 {/* Control buttons */}
                 {hasButtons ? (
