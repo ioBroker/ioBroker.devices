@@ -66,6 +66,9 @@ import {
     WidgetWindow,
     WidgetBlind,
     WidgetBlindButtons,
+    WidgetButton,
+    WidgetButtonSensor,
+    WidgetCamera,
     WidgetAirCondition,
     WidgetWarning,
     WidgetLock,
@@ -91,6 +94,7 @@ import {
     WidgetWind,
     WidgetGauge,
     WidgetUniversal,
+    WidgetVacuumCleaner,
     WidgetPresence,
     WidgetEnergyFlow,
     WidgetGate,
@@ -2192,6 +2196,14 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetBlind;
         } else if (type === Types.blindButtons) {
             Widget = WidgetBlindButtons;
+        } else if (type === Types.button) {
+            Widget = WidgetButton;
+        } else if (type === Types.buttonSensor) {
+            Widget = WidgetButtonSensor;
+        } else if (type === Types.camera) {
+            Widget = WidgetCamera;
+        } else if (type === Types.vacuumCleaner) {
+            Widget = WidgetVacuumCleaner;
         } else if (type === Types.lock) {
             Widget = WidgetLock;
         } else if (type === Types.door) {

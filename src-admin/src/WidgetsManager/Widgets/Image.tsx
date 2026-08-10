@@ -10,19 +10,30 @@ import WidgetGeneric, {
 } from './Generic';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-interface ImageWidgetSettings extends WidgetGenericSettings {
+export interface ImageWidgetSettings extends WidgetGenericSettings {
     refreshInterval: number;
     appendTimestamp: boolean;
 }
 
-interface WidgetImageState extends WidgetGenericState {
+export interface WidgetImageState extends WidgetGenericState {
     url: string | null;
     /** Cache-busting counter incremented by refresh timer */
     tick: number;
 }
 
-export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSettings> {
-    private readonly urlId: string | null;
+/** Picture-refresh defaults. Subclasses override {@link WidgetImage.getPictureDefaults}. */
+export interface PictureDefaults {
+    refreshInterval: number;
+    appendTimestamp: boolean;
+}
+
+const IMAGE_DEFAULTS: PictureDefaults = { refreshInterval: 0, appendTimestamp: false };
+
+export class WidgetImage<TState extends WidgetImageState = WidgetImageState> extends WidgetGeneric<
+    TState,
+    ImageWidgetSettings
+> {
+    protected readonly urlId: string | null;
     private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetGenericProps<ImageWidgetSettings>) {
@@ -42,9 +53,25 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
     static getDefaultSettings(): ImageWidgetSettings {
         return {
             ...WidgetGeneric.getDefaultSettings(),
-            refreshInterval: 0,
-            appendTimestamp: false,
+            ...IMAGE_DEFAULTS,
         };
+    }
+
+    /**
+     * `props.settings` stays undefined until the user opens the settings dialog once, so the values
+     * from `getDefaultSettings()` never reach a freshly detected device. Read them from here instead.
+     */
+    // eslint-disable-next-line class-methods-use-this
+    protected getPictureDefaults(): PictureDefaults {
+        return IMAGE_DEFAULTS;
+    }
+
+    protected get refreshInterval(): number {
+        return this.props.settings?.refreshInterval ?? this.getPictureDefaults().refreshInterval;
+    }
+
+    protected get appendTimestamp(): boolean {
+        return this.props.settings?.appendTimestamp ?? this.getPictureDefaults().appendTimestamp;
     }
 
     static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
@@ -79,9 +106,9 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
     }
 
     componentDidUpdate(prevProps: WidgetGenericProps<ImageWidgetSettings>): void {
-        const prevInterval = prevProps.settings?.refreshInterval ?? 0;
-        const newInterval = this.props.settings?.refreshInterval ?? 0;
-        if (prevInterval !== newInterval) {
+        super.componentDidUpdate(prevProps);
+        const fallback = this.getPictureDefaults().refreshInterval;
+        if ((prevProps.settings?.refreshInterval ?? fallback) !== this.refreshInterval) {
             this.setupRefreshTimer();
         }
     }
@@ -102,33 +129,47 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
             clearInterval(this.refreshTimer);
             this.refreshTimer = null;
         }
-        const interval = this.props.settings?.refreshInterval ?? 0;
+        const interval = this.refreshInterval;
         if (interval > 0) {
-            this.refreshTimer = setInterval(() => {
-                this.setState(prev => ({ tick: prev.tick + 1 }));
-            }, interval * 1000);
+            this.refreshTimer = setInterval(() => this.bumpTick(), interval * 1000);
         }
+    }
+
+    /**
+     * `setState` with a partial of the *base* state. `TState` is only known to extend
+     * `WidgetImageState`, so TypeScript cannot narrow a literal to `Pick<TState, K>` — the same
+     * reason `WidgetGeneric` funnels its own writes through a cast.
+     */
+    protected patchImageState(patch: Partial<WidgetImageState>): void {
+        this.setState(patch as Partial<TState> as TState);
+    }
+
+    protected bumpTick(): void {
+        this.patchImageState({ tick: this.state.tick + 1 });
     }
 
     private onUrlChange = (_id: string, state: ioBroker.State): void => {
         const url = state.val != null ? String(state.val) : null;
         if (url !== this.state.url) {
-            this.setState({ url });
+            this.patchImageState({ url });
         }
     };
 
-    /** Build the display URL, optionally appending a cache-busting timestamp */
-    private getDisplayUrl(): string | null {
-        const { url } = this.state;
+    /**
+     * Build the display URL. A re-render alone never refetches the picture, so a requested refresh
+     * has to change the URL — `tick` does that and, unlike a wall-clock stamp, stays stable between
+     * refreshes, so unrelated re-renders do not trigger a fetch.
+     */
+    protected getDisplayUrl(): string | null {
+        const { url, tick } = this.state;
         if (!url) {
             return null;
         }
-        const appendTs = this.props.settings?.appendTimestamp;
-        if (!appendTs) {
-            return url;
-        }
         const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}ts=${Date.now()}`;
+        if (this.appendTimestamp) {
+            return `${url}${separator}ts=${Date.now()}`;
+        }
+        return tick ? `${url}${separator}ts=${tick}` : url;
     }
 
     protected isTileActive(): boolean {
@@ -141,6 +182,26 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
             return baseIcon;
         }
         return <BrokenImage sx={{ color: 'text.disabled' }} />;
+    }
+
+    /** Shown in place of the picture while there is no URL. Sized like the frame it sits in. */
+    private renderPlaceholder(fontSize: number): React.JSX.Element {
+        return (
+            <Box
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize,
+                    '& .MuiSvgIcon-root': { fontSize: 'inherit !important' },
+                    '& img': { width: '1em !important', height: '1em !important' },
+                }}
+            >
+                {this.renderTileIcon()}
+            </Box>
+        );
     }
 
     // --- 1x1 compact: image fills the tile ---
@@ -159,6 +220,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
+                    onClick={this.hasTileAction() ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -169,6 +231,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         textAlign: 'left',
                         overflow: 'hidden',
                         position: 'relative',
+                        cursor: this.hasTileAction() ? 'pointer' : 'default',
                         ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
@@ -188,17 +251,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                             }}
                         />
                     ) : (
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                inset: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <BrokenImage sx={{ fontSize: 48, color: 'text.disabled' }} />
-                        </Box>
+                        this.renderPlaceholder(48)
                     )}
 
                     {indicators}
@@ -258,6 +311,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                 sx={theme => WidgetGeneric.getStyleWide(theme)}
             >
                 <Box
+                    onClick={this.hasTileAction() ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         display: 'flex',
                         alignItems: 'center',
@@ -266,6 +320,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         height: 80,
                         position: 'relative',
                         overflow: 'hidden',
+                        cursor: this.hasTileAction() ? 'pointer' : 'default',
                         ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
@@ -292,11 +347,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                                 }}
                             />
                         ) : (
-                            <Box
-                                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
-                            >
-                                <BrokenImage sx={{ fontSize: 32, color: 'text.disabled' }} />
-                            </Box>
+                            this.renderPlaceholder(32)
                         )}
                     </Box>
 
@@ -335,6 +386,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                 {/* Sizer */}
                 <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
                 <Box
+                    onClick={this.hasTileAction() ? () => this.onTileClick() : undefined}
                     sx={theme => ({
                         position: 'absolute',
                         inset: 0,
@@ -342,6 +394,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
                         overflow: 'hidden',
+                        cursor: this.hasTileAction() ? 'pointer' : 'default',
                         ...this.applyTileStyles(theme, isActive),
                         padding: 0,
                     })}
@@ -361,17 +414,7 @@ export class WidgetImage extends WidgetGeneric<WidgetImageState, ImageWidgetSett
                             }}
                         />
                     ) : (
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                inset: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <BrokenImage sx={{ fontSize: 64, color: 'text.disabled' }} />
-                        </Box>
+                        this.renderPlaceholder(64)
                     )}
 
                     {indicators}
