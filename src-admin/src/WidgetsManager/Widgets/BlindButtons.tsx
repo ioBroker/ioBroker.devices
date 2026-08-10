@@ -179,7 +179,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendTiltOpen = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.tiltOpenId) {
-            void this.props.stateContext.getSocket().setState(this.tiltOpenId, true);
+            void this.setValue(this.tiltOpenId, true);
         }
         this.setTiltDirection(1);
     };
@@ -187,7 +187,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendTiltStop = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.tiltStopId) {
-            void this.props.stateContext.getSocket().setState(this.tiltStopId, true);
+            void this.setValue(this.tiltStopId, true);
         }
         this.setTiltDirection(0);
     };
@@ -195,14 +195,14 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
     private sendTiltClose = (e: React.MouseEvent): void => {
         e.stopPropagation();
         if (this.tiltCloseId) {
-            void this.props.stateContext.getSocket().setState(this.tiltCloseId, true);
+            void this.setValue(this.tiltCloseId, true);
         }
         this.setTiltDirection(2);
     };
 
     private onTiltSliderChange = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         if (this.tiltSetId) {
-            void this.props.stateContext.getSocket().setState(this.tiltSetId, value as number);
+            void this.setValue(this.tiltSetId, value as number);
         }
         this.setState({ tiltPosition: value as number });
     };
@@ -256,6 +256,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                             <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
                             <Slider
+                                disabled={this.isReadOnly}
                                 value={this.clampTilt(tiltPosition)}
                                 min={this.state.tiltMin}
                                 max={this.state.tiltMax}
@@ -427,21 +428,21 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                             >
                                 <ButtonBase
                                     onClick={this.sendTiltOpen}
-                                    disabled={!this.tiltOpenId}
+                                    disabled={!this.tiltOpenId || this.isReadOnly}
                                     sx={btnSx(tiltDirection === 1)}
                                 >
                                     <KeyboardDoubleArrowUp sx={{ fontSize: iconSize }} />
                                 </ButtonBase>
                                 <ButtonBase
                                     onClick={this.sendTiltStop}
-                                    disabled={!this.tiltStopId}
+                                    disabled={!this.tiltStopId || this.isReadOnly}
                                     sx={btnSx(false)}
                                 >
                                     <Stop sx={{ fontSize: stopIconSize }} />
                                 </ButtonBase>
                                 <ButtonBase
                                     onClick={this.sendTiltClose}
-                                    disabled={!this.tiltCloseId}
+                                    disabled={!this.tiltCloseId || this.isReadOnly}
                                     sx={btnSx(tiltDirection === 2)}
                                 >
                                     <KeyboardDoubleArrowDown sx={{ fontSize: iconSize }} />
@@ -454,6 +455,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5 }}>
                             <SwapVert sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.secondary', flexShrink: 0 }} />
                             <Slider
+                                disabled={this.isReadOnly}
                                 value={this.clampTilt(tiltPosition)}
                                 min={this.state.tiltMin}
                                 max={this.state.tiltMax}

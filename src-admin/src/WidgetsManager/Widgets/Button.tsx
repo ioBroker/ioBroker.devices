@@ -98,7 +98,7 @@ export class WidgetButton extends WidgetGeneric<WidgetButtonState, ButtonWidgetS
 
     private press(): void {
         if (this.setId) {
-            void this.props.stateContext.getSocket().setState(this.setId, true);
+            void this.setValue(this.setId, true);
         }
         if (this.pressTimer) {
             clearTimeout(this.pressTimer);
@@ -192,6 +192,7 @@ export class WidgetButton extends WidgetGeneric<WidgetButtonState, ButtonWidgetS
             <Button
                 variant="outlined"
                 size="small"
+                disabled={this.isReadOnly}
                 onClick={e => {
                     e.stopPropagation();
                     this.requestPress();

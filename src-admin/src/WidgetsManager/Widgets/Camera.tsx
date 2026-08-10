@@ -155,13 +155,13 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
             return;
         }
         const value = !this.state.switches[name];
-        void this.props.stateContext.getSocket().setState(id, value);
+        void this.setValue(id, value);
         this.setState(prev => ({ switches: { ...prev.switches, [name]: value } }));
     };
 
     private onPtzChange = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         if (this.ptzId) {
-            void this.props.stateContext.getSocket().setState(this.ptzId, value as number);
+            void this.setValue(this.ptzId, value as number);
         }
         this.setState({ ptz: value as number });
     };
@@ -263,6 +263,7 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
                                 <Typography variant="body2">{I18n.t(s.label)}</Typography>
                                 <Switch
                                     checked={!!this.state.switches[s.name]}
+                                    disabled={this.isReadOnly}
                                     onChange={() => this.toggleSwitch(s.name)}
                                     size="small"
                                 />
@@ -281,6 +282,7 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
                                     min={this.state.ptzMin}
                                     max={this.state.ptzMax}
                                     size="small"
+                                    disabled={this.isReadOnly}
                                     onChangeCommitted={this.onPtzChange}
                                 />
                             </Box>

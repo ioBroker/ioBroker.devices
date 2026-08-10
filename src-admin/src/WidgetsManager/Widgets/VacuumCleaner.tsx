@@ -118,7 +118,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
 
     private send(id: string | null, value: boolean | number): void {
         if (id) {
-            void this.props.stateContext.getSocket().setState(id, value);
+            void this.setValue(id, value);
         }
     }
 
@@ -334,6 +334,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                 {this.pauseId ? (
                     <IconButton
                         size="small"
+                        disabled={this.isReadOnly}
                         onClick={e => {
                             e.stopPropagation();
                             this.togglePause();
@@ -349,6 +350,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                 {this.powerId ? (
                     <MuiSwitch
                         checked={this.state.power}
+                        disabled={this.isReadOnly}
                         onClick={e => e.stopPropagation()}
                         onChange={this.togglePower}
                         color="primary"
@@ -406,6 +408,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                 <Typography variant="body2">{label}</Typography>
                 <Select
                     size="small"
+                    disabled={this.isReadOnly}
                     value={value != null && numericOptions.some(([key]) => key === String(value)) ? String(value) : ''}
                     onChange={e => this.send(id, Number(e.target.value))}
                     sx={{ minWidth: 140 }}
@@ -483,6 +486,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                             <Typography variant="body2">{I18n.t('wm_On')}</Typography>
                             <MuiSwitch
                                 checked={this.state.power}
+                                disabled={this.isReadOnly}
                                 onChange={this.togglePower}
                                 size="small"
                             />
@@ -493,6 +497,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                             <Typography variant="body2">{I18n.t('wm_Pause')}</Typography>
                             <MuiSwitch
                                 checked={this.state.paused}
+                                disabled={this.isReadOnly}
                                 onChange={this.togglePause}
                                 size="small"
                             />

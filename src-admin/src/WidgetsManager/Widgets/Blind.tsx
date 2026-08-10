@@ -528,7 +528,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     private sendTilt = (id: string | null) => (e: React.MouseEvent) => {
         e.stopPropagation();
         if (id) {
-            void this.props.stateContext.getSocket().setState(id, true);
+            void this.setValue(id, true);
         }
     };
 
