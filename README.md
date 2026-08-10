@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### 4.0.1 (2026-08-10)
+### **WORK IN PROGRESS**
 * (@SimonFischer04) Added WindowTilt support in the widgets GUI (#609)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history (#610)
 * (@GermanBluefox) Reworked the "Blue dark" theme into a deep navy look and gave the category icons a coloured round badge
@@ -145,6 +145,17 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 * (@GermanBluefox) Fixed emoji icons sitting off-centre in the category badges and header
 * (@GermanBluefox) Fixed an alias assignment being dropped silently when saving a device whose state was not cached yet
 * (@GermanBluefox) Implemented user-specific views
+* (@Apollon77) Added widgets for button, buttonSensor, camera and vacuumCleaner, which were shown as "Widget type not supported" before
+* (@Apollon77) Added mute and the separate volume feedback state (`VOLUME_ACTUAL`) to the media player widget
+* (@Apollon77) Added the missing tilt controls to the blind widgets: tilt now works for button blinds too, has a stop button, and uses the min/max of the state instead of assuming percent
+* (@Apollon77) Added an active icon for windowTilt
+* (@Apollon77) The light widget now shows the real state from `ON_ACTUAL` instead of echoing the commanded value
+* (@Apollon77) Fixed image widgets: the configured defaults were ignored until the settings dialog was opened once, and the refresh button was answered from the cache
+* (@Apollon77) Fixed newer device types (windowTilt, camera, percentage, fillLevel, …) landing in the "other" group when auto-grouping is switched on
+* (@Apollon77) Fixed the type of created alias states: `defaultType` is now honoured, so the ERROR state is no longer created as boolean
+* (@Apollon77) Fixed the air conditioner editor showing the swing state twice and writing it twice on save
+* (@Apollon77) Fixed the enum assignment of created devices: it ran once per state and not at all for devices with only optional states
+* (@Apollon77) Fixed the build and the CI (unresolvable react-input-color dependency, out-of-sync lock files, node versions)
 
 ### 4.0.0 (2026-08-03)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history
