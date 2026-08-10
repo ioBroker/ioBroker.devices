@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.0.1 (2026-08-10)
 * (@SimonFischer04) Added WindowTilt support in the widgets GUI (#609)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history (#610)
 * (@GermanBluefox) Reworked the "Blue dark" theme into a deep navy look and gave the category icons a coloured round badge
@@ -165,9 +165,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 * (@GermanBluefox) Corrected universal widget
 * (@GermanBluefox) Added open-meteo-weather adapter support
 * (@GermanBluefox) Read all states anew after the reconnection
-
-### 2.1.5 (2026-05-28)
-* (@GermanBluefox) Added a theme type to context
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

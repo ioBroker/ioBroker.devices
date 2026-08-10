@@ -1,4 +1,7 @@
 # Older changes
+## 2.1.5 (2026-05-28)
+* (@GermanBluefox) Added a theme type to context
+
 ## 2.1.4 (2026-05-27)
 * (@GermanBluefox) Added digits after comma for Display widget
 * (@GermanBluefox) Added an installation script
