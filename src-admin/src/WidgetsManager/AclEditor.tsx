@@ -15,7 +15,7 @@ import {
 import { Delete, Visibility, VisibilityOff, TouchApp } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
-import type { AclLevel, WmAcl } from './acl';
+import { ADMIN_GROUP_ID, ADMIN_USER_ID, type AclLevel, type WmAcl } from './acl';
 import type StateContext from './StateContext';
 
 interface AclEditorProps {
@@ -255,20 +255,26 @@ export function EditorsEditor(props: {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             {subjects
-                .filter(s => s.id !== 'system.user.admin')
-                .map(s => (
-                    <FormControlLabel
-                        key={s.id}
-                        control={
-                            <Checkbox
-                                size="small"
-                                checked={selected.includes(s.id)}
-                                onChange={(_e, on) => toggle(s, on)}
-                            />
-                        }
-                        label={`${I18n.t(s.kind === 'group' ? 'wm_acl_group' : 'wm_acl_user')}: ${s.name}`}
-                    />
-                ))}
+                .filter(s => s.id !== ADMIN_USER_ID)
+                .map(s => {
+                    // Administrators are editors by definition — shown ticked, but not revocable,
+                    // and never written to the list: the right does not come from there.
+                    const always = s.id === ADMIN_GROUP_ID;
+                    return (
+                        <FormControlLabel
+                            key={s.id}
+                            control={
+                                <Checkbox
+                                    size="small"
+                                    disabled={always}
+                                    checked={always || selected.includes(s.id)}
+                                    onChange={(_e, on) => toggle(s, on)}
+                                />
+                            }
+                            label={`${I18n.t(s.kind === 'group' ? 'wm_acl_group' : 'wm_acl_user')}: ${s.name}`}
+                        />
+                    );
+                })}
         </Box>
     );
 }

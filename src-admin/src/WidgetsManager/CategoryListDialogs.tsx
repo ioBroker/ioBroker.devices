@@ -89,6 +89,28 @@ export interface CategoryListDialogsProps {
     stateContext: StateContext;
 }
 
+/**
+ * State names the widgets feed into their charts — the union of everything the `getHistoryIds()`
+ * implementations use. The history switch has to cover all of them, otherwise a temperature widget
+ * records its temperature but not its humidity and the second chart line stays empty forever.
+ */
+const CHARTED_STATE_NAMES = ['ACTUAL', 'SECOND', 'SET', 'HUMIDITY'];
+
+/**
+ * All states of a widget that end up in a chart.
+ *
+ * @param widget The widget whose settings are being edited
+ * @returns Deduplicated state IDs, empty when the widget has none
+ */
+function collectHistoryStateIds(widget: WidgetInfo | null): string[] {
+    const states = widget?.control?.states;
+    if (!states) {
+        return [];
+    }
+    const ids = states.filter(s => s.id && CHARTED_STATE_NAMES.includes(s.name)).map(s => s.id);
+    return [...new Set(ids)];
+}
+
 function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element {
     const {
         settingsWidget,
@@ -171,13 +193,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 showAlarmFields={isAlarmType}
                 showIcon={!!settingsWidget?.control?.type && !isAlarmType}
                 stateContext={stateContext}
-                primaryStateId={
-                    settingsWidget?.control?.states
-                        ? settingsWidget.control.states.find(s => s.name === 'ACTUAL')?.id ||
-                          settingsWidget.control.states.find(s => s.name === 'SET')?.id ||
-                          settingsWidget.control.states[0]?.id
-                        : undefined
-                }
+                historyStateIds={collectHistoryStateIds(settingsWidget)}
                 defaultHistory={props.defaultHistory}
                 theme={theme}
                 objectName={settingsObjectName}
@@ -235,6 +251,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 language={stateContext.language}
             />
             <CustomWidgetSettingsDialog
+                multiUser={multiUser}
                 open={customWidgetSettingsCategoryId != null}
                 widgetDef={
                     customWidgetSettingsCategoryId && customWidgetSettingsWidgetId

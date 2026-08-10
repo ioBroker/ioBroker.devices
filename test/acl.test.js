@@ -25,8 +25,11 @@ const { createAclResolver, resolveForSubject, resolveLevel, isEditor, ALLOW_ALL 
 const KIDS = 'system.group.kids';
 const USERS = 'system.group.user';
 const LENA = 'system.user.lena';
+const ADMINS = 'system.group.administrator';
 
 const lena = { userId: LENA, groupIds: [USERS, KIDS] };
+/** A normal account that happens to be in the administrator group */
+const chef = { userId: 'system.user.chef', groupIds: [USERS, ADMINS] };
 
 describe('WidgetsManager ACL', () => {
     describe('resolveForSubject', () => {
@@ -70,6 +73,11 @@ describe('WidgetsManager ACL', () => {
     describe('isEditor', () => {
         it('always allows the admin user', () => {
             expect(isEditor(undefined, { userId: 'system.user.admin', groupIds: [] })).to.be.true;
+        });
+
+        it('always allows the administrator group', () => {
+            expect(isEditor(undefined, chef)).to.be.true;
+            expect(isEditor({ groups: [], users: [] }, chef)).to.be.true;
         });
 
         it('denies everybody else without configuration', () => {
@@ -149,6 +157,25 @@ describe('WidgetsManager ACL', () => {
         it('reports unknown categories as control', () => {
             const resolver = createAclResolver(categories, lena);
             expect(resolver.categoryLevel('alias.0.Nope')).to.equal('control');
+        });
+
+        it('treats a virtual container as neutral — its content decides', () => {
+            // The favourites list is assembled at render time and is unknown to the resolver. A
+            // widget shown there must therefore be resolved in its real category beforehand:
+            // asked about the virtual container, the resolver only sees the widget's own rule.
+            const resolver = createAclResolver(categories, lena);
+            expect(resolver.categoryLevel('__favorites__')).to.equal('control');
+            expect(resolver.widgetLevel(undefined, '__favorites__')).to.equal('control');
+            expect(resolver.widgetLevel(undefined, 'alias.0.Weather')).to.equal('hidden');
+        });
+
+        it('never restricts an administrator', () => {
+            // Otherwise a whitelist on the root would lock out the very people who have to fix it
+            const resolver = createAclResolver(categories, chef);
+            expect(resolver.enabled).to.be.true;
+            expect(resolver.canEdit).to.be.true;
+            expect(resolver.categoryLevel('alias.0.Weather')).to.equal('control');
+            expect(resolver.widgetLevel({ groups: { [ADMINS]: 'hidden' } }, 'alias.0.Weather')).to.equal('control');
         });
 
         it('exposes the edit right', () => {

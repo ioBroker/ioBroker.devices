@@ -38,6 +38,23 @@ export interface AclEditors {
 /** The account that may always configure, even without an `editors` entry. */
 export const ADMIN_USER_ID = 'system.user.admin';
 
+/** The group whose members always have full rights — it cannot be revoked in the dialog. */
+export const ADMIN_GROUP_ID = 'system.group.administrator';
+
+/**
+ * Whether a subject is an administrator — the user `admin` or a member of the administrator group.
+ *
+ * Administrators are exempt from the rules altogether: they always see everything and may always
+ * configure. Without that, a whitelist on the root (`default: 'hidden'`) would lock the very people
+ * out who have to fix it, and no rule set could be undone from within the GUI.
+ *
+ * @param subject User and groups to check
+ * @returns True for an administrator
+ */
+export function isAdminSubject(subject: AclSubject): boolean {
+    return subject.userId === ADMIN_USER_ID || subject.groupIds.includes(ADMIN_GROUP_ID);
+}
+
 /** Guard against a cyclic `parent` chain in broken configurations. */
 const MAX_DEPTH = 32;
 
@@ -96,7 +113,7 @@ export function resolveLevel(chain: (WmAcl | undefined)[], subject: AclSubject):
  * @returns True when the subject may edit
  */
 export function isEditor(editors: AclEditors | undefined, subject: AclSubject): boolean {
-    if (subject.userId === ADMIN_USER_ID) {
+    if (isAdminSubject(subject)) {
         return true;
     }
     if (editors?.users?.includes(subject.userId)) {
@@ -148,6 +165,12 @@ export function createAclResolver(
 ): AclResolver {
     if (!subject) {
         return ALLOW_ALL;
+    }
+
+    // Administrators are never restricted. Reported as enabled: the rules do apply, they just
+    // always resolve to full rights — so the GUI keeps showing the permission controls.
+    if (isAdminSubject(subject)) {
+        return { ...ALLOW_ALL, enabled: true };
     }
 
     const byId = new Map<string, AclCategoryNode>();

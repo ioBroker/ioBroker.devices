@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
-import { Paper } from '@mui/material';
+import { Paper, CssBaseline } from '@mui/material';
 
 import {
     AdminConnection,
@@ -54,11 +54,11 @@ export default class App extends GenericApp {
             'zh-cn': zhCnLang,
         };
         extendedProps.sentryDSN = window.sentryDSN;
-        if (window.location.port === '3000') {
-            extendedProps.socket = {
-                host: '192.168.1.129',
-            };
-        }
+        // if (window.location.port === '3000') {
+        //     extendedProps.socket = {
+        //         host: '192.168.1.129',
+        //     };
+        // }
         super(props, extendedProps);
 
         extendDeviceTypeTranslation();
@@ -77,6 +77,7 @@ export default class App extends GenericApp {
             return (
                 <StyledEngineProvider injectFirst>
                     <ThemeProvider theme={this.state.theme}>
+                        <CssBaseline />
                         <Loader themeType={this.state.themeType} />
                     </ThemeProvider>
                 </StyledEngineProvider>
@@ -87,6 +88,7 @@ export default class App extends GenericApp {
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
                     <ScrollbarStyles theme={this.state.theme} />
+                    <CssBaseline />
                     <Paper
                         square
                         elevation={0}

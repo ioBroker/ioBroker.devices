@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Tab, Tabs } from '@mui/material';
 import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/gui-components';
 import type { AdminConnection } from '@iobroker/socket-client';
 
-import type { CustomWidgetBase } from '../../../packages/dm-widgets/src/index';
+import type { CustomWidgetBase, WmAcl } from '../../../packages/dm-widgets/src/index';
+import AclEditor from './AclEditor';
+import { loadSettingsTab, storeSettingsTab } from './settingsTab';
 import { getPluginConfigSchema } from './pluginLoader';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
 import { BASE_WIDGET_ITEMS } from './configUtils';
@@ -35,6 +37,8 @@ interface CustomWidgetSettingsDialogProps {
     currentGroupId?: string;
     onGroupChange?: (groupId: string) => void;
     stateContext: StateContext;
+    /** Permissions are only offered when the multi-user mode is switched on for the root */
+    multiUser?: boolean;
 }
 
 /** Recursively collect all data-bearing items from a panel (flattening nested panels) */
@@ -69,6 +73,9 @@ const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps,
 export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDialogProps): React.JSX.Element | null {
     const { open, widgetDef, onClose, onSave, onDelete, stateContext } = props;
     const [values, setValues] = useState<Record<string, any>>({});
+    /** Rules of this widget — kept outside `values`, it is not part of the JsonConfig schema */
+    const [acl, setAcl] = useState<WmAcl | undefined>(undefined);
+    const [tab, setTab] = useState(0);
 
     // Normalize config to ConfigItemPanel — base items (size, color) are prepended automatically
     const config: ConfigItemPanel | null = useMemo(() => {
@@ -132,6 +139,8 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 }
             }
             setValues(initial);
+            setAcl(widgetDef.acl);
+            setTab(loadSettingsTab(!!props.multiUser));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, widgetDef]);
@@ -150,12 +159,18 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         EXTRA_KEYS.some(k => {
             const stored = (widgetDef as unknown as Record<string, unknown>)[k];
             return values[k] !== undefined && values[k] !== stored;
-        });
+        }) ||
+        // Nested object — a reference comparison would miss every edit inside the rules
+        JSON.stringify(acl ?? null) !== JSON.stringify(widgetDef.acl ?? null);
 
     const handleSave = (): void => {
         const newDef: Record<string, unknown> = { id: widgetDef.id, type: widgetDef.type };
         if (widgetDef.favorite) {
             newDef.favorite = true;
+        }
+        // `newDef` is rebuilt from the schema, so everything outside it has to be carried over
+        if (acl) {
+            newDef.acl = acl;
         }
         if (widgetDef.type === 'plugin') {
             const p = widgetDef as any;
@@ -195,7 +210,35 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             slotProps={{ paper: { sx: { maxHeight: '90vh' } } }}
         >
             <DialogTitle>{I18n.t((config.label as string) || '')}</DialogTitle>
-            <DialogContent dividers>
+            {props.multiUser ? (
+                <Tabs
+                    value={tab}
+                    onChange={(_e, value: number) => {
+                        setTab(value);
+                        storeSettingsTab(value);
+                    }}
+                    variant="fullWidth"
+                >
+                    <Tab label={I18n.t('wm_acl_settings_tab')} />
+                    <Tab label={I18n.t('wm_acl_tab')} />
+                </Tabs>
+            ) : null}
+            <DialogContent
+                dividers
+                sx={{ display: props.multiUser && tab === 1 ? 'block' : 'none' }}
+            >
+                <AclEditor
+                    acl={acl}
+                    onChange={setAcl}
+                    stateContext={stateContext}
+                />
+            </DialogContent>
+            {/* Stays mounted while the permissions tab is shown: JsonConfigComponent builds its
+                form when it mounts, so unmounting it would drop the edits made so far. */}
+            <DialogContent
+                dividers
+                sx={{ display: !props.multiUser || tab === 0 ? 'block' : 'none' }}
+            >
                 {socket && props.theme ? (
                     <JsonConfigComponent
                         socket={socket}
@@ -251,7 +294,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                     startIcon={<Close />}
                     onClick={onClose}
                 >
-                    {I18n.t('wm_Cancel')}
+                    {I18n.t(hasChanges ? 'wm_Cancel' : 'wm_Close')}
                 </Button>
             </DialogActions>
         </Dialog>

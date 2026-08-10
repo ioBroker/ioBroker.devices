@@ -73,7 +73,12 @@ interface GuiConfig {
         wmTheme?: WmThemeId;
         /** Default category ID to show when a page is opened without hash */
         defaultCategory?: string;
-        /** Hide the config/play toggle button in play mode (root only) */
+        /** Master switch for the per-user view permissions */
+        multiUser?: boolean;
+        /** View permissions of the root category */
+        acl?: WmAcl;
+        /** Who may configure at all */
+        editors?: { groups?: string[]; users?: string[] };
         /** Explicit grouping toggle. true = render a grouped list, false/undefined = sorted list. */
         widgetsGrouped?: boolean;
         customWidgets?: CustomWidgetBase[];
@@ -229,6 +234,72 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textDisabled: 'rgba(232,232,232,0.35)',
     },
 };
+
+/** The root category has no object of its own — its settings live in `guiConfig.root`. */
+type RootConfig = NonNullable<GuiConfig['root']>;
+
+/**
+ * Mapping between the root category's settings and their persisted form.
+ *
+ * The single place that pairs the two. Keeping it in one table means a new setting cannot be
+ * read but not written (or the other way round) — a mistake that silently drops the value on
+ * the next reload and is hard to spot, because saving itself appears to work.
+ *
+ * `[settings key, config key, fallback when unset]`
+ */
+const ROOT_SETTING_MAP: [keyof CategorySettings, keyof RootConfig, string | undefined][] = [
+    ['name', 'title', ''],
+    ['color', 'color', ''],
+    ['backgroundColor', 'backgroundColor', ''],
+    ['image', 'image', ''],
+    ['imageScope', 'imageScope', 'header'],
+    ['icon', 'icon', ''],
+    ['rootIcon', 'rootIcon', ''],
+    ['wmTheme', 'wmTheme', undefined],
+    ['defaultCategory', 'defaultCategory', ''],
+    ['multiUser', 'multiUser', undefined],
+    ['acl', 'acl', undefined],
+    ['editors', 'editors', undefined],
+];
+
+/** Settings owned by other parts of the GUI — read into the dialog, but never written back by it. */
+const ROOT_READ_ONLY_KEYS = ['widgetsGrouped', 'customWidgets', 'widgetOrder', 'widgetGroups'] as const;
+
+/**
+ * Read the root category's settings out of the persisted GUI config.
+ *
+ * @param root Persisted root config
+ * @returns Settings as the dialogs expect them
+ */
+function rootConfigToSettings(root: RootConfig): CategorySettings {
+    const settings = { ...DEFAULT_CATEGORY_SETTINGS } as Record<string, unknown>;
+    for (const [settingKey, configKey, fallback] of ROOT_SETTING_MAP) {
+        const value = (root as Record<string, unknown>)[configKey];
+        settings[settingKey] = value === undefined || value === '' ? (fallback ?? value) : value;
+    }
+    for (const key of ROOT_READ_ONLY_KEYS) {
+        settings[key] = (root as Record<string, unknown>)[key];
+    }
+    return settings as unknown as CategorySettings;
+}
+
+/**
+ * Write the edited settings back into the persisted GUI config, keeping everything this dialog
+ * does not own.
+ *
+ * @param root Current persisted root config
+ * @param settings Edited settings
+ * @returns The updated root config
+ */
+function settingsToRootConfig(root: RootConfig | undefined, settings: CategorySettings): RootConfig {
+    const result = { ...root } as Record<string, unknown>;
+    for (const [settingKey, configKey, fallback] of ROOT_SETTING_MAP) {
+        const value = (settings as unknown as Record<string, unknown>)[settingKey];
+        // Empty strings are only persisted where the reader expects one; otherwise drop the key
+        result[configKey] = value || (fallback === '' ? '' : undefined);
+    }
+    return result;
+}
 
 export class CategoryList extends Communication<CategoryListProps, CategoryListState> {
     static i18nInitialized = false;
@@ -642,21 +713,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 this.setState(prev => {
                     const categorySettings = { ...prev.categorySettings };
                     if (guiConfig.root) {
-                        categorySettings[ROOT_CATEGORY] = {
-                            name: guiConfig.root.title || '',
-                            color: guiConfig.root.color || '',
-                            backgroundColor: guiConfig.root.backgroundColor || '',
-                            image: guiConfig.root.image || '',
-                            imageScope: guiConfig.root.imageScope || 'header',
-                            icon: guiConfig.root.icon || '',
-                            rootIcon: guiConfig.root.rootIcon || '',
-                            wmTheme: guiConfig.root.wmTheme,
-                            defaultCategory: guiConfig.root.defaultCategory || '',
-                            widgetsGrouped: guiConfig.root.widgetsGrouped,
-                            customWidgets: guiConfig.root.customWidgets,
-                            widgetOrder: guiConfig.root.widgetOrder,
-                            widgetGroups: guiConfig.root.widgetGroups,
-                        };
+                        categorySettings[ROOT_CATEGORY] = rootConfigToSettings(guiConfig.root);
                     }
                     if (guiConfig.favorites) {
                         categorySettings[FAVORITES_CATEGORY] = {
@@ -1181,21 +1238,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         // Root settings from guiConfig
         const rootConfig = this.state.guiConfig?.root;
         if (rootConfig) {
-            categorySettings[ROOT_CATEGORY] = {
-                name: rootConfig.title || '',
-                color: rootConfig.color || '',
-                backgroundColor: rootConfig.backgroundColor || '',
-                image: rootConfig.image || '',
-                imageScope: rootConfig.imageScope || 'header',
-                icon: rootConfig.icon || '',
-                rootIcon: rootConfig.rootIcon || '',
-                wmTheme: rootConfig.wmTheme,
-                defaultCategory: rootConfig.defaultCategory || '',
-                widgetsGrouped: rootConfig.widgetsGrouped,
-                customWidgets: rootConfig.customWidgets,
-                widgetOrder: rootConfig.widgetOrder,
-                widgetGroups: rootConfig.widgetGroups,
-            };
+            categorySettings[ROOT_CATEGORY] = rootConfigToSettings(rootConfig);
         }
 
         // Favorites settings from guiConfig (virtual category — no real ioBroker object)
@@ -1331,18 +1374,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 // Save root settings to rootSettingsStateId native
                 const guiConfig: GuiConfig = {
                     ...this.state.guiConfig,
-                    root: {
-                        ...this.state.guiConfig?.root,
-                        title: settings.name || '',
-                        color: settings.color || '',
-                        backgroundColor: settings.backgroundColor || '',
-                        image: settings.image || '',
-                        imageScope: settings.imageScope || 'header',
-                        icon: settings.icon || '',
-                        rootIcon: settings.rootIcon || '',
-                        wmTheme: settings.wmTheme || undefined,
-                        defaultCategory: settings.defaultCategory || undefined,
-                    },
+                    root: settingsToRootConfig(this.state.guiConfig?.root, settings),
                 };
                 this.setState({ categorySettings, categorySettingsCategoryId: null, guiConfig });
                 void this.saveRootSettings(guiConfig);
@@ -2252,16 +2284,26 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const editing = !!this.props.showSettingsButton && effectiveConfigMode;
 
         // Build virtual favorites category with widgets that have favorite=true
+        // Favourites are a view onto widgets that live elsewhere, so their permissions are resolved
+        // in their real category — a starred widget from a hidden room must not reappear here. The
+        // virtual container itself carries no rules; if nothing survives, it is not built at all.
+        const widgetById = new Map(this.state.widgets.map(w => [String(w.id), w]));
         const favoriteWidgetIds = Object.entries(this.state.widgetSettings)
-            .filter(([, s]) => s.favorite)
+            .filter(([id, s]) => {
+                if (!s.favorite) {
+                    return false;
+                }
+                const parent = widgetById.get(id)?.parent;
+                return acl.widgetLevel(s.acl, parent ? String(parent) : undefined) !== 'hidden';
+            })
             .map(([id]) => id);
 
         // Collect favorited custom widgets from all categories
         const favoriteCustomWidgets: CustomWidgetBase[] = [];
-        for (const cs of Object.values(this.state.categorySettings)) {
+        for (const [catId, cs] of Object.entries(this.state.categorySettings)) {
             if (cs.customWidgets) {
                 for (const cw of cs.customWidgets) {
-                    if (cw.favorite) {
+                    if (cw.favorite && acl.widgetLevel(cw.acl, catId) !== 'hidden') {
                         favoriteCustomWidgets.push(cw);
                     }
                 }

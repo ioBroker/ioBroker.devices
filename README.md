@@ -144,6 +144,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 * (@GermanBluefox) Fixed clipped values in the wind widget
 * (@GermanBluefox) Fixed emoji icons sitting off-centre in the category badges and header
 * (@GermanBluefox) Fixed an alias assignment being dropped silently when saving a device whose state was not cached yet
+* (@GermanBluefox) Implemented user-specific views
 
 ### 4.0.0 (2026-08-03)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history

@@ -870,44 +870,46 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             });
         }
 
-        let someDeleted = false;
+        // Remove empty categories, repeatedly: dropping a leaf can leave its parent empty, and a
+        // parent visited before its child was removed still looked occupied. `Map.forEach` follows
+        // the insertion order, so a single pass leaves empty branches behind.
+        let someDeleted: boolean;
         do {
             someDeleted = false;
-            // go through all categories and remove the empty one (except root)
-            this.categories?.forEach((category, id) => {
+            for (const id of [...(this.categories?.keys() || [])]) {
                 if (id === ROOT_CATEGORY) {
-                    return;
+                    continue;
                 }
                 let empty = true;
                 this.widgets?.forEach(widget => {
                     if (widget.parent === id) {
                         empty = false;
-                        return;
                     }
                 });
                 this.categories?.forEach(c => {
                     if (c.parent === id) {
                         empty = false;
-                        return;
                     }
                 });
-                if (empty) {
-                    // Keep categories marked with showEmpty in custom settings,
-                    // or that contain plugin / custom widgets.
-                    const obj = this.objects[id];
-                    const custom = (obj?.common as Record<string, unknown>)?.custom as
-                        | Record<string, Record<string, unknown>>
-                        | undefined;
-                    const keep =
-                        custom &&
-                        Object.values(custom).some(
-                            c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
-                        );
-                    if (!keep) {
-                        this.categories?.delete(id);
-                    }
+                if (!empty) {
+                    continue;
                 }
-            });
+                // Keep categories marked with showEmpty in custom settings,
+                // or that contain plugin / custom widgets.
+                const obj = this.objects[id];
+                const custom = (obj?.common as Record<string, unknown>)?.custom as
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
+                const keep =
+                    custom &&
+                    Object.values(custom).some(
+                        c => c?.showEmpty || (Array.isArray(c?.customWidgets) && c.customWidgets.length > 0),
+                    );
+                if (!keep) {
+                    this.categories?.delete(id);
+                    someDeleted = true;
+                }
+            }
         } while (someDeleted);
     }
 }

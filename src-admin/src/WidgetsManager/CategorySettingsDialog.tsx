@@ -26,6 +26,7 @@ import type { CustomWidgetBase, WmAcl } from '../../../packages/dm-widgets/src/i
 import type { WidgetGroup } from './groupUtils';
 import IconPickerDialog from './IconPickerDialog';
 import AclEditor, { EditorsEditor } from './AclEditor';
+import { loadSettingsTab, storeSettingsTab } from './settingsTab';
 import type StateContext from './StateContext';
 
 /** Available theme presets */
@@ -115,6 +116,48 @@ interface CategorySettingsDialogProps {
     multiUser?: boolean;
 }
 
+/** Value the dialog shows when a setting is unset — differing only in that is not an edit. */
+const SETTING_FALLBACKS: Partial<Record<keyof CategorySettings, string>> = {
+    imageScope: 'header',
+    wmTheme: 'auto',
+    powerSource: 'sum',
+    temperatureSource: 'first',
+    humiditySource: 'first',
+};
+
+/** Settings the dialog only offers on the root category. */
+const ROOT_ONLY_SETTINGS: (keyof CategorySettings)[] = ['wmTheme', 'defaultCategory', 'multiUser', 'editors'];
+
+/**
+ * Compare two settings objects the way the user perceives them.
+ *
+ * Generic on purpose: the previous hand-written chain of comparisons had to be extended for every
+ * new field, and forgetting one left Save greyed out after a real change — a failure nobody
+ * notices until they lose their edit.
+ *
+ * @param a Edited settings
+ * @param b Stored settings
+ * @param isRoot Whether the root category is being edited
+ * @param categoryName Name shown when the category has none of its own
+ * @returns True when the two differ in anything the dialog can edit
+ */
+function settingsDiffer(a: CategorySettings, b: CategorySettings, isRoot: boolean, categoryName: string): boolean {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)] as (keyof CategorySettings)[]);
+    for (const key of keys) {
+        if (!isRoot && ROOT_ONLY_SETTINGS.includes(key)) {
+            continue;
+        }
+        const fallback = key === 'name' ? categoryName : SETTING_FALLBACKS[key];
+        // Absent, null and empty all mean "unset" and fall back to the same displayed value
+        const normalize = (value: unknown): string =>
+            JSON.stringify(value === undefined || value === null || value === '' ? (fallback ?? '') : value);
+        if (normalize(a[key]) !== normalize(b[key])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export default function CategorySettingsDialog(props: CategorySettingsDialogProps): React.JSX.Element {
     const { open, categoryName, categoryId, settings, onClose, onSave, theme, categoryOptions, stateContext } = props;
     const statusCandidates = props.statusCandidates;
@@ -140,7 +183,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
     useEffect(() => {
         if (open) {
-            setTab(0);
+            // Reopen on the tab last used anywhere — setting up permissions means walking through
+            // many categories in a row, and landing on the settings every time costs a click each.
+            setTab(loadSettingsTab(!!props.multiUser));
             setLocal({
                 ...settings,
                 name: settings.name || categoryName,
@@ -153,6 +198,9 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             const rIco = settings.rootIcon || '';
             setRootIconPreview(rIco ? `/${stateContext.imagePrefix}${rIco.replace(/^\//, '')}` : '');
         }
+        // `props.multiUser` is deliberately not a dependency: it is only read when the dialog opens,
+        // and re-running this effect would throw away the edits made so far.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings, open, categoryName, stateContext.imagePrefix]);
 
     const processImage = useCallback(
@@ -363,20 +411,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     // must appear the moment it is turned on.
     const multiUser = isRoot ? !!local.multiUser : !!props.multiUser;
 
-    const hasChanges =
-        local.name !== (settings.name || categoryName) ||
-        local.color !== (settings.color || '') ||
-        local.backgroundColor !== (settings.backgroundColor || '') ||
-        local.image !== (settings.image || '') ||
-        local.imageScope !== (settings.imageScope || 'header') ||
-        (isRoot && (local.wmTheme || 'auto') !== (settings.wmTheme || 'auto')) ||
-        (isRoot && (local.defaultCategory || '') !== (settings.defaultCategory || '')) ||
-        (isRoot && !!local.multiUser !== !!settings.multiUser) ||
-        (local.icon || '') !== (settings.icon || '') ||
-        (local.rootIcon || '') !== (settings.rootIcon || '') ||
-        (local.powerSource || 'sum') !== (settings.powerSource || 'sum') ||
-        (local.temperatureSource || 'first') !== (settings.temperatureSource || 'first') ||
-        (local.humiditySource || 'first') !== (settings.humiditySource || 'first');
+    const hasChanges = settingsDiffer(local, settings, isRoot, categoryName);
 
     const icon = stateContext.getImagePath(local.icon);
 
@@ -392,7 +427,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                 {multiUser ? (
                     <Tabs
                         value={tab}
-                        onChange={(_e, value: number) => setTab(value)}
+                        onChange={(_e, value: number) => {
+                            setTab(value);
+                            storeSettingsTab(value);
+                        }}
                         variant="fullWidth"
                     >
                         <Tab label={I18n.t('wm_acl_settings_tab')} />
@@ -974,7 +1012,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                         startIcon={<Close />}
                         onClick={onClose}
                     >
-                        {I18n.t('wm_Cancel')}
+                        {I18n.t(hasChanges ? 'wm_Cancel' : 'wm_Close')}
                     </Button>
                 </DialogActions>
             </Dialog>

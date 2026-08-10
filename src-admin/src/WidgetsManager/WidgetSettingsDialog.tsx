@@ -21,11 +21,13 @@ import type { AdminConnection } from '@iobroker/socket-client';
 
 import { type WidgetSettingsBase } from '../../../packages/dm-widgets/src/index';
 import { SIZE_OPTIONS } from './CustomWidgetConfigs';
+import { getConfigDefault } from './configUtils';
 import type { WidgetGroup } from './groupUtils';
 import GroupSelector from './GroupSelector';
 import ConfigIconSelect from './Components/ConfigIconSelect';
 import { resolveHistoryTarget } from './Utils';
 import AclEditor from './AclEditor';
+import { loadSettingsTab, storeSettingsTab } from './settingsTab';
 import type { CategoryOption } from './CategorySettingsDialog';
 import {
     type ConfigGenericProps,
@@ -53,8 +55,8 @@ interface WidgetSettingsDialogProps {
     availableGroups?: WidgetGroup[];
     currentGroupId?: string;
     onGroupChange?: (groupId: string) => void;
-    /** Primary state ID for history toggle */
-    primaryStateId?: string;
+    /** All states this widget charts — the history switch covers every one of them */
+    historyStateIds?: string[];
     /** Default history adapter instance (e.g. "history.0") */
     defaultHistory?: string;
     /** Show chart duration selector */
@@ -145,52 +147,65 @@ function buildSchema(props: WidgetSettingsDialogProps): ConfigItemPanel {
         Object.assign(items, props.configSchema.schema.items);
     }
 
-    // Chart fields (always at the bottom if enabled)
-    if (props.showChart) {
-        items.chartHours = {
-            type: 'select',
-            label: 'wm_Chart',
-            options: [
-                { value: 0, label: 'wm_Off' },
-                { value: 1, label: '1h' },
-                { value: 3, label: '3h' },
-                { value: 6, label: '6h' },
-                { value: 12, label: '12h' },
-                { value: 24, label: '24h' },
-            ],
-            default: 12,
-            format: 'radio',
-        };
-        items.showTrendArrow = {
-            type: 'checkbox',
-            label: 'wm_Trend arrow',
-            default: false,
-        };
-        items.trendMinutes = {
-            type: 'number',
-            label: 'wm_Trend period (min)',
-            default: 30,
-            min: 5,
-            max: 1440,
-            hidden: '!data.showTrendArrow',
-        };
-        items.minMaxPeriod = {
-            type: 'select',
-            label: 'wm_Min/Max',
-            options: [
-                { value: 'off', label: 'wm_Off' },
-                { value: '24h', label: 'wm_Last 24h' },
-                { value: 'today', label: 'wm_Today' },
-            ],
-            default: 'off',
-            format: 'radio',
-        };
-    }
-
     return {
         type: 'panel',
         label: '',
         items,
+    };
+}
+
+/**
+ * The history-based options as a panel of their own.
+ *
+ * Separate from the main schema so the "record history" switch can sit between the two forms —
+ * first switch recording on, then pick the period. Rendering it as a second JsonConfigComponent
+ * also sidesteps the component's build-on-mount behaviour: the panel simply mounts once recording
+ * is on, instead of trying to grow fields into an already built form.
+ */
+function buildChartSchema(): ConfigItemPanel {
+    return {
+        type: 'panel',
+        label: '',
+        items: {
+            chartHours: {
+                type: 'select',
+                label: 'wm_Chart',
+                options: [
+                    { value: 0, label: 'wm_Off' },
+                    { value: 1, label: '1h' },
+                    { value: 3, label: '3h' },
+                    { value: 6, label: '6h' },
+                    { value: 12, label: '12h' },
+                    { value: 24, label: '24h' },
+                ],
+                default: 12,
+                format: 'radio',
+            },
+            showTrendArrow: {
+                type: 'checkbox',
+                label: 'wm_Trend arrow',
+                default: false,
+            },
+            trendMinutes: {
+                type: 'number',
+                label: 'wm_Trend period (min)',
+                default: 30,
+                min: 5,
+                max: 1440,
+                hidden: '!data.showTrendArrow',
+            },
+            minMaxPeriod: {
+                type: 'select',
+                label: 'wm_Min/Max',
+                options: [
+                    { value: 'off', label: 'wm_Off' },
+                    { value: '24h', label: 'wm_Last 24h' },
+                    { value: 'today', label: 'wm_Today' },
+                ],
+                default: 'off',
+                format: 'radio',
+            },
+        },
     };
 }
 
@@ -199,8 +214,12 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
     const [values, setValues] = useState<WidgetSettingsBase>({} as WidgetSettingsBase);
     const [historyEnabled, setHistoryEnabled] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
-    /** Object that carries the history settings — the alias target when the widget shows an alias */
-    const [historyTargetId, setHistoryTargetId] = useState('');
+    /** Objects that carry the history settings — alias targets when the widget shows aliases */
+    const [historyTargets, setHistoryTargets] = useState<string[]>([]);
+    /** How many of the charted states are recorded — for the "some but not all" state */
+    const [historyCount, setHistoryCount] = useState({ recorded: 0, total: 0 });
+    /** Some of the charted states are recorded, others are not — a switch cannot show that on its own */
+    const historyPartial = historyCount.recorded > 0 && historyCount.recorded < historyCount.total;
     const [tab, setTab] = useState(0);
 
     const schema = useMemo(
@@ -209,7 +228,11 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         [props, props.configSchema, props.showChart, props.showAlarmFields, props.showIcon],
     );
 
+    const chartSchema = useMemo(() => buildChartSchema(), []);
+
     const wasOpenRef = useRef(false);
+    /** The form as it looked when the dialog opened — the baseline for {@link hasChanges} */
+    const initialValuesRef = useRef<WidgetSettingsBase>({} as WidgetSettingsBase);
 
     useEffect(() => {
         // Only (re)initialize the form when the dialog actually opens. The dialog is modal, so the
@@ -218,29 +241,58 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
         // `settings` object reference on unrelated re-renders (e.g. a live status tick re-publishes the
         // widget object), which would otherwise wipe the user's in-progress edits ~1s after a change.
         if (open && !wasOpenRef.current) {
-            setTab(0);
-            setValues({
+            // See CategorySettingsDialog: the tab is remembered across all widgets and categories
+            setTab(loadSettingsTab(!!props.multiUser));
+            const initial: WidgetSettingsBase = {
                 ...settings,
                 name: settings.name || objectName || widgetName,
                 colorActive: settings.colorActive || objectColor || '',
-            });
-            // Load history enabled state — following the alias, because that is where recording runs
-            if (props.primaryStateId && props.defaultHistory) {
-                void resolveHistoryTarget(props.stateContext, props.primaryStateId, props.defaultHistory).then(
-                    ({ id, enabled }) => {
-                        setHistoryTargetId(id);
-                        setHistoryEnabled(enabled);
-                    },
-                );
+            };
+            initialValuesRef.current = initial;
+            setValues(initial);
+            // Load the history state — following the aliases, because that is where recording runs.
+            // The switch reflects "all charted states are recorded", so a temperature widget whose
+            // humidity is missing from the log shows as off and can be completed with one click.
+            const ids = props.historyStateIds;
+            if (ids?.length && props.defaultHistory) {
+                void Promise.all(
+                    ids.map(id => resolveHistoryTarget(props.stateContext, id, props.defaultHistory!)),
+                ).then(targets => {
+                    const recorded = targets.filter(t => t.enabled).length;
+                    const enabled = recorded === targets.length;
+                    setHistoryTargets(targets.map(t => t.id));
+                    setHistoryCount({ recorded, total: targets.length });
+                    setHistoryEnabled(enabled);
+                    // The chart options already make sense once anything is recorded
+                });
             }
         }
         wasOpenRef.current = open;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, settings]);
 
+    /**
+     * Whether the form differs from what it was opened with.
+     *
+     * Compared against the initial snapshot, not against `settings`: the dialog injects display
+     * fallbacks (object name, object colour) when opening, and JsonConfigComponent fills its schema
+     * defaults on mount. Neither is a user edit, but both differ from the stored settings — which is
+     * why Save used to light up on a dialog nobody had touched.
+     */
     const hasChanges =
-        Object.keys(schema.items).some(key => {
-            return (values as Record<string, any>)[key] !== (settings as Record<string, any>)[key];
+        [...Object.keys(schema.items), ...Object.keys(chartSchema.items)].some(key => {
+            const current = (values as Record<string, any>)[key];
+            const initial = (initialValuesRef.current as Record<string, any>)[key];
+            if (current === initial) {
+                return false;
+            }
+            // Absent, empty and null all mean "not set"
+            if ((current ?? '') === (initial ?? '')) {
+                return false;
+            }
+            // A value json-config filled in from its own schema default is not an edit
+            const item = schema.items[key] || chartSchema.items[key];
+            return !(initial === undefined && current === getConfigDefault(item));
         }) ||
         // `acl` is edited outside the json-config schema, so it needs its own comparison —
         // otherwise Save would stay disabled after changing only the permissions.
@@ -262,7 +314,10 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
             {props.multiUser ? (
                 <Tabs
                     value={tab}
-                    onChange={(_e, value: number) => setTab(value)}
+                    onChange={(_e, value: number) => {
+                        setTab(value);
+                        storeSettingsTab(value);
+                    }}
                     variant="fullWidth"
                 >
                     <Tab label={I18n.t('wm_acl_settings_tab')} />
@@ -332,7 +387,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                         schema={schema}
                         data={values}
                         onError={() => {}}
-                        onChange={(data: Record<string, any> | null) => data && setValues(data as WidgetSettingsBase)}
+                        onChange={(data: Record<string, any> | null) =>
+                            data && setValues(prev => ({ ...prev, ...data }))
+                        }
                         theme={props.theme}
                         customComponents={CUSTOM_COMPONENTS}
                         embedded
@@ -340,8 +397,9 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     />
                 ) : null}
 
-                {/* History toggle — not part of json-config schema (async action) */}
-                {props.primaryStateId && props.defaultHistory ? (
+                {/* Sits between the two forms: switch recording on first, then the period options
+                    below it appear. */}
+                {props.historyStateIds?.length && props.defaultHistory ? (
                     <FormControlLabel
                         control={
                             <Switch
@@ -350,23 +408,42 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                 // The neumorphic presets render `primary` in a near-grey, so an
                                 // enabled switch is indistinguishable from a disabled one. Accent
                                 // the "on" state explicitly.
-                                sx={theme => ({
-                                    '& .MuiSwitch-switchBase.Mui-checked': {
-                                        color: theme.palette.success.main,
-                                        '&:hover': { backgroundColor: alpha(theme.palette.success.main, 0.1) },
-                                    },
-                                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                        backgroundColor: theme.palette.success.main,
-                                        opacity: 0.5,
-                                    },
-                                })}
+                                sx={theme => {
+                                    // Amber for the in-between state: the switch is off (clicking
+                                    // completes the set), but something is already being recorded.
+                                    const accent = historyPartial
+                                        ? theme.palette.warning.main
+                                        : theme.palette.success.main;
+                                    return {
+                                        ...(historyPartial
+                                            ? {
+                                                  '& .MuiSwitch-switchBase': { color: accent },
+                                                  '& .MuiSwitch-track': {
+                                                      backgroundColor: accent,
+                                                      opacity: 0.5,
+                                                  },
+                                              }
+                                            : {}),
+                                        '& .MuiSwitch-switchBase.Mui-checked': {
+                                            color: accent,
+                                            '&:hover': { backgroundColor: alpha(accent, 0.1) },
+                                        },
+                                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                            backgroundColor: accent,
+                                            opacity: 0.5,
+                                        },
+                                    };
+                                }}
                                 onChange={async (_e, checked) => {
                                     setHistoryLoading(true);
-                                    try {
-                                        const obj = await props.stateContext.getObject<ioBroker.StateObject>(
-                                            historyTargetId || props.primaryStateId!,
-                                        );
-                                        if (obj?.common) {
+                                    const targets = historyTargets.length ? historyTargets : props.historyStateIds!;
+                                    for (const target of targets) {
+                                        try {
+                                            const obj =
+                                                await props.stateContext.getObject<ioBroker.StateObject>(target);
+                                            if (!obj?.common) {
+                                                continue;
+                                            }
                                             const common = obj.common;
                                             common.custom ||= {};
                                             if (checked) {
@@ -378,18 +455,60 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                                                 common.custom[props.defaultHistory!].enabled = false;
                                             }
                                             await props.stateContext.getSocket().setObject(obj._id, obj);
-                                            setHistoryEnabled(checked);
+                                        } catch (err) {
+                                            console.error(`Failed to toggle history for ${target}:`, err);
                                         }
-                                    } catch (err) {
-                                        console.error('Failed to toggle history:', err);
                                     }
+                                    setHistoryEnabled(checked);
+                                    setHistoryCount(prev => ({
+                                        recorded: checked ? prev.total : 0,
+                                        total: prev.total,
+                                    }));
                                     setHistoryLoading(false);
                                 }}
                                 size="small"
                             />
                         }
-                        label={I18n.t('wm_Record history')}
-                        sx={{ mt: 1 }}
+                        label={
+                            <Box>
+                                <Typography>{I18n.t('wm_Record history')}</Typography>
+                                {historyPartial ? (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'warning.main' }}
+                                    >
+                                        {I18n.t(
+                                            'wm_History partial',
+                                            String(historyCount.recorded),
+                                            String(historyCount.total),
+                                        )}
+                                    </Typography>
+                                ) : null}
+                            </Box>
+                        }
+                        sx={{ mt: 2, mb: 1 }}
+                    />
+                ) : null}
+
+                {props.theme && props.showChart && historyCount.recorded > 0 ? (
+                    <JsonConfigComponent
+                        socket={props.stateContext.getSocket() as unknown as AdminConnection}
+                        themeName={props.theme.name}
+                        themeType={props.theme.palette.mode}
+                        adapterName={adapterName}
+                        instance={instanceNum}
+                        isFloatComma={props.stateContext.isFloatComma ?? false}
+                        dateFormat={props.stateContext.dateFormat || 'DD.MM.YYYY'}
+                        schema={chartSchema}
+                        data={values}
+                        onError={() => {}}
+                        onChange={(data: Record<string, any> | null) =>
+                            data && setValues(prev => ({ ...prev, ...data }))
+                        }
+                        theme={props.theme}
+                        customComponents={CUSTOM_COMPONENTS}
+                        embedded
+                        imagePrefix={props.stateContext.admin ? '../..' : '../..'}
                     />
                 ) : null}
 
@@ -433,7 +552,7 @@ export default function WidgetSettingsDialog(props: WidgetSettingsDialogProps): 
                     startIcon={<Close />}
                     onClick={onClose}
                 >
-                    {I18n.t('wm_Cancel')}
+                    {I18n.t(hasChanges ? 'wm_Cancel' : 'wm_Close')}
                 </Button>
             </DialogActions>
         </Dialog>

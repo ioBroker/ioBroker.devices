@@ -56,6 +56,11 @@ gleichnamigen Gruppe.
 
 Fehlt `acl`, verhält sich der Knoten wie heute. Es gibt keine Migration.
 
+Alle drei Knoten haben denselben Rechte-Tab. Beim Custom-Widget ist zu beachten, dass sein Datensatz
+beim Speichern aus dem JsonConfig-Schema neu aufgebaut wird — `acl` steht nicht im Schema und muss
+deshalb ausdrücklich mitgenommen werden, sonst geht es beim nächsten Speichern der Einstellungen
+verloren.
+
 ### Zusätzliche Kategorie-Zuordnung
 
 Für Ausnahmen quer zur Ordnerstruktur (§5) bekommt ein Widget optional weitere Elternkategorien:
@@ -199,7 +204,13 @@ editors?: {
 };
 ```
 
-- Nicht gesetzt oder leer → nur `system.user.admin`.
+- Nicht gesetzt oder leer → nur die Administratoren.
+- **Administratoren** sind der Benutzer `system.user.admin` und jedes Mitglied der Gruppe
+  `system.group.administrator`. Für sie greifen die Regeln nie: sie sehen immer alles und dürfen
+  immer konfigurieren. Ohne diese Ausnahme sperrt eine Whitelist auf der Root (`default: hidden`)
+  genau die Leute aus, die sie wieder aufmachen müssten. Im Dialog ist die Gruppe deshalb fest
+  angehakt und nicht abwählbar — und sie wird auch nicht in `editors` geschrieben, das Recht kommt
+  nicht von dort.
 - Wer nicht berechtigt ist, bekommt keinen Konfig-Umschalter, keine Zahnräder, kein Drag & Drop,
   kein „Widget hinzufügen", keine Kategorie-Einstellungen.
 - Im Admin-Tab (`stateContext.admin === true`) gilt unverändert Vollzugriff.
@@ -301,5 +312,20 @@ Nach Schritt 5 ist das Leitszenario vollständig bedienbar und überprüfbar.
 - Lesbarkeit von `system.group.*` für Nicht-Admins (§8) — entscheidet über `dm:whoami`
 - Sollen `hidden`-Kategorien auch aus der Kategorie-Auswahl im Verschieben-Dialog verschwinden?
   (Vorschlag: ja, für Nicht-Editoren ist der Dialog ohnehin nicht erreichbar)
-- Verhalten der Favoriten-Kategorie: Regeln greifen am Ziel-Widget, nicht am Container — die
-  Favoritenliste eines Subjekts kann dadurch leer sein. Dann ausblenden oder leer anzeigen?
+
+## 13. Favoriten
+
+Die Favoriten sind keine echte Kategorie, sondern eine **Sicht** auf Widgets, die woanders liegen.
+Der virtuelle Container wird erst beim Rendern gebaut und ist dem Resolver nicht bekannt; er trägt
+deshalb selbst keine Regeln und ist für `categoryLevel()` immer `control`.
+
+Daraus folgt die Reihenfolge:
+
+1. Jedes markierte Widget wird **in seiner echten Kategorie** aufgelöst. Ein Widget aus einem
+   verborgenen Raum darf nicht über den Stern wieder auftauchen.
+2. Was `hidden` ergibt, kommt gar nicht erst in die Liste — normale wie Custom-Widgets.
+3. Bleibt nichts übrig, wird die Favoriten-Kategorie **nicht erzeugt**: keine leere Kachel, keine
+   Badges. Die Zeile verschwindet vollständig.
+
+Ein Widget mit eigener Regel `control` bleibt sichtbar, auch wenn der Root-Default `hidden` ist —
+Favoriten sind damit die einzige Stelle, an der eine Whitelist ohne Kategorie-Regel funktioniert.

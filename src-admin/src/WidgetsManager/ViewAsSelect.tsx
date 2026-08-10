@@ -24,6 +24,15 @@ export default function ViewAsSelect(props: ViewAsSelectProps): React.JSX.Elemen
     const { value, onChange, stateContext } = props;
     const [subjects, setSubjects] = useState<AclSubjectOption[]>([]);
     const [groupsOfUser, setGroupsOfUser] = useState<Record<string, string[]>>({});
+    /**
+     * The picked option, derived from the simulated subject.
+     *
+     * Derived rather than kept in state: the header exists in two variants (root vs. category), so
+     * navigating remounts this component and any local selection would be lost — the field went
+     * blank while the simulation was still running. A simulated group carries no user, hence the
+     * fallback to its single group.
+     */
+    const selectedId = value ? value.userId || value.groupIds[0] || '' : '';
 
     useEffect(() => {
         let cancelled = false;
@@ -63,7 +72,10 @@ export default function ViewAsSelect(props: ViewAsSelectProps): React.JSX.Elemen
             size="small"
             sx={{ minWidth: 170 }}
             label={I18n.t('wm_acl_view_as')}
-            value={value?.userId || ''}
+            // Without `displayEmpty` MUI renders nothing for the empty value, so the normal state
+            // looks like an empty box instead of "myself" — and the label would not stay shrunk.
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+            value={selectedId}
             onChange={e => {
                 const id = e.target.value;
                 if (!id) {
