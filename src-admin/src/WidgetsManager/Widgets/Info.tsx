@@ -14,7 +14,14 @@ import { getIconForRole } from '../../Components/helpers/roleIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** State names that carry the reading of a measuring device */
-const VALUE_STATE_NAMES = new Set(['ACTUAL', 'PRESSURE', 'FLOW', 'AQI', 'ELECTRIC_POWER']);
+const VALUE_STATE_NAMES = new Set(['ACTUAL', 'PRESSURE', 'FLOW', 'AQI']);
+
+/**
+ * A device that only meters electricity has no reading outside this list, and every one of them is
+ * also an extra-info row. Used only when nothing else is available, so the tile is never blank —
+ * the value then appears both on the face and in the dialog, which beats an empty tile.
+ */
+const METER_STATE_NAMES = ['ELECTRIC_POWER', 'CONSUMPTION', 'CURRENT', 'VOLTAGE', 'FREQUENCY'];
 
 interface InfoState {
     id: string;
@@ -44,9 +51,14 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
         // `info` names every reading ACTUAL and allows several of them. The sensor types that used to
         // be detected as `info` name their reading after the quantity instead, so accept those names
         // too — otherwise such a device has nothing to show.
-        this.stateIds = states
-            .filter(s => VALUE_STATE_NAMES.has(s.name) && s.id)
-            .map(s => ({ id: s.id, role: s.stateRole || '' }));
+        const readings = states.filter(s => VALUE_STATE_NAMES.has(s.name) && s.id);
+        if (!readings.length) {
+            const meter = METER_STATE_NAMES.map(name => states.find(s => s.name === name && s.id)).find(Boolean);
+            if (meter) {
+                readings.push(meter);
+            }
+        }
+        this.stateIds = readings.map(s => ({ id: s.id, role: s.stateRole || '' }));
 
         this.state = {
             ...this.state,
