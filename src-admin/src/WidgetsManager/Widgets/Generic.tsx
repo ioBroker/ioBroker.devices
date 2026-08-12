@@ -33,6 +33,10 @@ import {
     TrendingDown,
     TrendingFlat,
     TrendingUp,
+    SignalCellular1Bar,
+    SignalCellular2Bar,
+    SignalCellular3Bar,
+    SignalCellular4Bar,
     WifiOff,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
@@ -100,6 +104,8 @@ export interface IndicatorValues {
     direction: boolean | number | null;
     connected: boolean | null;
     battery: number | null;
+    /** Radio signal strength in dBm — negative, closer to zero is better */
+    rssi: number | null;
 }
 
 export interface ChartSeries {
@@ -167,11 +173,21 @@ const INDICATOR_NAMES = [
     'MAINTAIN',
     'ERROR',
     'DIRECTION',
+    'DIRECTION_ENUM',
     'CONNECTED',
     'BATTERY',
+    'RSSI',
 ] as const;
 
 const INDICATOR_ICON_SIZE = 14;
+
+function toNumberOrNull(value: ioBroker.StateValue): number | null {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+}
 
 /** Extra info state names — shown in "i" dialog when present on a device */
 const EXTRA_INFO_NAMES = ['ELECTRIC_POWER', 'CURRENT', 'VOLTAGE', 'CONSUMPTION', 'FREQUENCY'] as const;
@@ -564,6 +580,7 @@ const DEFAULT_INDICATORS: IndicatorValues = {
     direction: null,
     connected: null,
     battery: null,
+    rssi: null,
 };
 
 export class WidgetGeneric<
@@ -887,7 +904,10 @@ export class WidgetGeneric<
                     }
                     break;
                 }
-                case 'DIRECTION': {
+                // A device may report direction as a flag or as an enum, under two different names,
+                // and both feed the one arrow the tile shows.
+                case 'DIRECTION':
+                case 'DIRECTION_ENUM': {
                     const val = typeof state.val === 'number' ? state.val : !!state.val;
                     if (indicators.direction !== val) {
                         indicators.direction = val;
@@ -904,10 +924,20 @@ export class WidgetGeneric<
                     }
                     break;
                 }
+                // A state that cannot be read yet is delivered as `val: null`, and `Number(null)`
+                // is 0 — which would read as an empty battery and as a perfect signal.
                 case 'BATTERY': {
-                    const val = Number(state.val);
-                    if (indicators.battery !== val) {
-                        indicators.battery = isNaN(val) ? null : val;
+                    const battery = toNumberOrNull(state.val);
+                    if (indicators.battery !== battery) {
+                        indicators.battery = battery;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 'RSSI': {
+                    const rssi = toNumberOrNull(state.val);
+                    if (indicators.rssi !== rssi) {
+                        indicators.rssi = rssi;
                         changed = true;
                     }
                     break;
@@ -1127,6 +1157,14 @@ export class WidgetGeneric<
                 indicators.lowbat ? I18n.t('wm_Yes') : I18n.t('wm_No'),
                 indicators.lowbat ? 'warning.main' : 'success.main',
             );
+        }
+
+        if (ids.RSSI != null && indicators.rssi != null) {
+            const dbm = Math.round(indicators.rssi);
+            // dBm is negative; -67 is the usual threshold for "good enough for streaming", -80 for
+            // "barely connected".
+            const color = dbm >= -67 ? 'success.main' : dbm >= -80 ? 'warning.main' : 'error.main';
+            row('rssi', I18n.t('wm_Signal strength'), `${dbm} dBm`, color);
         }
 
         if (ids.MAINTAIN != null) {
@@ -1509,6 +1547,28 @@ export class WidgetGeneric<
                     title={`${I18n.t('wm_Battery')}: ${pct}%`}
                 >
                     {batteryIcon}
+                </Tooltip>,
+            );
+        }
+
+        if (indicators.rssi != null) {
+            const dbm = Math.round(indicators.rssi);
+            const signalIcon =
+                dbm >= -55 ? (
+                    <SignalCellular4Bar sx={{ fontSize: sz, color: 'success.main' }} />
+                ) : dbm >= -67 ? (
+                    <SignalCellular3Bar sx={{ fontSize: sz, color: 'success.main' }} />
+                ) : dbm >= -80 ? (
+                    <SignalCellular2Bar sx={{ fontSize: sz, color: 'warning.main' }} />
+                ) : (
+                    <SignalCellular1Bar sx={{ fontSize: sz, color: 'error.main' }} />
+                );
+            items.push(
+                <Tooltip
+                    key="rssi"
+                    title={`${I18n.t('wm_Signal strength')}: ${dbm} dBm`}
+                >
+                    {signalIcon}
                 </Tooltip>,
             );
         }
