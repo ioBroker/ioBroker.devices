@@ -33,11 +33,17 @@ import {
     TrendingDown,
     TrendingFlat,
     TrendingUp,
+    DeleteSweep,
+    FilterAlt,
+    NotificationsOff,
+    Opacity,
+    Science,
     SignalCellular1Bar,
     SignalCellular2Bar,
     SignalCellular3Bar,
     SignalCellular4Bar,
     WifiOff,
+    type SvgIconComponent,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
 import { I18n, Icon } from '@iobroker/gui-components';
@@ -106,6 +112,12 @@ export interface IndicatorValues {
     battery: number | null;
     /** Radio signal strength in dBm — negative, closer to zero is better */
     rssi: number | null;
+    filterChange: boolean | null;
+    wasteAlarm: boolean | null;
+    waterAlarm: boolean | null;
+    /** An alarm device whose siren the user silenced — it is still in alarm */
+    muted: boolean | null;
+    test: boolean | null;
 }
 
 export interface ChartSeries {
@@ -148,6 +160,10 @@ export interface WidgetGenericState {
     trend: 'up' | 'down' | 'stable' | null;
     /** Min/max values over the configured period, or null if disabled/unknown */
     minMax: MinMaxValues | null;
+    /** Seconds after which the device switches itself off, `null` when it has no such state */
+    onTime: number | null;
+    /** What the user has typed into the auto-off field but not committed yet */
+    onTimeDraft: string | null;
     /** Chart line type synced from chart dialog settings */
     chartType: ChartLineType;
     /** Smoothing window synced from chart dialog settings */
@@ -166,7 +182,7 @@ export interface WidgetGenericState {
     confirmDialogText: string;
 }
 
-const INDICATOR_NAMES = [
+export const INDICATOR_NAMES = [
     'WORKING',
     'UNREACH',
     'LOWBAT',
@@ -177,11 +193,30 @@ const INDICATOR_NAMES = [
     'CONNECTED',
     'BATTERY',
     'RSSI',
+    'FILTER_CHANGE',
+    'WASTE_ALARM',
+    'WATER_ALARM',
+    'MUTED',
+    'TEST',
 ] as const;
 
 const INDICATOR_ICON_SIZE = 14;
 
-function toNumberOrNull(value: ioBroker.StateValue): number | null {
+/**
+ * Plain boolean indicators. Slot, label and icon in one table so a name cannot be added to the
+ * central list and then forgotten in one of the places that render it.
+ */
+const BOOLEAN_INDICATORS = {
+    FILTER_CHANGE: { key: 'filterChange', label: 'wm_Change filter', Icon: FilterAlt },
+    WASTE_ALARM: { key: 'wasteAlarm', label: 'wm_Waste container full', Icon: DeleteSweep },
+    WATER_ALARM: { key: 'waterAlarm', label: 'wm_Water tank empty', Icon: Opacity },
+    MUTED: { key: 'muted', label: 'wm_Alarm muted', Icon: NotificationsOff },
+    TEST: { key: 'test', label: 'wm_Test mode', Icon: Science },
+} as const satisfies Record<string, { key: keyof IndicatorValues; label: string; Icon: SvgIconComponent }>;
+
+type BooleanIndicatorName = keyof typeof BOOLEAN_INDICATORS;
+
+export function toNumberOrNull(value: ioBroker.StateValue): number | null {
     if (value === null || value === undefined || value === '') {
         return null;
     }
@@ -189,8 +224,24 @@ function toNumberOrNull(value: ioBroker.StateValue): number | null {
     return isNaN(num) ? null : num;
 }
 
-/** Extra info state names — shown in "i" dialog when present on a device */
-const EXTRA_INFO_NAMES = ['ELECTRIC_POWER', 'CURRENT', 'VOLTAGE', 'CONSUMPTION', 'FREQUENCY'] as const;
+/**
+ * Extra info state names — shown in "i" dialog when present on a device.
+ *
+ * A reading that belongs to the device as a whole rather than to what its tile controls goes here
+ * instead of onto the tile face: the electricity readings, and the wear and maintenance levels of a
+ * vacuum. They arrive with a unit, a history and a chart for free.
+ */
+export const EXTRA_INFO_NAMES = [
+    'ELECTRIC_POWER',
+    'CURRENT',
+    'VOLTAGE',
+    'CONSUMPTION',
+    'FREQUENCY',
+    'FILTER',
+    'BRUSH',
+    'SIDE_BRUSH',
+    'SENSORS',
+] as const;
 
 const EXTRA_INFO_LABELS: Record<string, string> = {
     ELECTRIC_POWER: 'wm_Power',
@@ -198,6 +249,10 @@ const EXTRA_INFO_LABELS: Record<string, string> = {
     VOLTAGE: 'wm_Voltage',
     CONSUMPTION: 'wm_Consumption',
     FREQUENCY: 'wm_Frequency',
+    FILTER: 'wm_Filter',
+    BRUSH: 'wm_Brush',
+    SIDE_BRUSH: 'wm_Side brush',
+    SENSORS: 'wm_Sensors',
 };
 
 /** Check if the current theme is the neumorphic "styling-grey" preset */
@@ -705,6 +760,11 @@ const DEFAULT_INDICATORS: IndicatorValues = {
     connected: null,
     battery: null,
     rssi: null,
+    filterChange: null,
+    wasteAlarm: null,
+    waterAlarm: null,
+    muted: null,
+    test: null,
 };
 
 export class WidgetGeneric<
@@ -720,6 +780,8 @@ export class WidgetGeneric<
     private readonly extraInfoIds: { id: string; stateName: string }[] = [];
     /** common.states mapping for the ERROR indicator (numeric error codes → text) */
     private errorStatesMap: Record<string, string> | null = null;
+    /** `level.timer.off` — seconds after which the device switches itself off. 0 disables it. */
+    private readonly onTimeId: string | null;
     private historyInstance: string | null = null;
     private chartTimer: ReturnType<typeof setInterval> | null = null;
     private trendTimer: ReturnType<typeof setInterval> | null = null;
@@ -751,7 +813,11 @@ export class WidgetGeneric<
             confirmDialogMode: 'dialog' as const,
             confirmDialogPin: '',
             confirmDialogText: '',
+            onTime: null,
+            onTimeDraft: null,
         } as unknown as TState;
+
+        this.onTimeId = props.widget.control?.states?.find(s => s.name === 'ON_TIME' && s.id)?.id ?? null;
 
         // Collect indicator state IDs from control.states
         if (props.widget.control?.states) {
@@ -833,6 +899,10 @@ export class WidgetGeneric<
             void this.loadExtraInfoMetadata();
         }
 
+        if (this.onTimeId) {
+            this.props.stateContext.getState(this.onTimeId, this.onOnTimeChange);
+        }
+
         // Start chart data loading if configured
         this.startChartRefresh();
         this.startTrendRefresh();
@@ -862,6 +932,9 @@ export class WidgetGeneric<
         }
         for (const entry of this.extraInfoIds) {
             this.props.stateContext.removeState(entry.id, this.onExtraInfoChange);
+        }
+        if (this.onTimeId) {
+            this.props.stateContext.removeState(this.onTimeId, this.onOnTimeChange);
         }
     }
 
@@ -1066,6 +1139,19 @@ export class WidgetGeneric<
                     }
                     break;
                 }
+                case 'FILTER_CHANGE':
+                case 'WASTE_ALARM':
+                case 'WATER_ALARM':
+                case 'MUTED':
+                case 'TEST': {
+                    const { key } = BOOLEAN_INDICATORS[name];
+                    const val = !!state.val;
+                    if (indicators[key] !== val) {
+                        indicators[key] = val;
+                        changed = true;
+                    }
+                    break;
+                }
             }
         }
 
@@ -1177,6 +1263,77 @@ export class WidgetGeneric<
         }
     }
 
+    private onOnTimeChange = (_id: string, state: ioBroker.State): void => {
+        const onTime = toNumberOrNull(state.val);
+        if (onTime !== this.state.onTime) {
+            this.setState({ onTime } as Partial<TState> as TState);
+        }
+    };
+
+    /**
+     * Commit the auto-off delay the user typed. Writing per keystroke would send 6, then 60, then 600
+     * on the way to "600" — and an emptied field would send 0, which switches the timer off.
+     */
+    protected commitOnTime(): void {
+        const draft = this.state.onTimeDraft;
+        if (!this.onTimeId || draft === null) {
+            return;
+        }
+        const seconds = draft.trim() === '' ? null : Math.max(0, Math.round(Number(draft)));
+        if (seconds === null || isNaN(seconds)) {
+            // Nothing usable typed — drop the draft and show the device value again
+            this.setState({ onTimeDraft: null } as Partial<TState> as TState);
+            return;
+        }
+        this.setState({ onTimeDraft: null } as Partial<TState> as TState);
+        if (seconds === this.state.onTime) {
+            return;
+        }
+        // No optimistic update: the subscription reports what the device accepted, and a rejected
+        // write would otherwise leave the field showing a value the device never took.
+        this.setValue(this.onTimeId, seconds).catch(e =>
+            console.warn(`Cannot write ${this.onTimeId}: ${e instanceof Error ? e.message : e}`),
+        );
+    }
+
+    private renderOnTimeRow(): React.JSX.Element | null {
+        if (!this.onTimeId) {
+            return null;
+        }
+        return (
+            <Box
+                sx={theme => ({
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    py: 0.75,
+                    px: 1,
+                    mx: -1,
+                    borderBottom: '1px solid',
+                    borderColor: theme.palette.divider,
+                })}
+            >
+                <Typography variant="body2">{I18n.t('wm_Switch off after')}</Typography>
+                <TextField
+                    variant="standard"
+                    type="number"
+                    size="small"
+                    disabled={this.isReadOnly}
+                    value={this.state.onTimeDraft ?? this.state.onTime ?? ''}
+                    onChange={e => this.setState({ onTimeDraft: e.target.value } as Partial<TState> as TState)}
+                    onBlur={() => this.commitOnTime()}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                            this.commitOnTime();
+                        }
+                    }}
+                    slotProps={{ htmlInput: { min: 0, style: { textAlign: 'right', width: 80 } } }}
+                    helperText={I18n.t('wm_seconds, 0 = off')}
+                />
+            </Box>
+        );
+    }
+
     private onExtraInfoChange = (id: string, state: ioBroker.State): void => {
         this.setState(prev => ({
             extraInfo: prev.extraInfo.map(e =>
@@ -1202,8 +1359,9 @@ export class WidgetGeneric<
         return entry.unit ? `${entry.value} ${entry.unit}` : String(entry.value);
     }
 
-    protected hasIndicatorStates(): boolean {
-        return Object.keys(this.indicatorIds).length > 0;
+    /** Whether the "i" dialog would have anything to show. */
+    protected hasInfoDialogContent(): boolean {
+        return Object.keys(this.indicatorIds).length > 0 || !!this.onTimeId;
     }
 
     private renderIndicatorRows(): React.JSX.Element[] {
@@ -1283,6 +1441,15 @@ export class WidgetGeneric<
             );
         }
 
+        for (const name of Object.keys(BOOLEAN_INDICATORS) as BooleanIndicatorName[]) {
+            if (ids[name] == null) {
+                continue;
+            }
+            const { key, label } = BOOLEAN_INDICATORS[name];
+            const on = !!indicators[key];
+            row(key, I18n.t(label), on ? I18n.t('wm_Yes') : I18n.t('wm_No'), on ? 'warning.main' : 'success.main');
+        }
+
         if (ids.RSSI != null && indicators.rssi != null) {
             const dbm = Math.round(indicators.rssi);
             // dBm is negative; -67 is the usual threshold for "good enough for streaming", -80 for
@@ -1338,7 +1505,7 @@ export class WidgetGeneric<
 
     protected renderInfoDialog(): React.JSX.Element | null {
         const hasExtra = this.state.extraInfo.length > 0;
-        const hasIndicators = this.hasIndicatorStates();
+        const hasIndicators = this.hasInfoDialogContent();
         if (!this.state.infoDialogOpen || (!hasExtra && !hasIndicators)) {
             return this.renderInfoChartDialog();
         }
@@ -1428,6 +1595,7 @@ export class WidgetGeneric<
                             );
                         })}
                         {indicatorRows}
+                        {this.renderOnTimeRow()}
                     </DialogContent>
                 </Dialog>
                 {this.renderInfoChartDialog()}
@@ -1671,6 +1839,21 @@ export class WidgetGeneric<
                     title={`${I18n.t('wm_Battery')}: ${pct}%`}
                 >
                     {batteryIcon}
+                </Tooltip>,
+            );
+        }
+
+        for (const name of Object.keys(BOOLEAN_INDICATORS) as BooleanIndicatorName[]) {
+            const { key, label, Icon: IndicatorIcon } = BOOLEAN_INDICATORS[name];
+            if (!indicators[key]) {
+                continue;
+            }
+            items.push(
+                <Tooltip
+                    key={key}
+                    title={I18n.t(label)}
+                >
+                    <IndicatorIcon sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
             );
         }
@@ -2452,7 +2635,7 @@ export class WidgetGeneric<
 
     protected renderSettingsButton(): React.JSX.Element | null {
         const hasSettings = !!this.props.onOpenSettings;
-        const hasInfo = this.state.extraInfo.length || this.hasIndicatorStates();
+        const hasInfo = this.state.extraInfo.length || this.hasInfoDialogContent();
 
         if (!hasSettings && !hasInfo) {
             return null;
