@@ -9,12 +9,17 @@ interface WidgetGateState extends WidgetGenericState {
     /** Gate position 0 (closed) – 100 (open) */
     position: number;
     dragging: boolean;
+    /** End contacts, when the gate has them. `null` while unknown. */
+    fullyOpen: boolean | null;
+    fullyClosed: boolean | null;
 }
 
 export class WidgetGate extends WidgetGeneric<WidgetGateState> {
     private readonly setId: string | null;
     private readonly actualId: string | null;
     private readonly stopId: string | null;
+    private readonly openedId: string | null;
+    private readonly closedId: string | null;
 
     constructor(props: WidgetGenericProps) {
         super(props);
@@ -24,11 +29,15 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         this.setId = find('SET');
         this.actualId = find('ACTUAL');
         this.stopId = find('STOP');
+        this.openedId = find('OPENED');
+        this.closedId = find('CLOSED');
 
         this.state = {
             ...this.state,
             position: 0,
             dragging: false,
+            fullyOpen: null,
+            fullyClosed: null,
         };
     }
 
@@ -38,6 +47,12 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         if (listenId) {
             this.props.stateContext.getState(listenId, this.onPositionChange);
         }
+        if (this.openedId) {
+            this.props.stateContext.getState(this.openedId, this.onOpenedChange);
+        }
+        if (this.closedId) {
+            this.props.stateContext.getState(this.closedId, this.onClosedChange);
+        }
     }
 
     componentWillUnmount(): void {
@@ -45,6 +60,12 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         const listenId = this.actualId || this.setId;
         if (listenId) {
             this.props.stateContext.removeState(listenId, this.onPositionChange);
+        }
+        if (this.openedId) {
+            this.props.stateContext.removeState(this.openedId, this.onOpenedChange);
+        }
+        if (this.closedId) {
+            this.props.stateContext.removeState(this.closedId, this.onClosedChange);
         }
     }
 
@@ -64,18 +85,31 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         }
     };
 
+    private onOpenedChange = (_id: string, state: ioBroker.State): void => {
+        const fullyOpen = !!state.val;
+        if (fullyOpen !== this.state.fullyOpen) {
+            this.setState({ fullyOpen });
+        }
+    };
+
+    private onClosedChange = (_id: string, state: ioBroker.State): void => {
+        const fullyClosed = !!state.val;
+        if (fullyClosed !== this.state.fullyClosed) {
+            this.setState({ fullyClosed });
+        }
+    };
+
     // ── Actions ──────────────────────────────────────────────────────
 
     private toggle = (): void => {
-        if (this.setId) {
-            if (this.actualId) {
-                // Has position: toggle between 0 and 100
-                const target = this.state.position > 50 ? 0 : 100;
-                void this.setValue(this.setId, target);
-            } else {
-                // Boolean: toggle
-                void this.setValue(this.setId, !this.state.position);
-            }
+        if (!this.setId) {
+            return;
+        }
+        const open = this.isOpen;
+        if (this.actualId) {
+            void this.setValue(this.setId, open ? 0 : 100);
+        } else {
+            void this.setValue(this.setId, !open);
         }
     };
 
@@ -107,8 +141,34 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         return [{ id, color: this.getAccentColor() || '#ff9800' }];
     }
 
-    protected isTileActive(): boolean {
+    /**
+     * Whether the gate is anything other than shut. An end contact is a fact; a position is what the
+     * drive believes. A gate moved by its hand transmitter can leave the position stale, so the
+     * contacts win wherever the device has them — including the direction the toggle commands.
+     */
+    private get isOpen(): boolean {
+        if (this.state.fullyClosed) {
+            return false;
+        }
+        if (this.state.fullyOpen) {
+            return true;
+        }
         return this.state.position > 0;
+    }
+
+    protected isTileActive(): boolean {
+        return this.isOpen;
+    }
+
+    /** Position to draw. A contact overrides a stale position so the picture matches the label. */
+    private get drawnPosition(): number {
+        if (this.state.fullyClosed) {
+            return 0;
+        }
+        if (this.state.fullyOpen && !this.state.position) {
+            return 100;
+        }
+        return this.state.position;
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -125,8 +185,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         if (baseIcon) {
             return baseIcon;
         }
-        const { position } = this.state;
-        const isOpen = position > 0;
+        const isOpen = this.isOpen;
         const accent = this.getAccentColor();
 
         return (
@@ -142,10 +201,14 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
     protected renderTileStatus(): React.JSX.Element {
         const { position } = this.state;
         const accent = this.getAccentColor();
-        const isOpen = position > 0;
+        const isOpen = this.isOpen;
 
         let text: string;
-        if (this.actualId) {
+        if (this.state.fullyClosed) {
+            text = I18n.t('wm_Closed');
+        } else if (this.state.fullyOpen) {
+            text = I18n.t('wm_Open');
+        } else if (this.actualId) {
             // Has position feedback
             if (position === 0) {
                 text = I18n.t('wm_Closed');
@@ -222,7 +285,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
     // ── Compact 1x1 ──────────────────────────────────────────────────
 
     renderCompact(): React.JSX.Element {
-        const { name, position } = this.state;
+        const { name } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
@@ -263,7 +326,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
                             position: 'relative',
                         }}
                     >
-                        {WidgetGate.renderGateSvg(position, accent)}
+                        {WidgetGate.renderGateSvg(this.drawnPosition, accent)}
                     </Box>
 
                     {/* Controls */}
