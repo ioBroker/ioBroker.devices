@@ -6,11 +6,12 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
+    IconButton,
     Slider as MuiSlider,
     SvgIcon,
     Typography,
 } from '@mui/material';
-import { Speed, Tune } from '@mui/icons-material';
+import { PowerSettingsNew, Speed, Tune } from '@mui/icons-material';
 import type { Theme } from '@mui/material/styles';
 import { I18n } from '@iobroker/gui-components';
 
@@ -90,6 +91,8 @@ interface WidgetSliderState extends WidgetGenericState {
     /** common.states mapping (value → label) — when set, widget acts as mode selector */
     statesMap: Record<string, string> | null;
     modeDialogOpen: boolean;
+    /** `null` when the device has no separate on/off, so the level alone decides whether it is on */
+    isOn: boolean | null;
 }
 
 export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetSettings> {
@@ -107,6 +110,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     private pendingRawValue: number | null = null;
     /** Last real device value (from ACTUAL) — used to snap back when a confirmation is cancelled */
     private lastConfirmedRaw: number | null = null;
+    /** Separate on/off, present on a dimmed device that is not a light */
+    private readonly onSetId: string | null;
+    private readonly onActualId: string | null;
 
     constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
@@ -116,6 +122,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
         this.setId = set?.id ?? null;
         this.actualId = actual?.id ?? set?.id ?? null;
+        this.onSetId = states.find(s => s.name === 'ON')?.id ?? null;
+        this.onActualId = states.find(s => s.name === 'ON_ACTUAL')?.id ?? this.onSetId;
 
         this.state = {
             ...this.state,
@@ -127,6 +135,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
             unit: '%',
             statesMap: null,
             modeDialogOpen: false,
+            isOn: null,
         };
     }
 
@@ -198,6 +207,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onLevelChange);
         }
+        if (this.onActualId) {
+            this.props.stateContext.getState(this.onActualId, this.onPowerChange);
+        }
         void this.loadObjectConfig();
     }
 
@@ -214,6 +226,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         }
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onLevelChange);
+        }
+        if (this.onActualId) {
+            this.props.stateContext.removeState(this.onActualId, this.onPowerChange);
         }
     }
 
@@ -499,9 +514,28 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
     // --- Overrides ---
 
+    private onPowerChange = (_id: string, state: ioBroker.State): void => {
+        const isOn = !!state.val;
+        if (isOn !== this.state.isOn) {
+            this.setState({ isOn });
+        }
+    };
+
+    private togglePower = (): void => {
+        if (!this.onSetId) {
+            return;
+        }
+        const isOn = !this.state.isOn;
+        void this.setValue(this.onSetId, isOn);
+        this.setState({ isOn });
+    };
+
     protected isTileActive(): boolean {
         if (this.isModeSelectorMode()) {
             return true;
+        }
+        if (this.state.isOn !== null) {
+            return this.state.isOn;
         }
         return this.state.level > 0;
     }
@@ -514,6 +548,12 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     protected onTileClick(): void {
         if (this.isModeSelectorMode()) {
             this.setState({ modeDialogOpen: true });
+            return;
+        }
+        // A device with its own on/off is switched, not driven to level 0 — writing the level would
+        // leave it running at zero and lose the level it should come back to.
+        if (this.onSetId) {
+            this.togglePower();
             return;
         }
         // Toggle between 0 and last value or 100
@@ -720,7 +760,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton);
+        const indicators = this.renderIndicators(settingsButton, this.renderPowerButton());
 
         return (
             <Box
@@ -894,24 +934,58 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const accent = this.getAccentColor();
 
         if ((this.props.settings?.wideSliderStyle || 'horizontal') === 'round') {
-            return this.renderArcKnob();
+            return (
+                <>
+                    {this.renderPowerButton()}
+                    {this.renderArcKnob()}
+                </>
+            );
         }
 
         return (
-            <MuiSlider
-                value={level}
-                min={0}
-                max={100}
+            <>
+                {this.renderPowerButton()}
+                <MuiSlider
+                    value={level}
+                    min={0}
+                    max={100}
+                    size="small"
+                    onClick={e => e.stopPropagation()}
+                    onChange={this.onSliderDrag}
+                    onChangeCommitted={this.onSliderCommit}
+                    sx={theme => ({
+                        width: 80,
+                        color: accent || theme.palette.primary.main,
+                        '& .MuiSlider-thumb': { width: 14, height: 14 },
+                    })}
+                />
+            </>
+        );
+    }
+
+    /** Only rendered for a device that has an on/off of its own, separate from its level. */
+    private renderPowerButton(): React.JSX.Element | null {
+        if (!this.onSetId) {
+            return null;
+        }
+        const accent = this.getAccentColor();
+        const isOn = !!this.state.isOn;
+
+        return (
+            <IconButton
                 size="small"
-                onClick={e => e.stopPropagation()}
-                onChange={this.onSliderDrag}
-                onChangeCommitted={this.onSliderCommit}
+                disabled={this.isReadOnly}
+                onClick={e => {
+                    e.stopPropagation();
+                    this.togglePower();
+                }}
+                title={isOn ? I18n.t('wm_Off') : I18n.t('wm_On')}
                 sx={theme => ({
-                    width: 80,
-                    color: accent || theme.palette.primary.main,
-                    '& .MuiSlider-thumb': { width: 14, height: 14 },
+                    color: isOn ? accent || theme.palette.primary.main : theme.palette.text.disabled,
                 })}
-            />
+            >
+                <PowerSettingsNew fontSize="small" />
+            </IconButton>
         );
     }
 
@@ -923,7 +997,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton);
+        const indicators = this.renderIndicators(settingsButton, this.renderPowerButton());
         const displayValue =
             unit === '%'
                 ? `${level}%`
@@ -1043,7 +1117,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton);
+        const indicators = this.renderIndicators(settingsButton, this.renderPowerButton());
 
         const vb = 100;
         const sw = 8;
