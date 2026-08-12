@@ -101,27 +101,23 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
 
     // ── Actions ──────────────────────────────────────────────────────
 
+    // `SET` is a boolean in the pattern (`switch.gate`); the numeric position lives on `ACTUAL`,
+    // which is read-only. Every command is therefore a boolean, whether or not the gate reports one.
     private toggle = (): void => {
-        if (!this.setId) {
-            return;
-        }
-        const open = this.isOpen;
-        if (this.actualId) {
-            void this.setValue(this.setId, open ? 0 : 100);
-        } else {
-            void this.setValue(this.setId, !open);
+        if (this.setId) {
+            void this.setValue(this.setId, !this.isOpen);
         }
     };
 
     private open = (): void => {
         if (this.setId) {
-            void this.setValue(this.setId, this.actualId ? 100 : true);
+            void this.setValue(this.setId, true);
         }
     };
 
     private close = (): void => {
         if (this.setId) {
-            void this.setValue(this.setId, this.actualId ? 0 : false);
+            void this.setValue(this.setId, false);
         }
     };
 
@@ -165,7 +161,7 @@ export class WidgetGate extends WidgetGeneric<WidgetGateState> {
         if (this.state.fullyClosed) {
             return 0;
         }
-        if (this.state.fullyOpen && !this.state.position) {
+        if (this.state.fullyOpen) {
             return 100;
         }
         return this.state.position;
