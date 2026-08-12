@@ -13,6 +13,9 @@ import { hideBaseFields } from '../configUtils';
 import { getIconForRole } from '../../Components/helpers/roleIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
+/** State names that carry the reading of a measuring device */
+const VALUE_STATE_NAMES = new Set(['ACTUAL', 'PRESSURE', 'FLOW', 'AQI', 'ELECTRIC_POWER']);
+
 interface InfoState {
     id: string;
     role: string;
@@ -38,9 +41,11 @@ export class WidgetInfo extends WidgetGeneric<WidgetInfoState> {
     constructor(props: WidgetGenericProps) {
         super(props);
         const states = props.widget.control.states;
-        // Collect all ACTUAL states (info type allows multiple)
+        // `info` names every reading ACTUAL and allows several of them. The sensor types that used to
+        // be detected as `info` name their reading after the quantity instead, so accept those names
+        // too — otherwise such a device has nothing to show.
         this.stateIds = states
-            .filter(s => s.name === 'ACTUAL' && s.id)
+            .filter(s => VALUE_STATE_NAMES.has(s.name) && s.id)
             .map(s => ({ id: s.id, role: s.stateRole || '' }));
 
         this.state = {
