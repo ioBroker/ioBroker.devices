@@ -55,6 +55,19 @@ const TYPE_OPTIONS: Record<Types, Record<ApplicationType, boolean>> = {
     [Types.unknown]: { alexa: false, alisa: false, google: false, material: false },
     [Types.chart]: { alexa: false, alisa: false, google: false, material: false },
     [Types.instance]: { alexa: false, alisa: false, google: false, material: false },
+
+    // Types added in type-detector 6.0.0. Which voice assistant supports which of them is not
+    // recorded anywhere in this repo or in the detector, so they start out as "not supported" and
+    // are corrected as the adapters are checked one by one.
+    [Types.airPurifier]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.airQuality]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.coAlarm]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.contact]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.electricity]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.fan]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.flow]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.pressure]: { alexa: false, alisa: false, google: false, material: false },
+    [Types.pump]: { alexa: false, alisa: false, google: false, material: false },
 };
 
 export const ICONS_TYPE: Record<ApplicationType, React.JSX.Element> = {

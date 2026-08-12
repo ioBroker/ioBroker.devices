@@ -17,19 +17,19 @@
         "modulefederation.devices.config.js"
     ],
     "peerDependencies": {
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
         "@iobroker/gui-components": ">=10",
         "@iobroker/type-detector": ">=5",
+        "@mui/icons-material": ">=9",
         "@mui/material": ">=9",
-        "@mui/icons-material": ">=9"
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     },
     "devDependencies": {
         "@iobroker/gui-components": "^10.0.5",
-        "@iobroker/type-detector": "^5.0.15",
+        "@iobroker/type-detector": "^6.0.0",
         "@iobroker/types": "^7.2.2",
-        "@mui/material": "^9.2.0",
         "@mui/icons-material": "^9.2.0",
+        "@mui/material": "^9.2.0",
         "@types/react": "^19.2.17",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
