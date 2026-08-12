@@ -966,12 +966,16 @@ function LightsGroupControl(props: {
     widgetIds: string[];
     widgets: WidgetInfo[];
     stateContext: StateContext;
+    widgetSettings: Record<string, WidgetSettingsBase>;
 }): React.JSX.Element | null {
-    const { widgetIds, widgets, stateContext } = props;
+    const { widgetIds, widgets, stateContext, widgetSettings } = props;
+    // The group header writes to every light at once and so bypasses `WidgetGeneric.setValue()`,
+    // the write path that enforces the view permission. Read the level here instead.
+    const acl = React.useContext(AclContext);
 
     // Find controllable lights: resolve SET/ON_SET for control and ACTUAL/ON_ACTUAL for reading
     const lightControls = useMemo(() => {
-        const controls: { widgetId: string; setId: string; listenId: string }[] = [];
+        const controls: { widgetId: string; setId: string; listenId: string; parent?: string }[] = [];
         for (const wId of widgetIds) {
             const widget = widgets.find(w => String(w.id) === wId);
             if (!widget?.control?.states) {
@@ -988,7 +992,7 @@ function LightsGroupControl(props: {
             const listenId = onActual?.id ?? onSet?.id ?? on?.id ?? actual?.id ?? setId;
 
             if (setId && listenId) {
-                controls.push({ widgetId: wId, setId, listenId });
+                controls.push({ widgetId: wId, setId, listenId, parent: widget.parent?.toString() });
             }
         }
         return controls;
@@ -1037,6 +1041,9 @@ function LightsGroupControl(props: {
         const newState = !someOn;
         const socket = stateContext.getSocket();
         for (const ctrl of lightControls) {
+            if (acl.widgetLevel(widgetSettings[ctrl.widgetId]?.acl, ctrl.parent) === 'read') {
+                continue;
+            }
             void socket.setState(ctrl.setId, newState);
         }
     };
@@ -1372,6 +1379,7 @@ function GroupedContent(props: {
                                     widgetIds={group.widgetIds}
                                     widgets={category.props.widgets}
                                     stateContext={category.props.stateContext}
+                                    widgetSettings={widgetSettings}
                                 />
                             ) : null}
                         </Box>
