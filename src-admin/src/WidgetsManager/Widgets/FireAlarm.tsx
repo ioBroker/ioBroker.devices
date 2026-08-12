@@ -156,8 +156,10 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         if (!alarm && !coAlarm) {
             return this.props.settings?.text || I18n.t('wm_OK');
         }
-        const what =
-            coAlarm && !alarm ? I18n.t('wm_Carbon monoxide') : this.props.settings?.textActive || I18n.t('wm_Fire');
+        const fire = this.props.settings?.textActive || I18n.t('wm_Fire');
+        const co = I18n.t('wm_Carbon monoxide');
+        // Independent alarms: naming only one of them would hide the other
+        const what = alarm && coAlarm ? `${fire} + ${co}` : alarm ? fire : co;
         const how = severity == null ? undefined : (severityStates?.[String(severity)] ?? String(severity));
         return how ? `${what} · ${how}` : what;
     }
