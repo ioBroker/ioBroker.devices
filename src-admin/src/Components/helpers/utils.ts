@@ -39,6 +39,30 @@ export function isStateRequired(state: Pick<ExternalDetectorState, 'required' | 
 }
 
 /**
+ * Whether clearing this state's id should keep the state object rather than delete it.
+ *
+ * A `required` state always stays. A member of a `requiredOneOf` group only has to stay while it is
+ * the last one still mapped — the group needs one member, not all of them, so an alternative the
+ * user swapped away from should go rather than linger with an empty alias.
+ */
+export function keepStateWhenCleared(
+    state: Pick<ExternalDetectorState, 'name' | 'required' | 'requiredOneOf'>,
+    states: Pick<ExternalDetectorState, 'name' | 'requiredOneOf'>[],
+    ids: Record<string, string | { read: string; write: string } | undefined>,
+): boolean {
+    if (state.required) {
+        return true;
+    }
+    if (!state.requiredOneOf) {
+        return false;
+    }
+    const otherMapped = states.some(
+        other => other.name !== state.name && other.requiredOneOf === state.requiredOneOf && !!ids[other.name],
+    );
+    return !otherMapped;
+}
+
+/**
  * Pick the states a newly created device should get an object for: every `required` one, plus the
  * first member of each `requiredOneOf` group. Creating every member of a group would give a
  * thermostat three setpoints when the point of the group is that one of them is enough.

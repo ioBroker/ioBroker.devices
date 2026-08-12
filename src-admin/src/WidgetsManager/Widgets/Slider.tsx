@@ -122,8 +122,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
         this.setId = set?.id ?? null;
         this.actualId = actual?.id ?? set?.id ?? null;
-        this.onSetId = states.find(s => s.name === 'ON')?.id ?? null;
-        this.onActualId = states.find(s => s.name === 'ON_ACTUAL')?.id ?? this.onSetId;
+        this.onSetId = states.find(s => s.name === 'ON' && s.id)?.id || null;
+        this.onActualId = states.find(s => s.name === 'ON_ACTUAL' && s.id)?.id || this.onSetId;
 
         this.state = {
             ...this.state,

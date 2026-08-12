@@ -97,7 +97,7 @@ import {
     getStateCommonType,
     getStatesToCreate,
     inheritCommonFromSource,
-    isStateRequired,
+    keepStateWhenCleared,
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
@@ -2769,7 +2769,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             obj.common.alias.write !== data.fx[state.name].write
                         ) {
                             // update alias ID
-                            if (!isStateRequired(state) && !data.ids[state.name]) {
+                            if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
                                 // delete state
                                 await this.props.socket.delObject(state.id);
                             } else {
@@ -2917,7 +2917,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             !obj.common.custom[attr].isLinked
                         ) {
                             // update alias ID
-                            if (!isStateRequired(state) && !data.ids[state.name]) {
+                            if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
                                 // delete state
                                 await this.props.socket.delObject(state.id);
                                 somethingChanged = true;

@@ -975,10 +975,16 @@ function LightsGroupControl(props: {
 
     // Find controllable lights: resolve SET/ON_SET for control and ACTUAL/ON_ACTUAL for reading
     const lightControls = useMemo(() => {
-        const controls: { widgetId: string; setId: string; listenId: string; parent?: string }[] = [];
+        const controls: { widgetId: string; setId: string; listenId: string }[] = [];
         for (const wId of widgetIds) {
             const widget = widgets.find(w => String(w.id) === wId);
             if (!widget?.control?.states) {
+                continue;
+            }
+            // Only lights this user may operate. Excluding them here rather than at the write also
+            // keeps them out of the on/off count — otherwise one restricted light that is on makes
+            // the header offer "turn all off" while the lights the user can reach stay dark.
+            if (acl.widgetLevel(widgetSettings[wId]?.acl, widget.parent?.toString()) !== 'control') {
                 continue;
             }
             const states = widget.control.states;
@@ -992,11 +998,11 @@ function LightsGroupControl(props: {
             const listenId = onActual?.id ?? onSet?.id ?? on?.id ?? actual?.id ?? setId;
 
             if (setId && listenId) {
-                controls.push({ widgetId: wId, setId, listenId, parent: widget.parent?.toString() });
+                controls.push({ widgetId: wId, setId, listenId });
             }
         }
         return controls;
-    }, [widgetIds, widgets]);
+    }, [widgetIds, widgets, acl, widgetSettings]);
 
     const [onCount, setOnCount] = useState(0);
     const statesRef = useRef<Record<string, boolean>>({});
@@ -1041,9 +1047,6 @@ function LightsGroupControl(props: {
         const newState = !someOn;
         const socket = stateContext.getSocket();
         for (const ctrl of lightControls) {
-            if (acl.widgetLevel(widgetSettings[ctrl.widgetId]?.acl, ctrl.parent) === 'read') {
-                continue;
-            }
             void socket.setState(ctrl.setId, newState);
         }
     };
