@@ -60,6 +60,7 @@ import DialogEditFx from './DialogEditFx';
 import {
     getAddedChannelStates,
     getParentId,
+    isStateRequired,
     normalizeStates,
     renameMultipleEntries,
 } from '../Components/helpers/utils';
@@ -900,7 +901,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             const selectedState = this.state.channelInfo.states.find(
                                 s => s.name === this.state.selectIdFor,
                             );
-                            if (selectedState?.required) {
+                            if (selectedState && isStateRequired(selectedState)) {
                                 this.autoDetectSiblingStates(id, this.state.selectIdFor, ids);
                             }
                         }
@@ -1308,14 +1309,14 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             }
         }
 
-        if (item.required) {
+        if (isStateRequired(item)) {
             props.push('required');
         }
 
         const role = pattern?.defaultRole || (pattern?.role && pattern?.role.toString()) || item?.defaultRole || '';
         const titleTooltip = (
             <div>
-                {item.required && <div>{`${I18n.t('Required')}: true`}</div>}
+                {isStateRequired(item) && <div>{`${I18n.t('Required')}: true`}</div>}
                 <div>{`${I18n.t('Type')}: ${item.type || 'any'}`}</div>
                 <div>{`${I18n.t('Writable')}: ${!!item.write}`}</div>
                 {role && (
@@ -1376,10 +1377,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                             style={{
                                                 ...(isAddedName === 'add' ? styles.addedName : undefined),
                                                 ...(isAddedName === 'indicators' ? styles.indicators : undefined),
-                                                fontWeight: item.required ? 'bold' : null,
+                                                fontWeight: isStateRequired(item) ? 'bold' : null,
                                             }}
                                         >
-                                            {(item.required ? '*' : '') + name}
+                                            {(isStateRequired(item) ? '*' : '') + name}
                                             <div style={styles.stateSubCategory}>{I18n.t('alias_read')}</div>
                                         </Box>
                                     </div>
@@ -1461,7 +1462,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         <Box
                                             sx={styles.oidName}
                                             style={{
-                                                fontWeight: item.required ? 'bold' : null,
+                                                fontWeight: isStateRequired(item) ? 'bold' : null,
                                                 ...(isAddedName === 'add'
                                                     ? styles.addedName
                                                     : isAddedName === 'indicators'
@@ -1469,7 +1470,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                                       : undefined),
                                             }}
                                         >
-                                            {(item.required ? '*' : '') + name}
+                                            {(isStateRequired(item) ? '*' : '') + name}
                                             <div style={styles.stateSubCategory}>{I18n.t('alias_write')}</div>
                                         </Box>
                                     </div>
@@ -1663,7 +1664,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         <Box
                             sx={styles.oidName}
                             style={{
-                                fontWeight: item.required ? 'bold' : null,
+                                fontWeight: isStateRequired(item) ? 'bold' : null,
                                 ...(isAddedName === 'add'
                                     ? styles.addedName
                                     : isAddedName === 'indicators'
@@ -1671,7 +1672,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                       : undefined),
                             }}
                         >
-                            {(item.required ? '*' : '') + name}
+                            {(isStateRequired(item) ? '*' : '') + name}
                         </Box>
                     </div>
                 </Tooltip>

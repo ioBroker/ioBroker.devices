@@ -21,8 +21,18 @@ export interface DevicesPatternControl {
     channelId: string;
 }
 
+/**
+ * A state is mandatory either on its own or as a member of a group of alternatives — a thermostat's
+ * setpoint is only ever the latter, so testing `required` alone finds nothing on such a device.
+ * Twin of `isStateRequired` in src-admin/src/Components/helpers/utils.ts; the two build roots share
+ * no code.
+ */
+function isStateRequired(state: Pick<DetectorState, 'required' | 'requiredOneOf'>): boolean {
+    return !!state.required || !!state.requiredOneOf;
+}
+
 function findMainStateId(device: PatternControl): string | undefined {
-    const state = device.states.find(s => s.id && s.required);
+    const state = device.states.find(s => s.id && isStateRequired(s));
     return state?.id;
 }
 
@@ -44,7 +54,7 @@ function getParentId(id: string): string {
  * `common.alias`, so genuine device-level indicators on a neighbouring channel stay.
  */
 function removeForeignAliasStates(device: DevicesPatternControl, objects: Record<string, ioBroker.Object>): void {
-    // Only a required state may define the home channel — see the twin for why there is no fallback
+    // Only a mandatory state may define the home channel — see the twin for why there is no fallback
     // to "the first state with an ID".
     const primaryId = findMainStateId(device);
     if (!primaryId) {
@@ -52,7 +62,7 @@ function removeForeignAliasStates(device: DevicesPatternControl, objects: Record
     }
     const homeChannel = getParentId(primaryId);
     for (const state of device.states) {
-        if (!state.id || state.required) {
+        if (!state.id || isStateRequired(state)) {
             continue;
         }
         const common = objects[state.id]?.common as ioBroker.StateCommon | undefined;
