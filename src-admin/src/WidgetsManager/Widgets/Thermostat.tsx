@@ -54,7 +54,15 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     constructor(props: WidgetGenericProps) {
         super(props);
         const states = props.widget.control.states;
-        this.setId = states.find(s => s.name === 'SET')?.id ?? null;
+        // The setpoint may be plain, heating-only or cooling-only — the pattern makes them a group of
+        // alternatives, so any one of them is this tile's setpoint.
+        // A state whose alias was wiped keeps its name with an empty id, so emptiness has to count
+        // as absent here.
+        this.setId =
+            states.find(s => s.name === 'SET' && s.id)?.id ||
+            states.find(s => s.name === 'SET_HEATING' && s.id)?.id ||
+            states.find(s => s.name === 'SET_COOLING' && s.id)?.id ||
+            null;
         this.actualId = states.find(s => s.name === 'ACTUAL')?.id ?? null;
         this.humidityId = states.find(s => s.name === 'HUMIDITY')?.id ?? null;
         this.boostId = states.find(s => s.name === 'BOOST')?.id ?? null;
