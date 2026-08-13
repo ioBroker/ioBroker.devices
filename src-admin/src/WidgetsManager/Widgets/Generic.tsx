@@ -38,6 +38,7 @@ import {
     NotificationsOff,
     Opacity,
     Science,
+    SensorWindow,
     SignalCellular1Bar,
     SignalCellular2Bar,
     SignalCellular3Bar,
@@ -118,6 +119,8 @@ export interface IndicatorValues {
     /** An alarm device whose siren the user silenced — it is still in alarm */
     muted: boolean | null;
     test: boolean | null;
+    /** Open-window contact of a thermostat, which is why it stopped heating */
+    windowOpen: boolean | null;
 }
 
 export interface ChartSeries {
@@ -198,6 +201,7 @@ export const INDICATOR_NAMES = [
     'WATER_ALARM',
     'MUTED',
     'TEST',
+    'WINDOW',
 ] as const;
 
 const INDICATOR_ICON_SIZE = 14;
@@ -212,6 +216,7 @@ const BOOLEAN_INDICATORS = {
     WATER_ALARM: { key: 'waterAlarm', label: 'wm_Water tank empty', Icon: Opacity },
     MUTED: { key: 'muted', label: 'wm_Alarm muted', Icon: NotificationsOff },
     TEST: { key: 'test', label: 'wm_Test mode', Icon: Science },
+    WINDOW: { key: 'windowOpen', label: 'wm_Window open', Icon: SensorWindow },
 } as const satisfies Record<string, { key: keyof IndicatorValues; label: string; Icon: SvgIconComponent }>;
 
 type BooleanIndicatorName = keyof typeof BOOLEAN_INDICATORS;
@@ -241,6 +246,9 @@ export const EXTRA_INFO_NAMES = [
     'BRUSH',
     'SIDE_BRUSH',
     'SENSORS',
+    'VALVE',
+    'FILTER_CONDITION',
+    'FILTER_CONDITION_CARBON',
 ] as const;
 
 const EXTRA_INFO_LABELS: Record<string, string> = {
@@ -253,6 +261,9 @@ const EXTRA_INFO_LABELS: Record<string, string> = {
     BRUSH: 'wm_Brush',
     SIDE_BRUSH: 'wm_Side brush',
     SENSORS: 'wm_Sensors',
+    VALVE: 'wm_Valve',
+    FILTER_CONDITION: 'wm_Filter condition',
+    FILTER_CONDITION_CARBON: 'wm_Carbon filter condition',
 };
 
 /** Check if the current theme is the neumorphic "styling-grey" preset */
@@ -765,6 +776,7 @@ const DEFAULT_INDICATORS: IndicatorValues = {
     waterAlarm: null,
     muted: null,
     test: null,
+    windowOpen: null,
 };
 
 export class WidgetGeneric<
@@ -1143,7 +1155,8 @@ export class WidgetGeneric<
                 case 'WASTE_ALARM':
                 case 'WATER_ALARM':
                 case 'MUTED':
-                case 'TEST': {
+                case 'TEST':
+                case 'WINDOW': {
                     const { key } = BOOLEAN_INDICATORS[name];
                     const val = !!state.val;
                     if (indicators[key] !== val) {

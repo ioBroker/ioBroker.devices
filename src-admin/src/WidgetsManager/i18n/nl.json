@@ -561,5 +561,17 @@
     "wm_Tile style": "Tegelstijl",
     "wm_Tile gradient": "Verloop",
     "wm_Tile flat": "Vlak",
-    "wm_Tile glass": "Glas"
+    "wm_Tile glass": "Glas",
+    "wm_Heating setpoint": "Streefwaarde verwarming",
+    "wm_Cooling setpoint": "Streefwaarde koeling",
+    "wm_Working mode": "Werkingsmodus",
+    "wm_mode_idle": "Inactief",
+    "wm_Fan level": "Ventilatorniveau",
+    "wm_Airflow direction": "Luchtstroomrichting",
+    "wm_airflow_forward": "Vooruit",
+    "wm_airflow_reverse": "Achteruit",
+    "wm_Valve": "Ventiel",
+    "wm_Filter condition": "Filterstatus",
+    "wm_Carbon filter condition": "Status koolstoffilter",
+    "wm_Window open": "Raam open"
 }

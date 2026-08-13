@@ -561,5 +561,17 @@
     "wm_Tile style": "Стиль плитки",
     "wm_Tile gradient": "Градиент",
     "wm_Tile flat": "Плоский",
-    "wm_Tile glass": "Стекло"
+    "wm_Tile glass": "Стекло",
+    "wm_Heating setpoint": "Заданная температура нагрева",
+    "wm_Cooling setpoint": "Заданная температура охлаждения",
+    "wm_Working mode": "Режим работы",
+    "wm_mode_idle": "Ожидание",
+    "wm_Fan level": "Уровень вентилятора",
+    "wm_Airflow direction": "Направление воздушного потока",
+    "wm_airflow_forward": "Вперёд",
+    "wm_airflow_reverse": "Назад",
+    "wm_Valve": "Клапан",
+    "wm_Filter condition": "Состояние фильтра",
+    "wm_Carbon filter condition": "Состояние угольного фильтра",
+    "wm_Window open": "Окно открыто"
 }

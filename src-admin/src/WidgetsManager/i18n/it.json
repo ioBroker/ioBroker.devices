@@ -561,5 +561,17 @@
     "wm_Tile style": "Stile riquadro",
     "wm_Tile gradient": "Gradiente",
     "wm_Tile flat": "Piatto",
-    "wm_Tile glass": "Vetro"
+    "wm_Tile glass": "Vetro",
+    "wm_Heating setpoint": "Setpoint riscaldamento",
+    "wm_Cooling setpoint": "Setpoint raffreddamento",
+    "wm_Working mode": "Modalità di funzionamento",
+    "wm_mode_idle": "Inattivo",
+    "wm_Fan level": "Livello ventola",
+    "wm_Airflow direction": "Direzione del flusso d'aria",
+    "wm_airflow_forward": "Avanti",
+    "wm_airflow_reverse": "Indietro",
+    "wm_Valve": "Valvola",
+    "wm_Filter condition": "Stato del filtro",
+    "wm_Carbon filter condition": "Stato del filtro a carbone",
+    "wm_Window open": "Finestra aperta"
 }

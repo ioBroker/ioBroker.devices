@@ -561,5 +561,17 @@
     "wm_Tile style": "Estilo de mosaico",
     "wm_Tile gradient": "Degradado",
     "wm_Tile flat": "Plano",
-    "wm_Tile glass": "Cristal"
+    "wm_Tile glass": "Cristal",
+    "wm_Heating setpoint": "Consigna de calefacción",
+    "wm_Cooling setpoint": "Consigna de refrigeración",
+    "wm_Working mode": "Modo de funcionamiento",
+    "wm_mode_idle": "Inactivo",
+    "wm_Fan level": "Nivel del ventilador",
+    "wm_Airflow direction": "Dirección del flujo de aire",
+    "wm_airflow_forward": "Adelante",
+    "wm_airflow_reverse": "Atrás",
+    "wm_Valve": "Válvula",
+    "wm_Filter condition": "Estado del filtro",
+    "wm_Carbon filter condition": "Estado del filtro de carbón",
+    "wm_Window open": "Ventana abierta"
 }

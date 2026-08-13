@@ -1,5 +1,18 @@
 import React from 'react';
-import { Box, Button, ButtonBase, Dialog, DialogContent, IconButton, Slider, Tooltip, Typography } from '@mui/material';
+import {
+    Box,
+    Button,
+    ButtonBase,
+    Dialog,
+    DialogContent,
+    IconButton,
+    Slider,
+    TextField,
+    Tooltip,
+    Typography,
+    type SxProps,
+    type Theme,
+} from '@mui/material';
 import {
     AcUnit,
     Add,
@@ -8,9 +21,11 @@ import {
     Close,
     EnergySavingsLeaf,
     LocalFireDepartment,
+    PauseCircleOutlined,
     PowerSettingsNew,
     Remove,
     SwapVert,
+    SwapHoriz,
     Tune,
     Whatshot,
 } from '@mui/icons-material';
@@ -19,87 +34,185 @@ import { I18n } from '@iobroker/gui-components';
 import WidgetGeneric, {
     formatFloat,
     isNeumorphicTheme,
+    toNumberOrNull,
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import ClimateArc from './ClimateArc';
+import { parseCommonStates, stateKeyToValue } from './commonStates';
+import {
+    COOLING_COLOR,
+    HEATING_COLOR,
+    SETPOINT_KINDS,
+    clampAgainstOther,
+    clampForWrite,
+    clampToRange,
+    defaultRange,
+    findSetpointIds,
+    fractionToValue,
+    isDualSetpoint,
+    mergeRanges,
+    metaFromCommon,
+    offDialSetpointKinds,
+    pickDragTarget,
+    pointerToFraction,
+    rangeFromCommon,
+    setpointId,
+    singleSetpointKind,
+    type SetpointIds,
+    type SetpointKind,
+    type SetpointMetas,
+    type SetpointRange,
+} from './climate';
 
 interface WidgetAirConditionState extends WidgetGenericState {
     setTemp: number | null;
+    setHeating: number | null;
+    setCooling: number | null;
+    /** What the user has typed into one of the off-dial setpoint fields but not committed yet */
+    setDraft: { kind: SetpointKind; text: string } | null;
     actualTemp: number | null;
     humidity: number | null;
     boost: boolean;
     power: boolean | null;
     mode: string | number | null;
     modeStates: Record<string, string>;
+    workingMode: string | number | null;
+    workingModeStates: Record<string, string>;
     speed: string | number | null;
     speedStates: Record<string, string>;
+    /** Continuous fan level, beside the stepped `SPEED` list */
+    speedLevel: number | null;
+    speedLevelRange: SetpointRange;
+    /** Unit the fan-level datapoint declares — the pattern only suggests percent */
+    speedLevelUnit: string;
     swing: string | number | boolean | null;
     swingStates: Record<string, string>;
     swingIsBoolean: boolean;
-    setMin: number;
-    setMax: number;
-    setStep: number;
+    airflow: string | number | null;
+    airflowStates: Record<string, string>;
+    /** What each setpoint datapoint declares — its own limits, and whether it can be written */
+    metas: SetpointMetas;
+    /** The scale under the thumbs: every setpoint's range at once */
+    range: SetpointRange;
     dragging: boolean;
+    /** Setpoint the running gesture moves; picked on pointer-down and kept for the gesture */
+    dragTarget: SetpointKind | null;
     dialogOpen: boolean;
 }
 
 export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
-    private readonly setId: string | null;
+    private readonly setIds: SetpointIds;
+    private readonly dual: boolean;
+    /** The setpoint a single-thumb dial follows; null once the dial carries two */
+    private readonly singleKind: SetpointKind | null;
     private readonly actualId: string | null;
     private readonly humidityId: string | null;
     private readonly boostId: string | null;
     private readonly powerId: string | null;
     private readonly modeId: string | null;
+    private readonly workingModeId: string | null;
     private readonly speedId: string | null;
+    private readonly speedLevelId: string | null;
     private readonly swingId: string | null;
+    private readonly airflowId: string | null;
     private readonly arcRef = React.createRef<HTMLDivElement>();
 
     constructor(props: WidgetGenericProps) {
         super(props);
         const states = props.widget.control.states;
-        // The setpoint may be plain, heating-only or cooling-only — the pattern makes them a group of
-        // alternatives, so any one of them is this tile's setpoint.
-        // A state whose alias was wiped keeps its name with an empty id, so emptiness has to count
-        // as absent here.
-        this.setId =
-            states.find(s => s.name === 'SET' && s.id)?.id ||
-            states.find(s => s.name === 'SET_HEATING' && s.id)?.id ||
-            states.find(s => s.name === 'SET_COOLING' && s.id)?.id ||
-            null;
+        this.setIds = findSetpointIds(states);
+        this.dual = isDualSetpoint(this.setIds);
+        this.singleKind = this.dual ? null : singleSetpointKind(this.setIds);
         this.actualId = states.find(s => s.name === 'ACTUAL')?.id ?? null;
         this.humidityId = states.find(s => s.name === 'HUMIDITY')?.id ?? null;
         this.boostId = states.find(s => s.name === 'BOOST')?.id ?? null;
         this.powerId = states.find(s => s.name === 'POWER')?.id ?? null;
         this.modeId = states.find(s => s.name === 'MODE')?.id ?? null;
+        this.workingModeId = states.find(s => s.name === 'WORKING_MODE' && s.id)?.id ?? null;
         this.speedId = states.find(s => s.name === 'SPEED')?.id ?? null;
+        this.speedLevelId = states.find(s => s.name === 'SPEED_LEVEL' && s.id)?.id ?? null;
         this.swingId = states.find(s => s.name === 'SWING')?.id ?? null;
+        this.airflowId = states.find(s => s.name === 'AIRFLOW_DIRECTION' && s.id)?.id ?? null;
 
         this.state = {
             ...this.state,
             setTemp: null,
+            setHeating: null,
+            setCooling: null,
+            setDraft: null,
             actualTemp: null,
             humidity: null,
             boost: false,
             power: null,
             mode: null,
             modeStates: {},
+            workingMode: null,
+            workingModeStates: {},
             speed: null,
             speedStates: {},
+            speedLevel: null,
+            speedLevelRange: { min: 0, max: 100, step: 1 },
+            speedLevelUnit: '%',
             swing: null,
             swingStates: {},
             swingIsBoolean: false,
-            setMin: 16,
-            setMax: 30,
-            setStep: 0.5,
+            airflow: null,
+            airflowStates: {},
+            metas: {},
+            range: defaultRange(16, 30),
             dragging: false,
+            dragTarget: null,
             dialogOpen: false,
         };
     }
 
+    private setpointValue(kind: SetpointKind): number | null {
+        return kind === 'plain'
+            ? this.state.setTemp
+            : kind === 'heating'
+              ? this.state.setHeating
+              : this.state.setCooling;
+    }
+
+    /** The value a single-thumb dial and every single-value readout show */
+    private get displaySetpoint(): number | null {
+        return this.singleKind ? this.setpointValue(this.singleKind) : null;
+    }
+
+    /** The temperature the tile takes its colour from */
+    private get displayTemp(): number | null {
+        return this.state.actualTemp ?? this.displaySetpoint ?? this.state.setHeating ?? this.state.setCooling;
+    }
+
+    private get hasSetpoint(): boolean {
+        return this.dual
+            ? this.state.setHeating != null || this.state.setCooling != null
+            : this.displaySetpoint != null;
+    }
+
     componentDidMount(): void {
         super.componentDidMount();
-        if (this.setId) {
-            this.props.stateContext.getState(this.setId, this.onSetChange);
+        if (this.setIds.plain) {
+            this.props.stateContext.getState(this.setIds.plain, this.onPlainSetChange);
+        }
+        if (this.setIds.heating) {
+            this.props.stateContext.getState(this.setIds.heating, this.onHeatingSetChange);
+        }
+        if (this.setIds.cooling) {
+            this.props.stateContext.getState(this.setIds.cooling, this.onCoolingSetChange);
+        }
+        if (this.workingModeId) {
+            this.props.stateContext.getState(this.workingModeId, this.onWorkingModeChange);
+            void this.loadStatesObject(this.workingModeId, 'workingModeStates');
+        }
+        if (this.speedLevelId) {
+            this.props.stateContext.getState(this.speedLevelId, this.onSpeedLevelChange);
+            void this.loadSpeedLevelRange();
+        }
+        if (this.airflowId) {
+            this.props.stateContext.getState(this.airflowId, this.onAirflowChange);
+            void this.loadStatesObject(this.airflowId, 'airflowStates');
         }
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onActualChange);
@@ -125,13 +238,28 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             this.props.stateContext.getState(this.swingId, this.onSwingChange);
             void this.loadSwingObject();
         }
-        void this.loadSetObject();
+        void this.loadSetpointMetas();
     }
 
     componentWillUnmount(): void {
         super.componentWillUnmount();
-        if (this.setId) {
-            this.props.stateContext.removeState(this.setId, this.onSetChange);
+        if (this.setIds.plain) {
+            this.props.stateContext.removeState(this.setIds.plain, this.onPlainSetChange);
+        }
+        if (this.setIds.heating) {
+            this.props.stateContext.removeState(this.setIds.heating, this.onHeatingSetChange);
+        }
+        if (this.setIds.cooling) {
+            this.props.stateContext.removeState(this.setIds.cooling, this.onCoolingSetChange);
+        }
+        if (this.workingModeId) {
+            this.props.stateContext.removeState(this.workingModeId, this.onWorkingModeChange);
+        }
+        if (this.speedLevelId) {
+            this.props.stateContext.removeState(this.speedLevelId, this.onSpeedLevelChange);
+        }
+        if (this.airflowId) {
+            this.props.stateContext.removeState(this.airflowId, this.onAirflowChange);
         }
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onActualChange);
@@ -156,72 +284,49 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     }
 
-    /**
-     * Read `common.states` in every shape ioBroker allows.
-     *
-     * Adapters deliver the list as an object, as an array (value = index) or as a
-     * `"0:Auto;1:Cool"` string. Only the object form used to be understood, so a device that
-     * exports either of the other two lost its buttons entirely (issue #654).
-     *
-     * @param states Raw `common.states` from the object definition
-     * @returns Value → label, with the values kept as strings
-     */
-    private static parseCommonStates(states: unknown): Record<string, string> {
-        if (!states) {
-            return {};
-        }
-        if (typeof states === 'string') {
-            const parsed: Record<string, string> = {};
-            for (const pair of states.split(';')) {
-                const at = pair.indexOf(':');
-                if (at > 0) {
-                    parsed[pair.slice(0, at).trim()] = pair.slice(at + 1).trim();
-                }
-            }
-            return parsed;
-        }
-        if (Array.isArray(states)) {
-            const parsed: Record<string, string> = {};
-            states.forEach((label, i) => (parsed[String(i)] = String(label)));
-            return parsed;
-        }
-        if (typeof states === 'object') {
-            const parsed: Record<string, string> = {};
-            for (const [key, label] of Object.entries(states as Record<string, unknown>)) {
-                parsed[key] = String(label);
-            }
-            return parsed;
-        }
-        return {};
-    }
-
-    /**
-     * Value to write for a state list entry.
-     *
-     * The key carries the datapoint's own type: a numeric datapoint must receive `7`, a string one
-     * `'SWING'`. Coercing everything through `Number()` turned string keys into `NaN`.
-     *
-     * @param key Key from `common.states`
-     * @returns The key as the datapoint expects it
-     */
-    private static stateKeyToValue(key: string): string | number {
-        const num = Number(key);
-        return key.trim() !== '' && !isNaN(num) ? num : key;
-    }
-
-    private async loadStatesObject(id: string, stateKey: 'modeStates' | 'speedStates'): Promise<void> {
+    private async loadStatesObject(
+        id: string,
+        stateKey: 'modeStates' | 'speedStates' | 'workingModeStates' | 'airflowStates',
+    ): Promise<void> {
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
                 | ioBroker.StateObject
                 | null
                 | undefined;
-            const parsed = WidgetAirCondition.parseCommonStates(obj?.common?.states);
+            const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 if (stateKey === 'modeStates') {
                     this.setState({ modeStates: parsed });
-                } else {
+                } else if (stateKey === 'speedStates') {
                     this.setState({ speedStates: parsed });
+                } else if (stateKey === 'workingModeStates') {
+                    this.setState({ workingModeStates: parsed });
+                } else {
+                    this.setState({ airflowStates: parsed });
                 }
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    private async loadSpeedLevelRange(): Promise<void> {
+        if (!this.speedLevelId) {
+            return;
+        }
+        try {
+            const obj = (await this.props.stateContext.getSocket().getObject(this.speedLevelId)) as
+                | ioBroker.StateObject
+                | null
+                | undefined;
+            const range = rangeFromCommon(obj?.common, this.state.speedLevelRange);
+            if (range) {
+                this.setState({ speedLevelRange: range });
+            }
+            // The pattern only suggests percent; a device is free to report rpm, and printing "%"
+            // beside an rpm value would state something the device never said
+            if (obj?.common?.unit) {
+                this.setState({ speedLevelUnit: obj.common.unit });
             }
         } catch {
             // ignore
@@ -238,7 +343,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                 | null
                 | undefined;
             if (obj?.common) {
-                const parsed = WidgetAirCondition.parseCommonStates(obj.common.states);
+                const parsed = parseCommonStates(obj.common.states);
                 // A boolean datapoint that ships its own two labels is still a list, not a switch
                 const isBoolean = obj.common.type === 'boolean' && !Object.keys(parsed).length;
                 this.setState({ swingIsBoolean: isBoolean });
@@ -251,38 +356,78 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     }
 
-    private async loadSetObject(): Promise<void> {
-        if (!this.setId) {
-            return;
-        }
-        try {
-            const obj = (await this.props.stateContext.getSocket().getObject(this.setId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
-            if (obj?.common) {
-                const min = obj.common.min != null ? Number(obj.common.min) : 16;
-                const max = obj.common.max != null ? Number(obj.common.max) : 30;
-                const step = obj.common.step != null ? Number(obj.common.step) : 0.5;
-                if (!isNaN(min) && !isNaN(max) && max > min) {
-                    this.setState({ setMin: min, setMax: max, setStep: step > 0 ? step : 0.5 });
-                }
+    /**
+     * Read what every setpoint datapoint declares: its own limits, kept per setpoint so a write
+     * respects them, and their union, which is the scale the dial paints.
+     */
+    private async loadSetpointMetas(): Promise<void> {
+        const fallback = this.state.range;
+        const metas: SetpointMetas = {};
+        for (const kind of SETPOINT_KINDS) {
+            const id = setpointId(this.setIds, kind);
+            if (!id) {
+                continue;
             }
-        } catch {
-            // ignore
+            try {
+                const obj = (await this.props.stateContext.getSocket().getObject(id)) as
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
+                metas[kind] = metaFromCommon(obj?.common, fallback);
+            } catch {
+                // A datapoint that cannot be read contributes nothing rather than failing the rest
+            }
         }
+        const merged = mergeRanges(SETPOINT_KINDS.map(kind => metas[kind]?.range ?? null));
+        this.setState({ metas, range: merged ?? fallback });
     }
 
     // --- State change handlers ---
 
-    private onSetChange = (_id: string, state: ioBroker.State): void => {
-        if (this.state.dragging) {
+    private applySetpoint(kind: SetpointKind, state: ioBroker.State): void {
+        // While a thumb is being dragged only that setpoint is held back, so the other one keeps
+        // following the device. A gesture with no single target — the range slider — holds back both.
+        if (this.state.dragging && (this.state.dragTarget === null || this.state.dragTarget === kind)) {
             return;
         }
         const val = state.val != null ? Number(state.val) : null;
-        const setTemp = val != null && !isNaN(val) ? val : null;
-        if (setTemp !== this.state.setTemp) {
-            this.setState({ setTemp });
+        const value = val != null && !isNaN(val) ? val : null;
+        if (value === this.setpointValue(kind)) {
+            return;
+        }
+        if (kind === 'plain') {
+            this.setState({ setTemp: value });
+        } else if (kind === 'heating') {
+            this.setState({ setHeating: value });
+        } else {
+            this.setState({ setCooling: value });
+        }
+    }
+
+    private onPlainSetChange = (_id: string, state: ioBroker.State): void => this.applySetpoint('plain', state);
+
+    private onHeatingSetChange = (_id: string, state: ioBroker.State): void => this.applySetpoint('heating', state);
+
+    private onCoolingSetChange = (_id: string, state: ioBroker.State): void => this.applySetpoint('cooling', state);
+
+    private onWorkingModeChange = (_id: string, state: ioBroker.State): void => {
+        const workingMode = (state.val ?? null) as string | number | null;
+        if (workingMode !== this.state.workingMode) {
+            this.setState({ workingMode });
+        }
+    };
+
+    private onSpeedLevelChange = (_id: string, state: ioBroker.State): void => {
+        const speedLevel = toNumberOrNull(state.val);
+        if (speedLevel !== this.state.speedLevel) {
+            this.setState({ speedLevel });
+        }
+    };
+
+    private onAirflowChange = (_id: string, state: ioBroker.State): void => {
+        const airflow = (state.val ?? null) as string | number | null;
+        if (airflow !== this.state.airflow) {
+            this.setState({ airflow });
         }
     };
 
@@ -382,71 +527,155 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     };
 
-    private sendSetTemp(value: number): void {
-        if (this.setId) {
-            const clamped = Math.max(this.state.setMin, Math.min(this.state.setMax, value));
-            void this.setValue(this.setId, clamped);
+    private setSpeedLevel = (value: number): void => {
+        if (this.speedLevelId) {
+            void this.setValue(this.speedLevelId, clampToRange(value, this.state.speedLevelRange));
+        }
+    };
+
+    private setAirflow = (value: string | number): void => {
+        if (this.airflowId) {
+            void this.setValue(this.airflowId, value);
+            this.setState({ airflow: value });
+        }
+    };
+
+    /** The setpoint a heating/cooling thumb may not cross */
+    private otherSetpoint(kind: 'heating' | 'cooling'): number | null {
+        return kind === 'heating' ? this.state.setCooling : this.state.setHeating;
+    }
+
+    /**
+     * True once the heating/cooling pair can be edited as a pair.
+     *
+     * A range slider needs two values. Until the device has reported both, the second thumb would sit
+     * at a limit the device never mentioned, so the pair is edited one setpoint at a time instead.
+     */
+    private get isPairEditable(): boolean {
+        return this.dual && this.state.setHeating != null && this.state.setCooling != null;
+    }
+
+    /**
+     * The setpoint the single-value controls act on.
+     *
+     * That is the device's one setpoint, or — while a pair is still missing a value — the half of the
+     * pair that can be set. Heating leads when neither has reported yet.
+     */
+    private get dialKind(): SetpointKind | null {
+        if (!this.dual) {
+            return this.singleKind;
+        }
+        if (this.isPairEditable) {
+            return null;
+        }
+        return this.state.setCooling != null && this.state.setHeating == null ? 'cooling' : 'heating';
+    }
+
+    /** True when this setpoint cannot be written — by permission, or because the datapoint says so */
+    private isSetpointReadOnly(kind: SetpointKind): boolean {
+        return this.isReadOnly || !!this.state.metas[kind]?.readOnly;
+    }
+
+    /** True when no setpoint the dial carries can be written, so the dial must not respond to a drag */
+    private get isDialReadOnly(): boolean {
+        if (this.isReadOnly) {
+            return true;
+        }
+        const carried: SetpointKind[] = this.dual ? ['heating', 'cooling'] : this.singleKind ? [this.singleKind] : [];
+        return carried.length > 0 && carried.every(kind => !!this.state.metas[kind]?.readOnly);
+    }
+
+    private sendSetpoint(kind: SetpointKind, value: number): void {
+        const id = setpointId(this.setIds, kind);
+        if (id && !this.isSetpointReadOnly(kind)) {
+            void this.setValue(id, clampForWrite(this.state.metas, kind, value, this.state.range));
+        }
+    }
+
+    /** Show a setpoint immediately, keeping a heating/cooling pair from crossing */
+    private showSetpoint(kind: SetpointKind, value: number): void {
+        if (kind === 'plain') {
+            this.setState({ setTemp: value });
+        } else if (kind === 'heating') {
+            this.setState({ setHeating: clampAgainstOther('heating', value, this.state.setCooling) });
+        } else {
+            this.setState({ setCooling: clampAgainstOther('cooling', value, this.state.setHeating) });
         }
     }
 
     private adjustTemp = (delta: number): void => {
-        const current = this.state.setTemp ?? this.state.setMin;
-        const newVal = Math.max(this.state.setMin, Math.min(this.state.setMax, current + delta));
-        this.sendSetTemp(newVal);
-        this.setState({ setTemp: newVal });
+        const kind = this.dialKind;
+        if (!kind) {
+            return;
+        }
+        const current = this.setpointValue(kind) ?? this.state.range.min;
+        const next = clampToRange(current + delta, this.state.range);
+        this.sendSetpoint(kind, next);
+        this.showSetpoint(kind, next);
     };
 
     // --- Arc drag ---
 
-    private angleToTemp(clientX: number, clientY: number): number {
-        const el = this.arcRef.current;
-        if (!el) {
-            return this.state.setTemp ?? this.state.setMin;
-        }
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = clientX - cx;
-        const dy = clientY - cy;
-
-        let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
-        if (angle < 0) {
-            angle += 360;
-        }
-
-        let normalized = (angle - 225 + 360) % 360;
-        if (normalized > 270) {
-            normalized = normalized > 315 ? 0 : 270;
-        }
-
-        const { setMin, setMax, setStep } = this.state;
-        const fraction = normalized / 270;
-        const raw = setMin + fraction * (setMax - setMin);
-        return Math.max(setMin, Math.min(setMax, Math.round(raw / setStep) * setStep));
+    private pointerToSetpoint(e: React.PointerEvent): number | null {
+        const fraction = pointerToFraction(this.arcRef.current, e.clientX, e.clientY);
+        return fraction == null ? null : fractionToValue(fraction, this.state.range);
     }
 
+    /** Pointer that owns the running drag, so a second finger cannot take over its thumb */
+    private dragPointerId: number | null = null;
+
     private onArcPointerDown = (e: React.PointerEvent): void => {
+        // A second finger must not steal the thumb the first one is holding. An id left behind by a
+        // gesture that never ended is stale, so it does not lock the dial.
+        if (this.isDialReadOnly || (this.dragPointerId !== null && this.state.dragging)) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        const temp = this.angleToTemp(e.clientX, e.clientY);
-        this.setState({ dragging: true, setTemp: temp });
+        const value = this.pointerToSetpoint(e);
+        if (value == null) {
+            return;
+        }
+        const target = this.dual
+            ? pickDragTarget(value, this.state.setHeating, this.state.setCooling)
+            : this.singleKind;
+        if (!target) {
+            return;
+        }
+        this.dragPointerId = e.pointerId;
+        this.setState({ dragging: true, dragTarget: target });
+        this.showSetpoint(target, value);
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        if (!this.state.dragging) {
+        const kind = this.state.dragTarget;
+        if (!this.state.dragging || !kind || e.pointerId !== this.dragPointerId) {
             return;
         }
-        const temp = this.angleToTemp(e.clientX, e.clientY);
-        this.setState({ setTemp: temp });
+        const value = this.pointerToSetpoint(e);
+        if (value != null) {
+            this.showSetpoint(kind, value);
+        }
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
-        if (!this.state.dragging) {
+        const kind = this.state.dragTarget;
+        if (!this.state.dragging || !kind || e.pointerId !== this.dragPointerId) {
             return;
         }
-        const temp = this.angleToTemp(e.clientX, e.clientY);
-        this.sendSetTemp(temp);
-        this.setState({ setTemp: temp, dragging: false });
+        this.dragPointerId = null;
+        const pointed = this.pointerToSetpoint(e);
+        const value =
+            pointed == null
+                ? this.setpointValue(kind)
+                : kind === 'plain'
+                  ? pointed
+                  : clampAgainstOther(kind, pointed, this.otherSetpoint(kind));
+        if (value != null) {
+            this.sendSetpoint(kind, value);
+            this.showSetpoint(kind, value);
+        }
+        this.setState({ dragging: false, dragTarget: null });
     };
 
     // --- Mode helpers ---
@@ -459,6 +688,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         fan_only: { color: '#03a9f4', i18nKey: 'wm_mode_fan_only' },
         heat: { color: '#ff5722', i18nKey: 'wm_mode_heat' },
         off: { color: '#9e9e9e', i18nKey: 'wm_mode_off' },
+        idle: { color: '#9e9e9e', i18nKey: 'wm_mode_idle' },
         manual: { color: '#607d8b', i18nKey: 'wm_mode_manual' },
         boost: { color: '#f44336', i18nKey: 'wm_mode_boost' },
     };
@@ -490,6 +720,8 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                 return <Whatshot sx={sx} />;
             case 'off':
                 return <PowerSettingsNew sx={sx} />;
+            case 'idle':
+                return <PauseCircleOutlined sx={sx} />;
             case 'manual':
                 return <Tune sx={sx} />;
             case 'boost':
@@ -531,6 +763,19 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         return meta ? I18n.t(meta.i18nKey) : label;
     }
 
+    // --- Airflow helpers ---
+
+    private static readonly AIRFLOW_MAP: Record<string, { i18nKey: string }> = {
+        forward: { i18nKey: 'wm_airflow_forward' },
+        reverse: { i18nKey: 'wm_airflow_reverse' },
+    };
+
+    private static getAirflowLabel(label: string): string {
+        const key = label.toLowerCase().trim();
+        const meta = WidgetAirCondition.AIRFLOW_MAP[key];
+        return meta ? I18n.t(meta.i18nKey) : label;
+    }
+
     // --- Derived state helpers ---
 
     private getCurrentModeLabel(): string | null {
@@ -547,6 +792,15 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             return null;
         }
         return speedStates[String(speed)] || null;
+    }
+
+    /** What the device reports it is doing, as a label from its own state list */
+    private getWorkingModeLabel(): string | null {
+        const { workingMode, workingModeStates } = this.state;
+        if (workingMode == null) {
+            return null;
+        }
+        return workingModeStates[String(workingMode)] || null;
     }
 
     private isPoweredOff(): boolean {
@@ -590,6 +844,306 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         return `${formatFloat(t, 1, isFloatComma)}°`;
     }
 
+    // --- Setpoint rendering ---
+
+    /** Which thumb the device is not working towards, so the other one can be emphasised */
+    private get dimmedThumb(): 'heating' | 'cooling' | null {
+        if (!this.dual) {
+            return null;
+        }
+        const label = this.getWorkingModeLabel()?.toLowerCase().trim();
+        if (label === 'heat') {
+            return 'cooling';
+        }
+        if (label === 'cool') {
+            return 'heating';
+        }
+        return null;
+    }
+
+    /**
+     * The setpoints as one line: a single value, or the heating/cooling pair in their own colours.
+     *
+     * @param variant Typography variant of the surrounding row
+     * @param sx Styling of the single-setpoint text, which each layout sizes differently
+     * @param arrow Whether the single value keeps the arrow that distinguishes it from the actual one
+     * @returns The readout
+     */
+    private renderSetpointText(
+        variant: 'caption' | 'body2' | 'h6' | 'h5',
+        sx?: SxProps<Theme>,
+        arrow = true,
+    ): React.JSX.Element {
+        const isFloatComma = this.props.stateContext.isFloatComma;
+        if (!this.dual) {
+            return (
+                <Tooltip title={I18n.t('wm_Set temperature')}>
+                    <Typography
+                        variant={variant}
+                        sx={sx}
+                    >
+                        {arrow ? '→ ' : ''}
+                        {WidgetAirCondition.formatTemp(this.displaySetpoint, isFloatComma)}
+                    </Typography>
+                </Tooltip>
+            );
+        }
+        const dimmed = this.dimmedThumb;
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
+                <Tooltip title={I18n.t('wm_Heating setpoint')}>
+                    <Typography
+                        variant={variant}
+                        sx={{ fontWeight: 700, color: HEATING_COLOR, opacity: dimmed === 'heating' ? 0.5 : 1 }}
+                    >
+                        {WidgetAirCondition.formatTemp(this.state.setHeating, isFloatComma)}
+                    </Typography>
+                </Tooltip>
+                <Tooltip title={I18n.t('wm_Cooling setpoint')}>
+                    <Typography
+                        variant={variant}
+                        sx={{ fontWeight: 700, color: COOLING_COLOR, opacity: dimmed === 'cooling' ? 0.5 : 1 }}
+                    >
+                        {WidgetAirCondition.formatTemp(this.state.setCooling, isFloatComma)}
+                    </Typography>
+                </Tooltip>
+            </Box>
+        );
+    }
+
+    private static readonly SETPOINT_LABELS: Record<SetpointKind, string> = {
+        plain: 'wm_Set temperature',
+        heating: 'wm_Heating setpoint',
+        cooling: 'wm_Cooling setpoint',
+    };
+
+    /**
+     * Commit the setpoint the user typed.
+     *
+     * No optimistic update: the subscription reports what the device accepted, and a rejected write
+     * would otherwise leave the field showing a value the device never took.
+     */
+    private commitSetDraft(): void {
+        const draft = this.state.setDraft;
+        if (!draft) {
+            return;
+        }
+        const value = Number(draft.text.replace(',', '.'));
+        this.setState({ setDraft: null });
+        if (draft.text.trim() === '' || isNaN(value)) {
+            return;
+        }
+        this.sendSetpoint(draft.kind, value);
+    }
+
+    /**
+     * A field per setpoint the dial cannot carry.
+     *
+     * The dial takes one thumb, or the heating/cooling pair; a device that declares more than that —
+     * all three, or `SET` beside just one of the pair — would otherwise have a setpoint that is
+     * detected and impossible to set.
+     *
+     * @returns One row per off-dial setpoint, or null when the dial covers everything
+     */
+    private renderOffDialSetpointRows(): React.JSX.Element[] | null {
+        const kinds = offDialSetpointKinds(this.setIds, this.dual, this.singleKind);
+        if (!kinds.length) {
+            return null;
+        }
+        const { setDraft, metas, range } = this.state;
+        return kinds.map(kind => {
+            const own = metas[kind]?.range ?? range;
+            const value = this.setpointValue(kind);
+            return (
+                <Box
+                    key={kind}
+                    sx={theme => ({
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 2,
+                        py: 0.75,
+                        px: 1,
+                        mx: -1,
+                        borderBottom: '1px solid',
+                        borderColor: theme.palette.divider,
+                    })}
+                >
+                    <Typography variant="body2">{I18n.t(WidgetAirCondition.SETPOINT_LABELS[kind])}</Typography>
+                    <TextField
+                        variant="standard"
+                        type="number"
+                        size="small"
+                        disabled={this.isSetpointReadOnly(kind)}
+                        value={setDraft?.kind === kind ? setDraft.text : (value ?? '')}
+                        onChange={e => this.setState({ setDraft: { kind, text: e.target.value } })}
+                        onBlur={() => this.commitSetDraft()}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                this.commitSetDraft();
+                            }
+                        }}
+                        slotProps={{
+                            htmlInput: {
+                                min: own.min,
+                                max: own.max,
+                                step: own.step,
+                                style: { textAlign: 'right', width: 80 },
+                            },
+                        }}
+                    />
+                </Box>
+            );
+        });
+    }
+
+    /**
+     * Which thumbs the running range-slider interaction actually moved.
+     *
+     * Only these are written on commit. Comparing the committed pair against the values held when the
+     * gesture began cannot work: the press itself already moves a thumb, and the keyboard path emits
+     * no press at all — so a click on the rail would either write nothing or write both setpoints,
+     * one of them a value the user never touched.
+     */
+    private movedThumbs = new Set<'heating' | 'cooling'>();
+
+    /**
+     * The pair as the slider must receive it, lowest first, with the mapping back to the setpoint each
+     * thumb stands for.
+     *
+     * A device is free to report a heating setpoint above its cooling one. MUI requires an ascending
+     * array — a descending one gives a negative track and `disableSwap` then pins the lower thumb —
+     * so the order is normalised for display and the reverse mapping keeps a write on its own
+     * datapoint.
+     *
+     * @returns The ascending pair, and the setpoint each thumb index belongs to
+     */
+    private get sliderPair(): { value: number[]; kindAt: (index: number) => 'heating' | 'cooling' } {
+        const { setHeating, setCooling, range } = this.state;
+        const heating = setHeating ?? range.min;
+        const cooling = setCooling ?? range.max;
+        const crossed = heating > cooling;
+        return {
+            value: crossed ? [cooling, heating] : [heating, cooling],
+            kindAt: index => (crossed ? (index === 0 ? 'cooling' : 'heating') : index === 0 ? 'heating' : 'cooling'),
+        };
+    }
+
+    private onRangeSliderChange = (value: number | number[], activeThumb: number): void => {
+        if (!Array.isArray(value)) {
+            return;
+        }
+        const { kindAt } = this.sliderPair;
+        const moved = kindAt(activeThumb);
+        this.movedThumbs.add(moved);
+        // dragTarget stays null: with the pair on one control both echoes are held back at once
+        this.setState({
+            dragging: true,
+            dragTarget: null,
+            setHeating: value[kindAt(0) === 'heating' ? 0 : 1],
+            setCooling: value[kindAt(0) === 'cooling' ? 0 : 1],
+        });
+    };
+
+    private onRangeSliderCommit = (value: number | number[]): void => {
+        const moved = this.movedThumbs;
+        this.movedThumbs = new Set();
+        this.setState({ dragging: false, dragTarget: null });
+        if (!Array.isArray(value)) {
+            return;
+        }
+        const { kindAt } = this.sliderPair;
+        for (const [index, v] of value.entries()) {
+            const kind = kindAt(index);
+            if (moved.has(kind)) {
+                this.sendSetpoint(kind, v);
+            }
+        }
+    };
+
+    /**
+     * The setpoint controls under the dial: a slider per thumb.
+     *
+     * @param dimmedSx Applied while the device is powered off
+     * @returns A range slider for a heating/cooling pair, otherwise the stepped single slider
+     */
+    private renderSetpointControls(dimmedSx: Record<string, unknown>): React.JSX.Element | null {
+        const { range } = this.state;
+        if (this.isPairEditable) {
+            return (
+                <>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, mb: 2, ...dimmedSx }}>
+                        <Whatshot sx={{ color: HEATING_COLOR }} />
+                        <Slider
+                            disabled={this.isDialReadOnly}
+                            value={this.sliderPair.value}
+                            min={range.min}
+                            max={range.max}
+                            step={range.step}
+                            disableSwap
+                            onChange={(_e, value, activeThumb) => this.onRangeSliderChange(value, activeThumb)}
+                            onChangeCommitted={(_e, value) => this.onRangeSliderCommit(value)}
+                            sx={{
+                                flex: 1,
+                                color: COOLING_COLOR,
+                                '& .MuiSlider-thumb:first-of-type': { color: HEATING_COLOR },
+                            }}
+                        />
+                        <AcUnit sx={{ color: COOLING_COLOR }} />
+                    </Box>
+                    {this.renderOffDialSetpointRows()}
+                </>
+            );
+        }
+        const kind = this.dialKind;
+        if (!kind) {
+            return null;
+        }
+        const current = this.setpointValue(kind);
+        return (
+            <>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, mb: 2, ...dimmedSx }}>
+                    <IconButton
+                        disabled={this.isDialReadOnly}
+                        onClick={() => this.adjustTemp(-range.step)}
+                        sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
+                    >
+                        <Remove />
+                    </IconButton>
+                    <Slider
+                        disabled={this.isDialReadOnly}
+                        value={current ?? range.min}
+                        min={range.min}
+                        max={range.max}
+                        step={range.step}
+                        onMouseDown={() => this.setState({ dragging: true })}
+                        onTouchStart={() => this.setState({ dragging: true })}
+                        onChange={(_e, value) => {
+                            if (!Array.isArray(value)) {
+                                this.showSetpoint(kind, value);
+                            }
+                        }}
+                        onChangeCommitted={(_e, value) => {
+                            if (!Array.isArray(value)) {
+                                this.sendSetpoint(kind, value);
+                            }
+                            this.setState({ dragging: false });
+                        }}
+                        sx={{ flex: 1, color: WidgetAirCondition.getTempColor(current) }}
+                    />
+                    <IconButton
+                        disabled={this.isDialReadOnly}
+                        onClick={() => this.adjustTemp(range.step)}
+                        sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
+                    >
+                        <Add />
+                    </IconButton>
+                </Box>
+                {this.renderOffDialSetpointRows()}
+            </>
+        );
+    }
+
     // --- History ---
 
     protected getHistoryIds(): { id: string; color: string }[] {
@@ -597,8 +1151,15 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         if (this.actualId) {
             ids.push({ id: this.actualId, color: '#ff9800' });
         }
-        if (this.setId) {
-            ids.push({ id: this.setId, color: '#f44336' });
+        if (this.setIds.plain) {
+            // Red is the heating setpoint's colour wherever the device has one
+            ids.push({ id: this.setIds.plain, color: this.setIds.heating ? '#9c27b0' : '#f44336' });
+        }
+        if (this.setIds.heating) {
+            ids.push({ id: this.setIds.heating, color: HEATING_COLOR });
+        }
+        if (this.setIds.cooling) {
+            ids.push({ id: this.setIds.cooling, color: COOLING_COLOR });
         }
         if (this.humidityId) {
             ids.push({ id: this.humidityId, color: '#2196f3' });
@@ -609,7 +1170,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     // --- Tile overrides ---
 
     protected isTileActive(): boolean {
-        return !this.isPoweredOff() && (this.state.setTemp != null || this.state.actualTemp != null);
+        return !this.isPoweredOff() && (this.hasSetpoint || this.state.actualTemp != null);
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -641,7 +1202,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             return null;
         }
 
-        const { setTemp, actualTemp, humidity, boost, power } = this.state;
+        const { actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const speedLabel = this.getCurrentSpeedLabel();
 
@@ -658,16 +1219,9 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             </Typography>
                         </Tooltip>
                     ) : null}
-                    {setTemp != null ? (
-                        <Tooltip title={I18n.t('wm_Set temperature')}>
-                            <Typography
-                                variant="caption"
-                                sx={{ fontWeight: 500, color: 'text.secondary' }}
-                            >
-                                → {WidgetAirCondition.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
-                            </Typography>
-                        </Tooltip>
-                    ) : null}
+                    {this.hasSetpoint
+                        ? this.renderSetpointText('caption', { fontWeight: 500, color: 'text.secondary' })
+                        : null}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 14, color: '#f44336' }} /> : null}
                     {power === false ? (
                         <Tooltip title={I18n.t('wm_On/Off')}>
@@ -712,7 +1266,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     }
 
     protected renderTileAction(): React.JSX.Element | null {
-        const { setTemp, actualTemp, humidity, boost, power } = this.state;
+        const { actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const speedLabel = this.getCurrentSpeedLabel();
 
@@ -727,12 +1281,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             {WidgetAirCondition.formatTemp(actualTemp, this.props.stateContext.isFloatComma)}
                         </Typography>
                     ) : null}
-                    <Typography
-                        variant="h6"
-                        sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
-                    >
-                        → {WidgetAirCondition.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
-                    </Typography>
+                    {this.renderSetpointText('h6', { fontWeight: 700, whiteSpace: 'nowrap' })}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
                     {power === false ? <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} /> : null}
                     {modeLabel ? (
@@ -781,7 +1330,8 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
 
         const {
             name,
-            setTemp,
+            setHeating,
+            setCooling,
             actualTemp,
             humidity,
             boost,
@@ -790,30 +1340,26 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             modeStates,
             speed,
             speedStates,
+            speedLevel,
+            speedLevelRange,
+            speedLevelUnit,
             swing,
             swingStates,
             swingIsBoolean,
-            setMin,
-            setMax,
-            setStep,
+            airflow,
+            airflowStates,
+            range,
             dragging,
         } = this.state;
-        const displayTemp = actualTemp ?? setTemp;
+        const displayTemp = this.displayTemp;
         const modeEntries = Object.entries(modeStates);
         const speedEntries = Object.entries(speedStates);
         const swingEntries = Object.entries(swingStates);
+        const airflowEntries = Object.entries(airflowStates);
         const currentModeLabel = mode != null ? modeStates[String(mode)] || null : null;
+        const workingModeLabel = this.getWorkingModeLabel();
         const poweredOff = this.isPoweredOff();
         const dimmedSx = poweredOff ? { opacity: 0.5, transition: 'opacity 0.25s ease' } : {};
-
-        // Arc parameters
-        const vb = 100;
-        const sw = 8;
-        const r = (vb - sw) / 2;
-        const circumference = 2 * Math.PI * r;
-        const arcLength = circumference * 0.75;
-        const range = setMax - setMin;
-        const progress = setTemp != null && range > 0 ? ((setTemp - setMin) / range) * arcLength : 0;
 
         return (
             <Dialog
@@ -860,33 +1406,16 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 userSelect: 'none',
                             }}
                         >
-                            <svg
-                                viewBox={`0 0 ${vb} ${vb}`}
-                                style={{ width: '100%', height: '100%', transform: 'rotate(135deg)' }}
-                            >
-                                <circle
-                                    cx={vb / 2}
-                                    cy={vb / 2}
-                                    r={r}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={sw}
-                                    strokeDasharray={`${arcLength} ${circumference}`}
-                                    strokeLinecap="round"
-                                    opacity={0.15}
-                                />
-                                <circle
-                                    cx={vb / 2}
-                                    cy={vb / 2}
-                                    r={r}
-                                    fill="none"
-                                    stroke={WidgetAirCondition.getTempColor(displayTemp)}
-                                    strokeWidth={sw}
-                                    strokeDasharray={`${progress} ${circumference}`}
-                                    strokeLinecap="round"
-                                    style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
-                                />
-                            </svg>
+                            <ClimateArc
+                                range={range}
+                                value={this.displaySetpoint}
+                                heating={this.dual ? setHeating : null}
+                                cooling={this.dual ? setCooling : null}
+                                progressStroke={WidgetAirCondition.getTempColor(displayTemp)}
+                                dragging={dragging}
+                                dimmedThumb={this.dimmedThumb}
+                                style={{ width: '100%', height: '100%' }}
+                            />
                             <Box
                                 sx={{
                                     position: 'absolute',
@@ -896,13 +1425,20 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     gap: 0.5,
                                 }}
                             >
-                                <Typography
-                                    variant="h3"
-                                    sx={{ fontWeight: 700, lineHeight: 1 }}
-                                >
-                                    {WidgetAirCondition.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
-                                </Typography>
-                                {actualTemp != null && setTemp != null ? (
+                                {this.dual ? (
+                                    this.renderSetpointText('h5')
+                                ) : (
+                                    <Typography
+                                        variant="h3"
+                                        sx={{ fontWeight: 700, lineHeight: 1 }}
+                                    >
+                                        {WidgetAirCondition.formatTemp(
+                                            this.displaySetpoint,
+                                            this.props.stateContext.isFloatComma,
+                                        )}
+                                    </Typography>
+                                )}
+                                {actualTemp != null && this.hasSetpoint ? (
                                     <Typography
                                         variant="body2"
                                         sx={{ color: 'text.secondary' }}
@@ -918,39 +1454,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                         </Box>
                     </Box>
 
-                    {/* +/- buttons with slider */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, mb: 2, ...dimmedSx }}>
-                        <IconButton
-                            onClick={() => this.adjustTemp(-setStep)}
-                            sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
-                        >
-                            <Remove />
-                        </IconButton>
-                        <Slider
-                            disabled={this.isReadOnly}
-                            value={setTemp ?? setMin}
-                            min={setMin}
-                            max={setMax}
-                            step={setStep}
-                            onMouseDown={() => this.setState({ dragging: true })}
-                            onTouchStart={() => this.setState({ dragging: true })}
-                            onChange={(_e, value) => this.setState({ setTemp: value })}
-                            onChangeCommitted={(_e, value) => {
-                                this.sendSetTemp(value);
-                                this.setState({ dragging: false });
-                            }}
-                            sx={{ flex: 1, color: WidgetAirCondition.getTempColor(setTemp) }}
-                        />
-                        <IconButton
-                            onClick={() => this.adjustTemp(setStep)}
-                            sx={theme => ({ border: `1px solid ${theme.palette.divider}` })}
-                        >
-                            <Add />
-                        </IconButton>
-                    </Box>
+                    {this.renderSetpointControls(dimmedSx)}
 
-                    {/* Info row: humidity + boost + current mode */}
-                    {humidity != null || boost || currentModeLabel ? (
+                    {/* Info row: humidity + boost + requested mode + what the device reports doing */}
+                    {humidity != null || boost || currentModeLabel || workingModeLabel ? (
                         <Box
                             sx={{
                                 display: 'flex',
@@ -992,6 +1499,19 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                         {WidgetAirCondition.getModeInfo(currentModeLabel).displayName}
                                     </Typography>
                                 </Box>
+                            ) : null}
+                            {workingModeLabel ? (
+                                <Tooltip title={I18n.t('wm_Working mode')}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        {WidgetAirCondition.renderModeIcon(workingModeLabel, 18)}
+                                        <Typography
+                                            variant="body2"
+                                            sx={{ color: 'text.secondary' }}
+                                        >
+                                            {WidgetAirCondition.getModeInfo(workingModeLabel).displayName}
+                                        </Typography>
+                                    </Box>
+                                </Tooltip>
                             ) : null}
                         </Box>
                     ) : null}
@@ -1046,7 +1566,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 }}
                             >
                                 {modeEntries.map(([key, label]) => {
-                                    const value = WidgetAirCondition.stateKeyToValue(key);
+                                    const value = stateKeyToValue(key);
                                     const isActive = mode != null && String(mode) === key;
                                     const info = WidgetAirCondition.getModeInfo(label);
                                     return (
@@ -1104,7 +1624,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 }}
                             >
                                 {speedEntries.map(([key, label]) => {
-                                    const value = WidgetAirCondition.stateKeyToValue(key);
+                                    const value = stateKeyToValue(key);
                                     const isActive = speed != null && String(speed) === key;
                                     return (
                                         <Button
@@ -1116,6 +1636,89 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                             sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
                                         >
                                             {WidgetAirCondition.getSpeedLabel(label)}
+                                        </Button>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {/* Continuous fan level, for a device that offers one beside the stepped list */}
+                    {this.speedLevelId ? (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
+                                <Air sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Fan level')}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, ...dimmedSx }}>
+                                <Slider
+                                    disabled={this.isReadOnly}
+                                    value={speedLevel ?? speedLevelRange.min}
+                                    min={speedLevelRange.min}
+                                    max={speedLevelRange.max}
+                                    step={speedLevelRange.step}
+                                    valueLabelDisplay="auto"
+                                    onChange={(_e, value) => {
+                                        if (!Array.isArray(value)) {
+                                            this.setState({ speedLevel: value });
+                                        }
+                                    }}
+                                    onChangeCommitted={(_e, value) => {
+                                        if (!Array.isArray(value)) {
+                                            this.setSpeedLevel(value);
+                                        }
+                                    }}
+                                    sx={{ flex: 1 }}
+                                />
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'text.secondary', minWidth: 42, textAlign: 'right' }}
+                                >
+                                    {speedLevel == null
+                                        ? '—'
+                                        : `${Math.round(speedLevel)}${speedLevelUnit ? ` ${speedLevelUnit}` : ''}`}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    {/* Airflow direction */}
+                    {airflowEntries.length > 0 ? (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, mb: 0.75, color: 'text.secondary' }}
+                            >
+                                <SwapHoriz sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                {I18n.t('wm_Airflow direction')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap',
+                                    ...dimmedSx,
+                                }}
+                            >
+                                {airflowEntries.map(([key, label]) => {
+                                    const value = stateKeyToValue(key);
+                                    const isActive = airflow != null && String(airflow) === key;
+                                    return (
+                                        <Button
+                                            key={key}
+                                            variant={isActive ? 'contained' : 'outlined'}
+                                            color={isActive ? 'primary' : 'inherit'}
+                                            disabled={this.isReadOnly}
+                                            onClick={() => this.setAirflow(value)}
+                                            size="small"
+                                            sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
+                                        >
+                                            {WidgetAirCondition.getAirflowLabel(label)}
                                         </Button>
                                     );
                                 })}
@@ -1157,7 +1760,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     }}
                                 >
                                     {swingEntries.map(([key, label]) => {
-                                        const value = WidgetAirCondition.stateKeyToValue(key);
+                                        const value = stateKeyToValue(key);
                                         const isActive = swing != null && String(swing) === key;
                                         return (
                                             <Button
@@ -1189,22 +1792,13 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     // --- Compact 1x1 ---
 
     renderCompact(): React.JSX.Element {
-        const { name, setTemp, actualTemp, boost, power, setMin, setMax, dragging } = this.state;
+        const { name, setHeating, setCooling, actualTemp, boost, power, range, dragging } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const isActive = this.isTileActive();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
-        const displayTemp = actualTemp ?? setTemp;
+        const displayTemp = this.displayTemp;
         const poweredOff = this.isPoweredOff();
-
-        // Arc parameters
-        const vb = 100;
-        const sw = 8;
-        const r = (vb - sw) / 2;
-        const circumference = 2 * Math.PI * r;
-        const arcLength = circumference * 0.75;
-        const range = setMax - setMin;
-        const progress = setTemp != null && range > 0 ? ((setTemp - setMin) / range) * arcLength : 0;
 
         return (
             <Box
@@ -1240,33 +1834,16 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             flex: 1,
                         }}
                     >
-                        <svg
-                            viewBox={`0 0 ${vb} ${vb}`}
-                            style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
-                        >
-                            <circle
-                                cx={vb / 2}
-                                cy={vb / 2}
-                                r={r}
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={sw}
-                                strokeDasharray={`${arcLength} ${circumference}`}
-                                strokeLinecap="round"
-                                opacity={0.15}
-                            />
-                            <circle
-                                cx={vb / 2}
-                                cy={vb / 2}
-                                r={r}
-                                fill="none"
-                                stroke={isActive ? WidgetAirCondition.getTempColor(displayTemp) : 'transparent'}
-                                strokeWidth={sw}
-                                strokeDasharray={`${progress} ${circumference}`}
-                                strokeLinecap="round"
-                                style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
-                            />
-                        </svg>
+                        <ClimateArc
+                            range={range}
+                            value={this.displaySetpoint}
+                            heating={this.dual ? setHeating : null}
+                            cooling={this.dual ? setCooling : null}
+                            progressStroke={isActive ? WidgetAirCondition.getTempColor(displayTemp) : undefined}
+                            dragging={dragging}
+                            dimmedThumb={this.dimmedThumb}
+                            style={{ width: '60%', height: '60%' }}
+                        />
                         <Box
                             sx={{
                                 position: 'absolute',
@@ -1276,14 +1853,13 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             }}
                         >
                             {this.renderTileIcon()}
-                            {setTemp != null ? (
-                                <Typography
-                                    variant="caption"
-                                    sx={{ fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 }}
-                                >
-                                    {WidgetAirCondition.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
-                                </Typography>
-                            ) : null}
+                            {this.hasSetpoint
+                                ? this.renderSetpointText(
+                                      'caption',
+                                      { fontWeight: 700, fontSize: 'max(0.75rem, 7cqi)', lineHeight: 1 },
+                                      false,
+                                  )
+                                : null}
                         </Box>
                     </Box>
 
@@ -1310,7 +1886,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                             {this.props.settings?.name || name || '...'}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                            {actualTemp != null && setTemp != null ? (
+                            {actualTemp != null && this.hasSetpoint ? (
                                 <Typography
                                     variant="caption"
                                     sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
@@ -1339,7 +1915,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     // --- WideTall 2x1 ---
 
     renderWideTall(): React.JSX.Element {
-        const { name, setTemp, actualTemp, humidity, boost, power } = this.state;
+        const { name, actualTemp, humidity, boost, power } = this.state;
         const modeLabel = this.getCurrentModeLabel();
         const speedLabel = this.getCurrentSpeedLabel();
         const isActive = this.isTileActive();
@@ -1418,12 +1994,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                         )}
                                     </Typography>
                                 ) : null}
-                                <Typography
-                                    variant="h6"
-                                    sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
-                                >
-                                    → {WidgetAirCondition.formatTemp(setTemp, this.props.stateContext.isFloatComma)}
-                                </Typography>
+                                {this.renderSetpointText('h6', { fontWeight: 700, whiteSpace: 'nowrap' })}
                                 {boost ? <LocalFireDepartment sx={{ fontSize: 20, color: '#f44336' }} /> : null}
                                 {power === false ? (
                                     <PowerSettingsNew sx={{ fontSize: 20, color: 'text.disabled' }} />

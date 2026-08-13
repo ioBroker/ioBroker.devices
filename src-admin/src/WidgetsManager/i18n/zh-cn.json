@@ -561,5 +561,17 @@
     "wm_Tile style": "磁贴样式",
     "wm_Tile gradient": "渐变",
     "wm_Tile flat": "扁平",
-    "wm_Tile glass": "玻璃"
+    "wm_Tile glass": "玻璃",
+    "wm_Heating setpoint": "制热设定值",
+    "wm_Cooling setpoint": "制冷设定值",
+    "wm_Working mode": "工作模式",
+    "wm_mode_idle": "待机",
+    "wm_Fan level": "风量级别",
+    "wm_Airflow direction": "送风方向",
+    "wm_airflow_forward": "正向",
+    "wm_airflow_reverse": "反向",
+    "wm_Valve": "阀门",
+    "wm_Filter condition": "滤网状态",
+    "wm_Carbon filter condition": "活性炭滤网状态",
+    "wm_Window open": "窗户已打开"
 }
