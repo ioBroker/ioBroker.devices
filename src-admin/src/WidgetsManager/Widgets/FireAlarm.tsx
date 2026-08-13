@@ -15,12 +15,18 @@ const FIRE_COLOR = '#e65100';
 
 interface WidgetFireAlarmState extends WidgetGenericState {
     alarm: boolean;
+    coAlarm: boolean;
+    severity: number | null;
+    severityStates: Record<string, string> | null;
     lastChanged: number | null;
     lastChangedAgo: string;
 }
 
 export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWidgetSettings> {
     private readonly actualId: string | null;
+    /** A combined smoke and CO detector stays one device and reports carbon monoxide separately */
+    private readonly coId: string | null;
+    private readonly severityId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
@@ -29,10 +35,15 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         const actual = states.find(s => s.name === 'ACTUAL');
 
         this.actualId = actual?.id ?? null;
+        this.coId = states.find(s => s.name === 'CO' && s.id)?.id ?? null;
+        this.severityId = states.find(s => s.name === 'SEVERITY' && s.id)?.id ?? null;
 
         this.state = {
             ...this.state,
             alarm: false,
+            coAlarm: false,
+            severity: null,
+            severityStates: null,
             lastChanged: null,
             lastChangedAgo: '',
         };
@@ -59,6 +70,13 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onStateChange);
         }
+        if (this.coId) {
+            this.props.stateContext.getState(this.coId, this.onCoChange);
+        }
+        if (this.severityId) {
+            this.props.stateContext.getState(this.severityId, this.onSeverityChange);
+            void this.loadSeverityStates();
+        }
         this.agoTimer = setInterval(() => this.updateAgo(), 60_000);
     }
 
@@ -66,6 +84,12 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         super.componentWillUnmount();
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onStateChange);
+        }
+        if (this.coId) {
+            this.props.stateContext.removeState(this.coId, this.onCoChange);
+        }
+        if (this.severityId) {
+            this.props.stateContext.removeState(this.severityId, this.onSeverityChange);
         }
         if (this.agoTimer) {
             clearInterval(this.agoTimer);
@@ -93,19 +117,66 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
         }
     };
 
+    private async loadSeverityStates(): Promise<void> {
+        if (!this.severityId) {
+            return;
+        }
+        try {
+            const obj = await this.props.stateContext.getObject<ioBroker.StateObject>(this.severityId);
+            const common = obj?.common?.states;
+            if (common && typeof common === 'object') {
+                this.setState({ severityStates: common as Record<string, string> });
+            }
+        } catch {
+            // fall back to the plain number
+        }
+    }
+
+    private onCoChange = (_id: string, state: ioBroker.State): void => {
+        const coAlarm = !!state.val;
+        const lc = state.lc || state.ts || Date.now();
+        if (coAlarm !== this.state.coAlarm) {
+            this.setState({ coAlarm, lastChanged: lc, lastChangedAgo: this.fromNow(lc) });
+        } else if (!this.state.lastChanged && lc) {
+            this.setState({ lastChanged: lc, lastChangedAgo: this.fromNow(lc) });
+        }
+    };
+
+    private onSeverityChange = (_id: string, state: ioBroker.State): void => {
+        const raw = state.val == null ? null : Number(state.val);
+        const severity = raw != null && isNaN(raw) ? null : raw;
+        if (severity !== this.state.severity) {
+            this.setState({ severity });
+        }
+    };
+
+    /** Which alarm is actually raised, and how bad the device says it is. */
+    protected getAlarmText(): string {
+        const { alarm, coAlarm, severity, severityStates } = this.state;
+        if (!alarm && !coAlarm) {
+            return this.props.settings?.text || I18n.t('wm_OK');
+        }
+        const fire = this.props.settings?.textActive || I18n.t('wm_Fire');
+        const co = I18n.t('wm_Carbon monoxide');
+        // Independent alarms: naming only one of them would hide the other
+        const what = alarm && coAlarm ? `${fire} + ${co}` : alarm ? fire : co;
+        const how = severity == null ? undefined : (severityStates?.[String(severity)] ?? String(severity));
+        return how ? `${what} · ${how}` : what;
+    }
+
     protected getAccentColor(): string | undefined {
-        if (this.state.alarm) {
+        if (this.isTileActive()) {
             return super.getAccentColor() || FIRE_COLOR;
         }
         return super.getAccentColor();
     }
 
     protected isTileActive(): boolean {
-        return this.state.alarm;
+        return this.state.alarm || this.state.coAlarm;
     }
 
     protected renderTileIcon(): React.JSX.Element {
-        const { alarm } = this.state;
+        const alarm = this.isTileActive();
         const accent = this.getAccentColor();
 
         // Active: iconActive, fallback to icon (with active color); Inactive: icon only
@@ -142,7 +213,8 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
             return null;
         }
 
-        const { alarm, lastChangedAgo } = this.state;
+        const { lastChangedAgo } = this.state;
+        const alarm = this.isTileActive();
         const accent = this.getAccentColor();
 
         return (
@@ -155,9 +227,7 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
                         transition: 'color 0.25s ease',
                     }}
                 >
-                    {alarm
-                        ? this.props.settings?.textActive || I18n.t('wm_Fire')
-                        : this.props.settings?.text || I18n.t('wm_OK')}
+                    {this.getAlarmText()}
                 </Typography>
                 {size !== '2x1' && lastChangedAgo ? (
                     <Typography
@@ -172,7 +242,8 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
     }
 
     protected renderTileAction(): React.JSX.Element {
-        const { alarm, lastChangedAgo } = this.state;
+        const { lastChangedAgo } = this.state;
+        const alarm = this.isTileActive();
         const accent = this.getAccentColor();
 
         return (
@@ -185,9 +256,7 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
                         color: alarm ? accent || FIRE_COLOR : 'success.main',
                     }}
                 >
-                    {alarm
-                        ? this.props.settings?.textActive || I18n.t('wm_Fire')
-                        : this.props.settings?.text || I18n.t('wm_OK')}
+                    {this.getAlarmText()}
                 </Typography>
                 {lastChangedAgo ? (
                     <Typography
@@ -202,7 +271,7 @@ export class WidgetFireAlarm extends WidgetGeneric<WidgetFireAlarmState, AlarmWi
     }
 
     render(): React.JSX.Element {
-        if (this.props.settings?.hideWhenOk && !this.state.alarm) {
+        if (this.props.settings?.hideWhenOk && !this.isTileActive()) {
             if (!this.props.onOpenSettings) {
                 return (
                     <div

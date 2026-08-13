@@ -3,7 +3,9 @@ import { Box, ButtonBase, Typography } from '@mui/material';
 import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
+    EXTRA_INFO_NAMES,
     formatFloat,
+    INDICATOR_NAMES,
     isNeumorphicTheme,
     type WidgetGenericSettings,
     type WidgetGenericProps,
@@ -108,26 +110,8 @@ function TankIcon(props: {
     );
 }
 
-/** Names handled by the base class or by Tank itself — not shown as extra states */
-const HANDLED_NAMES = new Set([
-    // Indicator names
-    'WORKING',
-    'UNREACH',
-    'LOWBAT',
-    'MAINTAIN',
-    'ERROR',
-    'DIRECTION',
-    'DIRECTION_ENUM',
-    'RSSI',
-    'CONNECTED',
-    'BATTERY',
-    // Extra info names
-    'ELECTRIC_POWER',
-    'CURRENT',
-    'VOLTAGE',
-    'CONSUMPTION',
-    'FREQUENCY',
-]);
+/** Every name the base class renders itself; anything else becomes a Tank extra state. */
+const HANDLED_NAMES: Set<string> = new Set<string>([...INDICATOR_NAMES, ...EXTRA_INFO_NAMES, 'ON_TIME']);
 
 interface TankExtraState {
     id: string;
