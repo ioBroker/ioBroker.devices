@@ -1197,8 +1197,10 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
+        // Every layout but the 1x1 shows the same content through renderTileAction — rendering it
+        // here as well printed it twice on one tile.
         const size = this.props.settings?.size || '1x1';
-        if (size === '2x0.5') {
+        if (size !== '1x1') {
             return null;
         }
 
