@@ -561,5 +561,17 @@
     "wm_Tile style": "Kachelstil",
     "wm_Tile gradient": "Verlauf",
     "wm_Tile flat": "Flach",
-    "wm_Tile glass": "Glas"
+    "wm_Tile glass": "Glas",
+    "wm_Heating setpoint": "Heizsolltemperatur",
+    "wm_Cooling setpoint": "Kühlsolltemperatur",
+    "wm_Working mode": "Betriebszustand",
+    "wm_mode_idle": "Inaktiv",
+    "wm_Fan level": "Lüfterstufe",
+    "wm_Airflow direction": "Luftstromrichtung",
+    "wm_airflow_forward": "Vorwärts",
+    "wm_airflow_reverse": "Rückwärts",
+    "wm_Valve": "Ventil",
+    "wm_Filter condition": "Filterzustand",
+    "wm_Carbon filter condition": "Zustand Kohlefilter",
+    "wm_Window open": "Fenster offen"
 }
