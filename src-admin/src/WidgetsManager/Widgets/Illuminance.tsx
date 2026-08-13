@@ -112,8 +112,10 @@ export class WidgetIlluminance extends WidgetGeneric<WidgetIlluminanceState> {
     }
 
     protected renderTileStatus(): React.JSX.Element | null {
+        // Every layout but the 1x1 shows the reading through renderTileAction — rendering it here as
+        // well printed the same value twice on one tile.
         const size = this.props.settings?.size || '1x1';
-        if (size === '2x0.5') {
+        if (size !== '1x1') {
             return null;
         }
 

@@ -33,6 +33,8 @@ const ALARM_ICON_TYPES = new Set<Types>([
     Types.window,
     Types.windowTilt,
     Types.door,
+    Types.contact,
+    Types.coAlarm,
     Types.warning,
 ]);
 
