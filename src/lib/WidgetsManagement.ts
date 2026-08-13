@@ -733,9 +733,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         const affected = this.getAffectedChannelIds(id);
         if (affected.length) {
             this.removeDevicesForChannelIds(affected);
-            if (obj) {
-                this.allDevices.push(...this.detectForIds(affected));
-            }
+            // Re-detect even when the object was deleted: losing one datapoint rarely invalidates
+            // the whole device, and skipping this dropped it from the widget list until the next
+            // adapter restart. A channel that no longer forms a device simply yields nothing.
+            this.allDevices.push(...this.detectForIds(affected));
             if (this.rebuildEnabledDevices()) {
                 if (!this.invalidatedIds.includes(id)) {
                     this.invalidatedIds.push(id);

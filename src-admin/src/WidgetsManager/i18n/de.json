@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Gewitter",
     "wm_w_Thunderstorm with hail": "Gewitter mit Hagel",
     "wm_w_Thunderstorm with heavy hail": "Gewitter mit starkem Hagel",
-    "wm_w_Violent rain showers": "Heftige Regenschauer"
+    "wm_w_Violent rain showers": "Heftige Regenschauer",
+    "wm_Image style": "Bildstil",
+    "wm_Image full": "Vollflächig",
+    "wm_Image fade": "Auslaufend",
+    "wm_Image texture": "Textur",
+    "wm_Tile style": "Kachelstil",
+    "wm_Tile gradient": "Verlauf",
+    "wm_Tile flat": "Flach",
+    "wm_Tile glass": "Glas"
 }

@@ -1253,6 +1253,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         // placeholder by inheriting the real range from their source (issue #22).
         void this.fixThermostatAliasRanges(devices);
 
+        // One-time workaround: replace pattern default value lists that were never overwritten with
+        // the real list of the aliased source (issue #654).
+        void this.fixAliasStateLists(devices);
+
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
             this.editCreatedId = null;
@@ -2640,7 +2644,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     /**
      * Resolve the `common` of the state an alias points to, so the alias can inherit its display
-     * metadata (min/max/unit/step). Issue #22. The id may be a plain string or a `{read, write}` map.
+     * metadata (min/max/unit/step/states). Issue #22. The id may be a plain string or a `{read, write}` map.
      */
     private async getAliasSourceCommon(
         idEntry: string | { read: string; write: string } | undefined,
@@ -2727,6 +2731,64 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         }
         if (fixed) {
             console.log(`[devices] Inherited real min/max for ${fixed} thermostat alias state(s) (issue #22)`);
+        }
+    }
+
+    /** One-time guard for the alias value-list workaround (issue #654). */
+    private aliasStateListsFixed = false;
+
+    /**
+     * Workaround for aliases created before `states` was inherited from the source: they still carry
+     * the *pattern's* `defaultStates` (SWING e.g. AUTO/HORIZONTAL/STATIONARY/VERTICAL) instead of the
+     * value list of the datapoint they point at, so the widget offers options the device does not
+     * have — and hides the ones it does.
+     *
+     * The signature is deliberately narrow: only a list that still matches the pattern default byte
+     * for byte is replaced. Once a user has edited the list in the "edit state common" dialog it no
+     * longer matches and is left alone. Runs once per session; corrected objects stop matching.
+     *
+     * @param devices Detected devices of the current list
+     */
+    private async fixAliasStateLists(devices: PatternControlEx[]): Promise<void> {
+        if (this.aliasStateListsFixed) {
+            return;
+        }
+        this.aliasStateListsFixed = true;
+        let fixed = 0;
+        for (const device of devices) {
+            for (const state of device.states) {
+                // Only aliases that forward values verbatim: with a read/write conversion the alias
+                // value range is deliberately a different one than the source's.
+                if (!state.id || !state.id.startsWith(ALIAS) || !state.defaultStates) {
+                    continue;
+                }
+                const cc = (this.objects[state.id] as ioBroker.StateObject | undefined)?.common;
+                if (!cc?.alias?.id || cc.alias.read || cc.alias.write) {
+                    continue;
+                }
+                if (JSON.stringify(cc.states) !== JSON.stringify(state.defaultStates)) {
+                    continue;
+                }
+                const sourceCommon = await this.getAliasSourceCommon(cc.alias.id);
+                if (!sourceCommon?.states || JSON.stringify(sourceCommon.states) === JSON.stringify(cc.states)) {
+                    continue;
+                }
+                try {
+                    const obj = (await this.props.socket.getObject(state.id)) as ioBroker.StateObject | null;
+                    // Re-check on the fresh object so a meanwhile-edited list is never overwritten
+                    if (!obj?.common || JSON.stringify(obj.common.states) !== JSON.stringify(state.defaultStates)) {
+                        continue;
+                    }
+                    obj.common.states = sourceCommon.states;
+                    await this.props.socket.setObject(obj._id, obj);
+                    fixed++;
+                } catch (e) {
+                    console.error(`Cannot inherit value list for ${state.id}: ${e}`);
+                }
+            }
+        }
+        if (fixed) {
+            console.log(`[devices] Inherited the source value list for ${fixed} alias state(s) (issue #654)`);
         }
     }
 

@@ -24,6 +24,7 @@ import {
     type CategorySettings,
     type StatusCandidates,
     type WmThemeId,
+    type TileStyleId,
 } from './CategorySettingsDialog';
 import { AclContext } from './AclContext';
 import {
@@ -65,6 +66,8 @@ interface GuiConfig {
         backgroundColor?: string;
         image?: string;
         imageScope?: 'header' | 'page';
+        imageStyle?: 'scrim' | 'fade' | 'texture';
+        tileStyle?: TileStyleId;
         /** PWA / Chrome extension icon path */
         icon?: string;
         /** Icon shown before the root name */
@@ -253,6 +256,8 @@ const ROOT_SETTING_MAP: [keyof CategorySettings, keyof RootConfig, string | unde
     ['backgroundColor', 'backgroundColor', ''],
     ['image', 'image', ''],
     ['imageScope', 'imageScope', 'header'],
+    ['imageStyle', 'imageStyle', 'fade'],
+    ['tileStyle', 'tileStyle', 'gradient'],
     ['icon', 'icon', ''],
     ['rootIcon', 'rootIcon', ''],
     ['wmTheme', 'wmTheme', undefined],
@@ -2136,14 +2141,24 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
 
     private cachedWmThemeId: WmThemeId | undefined;
 
-    private getWidgetTheme(): Theme {
-        const wmThemeId: WmThemeId = this.state.categorySettings[ROOT_CATEGORY]?.wmTheme || 'auto';
+    private cachedTileStyle: TileStyleId | undefined;
 
-        if (this.widgetTheme && this.widgetThemeType === this.props.themeType && this.cachedWmThemeId === wmThemeId) {
+    private getWidgetTheme(): Theme {
+        const rootSettings = this.state.categorySettings[ROOT_CATEGORY];
+        const wmThemeId: WmThemeId = rootSettings?.wmTheme || 'auto';
+        const tileStyle: TileStyleId = rootSettings?.tileStyle || 'gradient';
+
+        if (
+            this.widgetTheme &&
+            this.widgetThemeType === this.props.themeType &&
+            this.cachedWmThemeId === wmThemeId &&
+            this.cachedTileStyle === tileStyle
+        ) {
             return this.widgetTheme;
         }
         this.widgetThemeType = this.props.themeType;
         this.cachedWmThemeId = wmThemeId;
+        this.cachedTileStyle = tileStyle;
 
         const resolvedThemeId = wmThemeId === 'auto' ? this.props.themeType : wmThemeId;
         const preset = WM_THEME_PRESETS[resolvedThemeId];
@@ -2244,6 +2259,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 typography: { fontFamily: WM_FONT_FAMILY },
             });
         }
+        // Rides on the theme like the preset does, so every widget picks it up without threading
+        // another prop through the whole tree
+        (this.widgetTheme as Theme & { wmTileStyle?: TileStyleId }).wmTileStyle = tileStyle;
         return this.widgetTheme;
     }
 

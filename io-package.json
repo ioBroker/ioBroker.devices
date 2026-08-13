@@ -54,45 +54,6 @@
         "pl": "Poprawiono uniwersalny widget\nDodano obsługę adaptera Open-meteo-weather\nOdczytaj wszystkie stany ponownie po ponownym połączeniu",
         "uk": "Виправлено універсальний віджет\nДодано підтримку адаптера open-meteo-weather\nЗчитати всі стани заново після повторного підключення",
         "zh-cn": "已修正的通用小部件\n新增 open-meteo-weather 适配器支持\n重新连接后，请重新阅读所有状态。"
-      },
-      "2.1.5": {
-        "en": "Added a theme type to context",
-        "de": "Hinzufügen eines Thementyps zum Kontext",
-        "ru": "Добавлен тип темы в контекст",
-        "pt": "Adicionado um tipo de tema ao contexto",
-        "nl": "Een thematype aan context toegevoegd",
-        "fr": "Ajout d'un type de thème au contexte",
-        "it": "Aggiunto un tipo tema per contesto",
-        "es": "Añadido un tipo de tema al contexto",
-        "pl": "Dodano typ tematu do kontekstu",
-        "uk": "Додано тему контексту",
-        "zh-cn": "向上下文添加主题类型"
-      },
-      "2.1.4": {
-        "en": "Added digits after comma for Display widget\nAdded an installation script",
-        "de": "Hinzufügen von Ziffern nach Komma für Anzeige Widget\nEin Installationsskript hinzugefügt",
-        "ru": "Добавлены цифры после запятой для виджета Display\nДобавлен сценарий установки",
-        "pt": "Adicionados dígitos após vírgula para o elemento de visualização\nAdicionado um script de instalação",
-        "nl": "Toegevoegd cijfers na komma voor Display widget\nEen installatiescript toegevoegd",
-        "fr": "Ajout de chiffres après virgule pour le widget Affichage\nAjouté un script d'installation",
-        "it": "Aggiunto le cifre dopo virgola per il widget di visualizzazione\nAggiunto un script di installazione",
-        "es": "Dígitos añadidos después de coma para el widget de pantalla\nAñadido un script de instalación",
-        "pl": "Dodano cyfry po przecinku dla widżetu wyświetlania\nDodano skrypt instalacyjny",
-        "uk": "Додано цифри після коми для віджету\nДодано скрипт установки",
-        "zh-cn": "显示部件的逗号后添加数字\n添加了安装脚本"
-      },
-      "2.1.2": {
-        "en": "Extended universal widget",
-        "de": "Erweitertes universelles Widget",
-        "ru": "Расширенный универсальный виджет",
-        "pt": "Elemento universal estendido",
-        "nl": "Uitgebreide universele widget",
-        "fr": "Widget universel étendu",
-        "it": "Widget universale esteso",
-        "es": "Widget universal extendido",
-        "pl": "Rozszerzony uniwersalny widżet",
-        "uk": "Розширений універсальний віджет",
-        "zh-cn": "扩展通用部件"
       }
     },
     "titleLang": {

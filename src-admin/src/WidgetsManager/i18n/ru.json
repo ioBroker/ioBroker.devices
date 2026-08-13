@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Гроза",
     "wm_w_Thunderstorm with hail": "Гроза с градом",
     "wm_w_Thunderstorm with heavy hail": "Гроза с сильным градом.",
-    "wm_w_Violent rain showers": "Сильные ливни"
+    "wm_w_Violent rain showers": "Сильные ливни",
+    "wm_Image style": "Стиль изображения",
+    "wm_Image full": "Во всю плитку",
+    "wm_Image fade": "С затуханием",
+    "wm_Image texture": "Текстура",
+    "wm_Tile style": "Стиль плитки",
+    "wm_Tile gradient": "Градиент",
+    "wm_Tile flat": "Плоский",
+    "wm_Tile glass": "Стекло"
 }

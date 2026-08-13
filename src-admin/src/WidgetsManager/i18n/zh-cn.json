@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "雷雨",
     "wm_w_Thunderstorm with hail": "雷暴伴冰雹",
     "wm_w_Thunderstorm with heavy hail": "雷暴伴有大冰雹",
-    "wm_w_Violent rain showers": "暴雨"
+    "wm_w_Violent rain showers": "暴雨",
+    "wm_Image style": "图片样式",
+    "wm_Image full": "整块",
+    "wm_Image fade": "渐隐",
+    "wm_Image texture": "纹理",
+    "wm_Tile style": "磁贴样式",
+    "wm_Tile gradient": "渐变",
+    "wm_Tile flat": "扁平",
+    "wm_Tile glass": "玻璃"
 }

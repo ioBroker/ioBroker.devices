@@ -210,6 +210,70 @@ export function isBlueDarkTheme(theme: Theme): boolean {
     return (theme as Theme & { wmPreset?: string }).wmPreset === 'blueDark';
 }
 
+/** Check if the current theme is the warm "orangeDark" preset */
+export function isOrangeDarkTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'orangeDark';
+}
+
+/**
+ * Shadow stack shared by the dark presets: a lit hairline along the top edge, a faint vignette
+ * towards the bottom and — while active — an accent ring with a glow bleeding in from the top.
+ *
+ * All depth is built from *inset* shadows on purpose: a tile is rendered inside a wrapper with
+ * `overflow: hidden` (see {@link WidgetGeneric.getStyleCompact}) that clips everything painted
+ * beyond the tile bounds, so an outer drop shadow would never become visible. `outer` is still
+ * accepted for the few places that render a tile without that wrapper.
+ */
+/** How a tile paints its surface — a look-and-feel choice made once on the root category. */
+export type TileStyleId = 'gradient' | 'flat' | 'glass';
+
+/**
+ * Tile surface configured for this installation.
+ *
+ * Travels on the theme like {@link isNeumorphicTheme}'s preset does, so every widget picks it up
+ * without another prop being threaded through the tree.
+ *
+ * @param theme Current widget theme
+ * @returns The configured style, `gradient` when unset
+ */
+export function getTileStyleId(theme: Theme): TileStyleId {
+    return (theme as Theme & { wmTileStyle?: TileStyleId }).wmTileStyle || 'gradient';
+}
+
+function getPanelCornerLight(theme: Theme, strength: number): Record<string, unknown> {
+    const white = theme.palette.common.white;
+    return {
+        '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            padding: '1px',
+            pointerEvents: 'none',
+            background: `linear-gradient(to bottom right, ${alpha(white, strength)}, ${alpha(white, strength * 0.2)} 28%, transparent 55%)`,
+            // Paint the gradient in the 1px padding ring only: two masks, the inner one limited to
+            // the content box, subtracted from the outer one.
+            WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+        },
+    };
+}
+
+function getPanelShadow(theme: Theme, isActive: boolean, accent: string, outer?: string): string {
+    const layers = [
+        `inset 0 1px 0 ${alpha(theme.palette.common.white, isActive ? 0.1 : 0.07)}`,
+        `inset 0 -20px 34px -26px ${alpha(theme.palette.common.black, 0.75)}`,
+    ];
+    if (isActive) {
+        layers.push(`inset 0 0 0 1px ${alpha(accent, 0.35)}`, `inset 0 24px 40px -30px ${alpha(accent, 0.9)}`);
+    }
+    if (outer) {
+        layers.push(outer);
+    }
+    return layers.join(', ');
+}
+
 export function getTileStyles(
     theme: Theme,
     isActive: boolean,
@@ -219,40 +283,99 @@ export function getTileStyles(
 ): Record<string, unknown> {
     const accent = accentColor || theme.palette.primary.main;
     const isDark = theme.palette.mode === 'dark';
+    const white = theme.palette.common.white;
+
+    const black = theme.palette.common.black;
+
+    /**
+     * Idle surface: a diagonal ramp from a lit top-left corner down into shadow at the bottom
+     * right, which is what gives the tile its depth — a single flat fill reads as a sticker.
+     * Three layers stack over the paper colour: the white highlight, a tint, and the falloff.
+     *
+     * A colour configured on the widget drives the tint but must not replace the whole stack,
+     * otherwise every tile that has a colour set (most of them) would drop out of the panel look.
+     */
+    const tileStyle = getTileStyleId(theme);
+    const idleSheen = (base: string, tint: string): string => {
+        // `flat` keeps only the colour tint — without it a widget colour would stop being visible
+        // at all, which is a different setting's job to control.
+        if (tileStyle === 'flat') {
+            return inactiveColor
+                ? `linear-gradient(${alpha(inactiveColor, 0.12)}, ${alpha(inactiveColor, 0.12)}), ${base}`
+                : base;
+        }
+        return [
+            `linear-gradient(to bottom right, ${alpha(white, 0.14)}, ${alpha(white, 0.02)} 42%, transparent 62%)`,
+            `linear-gradient(to bottom right, ${alpha(inactiveColor || tint, inactiveColor ? 0.22 : 0.12)}, transparent 50%)`,
+            `linear-gradient(to bottom right, transparent 45%, ${alpha(black, 0.4)})`,
+            base,
+        ].join(', ');
+    };
+
+    /**
+     * `glass` trades the opaque paper for a translucent, blurred pane so a page background shows
+     * through; `flat` and `gradient` keep the tile opaque.
+     *
+     * Takes a plain colour only — `alpha()` parses its argument as a colour and throws on anything
+     * else, so a caller whose base is a gradient has to build its translucent variant from the
+     * stops instead of passing the whole gradient in here.
+     */
+    const surface = (paperColor: string): string => (tileStyle === 'glass' ? alpha(paperColor, 0.55) : paperColor);
+
+    const glassExtras: Record<string, unknown> =
+        tileStyle === 'glass' ? { backdropFilter: 'blur(14px) saturate(140%)' } : {};
+
+    // The corner light belongs to the raised look; a flat surface must not carry a lit rim
+    const cornerLight = (strength: number): Record<string, unknown> =>
+        tileStyle === 'flat' ? {} : getPanelCornerLight(theme, strength);
 
     // Neumorphic styling for styling-grey theme
     if (isNeumorphicTheme(theme)) {
+        // The grey base is a gradient, so its translucent variant is built from the stops —
+        // `surface()` would choke on the whole gradient string.
+        const grey =
+            tileStyle === 'glass'
+                ? `linear-gradient(to bottom right, ${alpha('#232326', 0.55)}, ${alpha('#191a1c', 0.55)})`
+                : 'linear-gradient(to bottom right, #232326, #191a1c)';
         return {
             borderRadius: '24px',
             boxSizing: 'border-box',
             padding: theme.spacing(2),
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            backgroundColor: isActive ? alpha(accent, 0.08) : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
             background: isActive
-                ? `linear-gradient(145deg, ${alpha(accent, 0.1)}, ${alpha(accent, 0.04)})`
-                : 'linear-gradient(145deg, #1e1e20, #1a1a1c)',
-            border: `1px solid ${alpha(theme.palette.common.white, 0.04)}`,
-            boxShadow: isActive
-                ? `6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025), inset 0 0 0 1px ${alpha(accent, 0.1)}`
-                : '6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025)',
+                ? `linear-gradient(to bottom right, ${alpha(accent, 0.16)}, ${alpha(accent, 0.04)} 50%, transparent 70%), linear-gradient(to bottom right, transparent 45%, ${alpha(black, 0.35)}), ${grey}`
+                : idleSheen(grey, white),
+            border: `1px solid ${isActive ? alpha(white, 0.09) : inactiveColor ? alpha(inactiveColor, 0.28) : alpha(white, 0.055)}`,
+            boxShadow: getPanelShadow(
+                theme,
+                isActive,
+                accent,
+                '6px 6px 16px rgba(0,0,0,0.5), -3px -3px 10px rgba(255,255,255,0.025)',
+            ),
+            ...cornerLight(isActive ? 0.3 : 0.22),
+            ...glassExtras,
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }
 
-    // Deep-navy styling for the blueDark theme: the tile is a lifted navy panel rather than a
-    // white overlay, so it keeps the blue cast of the page instead of turning grey.
-    if (isBlueDarkTheme(theme) && !inactiveColor) {
+    // Deep-navy / warm-dark styling: the tile is a lifted panel rather than a white overlay, so it
+    // keeps the colour cast of the page instead of turning grey. Both presets share the frame and
+    // differ only in the paper colour and the primary they tint the hairline border with.
+    if (isBlueDarkTheme(theme) || isOrangeDarkTheme(theme)) {
         const paper = theme.palette.background.paper;
+        const idleBorder = inactiveColor ? alpha(inactiveColor, 0.32) : alpha(theme.palette.primary.main, 0.16);
         return {
             borderRadius: '16px',
             boxSizing: 'border-box',
             padding: theme.spacing(2),
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             background: isActive
-                ? `linear-gradient(160deg, ${alpha(accent, 0.26)}, ${alpha(accent, 0.05)} 65%, transparent), ${paper}`
-                : `linear-gradient(160deg, ${alpha(theme.palette.common.white, 0.05)}, ${alpha(theme.palette.common.white, 0.012)}), ${paper}`,
-            border: `1px solid ${isActive ? alpha(accent, 0.35) : alpha(theme.palette.primary.main, 0.12)}`,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.45)',
+                ? `linear-gradient(to bottom right, ${alpha(white, 0.12)}, transparent 45%), linear-gradient(to bottom right, ${alpha(accent, 0.3)}, ${alpha(accent, 0.07)} 52%, transparent 72%), linear-gradient(to bottom right, transparent 45%, ${alpha(black, 0.4)}), ${surface(paper)}`
+                : idleSheen(surface(paper), theme.palette.primary.main),
+            border: `1px solid ${isActive ? alpha(accent, 0.38) : idleBorder}`,
+            boxShadow: getPanelShadow(theme, isActive, accent, '0 6px 20px rgba(0,0,0,0.45)'),
+            ...cornerLight(isActive ? 0.4 : 0.3),
+            ...glassExtras,
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }
@@ -263,8 +386,8 @@ export function getTileStyles(
         bgInactive = alpha(inactiveColor, 0.12);
         borderInactive = alpha(inactiveColor, 0.3);
     } else {
-        bgInactive = isDark ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.035);
-        borderInactive = isDark ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.08);
+        bgInactive = isDark ? alpha(white, 0.06) : alpha(theme.palette.common.black, 0.035);
+        borderInactive = isDark ? alpha(white, 0.08) : alpha(theme.palette.common.black, 0.08);
     }
 
     return {
@@ -274,6 +397,7 @@ export function getTileStyles(
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         backgroundColor: isActive ? alpha(accent, 0.12) : bgInactive,
         border: `1.5px solid ${isActive ? alpha(accent, 0.3) : borderInactive}`,
+        ...glassExtras,
         ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
     };
 }

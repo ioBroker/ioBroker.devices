@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
     Air,
     ArrowDownward,
@@ -1094,13 +1095,21 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
         });
     };
 
-    static renderWeatherIcon(src: string | null, size: number, wmoCode?: number): React.JSX.Element {
+    /**
+     * @param src Icon URL from the weather provider, if it supplies one
+     * @param size Fixed pixel size, used when `cssSize` is not given
+     * @param wmoCode WMO code, rendered as an emoji when there is no icon URL
+     * @param cssSize CSS length that wins over `size`, so a tile can scale the glyph with `cqi`
+     * @returns The weather glyph
+     */
+    static renderWeatherIcon(src: string | null, size: number, wmoCode?: number, cssSize?: string): React.JSX.Element {
+        const box = cssSize || size;
         if (src) {
             return (
                 <img
                     src={src}
                     alt=""
-                    style={{ width: size, height: size, objectFit: 'contain' }}
+                    style={{ width: box, height: box, objectFit: 'contain', flexShrink: 0 }}
                 />
             );
         }
@@ -1109,10 +1118,11 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
             return (
                 <Box
                     sx={{
-                        fontSize: size * 0.75,
+                        fontSize: cssSize ? `calc(${cssSize} * 0.78)` : size * 0.75,
                         lineHeight: 1,
-                        width: size,
-                        height: size,
+                        width: box,
+                        height: box,
+                        flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1122,7 +1132,159 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                 </Box>
             );
         }
-        return <WbCloudy sx={{ fontSize: size, color: 'text.secondary' }} />;
+        return <WbCloudy sx={{ fontSize: box, color: 'text.secondary', flexShrink: 0 }} />;
+    }
+
+    /**
+     * Forecast line of the 2×1 tile: weekday, glyph, high/low, chance of rain.
+     *
+     * A larger sibling of {@link renderForecastRow}, sized in `cqi` so it holds its proportions
+     * against the readings above it.
+     *
+     * @param day Forecast entry to render
+     * @returns The forecast line
+     */
+    static renderForecastStrip(day: ForecastDay): React.JSX.Element {
+        const fontSize = 'max(0.8rem, 4cqi)';
+        return (
+            <Box
+                key={day.index}
+                sx={{ display: 'flex', alignItems: 'center', gap: 'max(6px, 2cqi)', minWidth: 0 }}
+            >
+                <Typography
+                    sx={{
+                        fontWeight: 700,
+                        fontSize,
+                        flexShrink: 1,
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {day.dow || `D${day.index}`}
+                </Typography>
+                {WidgetWeather.renderWeatherIcon(day.icon, 0, day.wmoCode, 'max(22px, 7cqi)')}
+                {day.tempMax != null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.15em', flexShrink: 0 }}>
+                        <ArrowUpward sx={{ fontSize: '1.1em', color: '#f4564a' }} />
+                        <Typography sx={{ fontWeight: 700, fontSize, fontVariantNumeric: 'tabular-nums' }}>
+                            {Math.round(day.tempMax)}°
+                        </Typography>
+                    </Box>
+                ) : null}
+                {day.tempMin != null ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.15em', flexShrink: 0 }}>
+                        <ArrowDownward sx={{ fontSize: '1.1em', color: '#3d9bfd' }} />
+                        <Typography
+                            sx={{
+                                fontWeight: 700,
+                                fontSize,
+                                color: 'text.secondary',
+                                fontVariantNumeric: 'tabular-nums',
+                            }}
+                        >
+                            {Math.round(day.tempMin)}°
+                        </Typography>
+                    </Box>
+                ) : null}
+                {day.precipitationChance != null ? (
+                    <Box
+                        sx={{
+                            ml: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2em',
+                            flexShrink: 0,
+                            color: 'text.secondary',
+                        }}
+                    >
+                        <Opacity sx={{ fontSize: '1.1em', color: '#4fc3f7' }} />
+                        <Typography sx={{ fontSize, fontVariantNumeric: 'tabular-nums' }}>
+                            {Math.round(day.precipitationChance)}%
+                        </Typography>
+                    </Box>
+                ) : null}
+            </Box>
+        );
+    }
+
+    /**
+     * One reading of the current-conditions strip: glyph, value, caption underneath.
+     *
+     * The icon takes its size from the wrapper rather than its own `sx`, so callers pass a plain
+     * `<WaterDrop />` and every column scales together with the tile.
+     *
+     * @param key React key
+     * @param icon Icon element, coloured by the caller
+     * @param glow Colour of the halo behind the glyph
+     * @param value Formatted reading
+     * @param label Caption below the reading
+     * @param sizes Font sizes so the column scales with the tile
+     * @param sizes.icon Glyph size
+     * @param sizes.value Font size of the reading
+     * @param sizes.label Font size of the caption
+     * @returns The column
+     */
+    static renderMetricColumn(
+        key: string,
+        icon: React.JSX.Element,
+        glow: string,
+        value: string,
+        label: string,
+        sizes: { icon: string; value: string; label: string },
+    ): React.JSX.Element {
+        return (
+            <Box
+                key={key}
+                sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.15em',
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.4em', maxWidth: '100%' }}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexShrink: 0,
+                            fontSize: sizes.icon,
+                            filter: `drop-shadow(0 0 4px ${glow})`,
+                            '& .MuiSvgIcon-root': { fontSize: 'inherit !important' },
+                        }}
+                    >
+                        {icon}
+                    </Box>
+                    <Typography
+                        sx={{
+                            fontWeight: 700,
+                            fontSize: sizes.value,
+                            lineHeight: 1.15,
+                            whiteSpace: 'nowrap',
+                            fontVariantNumeric: 'tabular-nums',
+                        }}
+                    >
+                        {value}
+                    </Typography>
+                </Box>
+                <Typography
+                    sx={theme => ({
+                        fontSize: sizes.label,
+                        lineHeight: 1.2,
+                        color: theme.palette.text.secondary,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                    })}
+                >
+                    {label}
+                </Typography>
+            </Box>
+        );
     }
 
     static renderForecastRow(day: ForecastDay, compact?: boolean): React.JSX.Element {
@@ -1416,6 +1578,44 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
             .filter(d => d.icon || d.wmoCode != null || d.tempMin != null || d.tempMax != null)
             .slice(0, 1);
 
+        const metrics: { key: string; icon: React.JSX.Element; glow: string; value: string; label: string }[] = [];
+        if (humidity != null) {
+            metrics.push({
+                key: 'humidity',
+                icon: <WaterDrop sx={{ color: '#29a3f5' }} />,
+                glow: 'rgba(41,163,245,0.45)',
+                value: `${Math.round(humidity)}%`,
+                label: I18n.t('wm_Humidity'),
+            });
+        }
+        if (windSpeed != null) {
+            metrics.push({
+                key: 'wind',
+                icon: <Air sx={{ color: '#3ecfb2' }} />,
+                glow: 'rgba(62,207,178,0.45)',
+                value: `${Math.round(windSpeed)} km/h`,
+                label: I18n.t('wm_Wind'),
+            });
+        }
+        if (pressure != null) {
+            metrics.push({
+                key: 'pressure',
+                icon: <Speed sx={{ color: '#8b7ff5' }} />,
+                glow: 'rgba(139,127,245,0.45)',
+                value: `${Math.round(pressure)} hPa`,
+                label: I18n.t('wm_Pressure'),
+            });
+        }
+        if (precipitationChance != null) {
+            metrics.push({
+                key: 'precipitation',
+                icon: <Opacity sx={{ color: '#4fc3f7' }} />,
+                glow: 'rgba(79,195,247,0.45)',
+                value: `${Math.round(precipitationChance)}%`,
+                label: I18n.t('wm_Precipitation'),
+            });
+        }
+
         return (
             <Box sx={theme => WidgetGeneric.getStyleWideTall(theme)}>
                 {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
@@ -1450,113 +1650,120 @@ export class WidgetWeather extends WidgetGeneric<WidgetWeatherState, WidgetWeath
                         </Box>
                     ) : (
                         <>
-                            {/* Top: current weather */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                {WidgetWeather.renderWeatherIcon(icon, 52, wmoCode)}
+                            {/* Top: glyph, temperature, condition */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 'max(8px, 2.5cqi)' }}>
+                                {WidgetWeather.renderWeatherIcon(icon, 0, wmoCode, 'max(44px, 20cqi)')}
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1 }}>
+                                    <Typography
+                                        sx={theme => ({
+                                            fontWeight: 800,
+                                            fontSize: 'max(1.6rem, 10cqi)',
+                                            lineHeight: 1.05,
+                                            letterSpacing: '-0.02em',
+                                            whiteSpace: 'nowrap',
+                                            ...(theme.palette.mode === 'dark'
+                                                ? {
+                                                      background: `linear-gradient(180deg, ${theme.palette.text.primary} 35%, ${alpha(theme.palette.text.primary, 0.6)})`,
+                                                      backgroundClip: 'text',
+                                                      WebkitBackgroundClip: 'text',
+                                                      WebkitTextFillColor: 'transparent',
+                                                  }
+                                                : null),
+                                        })}
+                                    >
                                         {temperature != null
                                             ? `${formatFloat(temperature, 1, this.props.stateContext.isFloatComma)}°`
                                             : '\u2014'}
                                     </Typography>
-                                    {weatherState ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, minWidth: 0 }}>
+                                        {weatherState ? (
+                                            <Typography
+                                                sx={{
+                                                    color: 'text.secondary',
+                                                    fontSize: 'max(0.8rem, 4.4cqi)',
+                                                    lineHeight: 1.2,
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                }}
+                                            >
+                                                {weatherState}
+                                            </Typography>
+                                        ) : null}
+                                        {/* The location shares the condition line: the tile already carries three
+                                            bands, and a row of its own would squeeze out the forecast. */}
                                         <Typography
-                                            variant="body2"
-                                            sx={{ color: 'text.secondary', lineHeight: 1.2 }}
+                                            sx={{
+                                                ml: 'auto',
+                                                flexShrink: 1,
+                                                minWidth: 0,
+                                                color: 'text.disabled',
+                                                fontSize: 'max(0.65rem, 2.8cqi)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                            }}
                                         >
-                                            {weatherState}
+                                            {this.getLocationTitle()}
                                         </Typography>
-                                    ) : null}
+                                    </Box>
                                 </Box>
                             </Box>
 
-                            {/* Details */}
-                            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {humidity != null ? (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                            color: 'text.secondary',
-                                        }}
-                                    >
-                                        <WaterDrop sx={{ fontSize: 14 }} />
-                                        <Typography variant="caption">{Math.round(humidity)}%</Typography>
-                                    </Box>
-                                ) : null}
-                                {windSpeed != null ? (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                            color: 'text.secondary',
-                                        }}
-                                    >
-                                        <Air sx={{ fontSize: 14 }} />
-                                        <Typography variant="caption">{Math.round(windSpeed)} km/h</Typography>
-                                    </Box>
-                                ) : null}
-                                {pressure != null ? (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                            color: 'text.secondary',
-                                        }}
-                                    >
-                                        <Speed sx={{ fontSize: 14 }} />
-                                        <Typography variant="caption">{Math.round(pressure)} hPa</Typography>
-                                    </Box>
-                                ) : null}
-                                {precipitationChance != null ? (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                            color: 'text.secondary',
-                                        }}
-                                    >
-                                        <Opacity sx={{ fontSize: 14 }} />
-                                        <Typography variant="caption">{Math.round(precipitationChance)}%</Typography>
-                                    </Box>
-                                ) : null}
-                            </Box>
-
-                            {/* Multi-day forecast */}
-                            {visibleDays.length > 0 ? (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '2px',
-                                        overflow: 'hidden',
-                                        flex: 1,
-                                        minHeight: 0,
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    {visibleDays.map(day =>
-                                        WidgetWeather.renderForecastRow(day, visibleDays.length > 3),
-                                    )}
-                                </Box>
-                            ) : null}
-
-                            {/* Label */}
-                            <Typography
-                                variant="body2"
+                            {/* Current readings, split by hairlines */}
+                            <Box
                                 sx={{
-                                    fontWeight: 600,
-                                    overflow: 'hidden',
-                                    whiteSpace: 'nowrap',
-                                    textOverflow: 'ellipsis',
+                                    display: metrics.length ? 'flex' : 'none',
+                                    alignItems: 'stretch',
+                                    width: '100%',
+                                    gap: '0.4em',
                                 }}
                             >
-                                {this.getLocationTitle()}
-                            </Typography>
+                                {metrics.map((m, i) => (
+                                    <React.Fragment key={m.key}>
+                                        {i ? (
+                                            <Box
+                                                sx={theme => ({
+                                                    width: '1px',
+                                                    alignSelf: 'stretch',
+                                                    backgroundColor: alpha(theme.palette.text.primary, 0.1),
+                                                })}
+                                            />
+                                        ) : null}
+                                        {WidgetWeather.renderMetricColumn(m.key, m.icon, m.glow, m.value, m.label, {
+                                            icon: 'max(0.9rem, 4cqi)',
+                                            value: 'max(0.8rem, 4cqi)',
+                                            label: 'max(0.6rem, 2.6cqi)',
+                                        })}
+                                    </React.Fragment>
+                                ))}
+                            </Box>
+
+                            {/* Multi-day forecast, set off by a rule */}
+                            {visibleDays.length > 0 ? (
+                                <>
+                                    <Box
+                                        sx={theme => ({
+                                            width: '100%',
+                                            height: '1px',
+                                            flexShrink: 0,
+                                            backgroundColor: alpha(theme.palette.text.primary, 0.12),
+                                        })}
+                                    />
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '2px',
+                                            overflow: 'hidden',
+                                            minHeight: 0,
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        {visibleDays.map(day => WidgetWeather.renderForecastStrip(day))}
+                                    </Box>
+                                </>
+                            ) : null}
                         </>
                     )}
                 </Box>

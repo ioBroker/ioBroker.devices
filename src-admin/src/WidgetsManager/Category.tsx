@@ -123,7 +123,7 @@ import type {
     DevicesDetectorState,
     CustomWidgetPlugin,
 } from '../../../packages/dm-widgets/src/index';
-import { WidgetGeneric } from './Widgets/Generic';
+import { WidgetGeneric, getTileStyles } from './Widgets/Generic';
 
 interface CategoryProps {
     category: CategoryInfo;
@@ -2801,6 +2801,9 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         const tileImage = tileStoredImage
             ? `/${this.props.stateContext.imagePrefix}${tileStoredImage.replace(/^\//, '')}`
             : '';
+        // Look-and-feel setting that lives on the root category next to the theme, so every tile
+        // renders its image the same way. Unset means 'fade'.
+        const tileImageStyle = this.props.categorySettings.__root__?.imageStyle || 'fade';
         const deviceCount = this.props.widgets.filter(w => w.parent === category.id).length;
         const scale = this.state.widgetScale / 100;
 
@@ -2818,24 +2821,27 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     gridColumn: '1 / -1',
                     textAlign: 'left',
                     overflow: 'hidden',
-                    borderRadius: '16px',
-                    p: `${Math.round(16 * scale)}px`,
                     position: 'relative',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    backgroundColor: isForbidden
-                        ? 'rgba(244, 67, 54, 0.15)'
-                        : isDropTarget
-                          ? 'rgba(77, 171, 245, 0.15)'
-                          : theme.palette.mode === 'dark'
-                            ? 'rgba(255,255,255,0.04)'
-                            : 'rgba(0,0,0,0.02)',
+                    // Same panel as the widget tiles, so a category row does not read as a
+                    // different material sitting in the same grid.
+                    ...getTileStyles(theme, false, tileColor || undefined, true, tileColor || undefined),
+                    p: `${Math.round(16 * scale)}px`,
+                    // Drag feedback has to win over the panel background
+                    ...(isForbidden || isDropTarget
+                        ? {
+                              backgroundColor: isForbidden ? 'rgba(244, 67, 54, 0.15)' : 'rgba(77, 171, 245, 0.15)',
+                              backgroundImage: 'none',
+                          }
+                        : null),
                     borderLeft: `3px solid ${tileColor || theme.palette.primary.main}`,
                     // Drop-target / forbidden outline lives on the tile itself, so it always
                     // inherits the full-row gridColumn — wrapping the tile in another <div>
                     // would lose it during dnd-kit reorder transforms and shrink the highlight.
                     outline: isForbidden ? '2px dashed #f44336' : isDropTarget ? '2px dashed #4dabf5' : 'none',
                     outlineOffset: -2,
-                    ...(tileImage
+                    // Only the full-bleed variant paints the image onto the tile itself; the other
+                    // two layer it in ::before so the panel gradient below stays visible.
+                    ...(tileImage && tileImageStyle === 'scrim'
                         ? {
                               backgroundImage: `url(${tileImage})`,
                               backgroundSize: 'cover',
@@ -2854,14 +2860,40 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     '&:active': {
                         transform: 'scale(0.99)',
                     },
+                    // A tile with a background image gives up the panel's corner light (also
+                    // ::before) for its image layer. ::after is not an option: it paints after the
+                    // children and would grey out the icon and the label.
                     ...(tileImage
                         ? {
                               '&::before': {
                                   content: '""',
                                   position: 'absolute',
                                   inset: 0,
-                                  backgroundColor: alpha(theme.palette.background.default, 0.75),
                                   borderRadius: 'inherit',
+                                  pointerEvents: 'none',
+                                  ...(tileImageStyle === 'scrim'
+                                      ? // Flat dimming layer over the full-bleed image on the tile
+                                        { backgroundColor: alpha(theme.palette.background.default, 0.75) }
+                                      : tileImageStyle === 'texture'
+                                        ? // Image kept far back, reading as a tint rather than a photo
+                                          {
+                                              backgroundImage: `url(${tileImage})`,
+                                              backgroundSize: 'cover',
+                                              backgroundPosition: 'center',
+                                              opacity: 0.14,
+                                          }
+                                        : // fade: image on the trailing edge, running out towards the
+                                          // label so it stays legible without dimming the whole photo
+                                          {
+                                              backgroundImage: `url(${tileImage})`,
+                                              backgroundSize: 'cover',
+                                              backgroundPosition: 'center right',
+                                              opacity: 0.85,
+                                              maskImage:
+                                                  'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, transparent 78%)',
+                                              WebkitMaskImage:
+                                                  'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, transparent 78%)',
+                                          }),
                               },
                           }
                         : {}),

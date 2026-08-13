@@ -160,5 +160,7 @@
     "tooltip_quality": "Qualité",
     "tooltip_ts": "Horodatage",
     "tooltip_user": "Utilisateur",
-    "tooltip_value": "Valeur"
+    "tooltip_value": "Valeur",
+    "Required datapoints are not assigned: %s": "Points de données obligatoires non attribués : %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Sans eux, l'appareil n'est plus reconnu comme \"%s\" et des commandes disparaissent du widget."
 }

@@ -160,5 +160,7 @@
     "tooltip_quality": "Qualität",
     "tooltip_ts": "Zeitstempel",
     "tooltip_user": "Benutzer",
-    "tooltip_value": "Wert"
+    "tooltip_value": "Wert",
+    "Required datapoints are not assigned: %s": "Pflicht-Datenpunkte sind nicht belegt: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Ohne sie wird das Gerät nicht mehr als \"%s\" erkannt und Bedienelemente verschwinden aus dem Widget."
 }

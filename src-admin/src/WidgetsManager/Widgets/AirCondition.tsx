@@ -29,11 +29,11 @@ interface WidgetAirConditionState extends WidgetGenericState {
     humidity: number | null;
     boost: boolean;
     power: boolean | null;
-    mode: number | null;
+    mode: string | number | null;
     modeStates: Record<string, string>;
-    speed: number | null;
+    speed: string | number | null;
     speedStates: Record<string, string>;
-    swing: number | boolean | null;
+    swing: string | number | boolean | null;
     swingStates: Record<string, string>;
     swingIsBoolean: boolean;
     setMin: number;
@@ -156,17 +156,71 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     }
 
+    /**
+     * Read `common.states` in every shape ioBroker allows.
+     *
+     * Adapters deliver the list as an object, as an array (value = index) or as a
+     * `"0:Auto;1:Cool"` string. Only the object form used to be understood, so a device that
+     * exports either of the other two lost its buttons entirely (issue #654).
+     *
+     * @param states Raw `common.states` from the object definition
+     * @returns Value → label, with the values kept as strings
+     */
+    private static parseCommonStates(states: unknown): Record<string, string> {
+        if (!states) {
+            return {};
+        }
+        if (typeof states === 'string') {
+            const parsed: Record<string, string> = {};
+            for (const pair of states.split(';')) {
+                const at = pair.indexOf(':');
+                if (at > 0) {
+                    parsed[pair.slice(0, at).trim()] = pair.slice(at + 1).trim();
+                }
+            }
+            return parsed;
+        }
+        if (Array.isArray(states)) {
+            const parsed: Record<string, string> = {};
+            states.forEach((label, i) => (parsed[String(i)] = String(label)));
+            return parsed;
+        }
+        if (typeof states === 'object') {
+            const parsed: Record<string, string> = {};
+            for (const [key, label] of Object.entries(states as Record<string, unknown>)) {
+                parsed[key] = String(label);
+            }
+            return parsed;
+        }
+        return {};
+    }
+
+    /**
+     * Value to write for a state list entry.
+     *
+     * The key carries the datapoint's own type: a numeric datapoint must receive `7`, a string one
+     * `'SWING'`. Coercing everything through `Number()` turned string keys into `NaN`.
+     *
+     * @param key Key from `common.states`
+     * @returns The key as the datapoint expects it
+     */
+    private static stateKeyToValue(key: string): string | number {
+        const num = Number(key);
+        return key.trim() !== '' && !isNaN(num) ? num : key;
+    }
+
     private async loadStatesObject(id: string, stateKey: 'modeStates' | 'speedStates'): Promise<void> {
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
                 | ioBroker.StateObject
                 | null
                 | undefined;
-            if (obj?.common?.states && typeof obj.common.states === 'object') {
+            const parsed = WidgetAirCondition.parseCommonStates(obj?.common?.states);
+            if (Object.keys(parsed).length) {
                 if (stateKey === 'modeStates') {
-                    this.setState({ modeStates: obj.common.states as Record<string, string> });
+                    this.setState({ modeStates: parsed });
                 } else {
-                    this.setState({ speedStates: obj.common.states as Record<string, string> });
+                    this.setState({ speedStates: parsed });
                 }
             }
         } catch {
@@ -184,10 +238,12 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                 | null
                 | undefined;
             if (obj?.common) {
-                const isBoolean = obj.common.type === 'boolean';
+                const parsed = WidgetAirCondition.parseCommonStates(obj.common.states);
+                // A boolean datapoint that ships its own two labels is still a list, not a switch
+                const isBoolean = obj.common.type === 'boolean' && !Object.keys(parsed).length;
                 this.setState({ swingIsBoolean: isBoolean });
-                if (!isBoolean && obj.common.states && typeof obj.common.states === 'object') {
-                    this.setState({ swingStates: obj.common.states as Record<string, string> });
+                if (!isBoolean && Object.keys(parsed).length) {
+                    this.setState({ swingStates: parsed });
                 }
             }
         } catch {
@@ -260,17 +316,21 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     };
 
+    /**
+     * Keep the value as delivered instead of forcing it through `Number()`.
+     *
+     * A datapoint whose states are keyed by string (`'AUTO'`, `'COOL'`) became `NaN` and was
+     * dropped, which is why the mode section could vanish completely (issue #654).
+     */
     private onModeChange = (_id: string, state: ioBroker.State): void => {
-        const val = state.val != null ? Number(state.val) : null;
-        const mode = val != null && !isNaN(val) ? val : null;
+        const mode = (state.val ?? null) as string | number | null;
         if (mode !== this.state.mode) {
             this.setState({ mode });
         }
     };
 
     private onSpeedChange = (_id: string, state: ioBroker.State): void => {
-        const val = state.val != null ? Number(state.val) : null;
-        const speed = val != null && !isNaN(val) ? val : null;
+        const speed = (state.val ?? null) as string | number | null;
         if (speed !== this.state.speed) {
             this.setState({ speed });
         }
@@ -301,21 +361,21 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
     };
 
-    private setMode = (value: number): void => {
+    private setMode = (value: string | number): void => {
         if (this.modeId) {
             void this.setValue(this.modeId, value);
             this.setState({ mode: value });
         }
     };
 
-    private setSpeed = (value: number): void => {
+    private setSpeed = (value: string | number): void => {
         if (this.speedId) {
             void this.setValue(this.speedId, value);
             this.setState({ speed: value });
         }
     };
 
-    private setSwing = (value: number | boolean): void => {
+    private setSwing = (value: string | number | boolean): void => {
         if (this.swingId) {
             void this.setValue(this.swingId, value);
             this.setState({ swing: value });
@@ -986,8 +1046,8 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 }}
                             >
                                 {modeEntries.map(([key, label]) => {
-                                    const numKey = Number(key);
-                                    const isActive = mode === numKey;
+                                    const value = WidgetAirCondition.stateKeyToValue(key);
+                                    const isActive = mode != null && String(mode) === key;
                                     const info = WidgetAirCondition.getModeInfo(label);
                                     return (
                                         <Button
@@ -999,7 +1059,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                                 18,
                                                 isActive ? '#fff' : info.color,
                                             )}
-                                            onClick={() => this.setMode(numKey)}
+                                            onClick={() => this.setMode(value)}
                                             size="small"
                                             sx={{
                                                 textTransform: 'none',
@@ -1044,14 +1104,14 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                 }}
                             >
                                 {speedEntries.map(([key, label]) => {
-                                    const numKey = Number(key);
-                                    const isActive = speed === numKey;
+                                    const value = WidgetAirCondition.stateKeyToValue(key);
+                                    const isActive = speed != null && String(speed) === key;
                                     return (
                                         <Button
                                             key={key}
                                             variant={isActive ? 'contained' : 'outlined'}
                                             color={isActive ? 'primary' : 'inherit'}
-                                            onClick={() => this.setSpeed(numKey)}
+                                            onClick={() => this.setSpeed(value)}
                                             size="small"
                                             sx={{ textTransform: 'none', borderRadius: '20px', minWidth: 0, px: 1.5 }}
                                         >
@@ -1097,14 +1157,14 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
                                     }}
                                 >
                                     {swingEntries.map(([key, label]) => {
-                                        const numKey = Number(key);
-                                        const isActive = swing === numKey;
+                                        const value = WidgetAirCondition.stateKeyToValue(key);
+                                        const isActive = swing != null && String(swing) === key;
                                         return (
                                             <Button
                                                 key={key}
                                                 variant={isActive ? 'contained' : 'outlined'}
                                                 color={isActive ? 'primary' : 'inherit'}
-                                                onClick={() => this.setSwing(numKey)}
+                                                onClick={() => this.setSwing(value)}
                                                 size="small"
                                                 sx={{
                                                     textTransform: 'none',

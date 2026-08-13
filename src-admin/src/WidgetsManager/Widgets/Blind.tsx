@@ -26,6 +26,14 @@ export interface BlindWidgetSettings extends WidgetGenericSettings {
 
 interface WidgetBlindState extends WidgetGenericState {
     position: number;
+    /**
+     * Position the user last asked for, held until the drive reports it has arrived.
+     *
+     * `position` follows ACTUAL so the window keeps animating while the blind travels; the slider
+     * shows this instead, otherwise the thumb springs back to where the blind still is and the
+     * commanded target is never visible (issue #655).
+     */
+    targetPosition: number | null;
     dragging: boolean;
     min: number;
     max: number;
@@ -341,6 +349,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         this.state = {
             ...this.state,
             position: 0,
+            targetPosition: null,
             dragging: false,
             min: 0,
             max: 100,
@@ -397,6 +406,10 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
         if (this.tiltActualId) {
             this.props.stateContext.removeState(this.tiltActualId, this.onTiltChange);
+        }
+        if (this.targetTimer) {
+            clearTimeout(this.targetTimer);
+            this.targetTimer = null;
         }
     }
 
@@ -457,6 +470,52 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         return min + (percent / 100) * (max - min);
     }
 
+    /** Tolerance in percent within which the drive counts as having reached the target. */
+    private static readonly ARRIVED_TOLERANCE = 2;
+
+    /**
+     * Safety net for the commanded target: a blind that never reports arrival — because it is
+     * blocked, or because ACTUAL simply never lands exactly on the target — would otherwise keep
+     * the slider pinned forever.
+     */
+    private static readonly TARGET_TIMEOUT_MS = 180_000;
+
+    private targetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /** True while the slider thumb is under the pointer — ACTUAL must not fight the user's drag. */
+    private sliderDragging = false;
+
+    /** Direction of the last command, so a tap after a stop reverses instead of repeating. */
+    private lastCommand: 'open' | 'close' | null = null;
+
+    /**
+     * Remember what was commanded and from when.
+     *
+     * @param percent Target position, or null to forget the pending command
+     */
+    private setTargetPosition(percent: number | null): void {
+        if (this.targetTimer) {
+            clearTimeout(this.targetTimer);
+            this.targetTimer = null;
+        }
+        if (percent !== null) {
+            this.targetTimer = setTimeout(() => {
+                this.targetTimer = null;
+                this.setState({ targetPosition: null });
+            }, WidgetBlind.TARGET_TIMEOUT_MS);
+        }
+        this.setState({ targetPosition: percent });
+    }
+
+    /** True while the drive is still on its way to the commanded target. */
+    private get isMoving(): boolean {
+        if (this.state.indicators?.working) {
+            return true;
+        }
+        const { targetPosition, position } = this.state;
+        return targetPosition !== null && Math.abs(position - targetPosition) > WidgetBlind.ARRIVED_TOLERANCE;
+    }
+
     onPositionChange = (_id: string, state: ioBroker.State): void => {
         if (this.isDragging) {
             return;
@@ -466,10 +525,34 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         if (position !== this.state.position) {
             this.setState({ position });
         }
+        // Hand the slider back to the live value once the blind has arrived
+        const { targetPosition } = this.state;
+        if (
+            !this.sliderDragging &&
+            targetPosition !== null &&
+            Math.abs(position - targetPosition) <= WidgetBlind.ARRIVED_TOLERANCE
+        ) {
+            this.setTargetPosition(null);
+        }
     };
 
+    /**
+     * Slider drag: show the value locally only.
+     *
+     * Writing SET on every change event would fire a command per pixel of travel and, because the
+     * thumb was bound to ACTUAL, leave the bar standing still while the blind ran off (issue #655).
+     */
     setPosition = (_e: Event, value: number | number[]): void => {
+        this.sliderDragging = true;
+        this.setState({ targetPosition: value as number });
+    };
+
+    /** Slider released — now the command goes out. */
+    private commitPosition = (_e: React.SyntheticEvent | Event, value: number | number[]): void => {
+        this.sliderDragging = false;
         const percent = value as number;
+        this.lastCommand = percent > this.state.position ? 'open' : 'close';
+        this.setTargetPosition(percent);
         if (this.setId) {
             void this.setValue(this.setId, this.percentToRaw(percent));
         }
@@ -489,11 +572,15 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
         if (this.stopId) {
             void this.setValue(this.stopId, true);
+            // Stopped where it stands — no target is outstanding any more
+            this.setTargetPosition(null);
         }
     };
 
     private open = (e: React.MouseEvent): void => {
         e.stopPropagation();
+        this.lastCommand = 'open';
+        this.setTargetPosition(100);
         if (this.openId) {
             void this.setValue(this.openId, true);
         } else if (this.setId) {
@@ -503,6 +590,8 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
 
     private close = (e: React.MouseEvent): void => {
         e.stopPropagation();
+        this.lastCommand = 'close';
+        this.setTargetPosition(0);
         if (this.closeId) {
             void this.setValue(this.closeId, true);
         } else if (this.setId) {
@@ -581,20 +670,44 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             const delta = ((isCurtain ? d : -d) / span) * 100;
             const percent = Math.max(0, Math.min(100, Math.round(this.dragStartPosition + delta)));
             if (this.setId) {
+                this.lastCommand = percent > this.state.position ? 'open' : 'close';
+                this.setTargetPosition(percent);
                 void this.setValue(this.setId, this.percentToRaw(percent));
             }
         } else {
-            // Tap — toggle between fully open and closed
-            if (this.setId) {
-                const target = this.state.position > 50 ? this.state.min : this.state.max;
-                void this.setValue(this.setId, target);
-            }
+            this.onTap();
         }
 
         this.dragStartPos = null;
         this.isDragging = false;
         this.setState({ dragging: false });
     };
+
+    /**
+     * Tap on the tile.
+     *
+     * A blind in motion takes a stop; otherwise the drive reverses relative to the previous
+     * command, giving the down → stop → up → stop cycle a physical wall switch has. Deriving the
+     * direction from the current position instead would send it the same way again after a stop
+     * past the midpoint (issue #655).
+     *
+     * Without a STOP state the tile can only toggle between the end positions, as before.
+     */
+    private onTap(): void {
+        if (this.isMoving && this.stopId) {
+            void this.setValue(this.stopId, true);
+            // The blind holds wherever it stopped, so nothing is outstanding any more
+            this.setTargetPosition(null);
+            return;
+        }
+        if (!this.setId) {
+            return;
+        }
+        const goOpen = this.lastCommand ? this.lastCommand === 'close' : this.state.position <= 50;
+        this.lastCommand = goOpen ? 'open' : 'close';
+        this.setTargetPosition(goOpen ? 100 : 0);
+        void this.setValue(this.setId, goOpen ? this.state.max : this.state.min);
+    }
 
     // --- Overrides ---
 
@@ -657,7 +770,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     }
 
     protected renderTileAction(): React.JSX.Element {
-        const { position, tiltPosition } = this.state;
+        const { position, targetPosition, tiltPosition } = this.state;
         const accent = this.getAccentColor();
         const hasButtons = this.openId || this.closeId || this.stopId;
 
@@ -666,12 +779,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                 {/* Position slider */}
                 <Slider
                     disabled={this.isReadOnly}
-                    value={position}
+                    value={targetPosition ?? position}
                     min={0}
                     max={100}
                     size="small"
                     onClick={e => e.stopPropagation()}
                     onChange={this.setPosition}
+                    onChangeCommitted={this.commitPosition}
                     sx={theme => ({
                         width: 70,
                         color: accent || theme.palette.primary.main,

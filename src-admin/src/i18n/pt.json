@@ -160,5 +160,7 @@
     "tooltip_quality": "Qualidade",
     "tooltip_ts": "Carimbo de hora",
     "tooltip_user": "Do utilizador",
-    "tooltip_value": "Valor"
+    "tooltip_value": "Valor",
+    "Required datapoints are not assigned: %s": "Pontos de dados obrigatórios não atribuídos: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Sem eles, o dispositivo deixa de ser reconhecido como \"%s\" e os controlos desaparecem do widget."
 }

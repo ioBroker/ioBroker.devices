@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Burza z piorunami",
     "wm_w_Thunderstorm with hail": "Burza z gradem",
     "wm_w_Thunderstorm with heavy hail": "Burza z silnym gradem",
-    "wm_w_Violent rain showers": "Gwałtowne opady deszczu"
+    "wm_w_Violent rain showers": "Gwałtowne opady deszczu",
+    "wm_Image style": "Styl obrazu",
+    "wm_Image full": "Pełny",
+    "wm_Image fade": "Zanikający",
+    "wm_Image texture": "Tekstura",
+    "wm_Tile style": "Styl kafelka",
+    "wm_Tile gradient": "Gradient",
+    "wm_Tile flat": "Płaski",
+    "wm_Tile glass": "Szkło"
 }

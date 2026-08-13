@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Orage",
     "wm_w_Thunderstorm with hail": "Orage avec grêle",
     "wm_w_Thunderstorm with heavy hail": "Orage avec forte grêle",
-    "wm_w_Violent rain showers": "Averses violentes"
+    "wm_w_Violent rain showers": "Averses violentes",
+    "wm_Image style": "Style d'image",
+    "wm_Image full": "Plein",
+    "wm_Image fade": "Dégradé",
+    "wm_Image texture": "Texture",
+    "wm_Tile style": "Style de tuile",
+    "wm_Tile gradient": "Dégradé",
+    "wm_Tile flat": "Plat",
+    "wm_Tile glass": "Verre"
 }

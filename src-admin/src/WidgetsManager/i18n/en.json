@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Thunderstorm",
     "wm_w_Thunderstorm with hail": "Thunderstorm with hail",
     "wm_w_Thunderstorm with heavy hail": "Thunderstorm with heavy hail",
-    "wm_w_Violent rain showers": "Violent rain showers"
+    "wm_w_Violent rain showers": "Violent rain showers",
+    "wm_Image style": "Image style",
+    "wm_Image full": "Full",
+    "wm_Image fade": "Fade",
+    "wm_Image texture": "Texture",
+    "wm_Tile style": "Tile style",
+    "wm_Tile gradient": "Gradient",
+    "wm_Tile flat": "Flat",
+    "wm_Tile glass": "Glass"
 }

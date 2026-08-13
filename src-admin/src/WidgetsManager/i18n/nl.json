@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Onweer",
     "wm_w_Thunderstorm with hail": "Onweersbui met hagel",
     "wm_w_Thunderstorm with heavy hail": "Onweersbui met zware hagel",
-    "wm_w_Violent rain showers": "Heftige regenbuien"
+    "wm_w_Violent rain showers": "Heftige regenbuien",
+    "wm_Image style": "Afbeeldingsstijl",
+    "wm_Image full": "Volledig",
+    "wm_Image fade": "Vervagend",
+    "wm_Image texture": "Textuur",
+    "wm_Tile style": "Tegelstijl",
+    "wm_Tile gradient": "Verloop",
+    "wm_Tile flat": "Vlak",
+    "wm_Tile glass": "Glas"
 }

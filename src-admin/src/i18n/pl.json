@@ -160,5 +160,7 @@
     "tooltip_quality": "Jakość",
     "tooltip_ts": "Znak czasu",
     "tooltip_user": "Użytkownik",
-    "tooltip_value": "Wartość"
+    "tooltip_value": "Wartość",
+    "Required datapoints are not assigned: %s": "Wymagane punkty danych nie są przypisane: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Bez nich urządzenie nie jest już rozpoznawane jako \"%s\", a elementy sterowania znikają z widżetu."
 }

@@ -160,5 +160,7 @@
     "tooltip_quality": "Kwaliteit",
     "tooltip_ts": "Tijdstempel",
     "tooltip_user": "Gebruiker",
-    "tooltip_value": "Waarde"
+    "tooltip_value": "Waarde",
+    "Required datapoints are not assigned: %s": "Verplichte datapunten zijn niet toegewezen: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Zonder deze wordt het apparaat niet meer herkend als \"%s\" en verdwijnen bedieningselementen uit de widget."
 }

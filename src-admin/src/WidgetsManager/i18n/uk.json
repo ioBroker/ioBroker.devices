@@ -535,5 +535,13 @@
     "wm_w_Thunderstorm": "Гроза",
     "wm_w_Thunderstorm with hail": "Гроза з градом",
     "wm_w_Thunderstorm with heavy hail": "Гроза з сильним градом",
-    "wm_w_Violent rain showers": "Сильні дощі"
+    "wm_w_Violent rain showers": "Сильні дощі",
+    "wm_Image style": "Стиль зображення",
+    "wm_Image full": "На всю плитку",
+    "wm_Image fade": "Із затуханням",
+    "wm_Image texture": "Текстура",
+    "wm_Tile style": "Стиль плитки",
+    "wm_Tile gradient": "Градієнт",
+    "wm_Tile flat": "Пласкій",
+    "wm_Tile glass": "Скло"
 }

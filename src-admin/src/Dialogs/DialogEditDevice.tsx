@@ -7,6 +7,8 @@
 import React from 'react';
 
 import {
+    Alert,
+    AlertTitle,
     Button,
     Dialog,
     DialogTitle,
@@ -1086,6 +1088,61 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         );
     }
 
+    /**
+     * True when a slot has no datapoint behind it.
+     *
+     * Mirrors the emptiness test the state rows use for their dimmed look. The `{read, write}` form
+     * is an object and therefore always truthy, so it has to be looked into rather than just tested.
+     *
+     * @param item State slot of the detected pattern
+     * @returns Whether the slot is unassigned
+     */
+    private isSlotEmpty(item: DetectorState): boolean {
+        const id = this.state.ids[item.name];
+        if (typeof id === 'object' && id) {
+            return !id.read && !id.write;
+        }
+        return !item.id && !id;
+    }
+
+    /**
+     * Warning about unfilled mandatory slots.
+     *
+     * The type-detector only recognises a device as its type while every `required` slot is filled.
+     * Clearing one silently downgrades the device to a different (smaller) type, which makes whole
+     * sections disappear from the widget — for an air conditioner without MODE, both the mode and
+     * the swing control vanish at once. Nothing in the editor used to hint at that connection, and
+     * the way back was not obvious (issue #654).
+     *
+     * Deliberately only a warning: saving stays possible, since a half-configured device is a
+     * legitimate intermediate step.
+     *
+     * @returns The warning, or null while every mandatory slot is filled
+     */
+    renderRequiredWarning(): React.JSX.Element | null {
+        const missing = this.state.channelInfo.states.filter(
+            item => item.required && !item.indicator && this.isSlotEmpty(item),
+        );
+        if (!missing.length) {
+            return null;
+        }
+        return (
+            <Alert
+                severity="warning"
+                variant="outlined"
+                sx={{ mr: 3, mb: 1, py: 0.25, alignItems: 'center' }}
+            >
+                <AlertTitle sx={{ mb: 0, fontSize: '0.875rem' }}>
+                    {I18n.t('Required datapoints are not assigned: %s', missing.map(item => item.name).join(', '))}
+                </AlertTitle>
+                {I18n.t(
+                    'Without them the device is no longer recognised as "%s" and controls will disappear from the widget.',
+                    I18n.t(`type-${this.state.channelInfo.type}`),
+                )}
+            </Alert>
+        );
+    }
+
     renderHeader(): React.JSX.Element {
         const checkIndicators = this.state.channelInfo.states
             .filter(item => item.indicator && item.defaultRole)
@@ -2080,10 +2137,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             <div
                 key="vars"
                 style={{
-                    display: 'inline-block',
-                    verticalAlign: 'top',
+                    // Takes the space left by the header and the (optional) warning above it.
+                    // A fixed `calc(100% - 52px)` only accounted for the header, so anything else
+                    // in that column pushed the list out of the dialog.
+                    flex: 1,
+                    minHeight: 0,
                     width: 'calc(100% - 24px)',
-                    height: 'calc(100% - 52px)',
                     overflow: 'auto',
                     paddingRight: 24,
                     paddingBottom: 12,
@@ -2237,8 +2296,17 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 padding: '12px 0 0 24px',
                             }}
                         >
-                            <div style={{ ...styles.divDialogContent, overflow: 'hidden', height: '100%' }}>
+                            <div
+                                style={{
+                                    ...styles.divDialogContent,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    overflow: 'hidden',
+                                    height: '100%',
+                                }}
+                            >
                                 {this.renderHeader()}
+                                {this.renderRequiredWarning()}
                                 {this.renderVariables()}
                             </div>
                         </TabPanel>

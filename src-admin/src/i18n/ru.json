@@ -160,5 +160,7 @@
     "tooltip_quality": "Качественный",
     "tooltip_ts": "Время",
     "tooltip_user": "Пользователь",
-    "tooltip_value": "Значение"
+    "tooltip_value": "Значение",
+    "Required datapoints are not assigned: %s": "Обязательные точки данных не назначены: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Без них устройство больше не распознаётся как \"%s\", и элементы управления исчезнут из виджета."
 }

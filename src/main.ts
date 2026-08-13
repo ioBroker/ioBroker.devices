@@ -35,7 +35,7 @@ export default class DevicesAdapter extends Adapter {
             }
         }
         if (!noTerminate) {
-            this.terminate ? this.terminate('install finished', 0) : process.exit(0);
+            this.terminate?.('install finished', 0);
         }
     }
 

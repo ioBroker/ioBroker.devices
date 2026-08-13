@@ -324,10 +324,20 @@ export function getLastPart(id: string): string {
 }
 
 /**
- * Copy display metadata (min/max/unit/step) from an aliased *source* state's common into the alias
- * state's common — but only for fields the alias does not define yet, so values edited manually via
- * the "edit state common" dialog are preserved. Fixes issue #22 (aliased states did not inherit e.g.
- * min/max from their source state). Returns true if anything was changed.
+ * Copy display metadata (min/max/unit/step/states) from an aliased *source* state's common into the
+ * alias state's common — but only for fields the alias does not define yet, so values edited
+ * manually via the "edit state common" dialog are preserved. Fixes issue #22 (aliased states did not
+ * inherit e.g. min/max from their source state). Returns true if anything was changed.
+ *
+ * `states` is the exception to the "only fill what is missing" rule: a freshly created alias already
+ * carries the *pattern's* `defaultStates` (for SWING e.g. AUTO/HORIZONTAL/STATIONARY/VERTICAL), so
+ * treating them as "already defined" would permanently hide the real value list of a device that
+ * uses its own — the widget would then offer options the device does not have (issue #654). The
+ * pattern list is a placeholder for an alias without a source; once a source is assigned, its list
+ * is the truth.
+ *
+ * That only holds while the alias forwards values verbatim. With a read/write conversion the alias
+ * value range is deliberately a different one, so its own list is kept.
  */
 export function inheritCommonFromSource(
     aliasCommon: ioBroker.StateCommon,
@@ -337,6 +347,16 @@ export function inheritCommonFromSource(
         return false;
     }
     let changed = false;
+    const alias = (aliasCommon as ioBroker.StateCommon & { alias?: { read?: string; write?: string } }).alias;
+    const forwardsVerbatim = !alias?.read && !alias?.write;
+    if (
+        forwardsVerbatim &&
+        sourceCommon.states &&
+        JSON.stringify(sourceCommon.states) !== JSON.stringify(aliasCommon.states)
+    ) {
+        aliasCommon.states = sourceCommon.states;
+        changed = true;
+    }
     if (aliasCommon.min === undefined && sourceCommon.min !== undefined) {
         aliasCommon.min = sourceCommon.min;
         changed = true;

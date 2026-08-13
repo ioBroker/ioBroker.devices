@@ -1,6 +1,7 @@
 // Root tsconfig to set the settings and power editor support for all TS files
 {
     "compileOnSave": true,
+    "extends": "@tsconfig/node22/tsconfig.json",
     "compilerOptions": {
         // do not compile anything; this file is just to configure type checking
         // the compilation is configured in tsconfig.build.json

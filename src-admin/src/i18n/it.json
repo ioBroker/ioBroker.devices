@@ -160,5 +160,7 @@
     "tooltip_quality": "Qualità",
     "tooltip_ts": "Timestamp",
     "tooltip_user": "Utente",
-    "tooltip_value": "Valore"
+    "tooltip_value": "Valore",
+    "Required datapoints are not assigned: %s": "Punti dati obbligatori non assegnati: %s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Senza di essi il dispositivo non viene più riconosciuto come \"%s\" e i controlli spariscono dal widget."
 }

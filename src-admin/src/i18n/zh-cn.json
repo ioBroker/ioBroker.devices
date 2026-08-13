@@ -160,5 +160,7 @@
     "tooltip_quality": "质量",
     "tooltip_ts": "时间戳记",
     "tooltip_user": "用户",
-    "tooltip_value": "值"
+    "tooltip_value": "值",
+    "Required datapoints are not assigned: %s": "必填数据点未分配：%s",
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "缺少它们后，设备将不再被识别为\"%s\"，控件会从小部件中消失。"
 }

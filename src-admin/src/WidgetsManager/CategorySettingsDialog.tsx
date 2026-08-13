@@ -29,6 +29,9 @@ import AclEditor, { EditorsEditor } from './AclEditor';
 import { loadSettingsTab, storeSettingsTab } from './settingsTab';
 import type StateContext from './StateContext';
 
+/** How a tile paints its own surface, independent of any background image. */
+export type TileStyleId = 'gradient' | 'flat' | 'glass';
+
 /** Available theme presets */
 export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark' | 'styling-grey';
 
@@ -43,6 +46,25 @@ export interface CategorySettings {
     image: string;
     /** 'header' = background only behind header, 'page' = background behind the whole page */
     imageScope: 'header' | 'page';
+    /**
+     * How a background image is presented on category tiles — a look-and-feel choice next to the
+     * theme, so it is set once on the root category and applies to every tile.
+     *
+     * - `scrim` — full-bleed image behind a flat dimming layer (the original look)
+     * - `fade` — image on the trailing edge, fading into the tile so the panel gradient stays visible
+     * - `texture` — image kept far back as a faint tint
+     *
+     * Undefined means `fade`. Root category only.
+     */
+    imageStyle?: 'scrim' | 'fade' | 'texture';
+    /**
+     * Surface of every widget and category tile. Root category only, undefined means `gradient`.
+     *
+     * - `gradient` — diagonal ramp with a lit corner (the default look)
+     * - `flat` — plain paper with a hairline border, no ramp
+     * - `glass` — translucent and blurred, so a page background shows through
+     */
+    tileStyle?: TileStyleId;
     customWidgets?: CustomWidgetBase[];
     widgetOrder?: string[];
     widgetGroups?: WidgetGroup[];
@@ -119,6 +141,8 @@ interface CategorySettingsDialogProps {
 /** Value the dialog shows when a setting is unset — differing only in that is not an edit. */
 const SETTING_FALLBACKS: Partial<Record<keyof CategorySettings, string>> = {
     imageScope: 'header',
+    imageStyle: 'fade',
+    tileStyle: 'gradient',
     wmTheme: 'auto',
     powerSource: 'sum',
     temperatureSource: 'first',
@@ -126,7 +150,14 @@ const SETTING_FALLBACKS: Partial<Record<keyof CategorySettings, string>> = {
 };
 
 /** Settings the dialog only offers on the root category. */
-const ROOT_ONLY_SETTINGS: (keyof CategorySettings)[] = ['wmTheme', 'defaultCategory', 'multiUser', 'editors'];
+const ROOT_ONLY_SETTINGS: (keyof CategorySettings)[] = [
+    'wmTheme',
+    'imageStyle',
+    'tileStyle',
+    'defaultCategory',
+    'multiUser',
+    'editors',
+];
 
 /**
  * Compare two settings objects the way the user perceives them.
@@ -719,6 +750,56 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             <MenuItem value="blueDark">{I18n.t('wm_theme_blueDark')}</MenuItem>
                             <MenuItem value="styling-grey">{I18n.t('wm_theme_styling-grey')}</MenuItem>
                         </TextField>
+                    ) : null}
+
+                    {isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Image style')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.imageStyle || 'fade'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, imageStyle: value });
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ToggleButton value="scrim">{I18n.t('wm_Image full')}</ToggleButton>
+                                <ToggleButton value="fade">{I18n.t('wm_Image fade')}</ToggleButton>
+                                <ToggleButton value="texture">{I18n.t('wm_Image texture')}</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    ) : null}
+
+                    {isRoot ? (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Tile style')}
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={local.tileStyle || 'gradient'}
+                                exclusive
+                                onChange={(_, value) => {
+                                    if (value) {
+                                        setLocal({ ...local, tileStyle: value });
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ToggleButton value="gradient">{I18n.t('wm_Tile gradient')}</ToggleButton>
+                                <ToggleButton value="flat">{I18n.t('wm_Tile flat')}</ToggleButton>
+                                <ToggleButton value="glass">{I18n.t('wm_Tile glass')}</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
                     ) : null}
 
                     {isRoot ? (
