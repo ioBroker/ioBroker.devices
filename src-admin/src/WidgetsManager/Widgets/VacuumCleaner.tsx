@@ -9,10 +9,10 @@ import {
     Switch as MuiSwitch,
     Typography,
 } from '@mui/material';
-import { BatteryFull, CleaningServices, Close, Pause, PlayArrow } from '@mui/icons-material';
+import { BatteryFull, CleaningServices, Close, Home, Pause, PlayArrow } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
-import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import WidgetGeneric, { toNumberOrNull, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
 interface WidgetVacuumCleanerState extends WidgetGenericState {
     power: boolean;
@@ -29,6 +29,10 @@ interface WidgetVacuumCleanerState extends WidgetGenericState {
     /** Raw `STATE` value; mapped to text at render time so a late `common.states` cannot lose it */
     deviceState: string;
     deviceStateMap: Record<string, string> | null;
+    runMode: number | null;
+    runModeStates: Record<string, string> | null;
+    progress: number | null;
+    phase: string;
     map: string | null;
     dialogOpen: boolean;
 }
@@ -46,6 +50,10 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
     private readonly stateId: string | null;
     private readonly mapBase64Id: string | null;
     private readonly mapUrlId: string | null;
+    private readonly homeId: string | null;
+    private readonly runModeId: string | null;
+    private readonly progressId: string | null;
+    private readonly phaseId: string | null;
 
     private readonly handlers: { id: string; handler: StateChangeHandler }[] = [];
 
@@ -64,6 +72,10 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
         this.stateId = find('STATE');
         this.mapBase64Id = find('MAP_BASE64');
         this.mapUrlId = find('MAP_URL');
+        this.homeId = find('HOME');
+        this.runModeId = find('RUN_MODE');
+        this.progressId = find('PROGRESS');
+        this.phaseId = find('PHASE');
 
         this.state = {
             ...this.state,
@@ -79,6 +91,10 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
             waste: null,
             deviceState: '',
             deviceStateMap: null,
+            runMode: null,
+            runModeStates: null,
+            progress: null,
+            phase: '',
             map: null,
             dialogOpen: false,
         };
@@ -95,9 +111,13 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
         this.sub(this.wasteId, this.onWaste);
         this.sub(this.stateId, this.onDeviceState);
         this.sub(this.mapBase64Id ?? this.mapUrlId, this.onMap);
+        this.sub(this.runModeId, this.onRunMode);
+        this.sub(this.progressId, this.onProgress);
+        this.sub(this.phaseId, this.onPhase);
 
         void this.loadCommonStates(this.modeId, 'modeStates');
         void this.loadCommonStates(this.workModeId, 'workModeStates');
+        void this.loadCommonStates(this.runModeId, 'runModeStates');
         void this.loadPowerType();
         void this.loadDeviceStateMap();
     }
@@ -130,19 +150,25 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
         }
     }
 
-    private async loadCommonStates(id: string | null, key: 'modeStates' | 'workModeStates'): Promise<void> {
+    private async loadCommonStates(
+        id: string | null,
+        key: 'modeStates' | 'workModeStates' | 'runModeStates',
+    ): Promise<void> {
         if (!id) {
             return;
         }
         const obj = await this.getObject(id);
         const common = obj?.common?.states;
-        if (common && typeof common === 'object') {
-            const map = common as Record<string, string>;
-            if (key === 'modeStates') {
-                this.setState({ modeStates: map });
-            } else {
-                this.setState({ workModeStates: map });
-            }
+        if (!common || typeof common !== 'object') {
+            return;
+        }
+        const map = common as Record<string, string>;
+        if (key === 'modeStates') {
+            this.setState({ modeStates: map });
+        } else if (key === 'workModeStates') {
+            this.setState({ workModeStates: map });
+        } else {
+            this.setState({ runModeStates: map });
         }
     }
 
@@ -188,6 +214,34 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
         const mode = state.val != null ? Number(state.val) : null;
         if (mode !== this.state.mode) {
             this.setState({ mode });
+        }
+    };
+
+    private onRunMode = (_id: string, state: ioBroker.State): void => {
+        const runMode = toNumberOrNull(state.val);
+        if (runMode !== this.state.runMode) {
+            this.setState({ runMode });
+        }
+    };
+
+    private onProgress = (_id: string, state: ioBroker.State): void => {
+        const raw = toNumberOrNull(state.val);
+        const progress = raw == null ? null : Math.round(raw);
+        if (progress !== this.state.progress) {
+            this.setState({ progress });
+        }
+    };
+
+    private onPhase = (_id: string, state: ioBroker.State): void => {
+        const phase = state.val != null ? String(state.val) : '';
+        if (phase !== this.state.phase) {
+            this.setState({ phase });
+        }
+    };
+
+    private sendHome = (): void => {
+        if (this.homeId) {
+            void this.setValue(this.homeId, true);
         }
     };
 
@@ -270,23 +324,32 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
         this.setState({ dialogOpen: true });
     }
 
-    private getStatusText(): string {
-        const { deviceState, deviceStateMap, paused, power, battery } = this.state;
-        const mapped = deviceStateMap?.[deviceState];
-        if (mapped) {
-            return mapped;
-        }
-        // A bare status code says nothing to the user — fall back to what the other states imply
-        if (deviceState && isNaN(Number(deviceState))) {
-            return deviceState;
-        }
-        if (paused) {
-            return I18n.t('wm_Paused');
-        }
-        if (power) {
-            return I18n.t('wm_Cleaning');
-        }
-        return battery != null ? `${I18n.t('wm_Off')} · ${battery}%` : I18n.t('wm_Off');
+    private getStatusText(withProgress = false): string {
+        const { deviceState, deviceStateMap, paused, power, battery, phase, progress } = this.state;
+        const base = ((): string => {
+            const mapped = deviceStateMap?.[deviceState];
+            if (mapped) {
+                return mapped;
+            }
+            // A bare status code says nothing to the user — fall back to what the other states imply
+            if (deviceState && isNaN(Number(deviceState))) {
+                return deviceState;
+            }
+            if (paused) {
+                return I18n.t('wm_Paused');
+            }
+            // Free text from the device ("sweeping", "returning") — more specific than "cleaning",
+            // but only trusted while nothing more definite contradicts it
+            if (phase) {
+                return phase;
+            }
+            if (power) {
+                return I18n.t('wm_Cleaning');
+            }
+            return battery != null ? `${I18n.t('wm_Off')} · ${battery}%` : I18n.t('wm_Off');
+        })();
+
+        return withProgress && progress != null && power && !paused ? `${base} · ${progress}%` : base;
     }
 
     protected renderTileIcon(): React.JSX.Element {
@@ -321,7 +384,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                     transition: 'color 0.25s ease',
                 })}
             >
-                {this.getStatusText()}
+                {this.getStatusText(true)}
             </Typography>
         );
     }
@@ -448,6 +511,16 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                     >
                         {this.props.settings?.name || this.state.name || I18n.t('wm_Vacuum cleaner')}
                     </Typography>
+                    {this.homeId ? (
+                        <IconButton
+                            size="small"
+                            disabled={this.isReadOnly}
+                            onClick={this.sendHome}
+                            title={I18n.t('wm_Send home')}
+                        >
+                            <Home />
+                        </IconButton>
+                    ) : null}
                     <IconButton
                         size="small"
                         onClick={() => this.setState({ dialogOpen: false })}
@@ -504,6 +577,16 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                         </Box>
                     ) : null}
 
+                    {this.state.progress != null
+                        ? WidgetVacuumCleaner.renderLevel(I18n.t('wm_Progress'), this.state.progress)
+                        : null}
+
+                    {this.renderModeSelect(
+                        I18n.t('wm_Run mode'),
+                        this.state.runMode,
+                        this.state.runModeStates,
+                        this.runModeId,
+                    )}
                     {this.renderModeSelect(
                         I18n.t('wm_Cleaning mode'),
                         this.state.mode,
