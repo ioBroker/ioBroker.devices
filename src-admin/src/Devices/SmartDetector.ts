@@ -11,6 +11,8 @@ import ChannelDetector, {
     type ExternalPatternControl,
 } from '@iobroker/type-detector';
 
+import { isStateRequired } from '../Components/helpers/utils';
+
 export default class IOBChannelDetector {
     private detector: ChannelDetector = new ChannelDetector();
     private objects: Record<string, ioBroker.Object> = {};
@@ -52,17 +54,17 @@ export default class IOBChannelDetector {
  * neighbouring channel (e.g. a Homematic LOWBAT on the .0 channel) stay untouched.
  */
 export function removeForeignAliasStates(control: PatternControl, objects: Record<string, ioBroker.Object>): void {
-    // Only a required state may define the home channel. A detected control always has all its
-    // required states filled, so this never bails out in practice — but falling back to "the first
-    // state with an ID" would be dangerous: in a leaked grouping that may well be the foreign one,
-    // and we would then drop the device's real states instead of the leaked ones.
-    const primary = control.states.find(s => s.id && s.required);
+    // Only a mandatory state may define the home channel — a device always has one filled, whether
+    // it is `required` or a member of a `requiredOneOf` group. Falling back to "the first state with
+    // an ID" would be dangerous: in a leaked grouping that may well be the foreign one, and we would
+    // then drop the device's real states instead of the leaked ones.
+    const primary = control.states.find(s => s.id && isStateRequired(s));
     if (!primary?.id) {
         return;
     }
     const homeChannel = primary.id.substring(0, primary.id.lastIndexOf('.'));
     for (const state of control.states) {
-        if (!state.id || state.required) {
+        if (!state.id || isStateRequired(state)) {
             continue;
         }
         const common = objects[state.id]?.common as ioBroker.StateCommon | undefined;

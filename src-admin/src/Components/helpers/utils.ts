@@ -29,6 +29,64 @@ export function getStateCommonType(
 }
 
 /**
+ * A state is mandatory either on its own (`required`) or as a member of a group of alternatives
+ * (`requiredOneOf`, e.g. a thermostat's `SET` / `SET_HEATING` / `SET_COOLING`). Treating only
+ * `required` as mandatory leaves types whose every mandatory state sits in a group — `thermostat`
+ * and `electricity` — looking as if nothing about them were mandatory at all.
+ */
+export function isStateRequired(state: Pick<ExternalDetectorState, 'required' | 'requiredOneOf'>): boolean {
+    return !!state.required || !!state.requiredOneOf;
+}
+
+/**
+ * Whether clearing this state's id should keep the state object rather than delete it.
+ *
+ * A `required` state always stays. A member of a `requiredOneOf` group only has to stay while it is
+ * the last one still mapped — the group needs one member, not all of them, so an alternative the
+ * user swapped away from should go rather than linger with an empty alias.
+ */
+export function keepStateWhenCleared(
+    state: Pick<ExternalDetectorState, 'name' | 'required' | 'requiredOneOf'>,
+    states: Pick<ExternalDetectorState, 'name' | 'requiredOneOf'>[],
+    ids: Record<string, string | { read: string; write: string } | undefined>,
+): boolean {
+    if (state.required) {
+        return true;
+    }
+    if (!state.requiredOneOf) {
+        return false;
+    }
+    const otherMapped = states.some(
+        other => other.name !== state.name && other.requiredOneOf === state.requiredOneOf && !!ids[other.name],
+    );
+    return !otherMapped;
+}
+
+/**
+ * Pick the states a newly created device should get an object for: every `required` one, plus the
+ * first member of each `requiredOneOf` group. Creating every member of a group would give a
+ * thermostat three setpoints when the point of the group is that one of them is enough.
+ */
+export function getStatesToCreate<T extends Pick<ExternalDetectorState, 'required' | 'requiredOneOf' | 'defaultRole'>>(
+    states: T[],
+): (T & { defaultRole: string })[] {
+    const seenGroups = new Set<string>();
+    return states.filter((state): state is T & { defaultRole: string } => {
+        if (!state.defaultRole) {
+            return false;
+        }
+        if (state.requiredOneOf) {
+            if (seenGroups.has(state.requiredOneOf)) {
+                return false;
+            }
+            seenGroups.add(state.requiredOneOf);
+            return true;
+        }
+        return !!state.required;
+    });
+}
+
+/**
  * A pattern may declare the same state name twice with different types (`airCondition` has SWING as
  * number and as boolean). The detector maps the matched object both onto the entry that really matched
  * and onto the first entry carrying that name, so one object arrives on two entries. Keep the variant
@@ -217,7 +275,7 @@ export function setSmartName(
 }
 
 export function findMainStateId(device: PatternControl): string | undefined {
-    const state = device.states.find(state => state.id && state.required);
+    const state = device.states.find(state => state.id && isStateRequired(state));
     if (!state) {
         return undefined;
     }

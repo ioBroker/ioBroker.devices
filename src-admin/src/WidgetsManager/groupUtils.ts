@@ -22,6 +22,8 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
 
     [Types.thermostat]: 'climate',
     [Types.airCondition]: 'climate',
+    [Types.fan]: 'climate',
+    [Types.airPurifier]: 'climate',
 
     [Types.blind]: 'blinds',
     [Types.blindButtons]: 'blinds',
@@ -36,6 +38,8 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.floodAlarm]: 'security',
     [Types.fireAlarm]: 'security',
     [Types.camera]: 'security',
+    [Types.coAlarm]: 'security',
+    [Types.contact]: 'security',
 
     [Types.volume]: 'media',
     [Types.volumeGroup]: 'media',
@@ -54,10 +58,15 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.image]: 'info',
     [Types.weatherCurrent]: 'info',
     [Types.weatherForecast]: 'info',
+    [Types.airQuality]: 'info',
+    [Types.pressure]: 'info',
+    [Types.flow]: 'info',
+    [Types.electricity]: 'info',
 
     [Types.button]: 'other',
     [Types.buttonSensor]: 'other',
     [Types.vacuumCleaner]: 'other',
+    [Types.pump]: 'other',
 };
 
 export const GROUP_ORDER: { id: string; name: string }[] = [

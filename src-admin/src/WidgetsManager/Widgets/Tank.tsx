@@ -117,6 +117,8 @@ const HANDLED_NAMES = new Set([
     'MAINTAIN',
     'ERROR',
     'DIRECTION',
+    'DIRECTION_ENUM',
+    'RSSI',
     'CONNECTED',
     'BATTERY',
     // Extra info names

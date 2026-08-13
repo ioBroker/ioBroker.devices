@@ -966,8 +966,12 @@ function LightsGroupControl(props: {
     widgetIds: string[];
     widgets: WidgetInfo[];
     stateContext: StateContext;
+    widgetSettings: Record<string, WidgetSettingsBase>;
 }): React.JSX.Element | null {
-    const { widgetIds, widgets, stateContext } = props;
+    const { widgetIds, widgets, stateContext, widgetSettings } = props;
+    // The group header writes to every light at once and so bypasses `WidgetGeneric.setValue()`,
+    // the write path that enforces the view permission. Read the level here instead.
+    const acl = React.useContext(AclContext);
 
     // Find controllable lights: resolve SET/ON_SET for control and ACTUAL/ON_ACTUAL for reading
     const lightControls = useMemo(() => {
@@ -975,6 +979,12 @@ function LightsGroupControl(props: {
         for (const wId of widgetIds) {
             const widget = widgets.find(w => String(w.id) === wId);
             if (!widget?.control?.states) {
+                continue;
+            }
+            // Only lights this user may operate. Excluding them here rather than at the write also
+            // keeps them out of the on/off count — otherwise one restricted light that is on makes
+            // the header offer "turn all off" while the lights the user can reach stay dark.
+            if (acl.widgetLevel(widgetSettings[wId]?.acl, widget.parent?.toString()) !== 'control') {
                 continue;
             }
             const states = widget.control.states;
@@ -992,7 +1002,7 @@ function LightsGroupControl(props: {
             }
         }
         return controls;
-    }, [widgetIds, widgets]);
+    }, [widgetIds, widgets, acl, widgetSettings]);
 
     const [onCount, setOnCount] = useState(0);
     const statesRef = useRef<Record<string, boolean>>({});
@@ -1372,6 +1382,7 @@ function GroupedContent(props: {
                                     widgetIds={group.widgetIds}
                                     widgets={category.props.widgets}
                                     stateContext={category.props.stateContext}
+                                    widgetSettings={widgetSettings}
                                 />
                             ) : null}
                         </Box>
@@ -2204,6 +2215,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetCamera;
         } else if (type === Types.vacuumCleaner) {
             Widget = WidgetVacuumCleaner;
+        } else if (
+            // Types split out of `info` by type-detector 6.0.0. These devices were rendered as info
+            // tiles before, so they keep that tile until each gets a purpose-built one.
+            type === Types.contact ||
+            type === Types.coAlarm ||
+            type === Types.pressure ||
+            type === Types.flow ||
+            type === Types.airQuality ||
+            type === Types.electricity
+        ) {
+            Widget = WidgetInfoWidget;
         } else if (type === Types.lock) {
             Widget = WidgetLock;
         } else if (type === Types.door) {

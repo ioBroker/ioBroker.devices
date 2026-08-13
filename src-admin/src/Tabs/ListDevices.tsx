@@ -95,7 +95,9 @@ import {
     getParentId,
     getSmartName,
     getStateCommonType,
+    getStatesToCreate,
     inheritCommonFromSource,
+    keepStateWhenCleared,
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
@@ -2767,7 +2769,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             obj.common.alias.write !== data.fx[state.name].write
                         ) {
                             // update alias ID
-                            if (!state.required && !data.ids[state.name]) {
+                            if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
                                 // delete state
                                 await this.props.socket.delObject(state.id);
                             } else {
@@ -2915,7 +2917,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             !obj.common.custom[attr].isLinked
                         ) {
                             // update alias ID
-                            if (!state.required && !data.ids[state.name]) {
+                            if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
                                 // delete state
                                 await this.props.socket.delObject(state.id);
                                 somethingChanged = true;
@@ -3337,41 +3339,37 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         // create a channel
         await this.props.socket.setObject(options.id, obj);
 
-        for (let s = 0; s < states.length; s++) {
-            const state = states[s];
-
-            if (state.required && state.defaultRole) {
-                const common: ioBroker.StateCommon = {
-                    name: state.name,
-                    role: state.defaultRole,
-                    type: getStateCommonType(state),
-                    read: state.read === undefined ? true : state.read,
-                    write: state.write === undefined ? false : state.write,
-                    alias: {
-                        id: '',
-                    },
-                };
-                if (state.defaultStates) {
-                    common.states = state.defaultStates;
-                }
-
-                // min/max/step are intentionally left unset here: at creation the alias has no source
-                // yet (alias.id === ''). They are inherited from the source when an id is assigned in
-                // the editor (issue #22). Only the pattern's default unit is applied up-front.
-                if (state.defaultUnit) {
-                    common.unit = state.defaultUnit;
-                } else if (state.unit) {
-                    common.unit = state.unit;
-                }
-
-                const obj: ioBroker.StateObject = {
-                    _id: `${options.id}.${state.name}`,
-                    common,
-                    native: {},
-                    type: 'state',
-                };
-                await this.props.socket.setObject(`${options.id}.${state.name}`, obj);
+        for (const state of getStatesToCreate(states)) {
+            const common: ioBroker.StateCommon = {
+                name: state.name,
+                role: state.defaultRole,
+                type: getStateCommonType(state),
+                read: state.read === undefined ? true : state.read,
+                write: state.write === undefined ? false : state.write,
+                alias: {
+                    id: '',
+                },
+            };
+            if (state.defaultStates) {
+                common.states = state.defaultStates;
             }
+
+            // min/max/step are intentionally left unset here: at creation the alias has no source
+            // yet (alias.id === ''). They are inherited from the source when an id is assigned in
+            // the editor (issue #22). Only the pattern's default unit is applied up-front.
+            if (state.defaultUnit) {
+                common.unit = state.defaultUnit;
+            } else if (state.unit) {
+                common.unit = state.unit;
+            }
+
+            const obj: ioBroker.StateObject = {
+                _id: `${options.id}.${state.name}`,
+                common,
+                native: {},
+                type: 'state',
+            };
+            await this.props.socket.setObject(`${options.id}.${state.name}`, obj);
         }
 
         await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
