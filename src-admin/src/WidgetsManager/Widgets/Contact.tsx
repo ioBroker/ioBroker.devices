@@ -1,20 +1,15 @@
 import React from 'react';
-import { SensorDoor, MeetingRoom } from '@mui/icons-material';
+import { Sensors, SensorsOff } from '@mui/icons-material';
 
 import { WidgetWindow } from './Window';
 
-export class WidgetDoor extends WidgetWindow {
-    // eslint-disable-next-line class-methods-use-this
-    protected getOpenIconColor(): string {
-        return '#ed6c02';
-    }
-
+export class WidgetContact extends WidgetWindow {
     protected renderStateIcon(accent: string | undefined): React.JSX.Element {
         const { isOpen } = this.state;
 
         if (isOpen) {
             return (
-                <MeetingRoom
+                <Sensors
                     sx={theme => ({
                         color: accent || theme.palette.warning.main,
                         transition: 'color 0.25s ease',
@@ -24,7 +19,7 @@ export class WidgetDoor extends WidgetWindow {
         }
 
         return (
-            <SensorDoor
+            <SensorsOff
                 sx={theme => ({
                     color: theme.palette.text.disabled,
                     transition: 'color 0.25s ease',
@@ -34,4 +29,4 @@ export class WidgetDoor extends WidgetWindow {
     }
 }
 
-export default WidgetDoor;
+export default WidgetContact;

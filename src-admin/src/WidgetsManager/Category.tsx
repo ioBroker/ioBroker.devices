@@ -72,11 +72,15 @@ import {
     WidgetAirCondition,
     WidgetWarning,
     WidgetLock,
+    WidgetCoAlarm,
+    WidgetContact,
     WidgetDoor,
     WidgetFloodAlarm,
     WidgetFireAlarm,
+    WidgetFlow,
     WidgetHumidity,
     WidgetIlluminance,
+    WidgetPressure,
     WidgetThermostat,
     WidgetClock,
     WidgetWeather,
@@ -2215,13 +2219,17 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetCamera;
         } else if (type === Types.vacuumCleaner) {
             Widget = WidgetVacuumCleaner;
+        } else if (type === Types.contact) {
+            Widget = WidgetContact;
+        } else if (type === Types.coAlarm) {
+            Widget = WidgetCoAlarm;
+        } else if (type === Types.pressure) {
+            Widget = WidgetPressure;
+        } else if (type === Types.flow) {
+            Widget = WidgetFlow;
         } else if (
             // Types split out of `info` by type-detector 6.0.0. These devices were rendered as info
             // tiles before, so they keep that tile until each gets a purpose-built one.
-            type === Types.contact ||
-            type === Types.coAlarm ||
-            type === Types.pressure ||
-            type === Types.flow ||
             type === Types.airQuality ||
             type === Types.electricity
         ) {
