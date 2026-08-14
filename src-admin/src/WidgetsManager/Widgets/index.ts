@@ -1,5 +1,6 @@
 export { WidgetPlugin } from './WidgetPlugin';
 export { WidgetAirCondition } from './AirCondition';
+export { WidgetAirPurifier } from './AirPurifier';
 export { WidgetBlind } from './Blind';
 export { WidgetBlindButtons } from './BlindButtons';
 export { WidgetButton } from './Button';
@@ -12,6 +13,7 @@ export { WidgetContact } from './Contact';
 export { WidgetDimmer } from './Dimmer';
 export { WidgetDoor } from './Door';
 export { WidgetEnergyFlow, type WidgetEnergyFlowSettings } from './EnergyFlow';
+export { WidgetFan } from './Fan';
 export { WidgetFireAlarm } from './FireAlarm';
 export { WidgetFloodAlarm } from './FloodAlarm';
 export { WidgetFlow } from './Flow';

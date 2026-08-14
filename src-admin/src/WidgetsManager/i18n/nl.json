@@ -573,5 +573,7 @@
     "wm_Valve": "Ventiel",
     "wm_Filter condition": "Filterstatus",
     "wm_Carbon filter condition": "Status koolstoffilter",
-    "wm_Window open": "Raam open"
+    "wm_Window open": "Raam open",
+    "wm_Fan": "Ventilator",
+    "wm_Air purifier": "Luchtreiniger"
 }
