@@ -339,6 +339,18 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
     // an active drag — they must track the pointer — which is why each carries its own dragging guard.
 
     /**
+     * Closing the dialog also ends any drag it held.
+     *
+     * A slider drag that ends by pointer-cancel rather than by a commit event never clears its guard,
+     * and a set guard makes the widget ignore the device's own updates from then on.
+     */
+    private closeDialog = (): void => {
+        this.speedDragging = false;
+        this.speedLevelDragging = false;
+        this.setState({ dialogOpen: false });
+    };
+
+    /**
      * POWER is `boolean|number` in the pattern, so the write has to match the datapoint. Refuses while
      * the type is unknown rather than writing a value the device would reject.
      */
@@ -480,6 +492,16 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
     // eslint-disable-next-line class-methods-use-this
     protected hasTileAction(): boolean {
         return true;
+    }
+
+    /**
+     * Openable even for a read-only widget, unlike the base rule.
+     *
+     * The dialog is where a device's own readings are shown, and those stay readable for someone who
+     * may not operate it. Every control inside is disabled independently.
+     */
+    protected tileClickable(): boolean {
+        return this.hasTileAction();
     }
 
     protected onTileClick(): void {
@@ -701,7 +723,7 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         return (
             <Dialog
                 open
-                onClose={() => this.setState({ dialogOpen: false })}
+                onClose={this.closeDialog}
                 maxWidth="xs"
                 fullWidth
                 slotProps={{ paper: { sx: { borderRadius: '24px' } } }}
@@ -709,7 +731,7 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
                 <DialogContent sx={{ p: 3, pt: 2, position: 'relative' }}>
                     <IconButton
                         size="small"
-                        onClick={() => this.setState({ dialogOpen: false })}
+                        onClick={this.closeDialog}
                         sx={{ position: 'absolute', top: 8, right: 8 }}
                     >
                         <Close fontSize="small" />

@@ -246,7 +246,7 @@
     "wm_Presence_desc": "显示谁在家，带头像和最后活动时间",
     "wm_Press": "按下",
     "wm_Pressed": "已按下",
-    "wm_Pressure": "气压",
+    "wm_Pressure": "压力",
     "wm_Producers": "生产者",
     "wm_Producers help": "添加生产者状态（太阳能、风、电网等）。每行的值会在小图块上累加。",
     "wm_Progress": "进度",
