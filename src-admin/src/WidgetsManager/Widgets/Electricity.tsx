@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { ElectricMeter } from '@mui/icons-material';
+import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, {
     formatFloat,
@@ -20,6 +21,14 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
  */
 const READING_ORDER = ['ELECTRIC_POWER', 'CONSUMPTION', 'CURRENT', 'VOLTAGE', 'FREQUENCY'] as const;
 type ReadingName = (typeof READING_ORDER)[number];
+
+const READING_LABEL: Record<ReadingName, string> = {
+    ELECTRIC_POWER: 'wm_Power',
+    CONSUMPTION: 'wm_Consumption',
+    CURRENT: 'wm_Current',
+    VOLTAGE: 'wm_Voltage',
+    FREQUENCY: 'wm_Frequency',
+};
 
 const READING_ROLE: Record<ReadingName, string> = {
     ELECTRIC_POWER: 'value.power',
@@ -105,26 +114,44 @@ export class WidgetElectricity extends WidgetGeneric<WidgetElectricityState> {
         }
     };
 
-    protected getHistoryIds(): { id: string; color: string }[] {
-        const ids: { id: string; color: string }[] = [];
+    protected getHistoryIds(): { id: string; color: string; name?: string }[] {
+        const ids: { id: string; color: string; name?: string }[] = [];
         if (this.primaryName) {
-            ids.push({ id: this.readingMeta[this.primaryName]!.id, color: '#f9a825' });
+            ids.push({
+                id: this.readingMeta[this.primaryName]!.id,
+                color: '#f9a825',
+                name: I18n.t(READING_LABEL[this.primaryName]),
+            });
         }
         if (this.secondaryName) {
-            ids.push({ id: this.readingMeta[this.secondaryName]!.id, color: '#4caf50' });
+            ids.push({
+                id: this.readingMeta[this.secondaryName]!.id,
+                color: '#4caf50',
+                name: I18n.t(READING_LABEL[this.secondaryName]),
+            });
         }
         return ids;
     }
 
+    /**
+     * The unit shown for every plotted series, so it may only be given when it is true of all of them.
+     *
+     * Two readings whose units differ are plotted on their own axes and carry their own labels; two
+     * where only one declares a unit are not, and naming that one here would label the other's values
+     * with a unit its device never reported.
+     */
     protected getChartUnit(): string | undefined {
-        return (this.primaryName && this.readingMeta[this.primaryName]?.unit) || undefined;
+        const units = [this.primaryName, this.secondaryName]
+            .filter((name): name is ReadingName => !!name)
+            .map(name => this.readingMeta[name]?.unit || '');
+        return units.length && units.every(unit => unit === units[0]) ? units[0] || undefined : undefined;
     }
 
     protected isTileActive(): boolean {
         return !!this.primaryName && this.state.values[this.primaryName] != null;
     }
 
-    /** Format one reading's current value, scaling power/consumption but never inventing a unit. */
+    /** Format one reading's current value at the scale the device declared, never inventing a unit. */
     private formatReading(name: ReadingName): string {
         const value = this.state.values[name];
         if (value == null) {
