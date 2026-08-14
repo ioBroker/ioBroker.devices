@@ -573,5 +573,6 @@
     "wm_Valve": "Zawór",
     "wm_Filter condition": "Stan filtra",
     "wm_Carbon filter condition": "Stan filtra węglowego",
-    "wm_Window open": "Okno otwarte"
+    "wm_Window open": "Okno otwarte",
+    "wm_Electricity": "Elektryczność"
 }

@@ -573,5 +573,6 @@
     "wm_Valve": "阀门",
     "wm_Filter condition": "滤网状态",
     "wm_Carbon filter condition": "活性炭滤网状态",
-    "wm_Window open": "窗户已打开"
+    "wm_Window open": "窗户已打开",
+    "wm_Electricity": "电量"
 }

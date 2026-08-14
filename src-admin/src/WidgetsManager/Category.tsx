@@ -75,6 +75,7 @@ import {
     WidgetCoAlarm,
     WidgetContact,
     WidgetDoor,
+    WidgetElectricity,
     WidgetFloodAlarm,
     WidgetFireAlarm,
     WidgetFlow,
@@ -2227,12 +2228,11 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetPressure;
         } else if (type === Types.flow) {
             Widget = WidgetFlow;
-        } else if (
-            // Types split out of `info` by type-detector 6.0.0. These devices were rendered as info
-            // tiles before, so they keep that tile until each gets a purpose-built one.
-            type === Types.airQuality ||
-            type === Types.electricity
-        ) {
+        } else if (type === Types.electricity) {
+            Widget = WidgetElectricity;
+        } else if (type === Types.airQuality) {
+            // Split out of `info` by type-detector 6.0.0 and rendered as an info tile before, so it
+            // keeps that tile until it gets the purpose-built one its 29 states deserve.
             Widget = WidgetInfoWidget;
         } else if (type === Types.lock) {
             Widget = WidgetLock;

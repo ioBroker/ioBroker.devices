@@ -11,6 +11,7 @@ export { WidgetColorLight } from './ColorLight';
 export { WidgetContact } from './Contact';
 export { WidgetDimmer } from './Dimmer';
 export { WidgetDoor } from './Door';
+export { WidgetElectricity } from './Electricity';
 export { WidgetEnergyFlow, type WidgetEnergyFlowSettings } from './EnergyFlow';
 export { WidgetFireAlarm } from './FireAlarm';
 export { WidgetFloodAlarm } from './FloodAlarm';

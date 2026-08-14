@@ -573,5 +573,6 @@
     "wm_Valve": "Клапан",
     "wm_Filter condition": "Состояние фильтра",
     "wm_Carbon filter condition": "Состояние угольного фильтра",
-    "wm_Window open": "Окно открыто"
+    "wm_Window open": "Окно открыто",
+    "wm_Electricity": "Электричество"
 }
