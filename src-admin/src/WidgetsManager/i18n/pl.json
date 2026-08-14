@@ -580,5 +580,18 @@
     "wm_Pump": "Pompa",
     "wm_Level": "Poziom",
     "wm_Temperature": "Temperatura",
-    "wm_Flow": "Przepływ"
+    "wm_Flow": "Przepływ",
+    "wm_Air quality": "Jakość powietrza",
+    "wm_aqi_unknown": "Nieznany",
+    "wm_aqi_good": "Dobra",
+    "wm_aqi_fair": "Umiarkowana",
+    "wm_aqi_moderate": "Średnia",
+    "wm_aqi_poor": "Zła",
+    "wm_aqi_very_poor": "Bardzo zła",
+    "wm_aqi_extremely_poor": "Skrajnie zła",
+    "wm_level_unknown": "Nieznany",
+    "wm_level_low": "Niski",
+    "wm_level_medium": "Średni",
+    "wm_level_high": "Wysoki",
+    "wm_level_critical": "Krytyczny"
 }

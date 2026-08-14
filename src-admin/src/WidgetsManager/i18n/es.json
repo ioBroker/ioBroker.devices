@@ -580,5 +580,18 @@
     "wm_Pump": "Bomba",
     "wm_Level": "Nivel",
     "wm_Temperature": "Temperatura",
-    "wm_Flow": "Caudal"
+    "wm_Flow": "Caudal",
+    "wm_Air quality": "Calidad del aire",
+    "wm_aqi_unknown": "Desconocido",
+    "wm_aqi_good": "Buena",
+    "wm_aqi_fair": "Aceptable",
+    "wm_aqi_moderate": "Moderada",
+    "wm_aqi_poor": "Mala",
+    "wm_aqi_very_poor": "Muy mala",
+    "wm_aqi_extremely_poor": "Extremadamente mala",
+    "wm_level_unknown": "Desconocido",
+    "wm_level_low": "Bajo",
+    "wm_level_medium": "Medio",
+    "wm_level_high": "Alto",
+    "wm_level_critical": "Crítico"
 }

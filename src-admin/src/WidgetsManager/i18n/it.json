@@ -580,5 +580,18 @@
     "wm_Pump": "Pompa",
     "wm_Level": "Livello",
     "wm_Temperature": "Temperatura",
-    "wm_Flow": "Portata"
+    "wm_Flow": "Portata",
+    "wm_Air quality": "Qualità dell'aria",
+    "wm_aqi_unknown": "Sconosciuto",
+    "wm_aqi_good": "Buona",
+    "wm_aqi_fair": "Discreta",
+    "wm_aqi_moderate": "Moderata",
+    "wm_aqi_poor": "Scarsa",
+    "wm_aqi_very_poor": "Molto scarsa",
+    "wm_aqi_extremely_poor": "Estremamente scarsa",
+    "wm_level_unknown": "Sconosciuto",
+    "wm_level_low": "Basso",
+    "wm_level_medium": "Medio",
+    "wm_level_high": "Alto",
+    "wm_level_critical": "Critico"
 }

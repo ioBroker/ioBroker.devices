@@ -580,5 +580,18 @@
     "wm_Pump": "Насос",
     "wm_Level": "Рівень",
     "wm_Temperature": "Температура",
-    "wm_Flow": "Витрата"
+    "wm_Flow": "Витрата",
+    "wm_Air quality": "Якість повітря",
+    "wm_aqi_unknown": "Невідомо",
+    "wm_aqi_good": "Добра",
+    "wm_aqi_fair": "Прийнятна",
+    "wm_aqi_moderate": "Помірна",
+    "wm_aqi_poor": "Погана",
+    "wm_aqi_very_poor": "Дуже погана",
+    "wm_aqi_extremely_poor": "Надзвичайно погана",
+    "wm_level_unknown": "Невідомо",
+    "wm_level_low": "Низький",
+    "wm_level_medium": "Середній",
+    "wm_level_high": "Високий",
+    "wm_level_critical": "Критичний"
 }

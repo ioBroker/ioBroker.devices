@@ -580,5 +580,18 @@
     "wm_Pump": "Pomp",
     "wm_Level": "Niveau",
     "wm_Temperature": "Temperatuur",
-    "wm_Flow": "Doorstroming"
+    "wm_Flow": "Doorstroming",
+    "wm_Air quality": "Luchtkwaliteit",
+    "wm_aqi_unknown": "Onbekend",
+    "wm_aqi_good": "Goed",
+    "wm_aqi_fair": "Redelijk",
+    "wm_aqi_moderate": "Matig",
+    "wm_aqi_poor": "Slecht",
+    "wm_aqi_very_poor": "Zeer slecht",
+    "wm_aqi_extremely_poor": "Extreem slecht",
+    "wm_level_unknown": "Onbekend",
+    "wm_level_low": "Laag",
+    "wm_level_medium": "Gemiddeld",
+    "wm_level_high": "Hoog",
+    "wm_level_critical": "Kritiek"
 }

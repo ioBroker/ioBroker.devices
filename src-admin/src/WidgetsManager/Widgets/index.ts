@@ -1,6 +1,7 @@
 export { WidgetPlugin } from './WidgetPlugin';
 export { WidgetAirCondition } from './AirCondition';
 export { WidgetAirPurifier } from './AirPurifier';
+export { WidgetAirQuality } from './AirQuality';
 export { WidgetBlind } from './Blind';
 export { WidgetBlindButtons } from './BlindButtons';
 export { WidgetButton } from './Button';
