@@ -575,5 +575,6 @@
     "wm_Carbon filter condition": "Состояние угольного фильтра",
     "wm_Window open": "Окно открыто",
     "wm_Fan": "Вентилятор",
-    "wm_Air purifier": "Очиститель воздуха"
+    "wm_Air purifier": "Очиститель воздуха",
+    "wm_Electricity": "Электричество"
 }

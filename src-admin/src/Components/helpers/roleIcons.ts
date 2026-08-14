@@ -32,8 +32,10 @@ export const ROLE_ICON_MAP: [RegExp, SvgIconComponent][] = [
     [/pressure|baro/i, Speed],
     [/voltage/i, Bolt],
     [/current(?!.*weather)/i, ElectricalServices],
-    [/power|watt/i, ElectricMeter],
+    // Before the power pattern: `value.power.consumption` contains "power", so the general pattern
+    // would claim it and a meter would show the same icon for its power and its energy reading.
     [/energy|consumption|\bk?wh\b/i, EnergySavingsLeaf],
+    [/power|watt/i, ElectricMeter],
     // Bare unit abbreviations, checked after the spelled-out roles so "value.energy" keeps its own
     // icon. The word boundaries keep "kWh" and "Wh" out — those are energy, not power.
     [/\bw\b|\bkw\b|\bmw\b/i, ElectricMeter],
