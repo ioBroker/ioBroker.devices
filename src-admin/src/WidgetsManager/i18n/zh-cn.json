@@ -580,5 +580,18 @@
     "wm_Pump": "水泵",
     "wm_Level": "档位",
     "wm_Temperature": "温度",
-    "wm_Flow": "流量"
+    "wm_Flow": "流量",
+    "wm_Air quality": "空气质量",
+    "wm_aqi_unknown": "未知",
+    "wm_aqi_good": "优",
+    "wm_aqi_fair": "良",
+    "wm_aqi_moderate": "中等",
+    "wm_aqi_poor": "差",
+    "wm_aqi_very_poor": "很差",
+    "wm_aqi_extremely_poor": "极差",
+    "wm_level_unknown": "未知",
+    "wm_level_low": "低",
+    "wm_level_medium": "中",
+    "wm_level_high": "高",
+    "wm_level_critical": "严重"
 }

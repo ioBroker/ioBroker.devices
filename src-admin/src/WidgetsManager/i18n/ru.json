@@ -580,5 +580,18 @@
     "wm_Pump": "Насос",
     "wm_Level": "Уровень",
     "wm_Temperature": "Температура",
-    "wm_Flow": "Расход"
+    "wm_Flow": "Расход",
+    "wm_Air quality": "Качество воздуха",
+    "wm_aqi_unknown": "Неизвестно",
+    "wm_aqi_good": "Хорошее",
+    "wm_aqi_fair": "Приемлемое",
+    "wm_aqi_moderate": "Среднее",
+    "wm_aqi_poor": "Плохое",
+    "wm_aqi_very_poor": "Очень плохое",
+    "wm_aqi_extremely_poor": "Крайне плохое",
+    "wm_level_unknown": "Неизвестно",
+    "wm_level_low": "Низкий",
+    "wm_level_medium": "Средний",
+    "wm_level_high": "Высокий",
+    "wm_level_critical": "Критический"
 }

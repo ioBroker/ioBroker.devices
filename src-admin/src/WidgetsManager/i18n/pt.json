@@ -580,5 +580,18 @@
     "wm_Pump": "Bomba",
     "wm_Level": "Nível",
     "wm_Temperature": "Temperatura",
-    "wm_Flow": "Vazão"
+    "wm_Flow": "Vazão",
+    "wm_Air quality": "Qualidade do ar",
+    "wm_aqi_unknown": "Desconhecido",
+    "wm_aqi_good": "Boa",
+    "wm_aqi_fair": "Razoável",
+    "wm_aqi_moderate": "Moderada",
+    "wm_aqi_poor": "Fraca",
+    "wm_aqi_very_poor": "Muito fraca",
+    "wm_aqi_extremely_poor": "Extremamente fraca",
+    "wm_level_unknown": "Desconhecido",
+    "wm_level_low": "Baixo",
+    "wm_level_medium": "Médio",
+    "wm_level_high": "Alto",
+    "wm_level_critical": "Crítico"
 }

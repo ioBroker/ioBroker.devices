@@ -72,6 +72,7 @@ import {
     WidgetCamera,
     WidgetAirCondition,
     WidgetAirPurifier,
+    WidgetAirQuality,
     WidgetWarning,
     WidgetLock,
     WidgetCoAlarm,
@@ -2234,9 +2235,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
         } else if (type === Types.electricity) {
             Widget = WidgetElectricity;
         } else if (type === Types.airQuality) {
-            // Split out of `info` by type-detector 6.0.0 and rendered as an info tile before, so it
-            // keeps that tile until it gets the purpose-built one its 29 states deserve.
-            Widget = WidgetInfoWidget;
+            Widget = WidgetAirQuality;
         } else if (type === Types.lock) {
             Widget = WidgetLock;
         } else if (type === Types.door) {
