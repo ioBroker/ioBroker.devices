@@ -576,5 +576,9 @@
     "wm_Window open": "Raam open",
     "wm_Fan": "Ventilator",
     "wm_Air purifier": "Luchtreiniger",
-    "wm_Electricity": "Elektriciteit"
+    "wm_Electricity": "Elektriciteit",
+    "wm_Pump": "Pomp",
+    "wm_Level": "Niveau",
+    "wm_Temperature": "Temperatuur",
+    "wm_Flow": "Doorstroming"
 }

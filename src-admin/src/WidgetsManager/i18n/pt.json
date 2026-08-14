@@ -576,5 +576,9 @@
     "wm_Window open": "Janela aberta",
     "wm_Fan": "Ventilador",
     "wm_Air purifier": "Purificador de ar",
-    "wm_Electricity": "Eletricidade"
+    "wm_Electricity": "Eletricidade",
+    "wm_Pump": "Bomba",
+    "wm_Level": "Nível",
+    "wm_Temperature": "Temperatura",
+    "wm_Flow": "Vazão"
 }

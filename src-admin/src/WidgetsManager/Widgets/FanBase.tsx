@@ -5,26 +5,7 @@ import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { toNumberOrNull, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { parseCommonStates, stateKeyToValue } from './commonStates';
-import { clampToRange, type SetpointRange as NumericRange } from './climate';
-
-/**
- * A device-declared numeric range, trusted only once both bounds are explicit.
- *
- * A datapoint that declares neither bound has said nothing about its scale, and inventing one caps
- * every write on a device whose native range is wider — an rpm speed pinned to 0–100.
- */
-function explicitRangeFromCommon(common: ioBroker.StateCommon | undefined): NumericRange | null {
-    if (!common || common.min == null || common.max == null) {
-        return null;
-    }
-    const min = Number(common.min);
-    const max = Number(common.max);
-    const step = common.step != null ? Number(common.step) : 1;
-    if (isNaN(min) || isNaN(max) || max <= min) {
-        return null;
-    }
-    return { min, max, step: step > 0 ? step : 1 };
-}
+import { clampToRange, explicitRangeFromCommon, type SetpointRange as NumericRange } from './climate';
 
 /**
  * Control surface shared by `fan` and `airPurifier`: both declare the identical SPEED / POWER /

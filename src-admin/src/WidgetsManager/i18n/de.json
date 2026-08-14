@@ -576,5 +576,9 @@
     "wm_Window open": "Fenster offen",
     "wm_Fan": "Ventilator",
     "wm_Air purifier": "Luftreiniger",
-    "wm_Electricity": "Stromzähler"
+    "wm_Electricity": "Stromzähler",
+    "wm_Pump": "Pumpe",
+    "wm_Level": "Stufe",
+    "wm_Temperature": "Temperatur",
+    "wm_Flow": "Durchfluss"
 }

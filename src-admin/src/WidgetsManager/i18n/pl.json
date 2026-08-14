@@ -576,5 +576,9 @@
     "wm_Window open": "Okno otwarte",
     "wm_Fan": "Wentylator",
     "wm_Air purifier": "Oczyszczacz powietrza",
-    "wm_Electricity": "Elektryczność"
+    "wm_Electricity": "Elektryczność",
+    "wm_Pump": "Pompa",
+    "wm_Level": "Poziom",
+    "wm_Temperature": "Temperatura",
+    "wm_Flow": "Przepływ"
 }

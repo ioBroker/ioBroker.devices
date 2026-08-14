@@ -30,6 +30,7 @@ export { WidgetLocation } from './Location';
 export { WidgetLock } from './Lock';
 export { WidgetMediaPlayer } from './MediaPlayer';
 export { WidgetMotion } from './Motion';
+export { WidgetPump } from './Pump';
 export { WidgetSlider } from './Slider';
 export { WidgetSwitch } from './Switch';
 export { WidgetTank } from './Tank';

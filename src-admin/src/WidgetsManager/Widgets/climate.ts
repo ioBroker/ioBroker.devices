@@ -194,6 +194,31 @@ export function rangeFromCommon(
     return { min, max, step: step > 0 ? step : fallback.step };
 }
 
+/**
+ * A device-declared numeric range, trusted only once both bounds are explicit.
+ *
+ * Unlike {@link rangeFromCommon}, this takes no fallback to fill in a missing bound: a datapoint
+ * that declares only one, or neither, has said nothing about its scale, and a pattern's
+ * `defaultUnit` (e.g. '%') is not a declaration either — trusting it would silently cap a device
+ * whose native range is wider (an rpm speed pinned to 0-100). Used by widgets whose control has no
+ * setpoint concept of its own (fan speed, pump level).
+ *
+ * @param common The datapoint's common section
+ * @returns The declared range, or null until both bounds are known
+ */
+export function explicitRangeFromCommon(common: ioBroker.StateCommon | undefined): SetpointRange | null {
+    if (!common || common.min == null || common.max == null) {
+        return null;
+    }
+    const min = Number(common.min);
+    const max = Number(common.max);
+    const step = common.step != null ? Number(common.step) : 1;
+    if (isNaN(min) || isNaN(max) || max <= min) {
+        return null;
+    }
+    return { min, max, step: step > 0 ? step : 1 };
+}
+
 /** What one setpoint datapoint declares about itself */
 export interface SetpointMeta {
     range: SetpointRange | null;
