@@ -103,6 +103,7 @@ import {
     WidgetUniversal,
     WidgetVacuumCleaner,
     WidgetPresence,
+    WidgetPump,
     WidgetEnergyFlow,
     WidgetGate,
     WidgetPlugin,
@@ -2256,6 +2257,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetFan;
         } else if (type === Types.airPurifier) {
             Widget = WidgetAirPurifier;
+        } else if (type === Types.pump) {
+            Widget = WidgetPump;
         } else if (type === Types.warning) {
             Widget = WidgetWarning;
         } else if (type === Types.volume || type === Types.volumeGroup) {

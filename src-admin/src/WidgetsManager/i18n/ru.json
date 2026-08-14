@@ -576,5 +576,9 @@
     "wm_Window open": "Окно открыто",
     "wm_Fan": "Вентилятор",
     "wm_Air purifier": "Очиститель воздуха",
-    "wm_Electricity": "Электричество"
+    "wm_Electricity": "Электричество",
+    "wm_Pump": "Насос",
+    "wm_Level": "Уровень",
+    "wm_Temperature": "Температура",
+    "wm_Flow": "Расход"
 }

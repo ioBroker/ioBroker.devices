@@ -246,7 +246,7 @@
     "wm_Presence_desc": "Zeigt wer zuhause ist mit Avatar und letzter Statusänderung",
     "wm_Press": "Drücken",
     "wm_Pressed": "Gedrückt",
-    "wm_Pressure": "Luftdruck",
+    "wm_Pressure": "Druck",
     "wm_Producers": "Erzeuger",
     "wm_Producers help": "Erzeuger-States hinzufügen (Solar, Wind, Netz, …). Jede Zeile wird auf der kleinen Kachel summiert.",
     "wm_Progress": "Fortschritt",
@@ -576,5 +576,9 @@
     "wm_Window open": "Fenster offen",
     "wm_Fan": "Ventilator",
     "wm_Air purifier": "Luftreiniger",
-    "wm_Electricity": "Stromzähler"
+    "wm_Electricity": "Stromzähler",
+    "wm_Pump": "Pumpe",
+    "wm_Level": "Stufe",
+    "wm_Temperature": "Temperatur",
+    "wm_Flow": "Durchfluss"
 }

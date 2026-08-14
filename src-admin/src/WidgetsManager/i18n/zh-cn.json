@@ -246,7 +246,7 @@
     "wm_Presence_desc": "显示谁在家，带头像和最后活动时间",
     "wm_Press": "按下",
     "wm_Pressed": "已按下",
-    "wm_Pressure": "气压",
+    "wm_Pressure": "压力",
     "wm_Producers": "生产者",
     "wm_Producers help": "添加生产者状态（太阳能、风、电网等）。每行的值会在小图块上累加。",
     "wm_Progress": "进度",
@@ -576,5 +576,9 @@
     "wm_Window open": "窗户已打开",
     "wm_Fan": "风扇",
     "wm_Air purifier": "空气净化器",
-    "wm_Electricity": "电量"
+    "wm_Electricity": "电量",
+    "wm_Pump": "水泵",
+    "wm_Level": "档位",
+    "wm_Temperature": "温度",
+    "wm_Flow": "流量"
 }
