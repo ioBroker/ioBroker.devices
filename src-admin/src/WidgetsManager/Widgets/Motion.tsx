@@ -5,10 +5,6 @@ import { I18n, Icon } from '@iobroker/gui-components';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
-interface AlarmWidgetSettings extends WidgetGenericSettings {
-    hideWhenOk?: boolean;
-}
-
 interface WidgetMotionState extends WidgetGenericState {
     motion: boolean;
     brightness: number | null;
@@ -19,12 +15,12 @@ interface WidgetMotionState extends WidgetGenericState {
     lastMotionAgo: string;
 }
 
-export class WidgetMotion extends WidgetGeneric<WidgetMotionState, AlarmWidgetSettings> {
+export class WidgetMotion extends WidgetGeneric<WidgetMotionState, WidgetGenericSettings> {
     private readonly actualId: string | null;
     private readonly brightnessId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
+    constructor(props: WidgetGenericProps<WidgetGenericSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');
