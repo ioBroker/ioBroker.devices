@@ -574,5 +574,7 @@
     "wm_Filter condition": "État du filtre",
     "wm_Carbon filter condition": "État du filtre à charbon",
     "wm_Window open": "Fenêtre ouverte",
+    "wm_Fan": "Ventilateur",
+    "wm_Air purifier": "Purificateur d'air",
     "wm_Electricity": "Électricité"
 }

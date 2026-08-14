@@ -574,5 +574,7 @@
     "wm_Filter condition": "Estado del filtro",
     "wm_Carbon filter condition": "Estado del filtro de carbón",
     "wm_Window open": "Ventana abierta",
+    "wm_Fan": "Ventilador",
+    "wm_Air purifier": "Purificador de aire",
     "wm_Electricity": "Electricidad"
 }

@@ -574,5 +574,7 @@
     "wm_Filter condition": "滤网状态",
     "wm_Carbon filter condition": "活性炭滤网状态",
     "wm_Window open": "窗户已打开",
+    "wm_Fan": "风扇",
+    "wm_Air purifier": "空气净化器",
     "wm_Electricity": "电量"
 }
