@@ -573,5 +573,7 @@
     "wm_Valve": "Ventil",
     "wm_Filter condition": "Filterzustand",
     "wm_Carbon filter condition": "Zustand Kohlefilter",
-    "wm_Window open": "Fenster offen"
+    "wm_Window open": "Fenster offen",
+    "wm_Fan": "Ventilator",
+    "wm_Air purifier": "Luftreiniger"
 }

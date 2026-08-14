@@ -61,6 +61,7 @@ import {
     WidgetSwitch,
     WidgetLight,
     WidgetDimmer,
+    WidgetFan,
     WidgetTemperature,
     WidgetMotion,
     WidgetWindow,
@@ -70,6 +71,7 @@ import {
     WidgetButtonSensor,
     WidgetCamera,
     WidgetAirCondition,
+    WidgetAirPurifier,
     WidgetWarning,
     WidgetLock,
     WidgetCoAlarm,
@@ -2250,6 +2252,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetThermostat;
         } else if (type === Types.airCondition) {
             Widget = WidgetAirCondition;
+        } else if (type === Types.fan) {
+            Widget = WidgetFan;
+        } else if (type === Types.airPurifier) {
+            Widget = WidgetAirPurifier;
         } else if (type === Types.warning) {
             Widget = WidgetWarning;
         } else if (type === Types.volume || type === Types.volumeGroup) {
