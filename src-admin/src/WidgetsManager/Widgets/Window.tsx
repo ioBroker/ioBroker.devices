@@ -5,10 +5,6 @@ import { I18n, Icon } from '@iobroker/gui-components';
 
 import WidgetGeneric, { type WidgetGenericSettings, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
-interface AlarmWidgetSettings extends WidgetGenericSettings {
-    hideWhenOk?: boolean;
-}
-
 /** Official value.window: 0 = CLOSED, 1 = TILTED, 2 = OPEN */
 // acording to: https://www.iobroker.net/#en/documentation/dev/stateroles.md?info
 type WindowOpenState = 0 | 1 | 2;
@@ -22,11 +18,11 @@ interface WidgetWindowState extends WidgetGenericState {
     lastChangedAgo: string;
 }
 
-export class WidgetWindow extends WidgetGeneric<WidgetWindowState, AlarmWidgetSettings> {
+export class WidgetWindow extends WidgetGeneric<WidgetWindowState, WidgetGenericSettings> {
     private readonly actualId: string | null;
     private agoTimer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(props: WidgetGenericProps<AlarmWidgetSettings>) {
+    constructor(props: WidgetGenericProps<WidgetGenericSettings>) {
         super(props);
         const states = props.widget.control.states;
         const actual = states.find(s => s.name === 'ACTUAL');

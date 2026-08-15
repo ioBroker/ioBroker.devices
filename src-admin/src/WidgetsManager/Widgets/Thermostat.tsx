@@ -1573,8 +1573,6 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     </Box>
                     {this.renderChart()}
                 </ButtonBase>
-
-                {this.renderDialog()}
             </Box>
         );
     }
@@ -1696,9 +1694,21 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
 
                     {this.renderChart()}
                 </ButtonBase>
-
-                {this.renderDialog()}
             </Box>
+        );
+    }
+
+    /**
+     * Rendered beside the tile rather than inside a layout: the 2x0.5 layout comes from the base
+     * class, so a dialog rendered only by the layouts this widget overrides could not open at that
+     * size at all.
+     */
+    render(): React.JSX.Element {
+        return (
+            <>
+                {super.render()}
+                {this.renderDialog()}
+            </>
         );
     }
 }
