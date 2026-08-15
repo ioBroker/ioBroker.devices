@@ -1,0 +1,1 @@
+import{t as e}from"./virtual_mf-exposes___mfe_internal__iobroker_devices__remoteEntry_js-ChiJXsfH.js";export{e as default};
