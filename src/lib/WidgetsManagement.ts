@@ -10,6 +10,8 @@ const LINKEDDEVICES = 'linkeddevices.';
 export interface DevicesDetectorState extends DetectorState {
     id: string;
     stateRole?: string;
+    /** Set on states the user added to an alias device; they fill no slot of the type pattern. */
+    extra?: boolean;
 }
 
 export interface DevicesPatternControl {
@@ -39,6 +41,21 @@ function findMainStateId(device: PatternControl): string | undefined {
 function getParentId(id: string): string {
     const pos = id.lastIndexOf('.');
     return pos !== -1 ? id.substring(0, pos) : '';
+}
+
+/** Index of the first key that is not smaller than `value`, in a sorted array. */
+function lowerBound(sortedKeys: string[], value: string): number {
+    let low = 0;
+    let high = sortedKeys.length;
+    while (low < high) {
+        const mid = (low + high) >> 1;
+        if (sortedKeys[mid] < value) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    return low;
 }
 
 /**
@@ -397,6 +414,61 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     }
 
     /**
+     * States that sit in the device's own channel but fill no slot of its type pattern — a litre
+     * reading next to a fill level, for instance. The device editor lists them under their own name
+     * and lets the user create them ("added states"); until they are delivered here they exist in
+     * the object tree and nowhere else, so no widget can ever show them.
+     *
+     * Only alias and linkeddevices channels are scanned. Their content is curated by the user, one
+     * datapoint at a time, while a hardware channel would contribute every datapoint its adapter
+     * happens to expose — none of which anybody asked to see on a tile.
+     */
+    private addUserAddedStates(device: DevicesPatternControl): void {
+        const channelId = device.storeId;
+        if (!channelId.startsWith(ALIAS) && !channelId.startsWith(LINKEDDEVICES)) {
+            return;
+        }
+        const usedIds = new Set(device.states.filter(state => state.id).map(state => state.id));
+        // A pattern slot is addressed by name (`states.find(s => s.name === 'ACTUAL')`), so an added
+        // state that carries the same name would be indistinguishable from it.
+        const usedNames = new Set(device.states.map(state => state.name));
+        const prefix = `${channelId}.`;
+        const end = `${channelId}.\u9999`;
+        const keys = this.getSortedKeys();
+
+        for (let i = lowerBound(keys, prefix); i < keys.length; i++) {
+            const key = keys[i];
+            if (key > end) {
+                break;
+            }
+            if (usedIds.has(key) || this.objects[key]?.type !== 'state') {
+                continue;
+            }
+            const common = this.objects[key].common as ioBroker.StateCommon;
+            let name =
+                typeof common?.name === 'object'
+                    ? common.name[this.adapter.language || 'en'] || common.name.en || ''
+                    : common?.name || '';
+            if (!name || usedNames.has(name)) {
+                name = key.substring(prefix.length);
+            }
+            if (usedNames.has(name)) {
+                continue;
+            }
+            usedNames.add(name);
+            device.states.push({
+                id: key,
+                name,
+                extra: true,
+                indicator: false,
+                required: false,
+                write: common?.write,
+                defaultRole: common?.role,
+            });
+        }
+    }
+
+    /**
      * Run ChannelDetector.detect() only for the given IDs. Returns newly detected devices.
      */
     private detectForIds(ids: string[]): DevicesPatternControl[] {
@@ -422,6 +494,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     removeForeignAliasStates(d, this.objects);
                     this.resolveChannelId(d);
                     if (d.storeId) {
+                        this.addUserAddedStates(d);
                         result.push(d);
                         break; // ignore "smaller" devices
                     }

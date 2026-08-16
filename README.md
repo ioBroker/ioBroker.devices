@@ -132,6 +132,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
+* (@Apollon77) Added support of new device types
 
 ### 4.0.2 (2026-08-10)
 * (@SimonFischer04) Added WindowTilt support in the widgets GUI (#609)

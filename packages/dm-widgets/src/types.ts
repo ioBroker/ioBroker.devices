@@ -48,6 +48,11 @@ export interface DevicesDetectorState extends DetectorState {
     stateRole?: string;
     /** common.unit of the underlying state (delivered by the backend; used e.g. for power W/kW). */
     unit?: string;
+    /**
+     * Set on a state the user added to an alias device: it fills no slot of the type pattern, so
+     * `name` is its object name ("Liter") rather than a pattern tag like `ACTUAL`.
+     */
+    extra?: boolean;
 }
 
 export interface DevicesPatternControl {

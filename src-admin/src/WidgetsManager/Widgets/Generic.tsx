@@ -834,6 +834,11 @@ export class WidgetGeneric<
         // Collect indicator state IDs from control.states
         if (props.widget.control?.states) {
             for (const s of props.widget.control.states) {
+                // A user-added state carries its object name, not a pattern tag: a datapoint someone
+                // happened to call "BATTERY" is not the battery slot of the type.
+                if (s.extra) {
+                    continue;
+                }
                 if ((INDICATOR_NAMES as readonly string[]).includes(s.name) && s.id) {
                     this.indicatorIds[s.name as (typeof INDICATOR_NAMES)[number]] = s.id;
                 }

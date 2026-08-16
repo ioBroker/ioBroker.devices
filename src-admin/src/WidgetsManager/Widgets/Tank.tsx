@@ -222,11 +222,18 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                 // ignore
             }
             entries.push({ id, name, label, unit, value: null });
-            this.props.stateContext.getState(id, this.onExtraStateChange);
         }
-        if (entries.length) {
-            this.setState({ tankExtra: entries });
+        if (!entries.length) {
+            return;
         }
+        // Subscribe only once the entries are on the state: `onExtraStateChange` writes into
+        // `tankExtra`, so a value arriving before the list exists is dropped — and a litre reading
+        // that changes twice a month would then stay blank for the rest of the tile's life.
+        this.setState({ tankExtra: entries }, () => {
+            for (const entry of entries) {
+                this.props.stateContext.getState(entry.id, this.onExtraStateChange);
+            }
+        });
     }
 
     private onExtraStateChange = (id: string, state: ioBroker.State): void => {
@@ -285,9 +292,33 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         return this.state.level > 0;
     }
 
-    private renderExtraStates(): React.JSX.Element | null {
-        const { tankExtra } = this.state;
-        const visible = tankExtra.filter(e => e.value != null);
+    /**
+     * A tank reports a percentage, but what the user pours out of it is a volume, so devices
+     * commonly carry a second reading — litres remaining next to the fill level. Without a unit the
+     * bare number says nothing, so the state's own name stands in for one.
+     */
+    private formatExtra(e: TankExtraState): string {
+        let value: string;
+        if (typeof e.value === 'number') {
+            const abs = Math.abs(e.value);
+            value = Number.isInteger(e.value)
+                ? String(e.value)
+                : formatFloat(e.value, abs < 10 ? 2 : 1, this.props.stateContext.isFloatComma);
+        } else if (typeof e.value === 'boolean') {
+            value = I18n.t(e.value ? 'wm_On' : 'wm_Off');
+        } else {
+            value = String(e.value);
+        }
+        return e.unit ? `${value} ${e.unit}` : `${e.label}: ${value}`;
+    }
+
+    /**
+     * The secondary readings of the device, on one line. It sits where the fill level used to be
+     * printed a second time — the big value already says "7 %", and saying it twice tells nobody
+     * how much is left in the tank.
+     */
+    private renderExtraStates(align: 'center' | 'flex-start', fontSize: string): React.JSX.Element | null {
+        const visible = this.state.tankExtra.filter(e => e.value != null);
         if (!visible.length) {
             return null;
         }
@@ -295,38 +326,23 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
             <Box
                 sx={{
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    gap: '2px',
+                    flexWrap: 'wrap',
+                    justifyContent: align,
+                    columnGap: 1,
+                    lineHeight: 1.2,
+                    position: 'relative',
+                    zIndex: 1,
                 }}
             >
-                {visible.map(e => {
-                    const val =
-                        typeof e.value === 'number'
-                            ? Number.isInteger(e.value)
-                                ? e.value
-                                : formatFloat(e.value, 1, this.props.stateContext.isFloatComma)
-                            : typeof e.value === 'boolean'
-                              ? e.value
-                                  ? I18n.t('wm_On')
-                                  : I18n.t('wm_Off')
-                              : String(e.value);
-                    return (
-                        <Typography
-                            key={e.id}
-                            variant="caption"
-                            sx={{
-                                fontSize: 'max(0.55rem, 6cqi)',
-                                lineHeight: 1.2,
-                                opacity: 0.7,
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {val}
-                            {e.unit ? ` ${e.unit}` : ''}
-                        </Typography>
-                    );
-                })}
+                {visible.map(e => (
+                    <Typography
+                        key={e.id}
+                        variant="caption"
+                        sx={{ fontSize, lineHeight: 1.2, opacity: 0.7, whiteSpace: 'nowrap' }}
+                    >
+                        {this.formatExtra(e)}
+                    </Typography>
+                ))}
             </Box>
         );
     }
@@ -413,24 +429,6 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         );
     }
 
-    protected renderTileStatus(): React.JSX.Element {
-        const { level } = this.state;
-        const fillColor = getFillColor(level, this.getAccentColor());
-
-        return (
-            <Typography
-                variant="caption"
-                sx={{
-                    fontWeight: 500,
-                    color: level > 0 ? fillColor : 'text.secondary',
-                    transition: 'color 0.25s ease',
-                }}
-            >
-                {level > 0 ? this.getDisplayValue() : I18n.t('wm_Off')}
-            </Typography>
-        );
-    }
-
     protected renderTileAction(): React.JSX.Element {
         return (
             <Typography
@@ -448,9 +446,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const extraStates = this.renderExtraStates();
+        const extraStates = this.renderExtraStates('center', 'max(0.7rem, 7cqi)');
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton, extraStates);
+        const indicators = this.renderIndicators(settingsButton);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -516,6 +514,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         >
                             {isActive ? this.getDisplayValue() : I18n.t('wm_Off')}
                         </Typography>
+                        {extraStates}
                     </Box>
 
                     {/* Name at bottom */}
@@ -553,9 +552,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const extraStates = this.renderExtraStates();
+        const extraStates = this.renderExtraStates('flex-start', '0.75rem');
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton, extraStates);
+        const indicators = this.renderIndicators(settingsButton);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -584,6 +583,10 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                 >
                     {this.renderFillBackground(fillColor)}
 
+                    {/* Direct child of the tile: the indicators position themselves absolutely, and
+                        from inside the text column they would anchor to that column instead. */}
+                    {indicators}
+
                     <Box
                         sx={{
                             flexShrink: 0,
@@ -597,21 +600,17 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                     </Box>
 
                     <Box sx={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography
-                                ref={this.nameRef}
-                                variant="body2"
-                                sx={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap' }}
-                            >
-                                {this.props.settings?.name || name || '...'}
-                            </Typography>
-                            {indicators}
-                        </Box>
-                        {this.renderTileStatus()}
+                        <Typography
+                            ref={this.nameRef}
+                            variant="body2"
+                            sx={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap' }}
+                        >
+                            {this.props.settings?.name || name || '...'}
+                        </Typography>
+                        {extraStates}
                         {this.renderMinMax()}
                     </Box>
 
-                    {extraStates ? <Box sx={{ position: 'relative', zIndex: 1 }}>{extraStates}</Box> : null}
                     <Box sx={{ position: 'relative', zIndex: 1 }}>{this.renderTileAction()}</Box>
                     {this.renderChart()}
                 </ButtonBase>
@@ -625,9 +624,9 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
         const { name, level } = this.state;
         const isActive = this.isTileActive();
         const accent = this.getAccentColor();
-        const extraStates = this.renderExtraStates();
+        const extraStates = this.renderExtraStates('flex-start', 'max(0.7rem, 3.5cqi)');
         const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton, extraStates);
+        const indicators = this.renderIndicators(settingsButton);
         const fillColor = getFillColor(level, accent);
         const chartAction = this.hasChartAction();
 
@@ -693,7 +692,7 @@ export class WidgetTank extends WidgetGeneric<WidgetTankState, TankWidgetSetting
                         >
                             {this.props.settings?.name || name || '...'}
                         </Typography>
-                        {this.renderTileStatus()}
+                        {extraStates}
                         {this.renderMinMax()}
                     </Box>
 
