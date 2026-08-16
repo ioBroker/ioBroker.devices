@@ -1,4 +1,9 @@
 # Older changes
+## 3.0.0 (2026-06-26)
+* (@GermanBluefox) Corrected universal widget
+* (@GermanBluefox) Added open-meteo-weather adapter support
+* (@GermanBluefox) Read all states anew after the reconnection
+
 ## 2.1.5 (2026-05-28)
 * (@GermanBluefox) Added a theme type to context
 

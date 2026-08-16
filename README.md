@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.1.0 (2026-08-16)
 * (@Apollon77) Added support of new device types
 
 ### 4.0.2 (2026-08-10)
@@ -174,11 +174,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 - (krobipd) Reduced Safari rendering lag of the device list
 - (patricknitsch) Added consumption values to the categories
 - (patricknitsch) Fixed the data loss by the folder renaming
-
-### 3.0.0 (2026-06-26)
-* (@GermanBluefox) Corrected universal widget
-* (@GermanBluefox) Added open-meteo-weather adapter support
-* (@GermanBluefox) Read all states anew after the reconnection
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
