@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.1.1 (2026-08-17)
 * (@GermanBluefox) Fixed states being written without `common.read` and `common.write`, which every state object must carry: the "add state" dialog left both out for the deprecated `file` type, and dropped them from any state it edited that did not have them yet (#535, #533, #463)
 * (@GermanBluefox) States written by earlier versions have the two attributes added once when the device list is loaded. What is missing is taken from the device type and from the aliased source, so a state the device really can write does not turn read-only
 
@@ -175,12 +175,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 
 ### 3.0.2 (2026-06-30)
 * (@GermanBluefox) Added support for widget icons
-
-### 3.0.1 (2026-06-29)
-- (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
-- (krobipd) Reduced Safari rendering lag of the device list
-- (patricknitsch) Added consumption values to the categories
-- (patricknitsch) Fixed the data loss by the folder renaming
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
