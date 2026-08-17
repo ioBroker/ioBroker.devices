@@ -272,6 +272,9 @@ interface GridSpan {
     gridRow?: string;
 }
 
+/** Width a category tile wants for itself; see `Category.categoryGridColumns`. */
+const CATEGORY_MIN_PX = 560;
+
 function getGridColumn(
     item: OrderedItem,
     widgetSettings: Record<string, WidgetSettingsBase>,
@@ -302,6 +305,77 @@ function getGridColumn(
         return { gridColumn: 'span 2' };
     }
     return undefined;
+}
+
+/**
+ * One row holding a run of adjacent category tiles.
+ *
+ * A category tile is wide and low; inside the widget grid it claims a whole row whatever the screen
+ * offers, so on a large display it is mostly empty space. In a grid of its own it shares that row
+ * with its neighbours — see `Category.categoryGridColumns`. A lone category keeps the full width:
+ * one tile stretched across a third of the screen with nothing beside it looks lost.
+ *
+ * @param run Adjacent category items, at least one
+ * @param categoryGridColumns `grid-template-columns` for a row of categories
+ * @param render Renders one item; `inCategoryRow` tells it to drop its full-row span
+ */
+function renderCategoryRow(
+    run: OrderedItem[],
+    categoryGridColumns: string,
+    render: (item: OrderedItem, inCategoryRow: boolean) => React.ReactNode,
+): React.ReactNode {
+    if (run.length === 1) {
+        return render(run[0], false);
+    }
+    return (
+        <Box
+            key={`cats:${run[0].id}`}
+            sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: categoryGridColumns,
+                gap: 1.5,
+            }}
+        >
+            {run.map(item => render(item, true))}
+        </Box>
+    );
+}
+
+/**
+ * Render grid items, putting every run of adjacent category tiles into a row of its own — see
+ * {@link renderCategoryRow}.
+ *
+ * @param items Items in display order
+ * @param categoryGridColumns `grid-template-columns` for a row of categories
+ * @param render Renders one item; `inCategoryRow` tells it to drop its full-row span
+ */
+function mapWithCategoryRows(
+    items: OrderedItem[],
+    categoryGridColumns: string,
+    render: (item: OrderedItem, inCategoryRow: boolean) => React.ReactNode,
+): React.ReactNode[] {
+    const nodes: React.ReactNode[] = [];
+    let run: OrderedItem[] = [];
+
+    const flush = (): void => {
+        if (run.length) {
+            nodes.push(renderCategoryRow(run, categoryGridColumns, render));
+            run = [];
+        }
+    };
+
+    for (const item of items) {
+        if (item.type === 'category') {
+            run.push(item);
+        } else {
+            flush();
+            nodes.push(render(item, false));
+        }
+    }
+    flush();
+
+    return nodes;
 }
 
 /** Thin wrapper so each grid cell is a valid droppable/draggable for dnd-kit */
@@ -692,8 +766,8 @@ function SortableGrid(props: {
                     gap: 1.5,
                 }}
             >
-                {orderedItems.map(item => {
-                    const gridSpan = getGridColumn(item, widgetSettings);
+                {mapWithCategoryRows(orderedItems, category.categoryGridColumns, (item, inRow) => {
+                    const gridSpan = inRow ? undefined : getGridColumn(item, widgetSettings);
                     return gridSpan ? (
                         <div
                             key={item.id}
@@ -776,7 +850,7 @@ function SortableGrid(props: {
                         // user drags a category tile, plain sortable arrayMove already works
                         // perfectly — render flat to avoid the visual noise of empty slots.
                         const isDragActive = !!activeId && !draggingNewline && !draggingCategory;
-                        const renderItem = (item: OrderedItem): React.JSX.Element => {
+                        const renderItem = (item: OrderedItem, inCategoryRow?: boolean): React.JSX.Element => {
                             const isCw = item.type === 'custom';
                             const isNewline = isCw && (item.data as CustomWidgetBase).type === 'newline';
                             const fav =
@@ -797,7 +871,7 @@ function SortableGrid(props: {
                                 <SortableItem
                                     key={item.id}
                                     id={item.id}
-                                    gridSpan={getGridColumn(item, widgetSettings, true)}
+                                    gridSpan={inCategoryRow ? undefined : getGridColumn(item, widgetSettings, true)}
                                     isDragging={item.id === activeId}
                                     movingIntoTarget={item.id === activeId && (!!dropCategoryId || !!forbiddenDropId)}
                                     isDropTarget={isCatDropTarget || isCatForbidden}
@@ -811,7 +885,7 @@ function SortableGrid(props: {
 
                         const hasCategories = orderedItems.some(isCatItem);
                         if (!hasCategories) {
-                            return orderedItems.map(renderItem);
+                            return orderedItems.map(item => renderItem(item));
                         }
 
                         // Build alternating list of segments (widget groups) and categories.
@@ -836,23 +910,48 @@ function SortableGrid(props: {
                         segments.push({ slotIdx: segStart, widgets: curWidgets });
 
                         const nodes: React.JSX.Element[] = [];
+                        // Categories that follow each other share a row (see `renderCategoryRow`).
+                        // While a drag is running they go back to one per row: the slots between
+                        // them are the drop targets for that drag and each takes a row of its own.
+                        let run: OrderedItem[] = [];
+                        const flushRun = (): void => {
+                            if (run.length) {
+                                nodes.push(
+                                    renderCategoryRow(run, category.categoryGridColumns, (item, inRow) =>
+                                        renderItem(item, inRow),
+                                    ) as React.JSX.Element,
+                                );
+                                run = [];
+                            }
+                        };
+
                         for (let i = 0; i < segments.length; i++) {
                             const seg = segments[i];
-                            nodes.push(
-                                <DroppableSlot
-                                    key={`slot:${seg.slotIdx}`}
-                                    id={`slot:${seg.slotIdx}`}
-                                    isDragActive={isDragActive}
-                                    isEmpty={seg.widgets.length === 0}
-                                    gridColumns={category.gridColumns}
-                                >
-                                    {seg.widgets.map(renderItem)}
-                                </DroppableSlot>,
-                            );
+                            // An empty slot is a full-width row carrying nothing. Rendered between
+                            // two categories it would only keep them apart, so it stays away until a
+                            // drag needs it as a drop target.
+                            if (seg.widgets.length || isDragActive) {
+                                flushRun();
+                                nodes.push(
+                                    <DroppableSlot
+                                        key={`slot:${seg.slotIdx}`}
+                                        id={`slot:${seg.slotIdx}`}
+                                        isDragActive={isDragActive}
+                                        isEmpty={seg.widgets.length === 0}
+                                        gridColumns={category.gridColumns}
+                                    >
+                                        {seg.widgets.map(item => renderItem(item))}
+                                    </DroppableSlot>,
+                                );
+                            }
                             if (i < cats.length) {
-                                nodes.push(renderItem(cats[i]));
+                                run.push(cats[i]);
+                                if (isDragActive) {
+                                    flushRun();
+                                }
                             }
                         }
+                        flushRun();
                         return nodes;
                     })()}
                 </Box>
@@ -1268,7 +1367,8 @@ function GroupedContent(props: {
                 <Box
                     sx={{
                         display: 'grid',
-                        gridTemplateColumns: category.gridColumns,
+                        gridTemplateColumns:
+                            categoryItems.length > 1 ? category.categoryGridColumns : category.gridColumns,
                         gridAutoFlow: 'dense',
                         gap: 1.5,
                         mb: 2,
@@ -1277,7 +1377,7 @@ function GroupedContent(props: {
                     {categoryItems.map(item => (
                         <div
                             key={item.id}
-                            style={{ gridColumn: '1 / -1' }}
+                            style={categoryItems.length > 1 ? undefined : { gridColumn: '1 / -1' }}
                         >
                             {category.renderCategoryTile(item.data as CategoryInfo)}
                         </div>
@@ -1593,6 +1693,19 @@ export default class Category extends Component<CategoryProps, CategoryState> {
     get gridColumns(): string {
         const minPx = Math.round(135 * (this.state.widgetScale / 100));
         return `repeat(auto-fill, minmax(${minPx}px, 1fr))`;
+    }
+
+    /**
+     * Columns for a row of category tiles. A category carries an icon, a name and a handful of
+     * readings — on a wide screen a full-width tile is mostly empty, and three of them fit side by
+     * side. The widget grid's 135px column is far too narrow a unit to express that, so a run of
+     * categories gets a grid of its own: one tile below ~{@link CATEGORY_MIN_PX}, then two, three,
+     * four as the screen grows. The widget scale moves the threshold with everything else.
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    get categoryGridColumns(): string {
+        const minPx = Math.round(CATEGORY_MIN_PX * (this.state.widgetScale / 100));
+        return `repeat(auto-fill, minmax(min(100%, ${minPx}px), 1fr))`;
     }
 
     private get scrollStorageKey(): string {
@@ -2834,7 +2947,6 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     alignItems: 'center',
                     gap: 2,
                     width: '100%',
-                    gridColumn: '1 / -1',
                     textAlign: 'left',
                     overflow: 'hidden',
                     position: 'relative',
