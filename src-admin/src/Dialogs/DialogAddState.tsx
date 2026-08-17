@@ -141,11 +141,12 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                     setStep(newObj.common.step);
                     setCheckedStates(!!newObj.common.states);
                 }
-                // @ts-expect-error file is deprecated
-                if (newObj.common.type !== 'file') {
-                    setCheckedRead(newObj.common.read);
-                    setCheckedWrite(newObj.common.write);
-                }
+                // A state written before `read`/`write` were mandatory carries neither. Falling back
+                // to the defaults of a new state keeps the checkboxes controlled — reading
+                // `undefined` into them saved the object right back without the two attributes
+                // (issue #535).
+                setCheckedRead(newObj.common.read ?? true);
+                setCheckedWrite(newObj.common.write ?? true);
             }
         }
     }, [editState, objects]);
@@ -231,29 +232,24 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                                 ))}
                             </Select>
                         </FormControl>
-                        {/* @ts-expect-error file is deprecated */}
-                        {type !== 'file' && (
-                            <>
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={checkedRead}
-                                            onChange={e => setCheckedRead(e.target.checked)}
-                                        />
-                                    }
-                                    label={I18n.t('Readable')}
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={checkedRead}
+                                    onChange={e => setCheckedRead(e.target.checked)}
                                 />
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={checkedWrite}
-                                            onChange={e => setCheckedWrite(e.target.checked)}
-                                        />
-                                    }
-                                    label={I18n.t('Writable')}
+                            }
+                            label={I18n.t('Readable')}
+                        />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={checkedWrite}
+                                    onChange={e => setCheckedWrite(e.target.checked)}
                                 />
-                            </>
-                        )}
+                            }
+                            label={I18n.t('Writable')}
+                        />
                         {type === 'number' && (
                             <TextField
                                 variant="standard"
@@ -353,11 +349,10 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                                     delete obj.common.states;
                                 }
                             }
-                            // @ts-expect-error file is deprecated
-                            if (type !== 'file') {
-                                obj.common.read = checkedRead;
-                                obj.common.write = checkedWrite;
-                            }
+                            // Mandatory on every state object, `file` included — the deprecated type
+                            // is still offered here, and skipping the two left it off the schema.
+                            obj.common.read = checkedRead;
+                            obj.common.write = checkedWrite;
                             await socket.setObject(`${channelId}.${name}`, obj);
                             onClose(obj);
                         }}

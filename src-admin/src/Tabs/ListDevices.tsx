@@ -1249,13 +1249,14 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
         await this.setStateAsync({ devices, expandedIDs, listItems, loading: false, browse: false });
 
-        // One-time workaround: fix thermostat aliases that still carry the old min=0/max=100
-        // placeholder by inheriting the real range from their source (issue #22).
-        void this.fixThermostatAliasRanges(devices);
-
-        // One-time workaround: replace pattern default value lists that were never overwritten with
-        // the real list of the aliased source (issue #654).
-        void this.fixAliasStateLists(devices);
+        // One-time workarounds for alias states written by older versions: the min/max placeholder
+        // (issue #22), the pattern's value list (issue #654) and the missing read/write (issue
+        // #535). One after the other rather than side by side — all three read a state object and
+        // write it back, so on a state that needs two of them the later write would drop the
+        // earlier one's change.
+        void this.fixThermostatAliasRanges(devices)
+            .then(() => this.fixAliasStateLists(devices))
+            .then(() => this.fixMissingReadWrite(devices));
 
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
@@ -2789,6 +2790,65 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         }
         if (fixed) {
             console.log(`[devices] Inherited the source value list for ${fixed} alias state(s) (issue #654)`);
+        }
+    }
+
+    /** One-time guard for the missing read/write workaround (issue #535). */
+    private missingReadWriteFixed = false;
+
+    /**
+     * States written before the adapter filled `common.read` and `common.write` still lack them
+     * today: both are only ever set while a state is created, and every later edit writes the object
+     * back without adding what is not there. The two are mandatory on a state object, so such an
+     * object fails validation in everything typed against the js-controller schema (issues #535,
+     * #533, #463).
+     *
+     * A missing value is taken from the pattern the state belongs to, then from the aliased source,
+     * and only then from the defaults — declaring a state not writable when the device really can
+     * write it would turn a working control read-only, so `write: false` is the last resort rather
+     * than the first guess. Only states of the adapter's own devices are touched; rewriting a
+     * foreign adapter's object is not this adapter's business.
+     *
+     * Runs once per session; a corrected object no longer matches. Scoped to the states the detector
+     * returns: finding the datapoints a user added next to them costs a scan of every object per
+     * device, and those were written with both attributes anyway — bar the `file` type, which the
+     * "add state" dialog skipped until now and which one save from that dialog repairs.
+     *
+     * @param devices Detected devices of the current list
+     */
+    private async fixMissingReadWrite(devices: PatternControlEx[]): Promise<void> {
+        if (this.missingReadWriteFixed) {
+            return;
+        }
+        this.missingReadWriteFixed = true;
+        let fixed = 0;
+        for (const device of devices) {
+            for (const state of device.states) {
+                if (!state.id || (!state.id.startsWith(ALIAS) && !state.id.startsWith(LINKEDDEVICES))) {
+                    continue;
+                }
+                const cc = (this.objects[state.id] as ioBroker.StateObject | undefined)?.common;
+                if (!cc || (cc.read !== undefined && cc.write !== undefined)) {
+                    continue;
+                }
+                const sourceCommon = cc.alias?.id ? await this.getAliasSourceCommon(cc.alias.id) : undefined;
+                try {
+                    const obj = (await this.props.socket.getObject(state.id)) as ioBroker.StateObject | null;
+                    // Re-check on the fresh object so a meanwhile-edited value is never overwritten.
+                    if (!obj?.common || (obj.common.read !== undefined && obj.common.write !== undefined)) {
+                        continue;
+                    }
+                    obj.common.read = obj.common.read ?? state.read ?? sourceCommon?.read ?? true;
+                    obj.common.write = obj.common.write ?? state.write ?? sourceCommon?.write ?? false;
+                    await this.props.socket.setObject(obj._id, obj);
+                    fixed++;
+                } catch (e) {
+                    console.error(`Cannot add read/write to ${state.id}: ${e}`);
+                }
+            }
+        }
+        if (fixed) {
+            console.log(`[devices] Added the missing common.read/common.write to ${fixed} state(s) (issue #535)`);
         }
     }
 
