@@ -2004,7 +2004,6 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         let index: number | null = null;
 
         const device = this.state.devices.find(el => el.channelId === item.id)!;
-        const deviceIdx = this.state.devices.indexOf(device);
         const roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         const funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
 
@@ -2035,7 +2034,6 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 deleteDevice={this.deleteDevice}
                 onCopyDevice={this.onCopyDevice}
                 openFolder={() => this.toggleExpanded(item.id, true)}
-                deviceIdx={deviceIdx}
                 backgroundRow={backgroundRow}
                 sx={Utils.getStyle(
                     this.props.theme,
@@ -2567,7 +2565,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             return;
         }
 
-        const draggedItem = active.data.current as { id: string; deviceIdx: number };
+        const draggedItem = active.data.current as { id: string };
         const language = I18n.getLanguage();
 
         let lastPart: string;
@@ -2607,40 +2605,85 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 return;
             }
 
-            await this.onCopyDevice(draggedItem.id, targetPath);
+            const copyErrors = await this.onCopyDevice(draggedItem.id, targetPath);
             this.toggleExpanded(dropTarget.id, true);
+            if (copyErrors.length) {
+                await this.removePartialCopy(targetPath);
+                this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
+                return;
+            }
             if (draggedItem.id.includes('alias.0')) {
-                await this.deleteDevice(draggedItem.deviceIdx);
+                await this.deleteSourceDevice(draggedItem.id);
             }
         } else {
             // Dropped outside any target — copy to alias.0 root
-            if (draggedItem.id === `alias.0.${lastPart}`) {
+            const targetPath = `alias.0.${lastPart}`;
+            if (draggedItem.id === targetPath) {
+                return;
+            }
+            // The root has no drop wrapper that could reject a colliding name while dragging, so
+            // check here — without it the copy would overwrite the existing device.
+            if (this.objects[targetPath]) {
+                this.setState({ message: I18n.t('An object with this name already exists in the target folder') });
                 return;
             }
 
-            await this.onCopyDevice(draggedItem.id, `alias.0.${lastPart}`);
+            const copyErrors = await this.onCopyDevice(draggedItem.id, targetPath);
+            if (copyErrors.length) {
+                await this.removePartialCopy(targetPath);
+                this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
+                return;
+            }
             if (draggedItem.id.includes('alias.0')) {
-                await this.deleteDevice(draggedItem.deviceIdx);
+                await this.deleteSourceDevice(draggedItem.id);
             }
         }
     };
+
+    /**
+     * Delete the source device of a completed move, resolved by its channel id at deletion time.
+     * An index captured when the drag started may point at a different device by now — the list
+     * re-sorts on every object change, and deleting by a stale index removes the wrong device.
+     */
+    private async deleteSourceDevice(channelId: string): Promise<void> {
+        const index = this.state.devices.findIndex(device => device.channelId === channelId);
+        if (index !== -1) {
+            await this.deleteDevice(index);
+        }
+    }
+
+    /**
+     * Remove what a failed copy left behind at the target path. The callers only copy onto paths
+     * that did not exist before, so everything below `targetPath` is debris of the failed copy —
+     * an incomplete device that could not be controlled and would shadow the kept original.
+     */
+    private async removePartialCopy(targetPath: string): Promise<void> {
+        try {
+            await this.props.socket.delObjects(targetPath, true);
+        } catch {
+            // The copy already failed — a failing cleanup must not mask that with a second error.
+        }
+    }
 
     onCopyDevice = async (
         id: string,
         newChannelId: string,
         mode: 'move' | 'duplicate' | 'import' = 'move',
-    ): Promise<void> => {
+    ): Promise<string[]> => {
         // if this is a device not from linkeddevices or from alias
         const deviceToCopy = this.state.devices.find(device => device.channelId === id);
 
         if (deviceToCopy) {
-            await copyDevice(newChannelId, {
+            return copyDevice(newChannelId, {
                 socket: this.props.socket,
                 objects: this.objects,
                 deviceToCopy: deviceToCopy,
                 mode,
             });
         }
+        // Nothing was copied, and the callers must not treat it as a completed copy — a stale
+        // list entry would otherwise let the source be deleted without a copy existing.
+        return [`${id}: device not found`];
     };
 
     /**
@@ -3265,7 +3308,14 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             // ignore
                         }
                     }
-                    await this.onCopyDevice(id, newId);
+                    const copyErrors = await this.onCopyDevice(id, newId);
+                    if (copyErrors.length) {
+                        // An incomplete copy must not replace the device — keep the original
+                        // (with all edits, they were saved to it above) and remove the debris.
+                        await this.removePartialCopy(newId);
+                        this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
+                        return;
+                    }
                     // Apply the (possibly changed) room/function selection to the new channel id.
                     if (functions || rooms) {
                         await this.setEnumsOfDevice(newId, functions, rooms);
@@ -3566,6 +3616,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 selected={this.disabledButtons() ? undefined : this.state.selected}
                 newFolder={this.state.newFolder}
                 onClose={() => this.setState({ showEditFolder: undefined, newFolder: false })}
+                onError={text => this.setState({ message: text })}
             />
         );
     };

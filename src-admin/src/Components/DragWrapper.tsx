@@ -11,14 +11,12 @@ export interface DragWrapperProps {
     openFolder: () => void;
     objects: Record<string, ioBroker.Object>;
     deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
-    onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
+    onCopyDevice: (id: string, newChannelId: string) => Promise<string[]>;
     id: string;
     children: (React.JSX.Element | null)[];
     sx: SxProps;
     backgroundRow: string | null;
     onClick: () => void;
-
-    deviceIdx: number;
 }
 
 export default function DragWrapper(props: DragWrapperProps): React.JSX.Element {
@@ -31,7 +29,7 @@ export default function DragWrapper(props: DragWrapperProps): React.JSX.Element 
         isDragging,
     } = useDraggable({
         id: `drag-${props.id}`,
-        data: { id: props.id, deviceIdx: props.deviceIdx },
+        data: { id: props.id },
         disabled: !!(props.id?.includes('linked_devices') || props.id?.includes('linkeddevices.0')),
     });
 

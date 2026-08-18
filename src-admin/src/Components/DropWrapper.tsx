@@ -12,14 +12,12 @@ export interface DropWrapperProps {
     openFolder: () => void;
     objects: Record<string, ioBroker.Object>;
     deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
-    onCopyDevice: (id: string, newChannelId: string) => Promise<void>;
+    onCopyDevice: (id: string, newChannelId: string) => Promise<string[]>;
     id: string;
     children: (React.JSX.Element | null)[];
     sx: SxProps;
     backgroundRow: string | null;
     onClick: () => void;
-
-    deviceIdx?: number;
 }
 
 export default function DropWrapper(props: DropWrapperProps): React.JSX.Element {
