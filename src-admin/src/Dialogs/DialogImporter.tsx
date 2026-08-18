@@ -333,7 +333,7 @@ export default function DialogImporter(props: {
     devices: PatternControlEx[];
     objects: Record<string, ioBroker.Object>;
     listItems: ListItem[];
-    onCopyDevice: (fromId: string, toId: string, mode?: 'move' | 'duplicate' | 'import') => Promise<void>;
+    onCopyDevice: (fromId: string, toId: string, mode?: 'move' | 'duplicate' | 'import') => Promise<string[]>;
     theme: IobTheme;
     themeType: ThemeType;
 }): React.JSX.Element {

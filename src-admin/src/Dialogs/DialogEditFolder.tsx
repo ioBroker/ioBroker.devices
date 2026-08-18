@@ -69,10 +69,11 @@ function DialogEditFolder(props: {
     devices: PatternControlEx[];
     objects: Record<string, ioBroker.Object>;
     deleteDevice: (index: number, devices?: PatternControlEx[]) => Promise<PatternControlEx[]>;
+    onError?: (text: string) => void;
     selected?: string;
     newFolder?: boolean;
 }): React.JSX.Element {
-    const { onClose, data, socket, devices, objects, deleteDevice, selected, newFolder } = props;
+    const { onClose, data, socket, devices, objects, deleteDevice, onError, selected, newFolder } = props;
     const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
     const [arrayObjects, setArrayObjects] = useState<
         (ioBroker.FolderObject | ioBroker.ChannelObject | ioBroker.DeviceObject)[]
@@ -192,6 +193,7 @@ function DialogEditFolder(props: {
         }
 
         let newDevices: PatternControlEx[] = JSON.parse(JSON.stringify(devices));
+        let copyFailed = false;
 
         for (let i = 0; i < arrayObjects.length; i++) {
             const el = arrayObjects[i];
@@ -204,12 +206,23 @@ function DialogEditFolder(props: {
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
                 if (device?.channelId) {
-                    await copyDevice(newId, {
+                    const errors = await copyDevice(newId, {
                         socket: props.socket,
                         objects: props.objects,
                         deviceToCopy: device,
                         channelObj: el,
                     });
+                    if (errors.length) {
+                        // Keep this device's source; remove the incomplete copy (its path was
+                        // free before, so everything below it is debris of this failed copy).
+                        copyFailed = true;
+                        try {
+                            await socket.delObjects(newId, true);
+                        } catch {
+                            // the copy already failed — do not mask that with a cleanup error
+                        }
+                        continue;
+                    }
 
                     // Pass `newDevices` so the index refers to the same (progressively spliced) list
                     // the index was computed against. Without it, deleteDevice cloned the full
@@ -217,6 +230,13 @@ function DialogEditFolder(props: {
                     newDevices = await deleteDevice(newDevices.indexOf(device), newDevices);
                 }
             }
+        }
+
+        if (copyFailed) {
+            // The old folder still hosts every device whose copy failed — removing the subtree
+            // now would delete the only complete instance of those devices.
+            onError?.(I18n.t('Some devices could not be copied, so the old folder was kept'));
+            return;
         }
 
         // Remove the whole old subtree. The renamed folder now lives under a sibling ID, so this does
