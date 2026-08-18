@@ -577,19 +577,28 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             this.setState({ dialogAddState: null });
                             return;
                         }
+                        // The dialog writes `common.name` as a plain string; only a foreign/older
+                        // object could still carry a translation record here.
                         const objName = obj?.common?.name;
-                        let oldName: string;
+                        let newName: string;
                         if (typeof objName === 'object') {
-                            oldName =
+                            newName =
                                 objName[I18n.getLanguage()] ||
                                 objName.en ||
                                 objName[Object.keys(objName)[0] as ioBroker.Languages] ||
                                 '';
                         } else {
-                            oldName = '';
+                            newName = objName || '';
                         }
 
-                        if (this.state.dialogAddState!.onClose && oldName !== this.state.dialogAddState!.name) {
+                        // Delete the old object only on a real rename: with an unchanged name the
+                        // dialog has overwritten the object in place, so `item.id` IS the object
+                        // that was just saved.
+                        if (
+                            this.state.dialogAddState!.onClose &&
+                            newName &&
+                            newName !== this.state.dialogAddState!.name
+                        ) {
                             await this.onDelete(this.state.dialogAddState!.item!.id);
                             const newIds: Record<
                                 string,
@@ -600,9 +609,14 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                   }
                             > = JSON.parse(JSON.stringify(this.state.ids));
 
+                            // Carry the unsaved in-session mapping over to the state's new name —
+                            // keyed by the old name it would no longer reach the state, keyed by ''
+                            // it would leak into `ids` as a ghost entry.
                             const newValue = newIds[this.state.dialogAddState!.name!];
                             delete newIds[this.state.dialogAddState!.name!];
-                            newIds[oldName] = newValue;
+                            if (newValue !== undefined) {
+                                newIds[newName] = newValue;
+                            }
                             this.setState({ ids: newIds, dialogAddState: null });
                         } else {
                             this.setState({ dialogAddState: null });
