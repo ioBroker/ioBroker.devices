@@ -440,6 +440,10 @@ interface DialogEditDeviceState {
     channelInfo: PatternControlEx;
     iconPickerOpen: boolean;
     deviceIcon: string;
+    /** States marked by the trash button; deleted only on Save, so Cancel really cancels. */
+    pendingDeleteIds: string[];
+    /** Icon picked in the header ('' = remove); written only on Save. undefined = untouched. */
+    pendingIcon?: string;
 }
 
 class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEditDeviceState> {
@@ -518,6 +522,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
             channelInfo,
             iconPickerOpen: false,
             deviceIcon,
+            pendingDeleteIds: [],
         };
 
         this.pattern =
@@ -929,6 +934,13 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             obj.common.alias = { id };
                         }
                         await this.props.socket.setObject(`${this.channelId}.${lastPart}`, obj);
+                        // The import may land on an id that is staged for deletion — unstage it,
+                        // or Save would delete what was just imported.
+                        if (this.state.pendingDeleteIds.includes(obj._id)) {
+                            this.setState(prevState => ({
+                                pendingDeleteIds: prevState.pendingDeleteIds.filter(i => i !== obj._id),
+                            }));
+                        }
                         //const newObject = await this.props.socket.getObject(`${this.channelId}.${parts}`);
                         //this.props.objects[`${this.channelId}.${parts}`] = newObject;
                         //if (newObject.common) {
@@ -950,7 +962,12 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     };
 
     updateNewState = async (): Promise<void> => {
-        const array = this.state.addedStates.filter(item => Object.keys(this.state.ids).includes(item.name));
+        const array = this.state.addedStates.filter(
+            item =>
+                Object.keys(this.state.ids).includes(item.name) &&
+                // do not write a mapping onto a state that Save is about to delete
+                !this.state.pendingDeleteIds.includes(item.id),
+        );
         for (let i = 0; i < array.length; i++) {
             const item = array[i];
             let stateObj = this.props.objects[item.id] as ioBroker.Object | undefined;
@@ -1003,6 +1020,37 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
         );
 
         await this.updateNewState();
+
+        // The deletions staged by the trash buttons — executed only now, so a cancelled dialog
+        // really deleted nothing. Before the rename-copy below, so a renamed device does not take
+        // the removed states along to its new id; the cache entry goes with it because copyDevice
+        // collects the channel's children from this cache.
+        for (const id of this.state.pendingDeleteIds) {
+            try {
+                await this.props.socket.delObject(id);
+                delete this.props.objects[id];
+            } catch (e) {
+                console.warn(`Cannot delete ${id}: ${e as Error}`);
+            }
+        }
+
+        // The icon staged by the header icon picker — same contract as the deletions above, and
+        // before the rename-copy so the new channel id starts with the picked icon.
+        if (this.state.pendingIcon !== undefined) {
+            try {
+                const channelObj = await this.props.socket.getObject(this.channelId);
+                if (channelObj) {
+                    if (this.state.pendingIcon) {
+                        channelObj.common.icon = this.state.pendingIcon;
+                    } else {
+                        delete (channelObj.common as Record<string, any>).icon;
+                    }
+                    await this.props.socket.setObject(channelObj._id, channelObj);
+                }
+            } catch (e) {
+                console.warn(`Cannot save icon of ${this.channelId}: ${e as Error}`);
+            }
+        }
 
         // Destroy and create new device if name was changed
         if (
@@ -1064,21 +1112,10 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 title={I18n.t('Icon')}
                 value={this.state.deviceIcon}
                 onClose={() => this.setState({ iconPickerOpen: false })}
-                onSelect={async (iconValue: string) => {
-                    this.setState({ deviceIcon: iconValue, iconPickerOpen: false });
-                    try {
-                        const obj = await this.props.socket.getObject(this.channelId);
-                        if (obj) {
-                            if (iconValue) {
-                                obj.common.icon = iconValue;
-                            } else {
-                                delete (obj.common as Record<string, any>).icon;
-                            }
-                            await this.props.socket.setObject(obj._id, obj);
-                        }
-                    } catch {
-                        // ignore
-                    }
+                onSelect={(iconValue: string) => {
+                    // Only staged: the dialog still offers Cancel, so the channel object is
+                    // written in handleOk. The header preview follows `deviceIcon`.
+                    this.setState({ deviceIcon: iconValue, pendingIcon: iconValue, iconPickerOpen: false });
                 }}
                 socket={this.props.socket}
                 theme={this.props.theme}
@@ -1223,6 +1260,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
     onDelete = async (id: string): Promise<void> => {
         await this.props.socket.delObject(id);
+    };
+
+    /**
+     * Stage a state for deletion instead of deleting it right away — the dialog still offers
+     * Cancel, so nothing may leave the server before Save. The row disappears through the render
+     * filter and simply reappears when the dialog is cancelled.
+     */
+    markStateForDeletion = (id: string): void => {
+        this.setState(prevState => ({ pendingDeleteIds: [...prevState.pendingDeleteIds, id] }));
     };
 
     findRealDevice(prefix: string): string {
@@ -1670,7 +1716,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 >
                                     <IconButton
                                         size="small"
-                                        onClick={() => this.onDelete(item.id)}
+                                        onClick={() => this.markStateForDeletion(item.id)}
                                         sx={styles.button}
                                     >
                                         <IconDelete />
@@ -1868,7 +1914,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             >
                                 <IconButton
                                     size="small"
-                                    onClick={() => this.onDelete(item.id)}
+                                    onClick={() => this.markStateForDeletion(item.id)}
                                     sx={styles.button}
                                 >
                                     <IconDelete />
@@ -2151,7 +2197,9 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 {mainStates.map((item, i) => this.renderVariable(item, 'def', i))}
 
                 {this.state.extendedAvailable &&
-                    this.state.addedStates.map((item, i) => this.renderVariable(item, 'add', i))}
+                    this.state.addedStates
+                        .filter(item => !this.state.pendingDeleteIds.includes(item.id))
+                        .map((item, i) => this.renderVariable(item, 'add', i))}
 
                 {this.state.indicatorsVisible && this.state.showIndicators && this.state.indicatorsAvailable && (
                     <div style={styles.wrapperHeaderIndicators}>
