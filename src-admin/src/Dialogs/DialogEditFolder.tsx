@@ -72,7 +72,10 @@ function DialogEditFolder(props: {
     selected?: string;
     newFolder?: boolean;
 }): React.JSX.Element {
-    const { onClose, data, socket, devices, objects, deleteDevice, selected, newFolder } = props;
+    // React 19 no longer applies `defaultProps` to function components, so the defaults
+    // live in the destructuring. Without the `data` fallback the "new folder" render
+    // crashes in getIdFromName (`data!._id` on undefined) before anything is shown.
+    const { onClose, data = emptyObj, socket, devices, objects, deleteDevice, selected = 'alias.0', newFolder } = props;
     const [dataEdit, setDataEdit] = useState(newFolder ? emptyObj : JSON.parse(JSON.stringify(data)));
     const [arrayObjects, setArrayObjects] = useState<
         (ioBroker.FolderObject | ioBroker.ChannelObject | ioBroker.DeviceObject)[]
@@ -92,7 +95,7 @@ function DialogEditFolder(props: {
         return newPart?.startsWith('alias.0') ? newPart : 'alias.0';
     };
 
-    const [newId, setId] = useState(newFolder ? checkIdSelected() : data!._id);
+    const [newId, setId] = useState(newFolder ? checkIdSelected() : data._id);
     const [rootCheck, setRootCheck] = useState<string | undefined>(newId === 'alias.0' ? 'alias.0' : undefined);
 
     useEffect(() => {
@@ -156,7 +159,7 @@ function DialogEditFolder(props: {
         obj ||= dataEdit;
 
         if (!obj?.common?.name) {
-            return data!._id;
+            return data._id;
         }
 
         let name: string;
@@ -174,20 +177,20 @@ function DialogEditFolder(props: {
         if (newFolder) {
             parentId = newId!;
         } else {
-            parentId = getParentId(data!._id);
+            parentId = getParentId(data._id);
         }
         return `${parentId}.${normalizeName(name)}`;
     };
 
     const onChangeCopy = async (): Promise<void> => {
-        const parentId = `${getParentId(data!._id)}.${normalizeName(dataEdit.common.name)}`;
+        const parentId = `${getParentId(data._id)}.${normalizeName(dataEdit.common.name)}`;
 
         // If the new (sanitized) ID is identical to the current one - only the display name changed,
         // e.g. "A B" -> "A.B", both sanitize to "A_B" - there is nothing to move. Just update the
         // folder object in place. Without this guard the loop below would copy every device onto its
         // own path and then immediately delete it (data loss).
-        if (parentId === data!._id) {
-            await socket.setObject(data!._id, dataEdit);
+        if (parentId === data._id) {
+            await socket.setObject(data._id, dataEdit);
             return;
         }
 
@@ -198,9 +201,9 @@ function DialogEditFolder(props: {
             // Every el._id is `data._id` itself or a descendant of it (see arrayObjects filter), so
             // swap just the id prefix. Using String.replace(data._id, parentId) would also mangle a
             // parentId that contains `$`/`&` (allowed by FORBIDDEN_CHARS) as a replacement pattern.
-            const newId = `${parentId}${el._id.slice(data!._id.length)}`;
+            const newId = `${parentId}${el._id.slice(data._id.length)}`;
             if (el.type === 'folder') {
-                await addNewFolder(data!._id === el._id ? dataEdit.common : el.common, newId);
+                await addNewFolder(data._id === el._id ? dataEdit.common : el.common, newId);
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
                 if (device?.channelId) {
@@ -222,7 +225,7 @@ function DialogEditFolder(props: {
         // Remove the whole old subtree. The renamed folder now lives under a sibling ID, so this does
         // not touch the freshly created objects. It also cleans up empty old sub-folders, which the
         // previous code left behind because it only deleted the last iterated folder.
-        await socket.delObjects(data!._id, true);
+        await socket.delObjects(data._id, true);
     };
 
     const onCloseLocal = async (changed?: boolean): Promise<void> => {
@@ -234,7 +237,7 @@ function DialogEditFolder(props: {
                 await socket.setObject(newDataEdit._id, newDataEdit);
             } else {
                 // If name and ID were changed
-                if (getNonEmptyName(dataEdit) !== getNonEmptyName(data!)) {
+                if (getNonEmptyName(dataEdit) !== getNonEmptyName(data)) {
                     await onChangeCopy();
                 } else if (JSON.stringify(dataEdit) !== JSON.stringify(data)) {
                     await socket.setObject(dataEdit._id, dataEdit);
@@ -311,7 +314,7 @@ function DialogEditFolder(props: {
                                     setDataEdit(newDataEdit);
 
                                     if (!newFolder) {
-                                        const parentId = getParentId(data!._id);
+                                        const parentId = getParentId(data._id);
                                         setId(`${parentId}.${normalizeName(e.target.value)}`);
                                     }
 
@@ -328,7 +331,7 @@ function DialogEditFolder(props: {
                                                     setDataEdit(newDataEdit);
 
                                                     if (!newFolder) {
-                                                        const parentId = getParentId(data!._id);
+                                                        const parentId = getParentId(data._id);
                                                         setId(`${parentId}.`);
                                                     }
 
@@ -452,10 +455,5 @@ function DialogEditFolder(props: {
         </ThemeProvider>
     );
 }
-
-DialogEditFolder.defaultProps = {
-    data: emptyObj,
-    selected: 'alias.0',
-};
 
 export default DialogEditFolder;
