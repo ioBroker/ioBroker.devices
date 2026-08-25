@@ -3094,24 +3094,20 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         }
                         common.type = getStateCommonType(state);
 
-                        /*if (state.defaultMin !== undefined) {
-                            common.min = state.defaultMin;
-                        } else */
-                        if (state.min !== undefined) {
-                            common.min = 0;
-                        }
+                        // Inherit min/max/unit/step from the linked source state — same fix the
+                        // alias path received for issue #22. The previous code wrote a hard
+                        // 0/100 whenever the pattern declares a min/max TYPE MARKER (its value
+                        // is the string 'number', not a number), overwriting the real source
+                        // range: a linked thermostat showed 0..100 instead of e.g. 5..35.
+                        inheritCommonFromSource(common, await this.getAliasSourceCommon(data.ids[state.name]));
 
-                        /*if (state.defaultMax !== undefined) {
-                            common.max = state.defaultMax;
-                        } else */
-                        if (state.max !== undefined) {
-                            common.max = 100;
-                        }
-
-                        if (state.defaultUnit) {
-                            common.unit = state.defaultUnit;
-                        } else if (state.unit) {
-                            common.unit = state.unit;
+                        // Fall back to the pattern's default unit if the source has none.
+                        if (!common.unit) {
+                            if (state.defaultUnit) {
+                                common.unit = state.defaultUnit;
+                            } else if (state.unit) {
+                                common.unit = state.unit;
+                            }
                         }
 
                         // Update states of state
