@@ -92,6 +92,7 @@ import {
     copyDevice,
     findMainStateId,
     getLastPart,
+    getAddedChannelStates,
     getParentId,
     getSmartName,
     getStateCommonType,
@@ -3410,6 +3411,17 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             if (state.id) {
                 const id = state.id;
                 await this.props.socket.delObject(id);
+            }
+        }
+
+        // Also delete the states the type-detector did not map (manually added ones).
+        // copyDevice copies them via getAddedChannelStates, but they are not part of
+        // device.states, so a move/rename (copy + delete) or a plain delete left them
+        // behind under the old channel as orphans.
+        const addedStates = getAddedChannelStates(device, this.objects);
+        for (let i = 0; i < addedStates.length; i++) {
+            if (addedStates[i].id) {
+                await this.props.socket.delObject(addedStates[i].id);
             }
         }
 
