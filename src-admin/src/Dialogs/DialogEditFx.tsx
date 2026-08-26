@@ -102,52 +102,65 @@ export default class DialogEditFx extends Component<DialogEditFxProps, DialogEdi
         this.setState({ values });
     };
 
+    /**
+     * Render a state value or a formula result as visible text. JSX renders booleans (and
+     * null/undefined) as nothing at all, so a formula like `!val` looked as if it produced
+     * no result even though it evaluated fine.
+     */
+    static valueToText(value: unknown): string {
+        if (value === null || value === undefined) {
+            return '--';
+        }
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return String(value);
+        }
+        // A formula may return an object/array — show its JSON form, not '[object Object]'.
+        try {
+            return JSON.stringify(value) ?? '--';
+        } catch {
+            return '--';
+        }
+    }
+
+    /**
+     * Evaluate a preview formula against a value. Returns the result as text, or the error
+     * message — an invalid formula used to be swallowed silently, leaving the preview empty
+     * with no hint why.
+     */
+    static evaluateForPreview(fx: string, value: ioBroker.StateValue): string {
+        try {
+            // eslint-disable-next-line no-new-func
+            const func = new Function('val', `return ${fx}`);
+            return DialogEditFx.valueToText(func(value));
+        } catch (e) {
+            return `⚠ ${(e as Error).message}`;
+        }
+    }
+
     render(): React.JSX.Element {
         const readId = typeof this.props.aliasId === 'string' ? this.props.aliasId : this.props.aliasId.read;
 
-        let readVal: string | undefined = undefined;
-        let writeVal: string | undefined = undefined;
+        let readVal: string;
+        let writeVal: string;
 
         if (this.state.fxRead) {
-            try {
-                if (this.state.values[readId]) {
-                    // eslint-disable-next-line no-new-func
-                    const readValFunc = new Function('val', `return ${this.state.fxRead}`);
-                    readVal = readValFunc(this.state.values[readId].val);
-                } else {
-                    readVal = '--';
-                }
-            } catch {
-                // ignore
+            if (this.state.values[readId]) {
+                readVal = DialogEditFx.evaluateForPreview(this.state.fxRead, this.state.values[readId].val);
+            } else {
+                readVal = '--';
             }
         } else {
-            const value = this.state.values[readId]?.val;
-            if (value === null || value === undefined) {
-                readVal = '--';
-            } else {
-                readVal = value.toString();
-            }
+            readVal = DialogEditFx.valueToText(this.state.values[readId]?.val);
         }
         if (this.state.fxWrite) {
-            try {
-                const value = this.state.values[this.props.editFxFor];
-                if (value) {
-                    // eslint-disable-next-line no-new-func
-                    const writeValFunc = new Function('val', `return ${this.state.fxWrite}`);
-                    writeVal = writeValFunc(value.val);
-                } else {
-                    writeVal = '--';
-                }
-            } catch {
-                // ignore
+            const value = this.state.values[this.props.editFxFor];
+            if (value) {
+                writeVal = DialogEditFx.evaluateForPreview(this.state.fxWrite, value.val);
+            } else {
+                writeVal = '--';
             }
         } else {
-            const value = this.state.values[this.props.editFxFor]?.val;
-            if (value === null || value === undefined) {
-                writeVal = '--';
-            } else {
-                writeVal = value.toString();
-            }
+            writeVal = DialogEditFx.valueToText(this.state.values[this.props.editFxFor]?.val);
         }
 
         return (
@@ -195,7 +208,7 @@ export default class DialogEditFx extends Component<DialogEditFxProps, DialogEdi
                         {this.props.fxRead !== undefined && this.state.values[readId] ? (
                             <div style={{ fontSize: 'smaller', opacity: 0.7, width: '100%' }}>
                                 <span style={{ marginRight: 8 }}>{I18n.t('Execution')}:</span>
-                                {this.state.values[readId].val} → {readVal}
+                                {DialogEditFx.valueToText(this.state.values[readId].val)} → {readVal}
                             </div>
                         ) : null}
                         {this.props.fxWrite !== undefined ? (
@@ -229,7 +242,7 @@ export default class DialogEditFx extends Component<DialogEditFxProps, DialogEdi
                         {this.props.fxWrite !== undefined && this.state.values[this.props.editFxFor] ? (
                             <div style={{ fontSize: 'smaller', opacity: 0.7, width: '100%' }}>
                                 <span style={{ marginRight: 8 }}>{I18n.t('Execution')}:</span>
-                                {this.state.values[this.props.editFxFor]!.val} → {writeVal}
+                                {DialogEditFx.valueToText(this.state.values[this.props.editFxFor]!.val)} → {writeVal}
                             </div>
                         ) : null}
                     </div>
