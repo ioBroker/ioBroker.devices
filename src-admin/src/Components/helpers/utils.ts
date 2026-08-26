@@ -412,6 +412,13 @@ async function removeFromEnum(enumId: string, id: string, socket: AdminConnectio
     }
 }
 
+/**
+ * Execute the given object/enum writes one by one.
+ *
+ * @returns One description per failed write; an empty array means every task succeeded. Callers
+ *          that remove a source after a copy must check this — a copy with errors is incomplete,
+ *          so deleting the original would lose data.
+ */
 export async function processTasks(
     tasks: {
         id: string;
@@ -419,7 +426,8 @@ export async function processTasks(
         enums?: string[];
     }[],
     socket: AdminConnection,
-): Promise<void> {
+): Promise<string[]> {
+    const errors: string[] = [];
     for (let t = 0; t < tasks.length; t++) {
         const task = tasks[t];
 
@@ -431,6 +439,7 @@ export async function processTasks(
                         await addToEnum(enumId, task.id, socket);
                     } catch (e) {
                         window.alert(`Cannot change enum: ${e}`);
+                        errors.push(`${enumId}: ${e}`);
                     }
                 }
             }
@@ -439,6 +448,7 @@ export async function processTasks(
                 await socket.setObject(task.id, task.obj);
             } catch (e) {
                 window.alert(`Cannot change object: ${e}`);
+                errors.push(`${task.id}: ${e}`);
             }
         } else {
             // delete
@@ -449,12 +459,14 @@ export async function processTasks(
                         await removeFromEnum(enumId, task.id, socket);
                     } catch (e) {
                         window.alert(`Cannot change enum: ${e}`);
+                        errors.push(`${enumId}: ${e}`);
                     }
                 }
             }
             // Object delete?
         }
     }
+    return errors;
 }
 
 export function normalizeStates(
@@ -547,6 +559,12 @@ function stripCustomForCopy(common: Record<string, any> | undefined, mode: 'move
     // mode === 'move': keep custom (logging) and smartName — it is the same logical device.
 }
 
+/**
+ * Copy a device (channel + states) to a new id.
+ *
+ * @returns One description per failed write; empty = complete copy. Only a complete copy may be
+ *          followed by deleting the source.
+ */
 export async function copyDevice(
     newChannelId: string,
     options: {
@@ -574,7 +592,7 @@ export async function copyDevice(
         functions?: string[];
         rooms?: string[];
     },
-): Promise<void> {
+): Promise<string[]> {
     const language = options.language || I18n.getLanguage();
     const mode = options.mode || 'move';
     // if this is a device not from linkeddevices or from alias
@@ -594,7 +612,7 @@ export async function copyDevice(
             originalChannelObj = options.channelObj;
         } else {
             console.error(`Cannot find original channel object ${originalChannelId}`);
-            return;
+            return [`${originalChannelId}: original channel object not found`];
         }
     }
 
@@ -643,8 +661,13 @@ export async function copyDevice(
         newChannelObj.obj.native.originalId = originalChannelId;
     }
 
-    // Add a task to create a channel
-    tasks.push(newChannelObj);
+    // Create the channel first and stop when even that fails — the callers must see the copy as
+    // failed (and keep the source), and states under a channel that could not be created would
+    // only litter the target.
+    const channelErrors = await processTasks([newChannelObj], options.socket);
+    if (channelErrors.length) {
+        return channelErrors;
+    }
 
     // Add a task to create states
     states.forEach(state => {
@@ -683,5 +706,5 @@ export async function copyDevice(
         tasks.push({ id: obj._id, obj });
     });
 
-    await processTasks(tasks, options.socket);
+    return processTasks(tasks, options.socket);
 }
