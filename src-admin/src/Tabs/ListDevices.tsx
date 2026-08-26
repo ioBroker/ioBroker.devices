@@ -2507,9 +2507,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 style={{ width: '100%' }}
                 lang={I18n.getLanguage()}
                 themeType={this.props.themeType}
-                value={this.state.filter.func || '_'}
+                value={this.state.filter.room || '_'}
                 list={list}
-                onChange={text => this.changeFilter(text)}
+                onChange={text => this.changeFilter(undefined, text)}
             />
         );
     }
