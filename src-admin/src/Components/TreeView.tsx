@@ -333,17 +333,19 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
     }
 
     static getDerivedStateFromProps(props: TreeViewProps, state: TreeViewState): Partial<TreeViewState> | null {
-        let changed = false;
-        const newState: Partial<TreeViewState> = {};
         if (props.objects) {
-            const listItems = prepareList(props.objects || {});
+            // The deep compare is required: the caller mutates its `objects` record in place, so
+            // the reference never changes and only the content can tell whether the list moved.
+            const listItems = prepareList(props.objects);
             if (JSON.stringify(listItems) !== JSON.stringify(state.listItems)) {
-                state.listItems = listItems;
-                changed = true;
+                // Returned, not written into `state` — React applies the partial itself; mutating
+                // the passed state object works only by accident and breaks under concurrent
+                // rendering.
+                return { listItems };
             }
         }
 
-        return changed ? newState : null;
+        return null;
     }
 
     componentDidUpdate(prevProps: TreeViewProps): void {
