@@ -357,11 +357,16 @@ export function inheritCommonFromSource(
         aliasCommon.states = sourceCommon.states;
         changed = true;
     }
-    if (aliasCommon.min === undefined && sourceCommon.min !== undefined) {
+    // min/max/step only make sense on numeric states, and the object schema forbids them
+    // elsewhere ("obj.common.min is only allowed on obj.common.type 'number' or 'mixed'").
+    // A string-typed alias (e.g. the ERROR template state) linked to a source that carries
+    // min/max would otherwise inherit them and become an invalid object.
+    const numeric = aliasCommon.type === 'number' || aliasCommon.type === 'mixed';
+    if (numeric && aliasCommon.min === undefined && sourceCommon.min !== undefined) {
         aliasCommon.min = sourceCommon.min;
         changed = true;
     }
-    if (aliasCommon.max === undefined && sourceCommon.max !== undefined) {
+    if (numeric && aliasCommon.max === undefined && sourceCommon.max !== undefined) {
         aliasCommon.max = sourceCommon.max;
         changed = true;
     }
@@ -369,7 +374,7 @@ export function inheritCommonFromSource(
         aliasCommon.unit = sourceCommon.unit;
         changed = true;
     }
-    if (aliasCommon.step === undefined && sourceCommon.step !== undefined) {
+    if (numeric && aliasCommon.step === undefined && sourceCommon.step !== undefined) {
         aliasCommon.step = sourceCommon.step;
         changed = true;
     }
