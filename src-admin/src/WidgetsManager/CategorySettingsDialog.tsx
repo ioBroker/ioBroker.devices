@@ -33,7 +33,7 @@ import type StateContext from './StateContext';
 export type TileStyleId = 'gradient' | 'flat' | 'glass';
 
 /** Available theme presets */
-export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark' | 'styling-grey';
+export type WmThemeId = 'auto' | 'dark' | 'light' | 'orangeDark' | 'blueDark' | 'techBlue' | 'styling-grey';
 
 export interface CategorySettings {
     /** View permissions of this category (see WidgetsManager/PERMISSIONS.md) */
@@ -748,6 +748,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             <MenuItem value="light">{I18n.t('wm_theme_light')}</MenuItem>
                             <MenuItem value="orangeDark">{I18n.t('wm_theme_orangeDark')}</MenuItem>
                             <MenuItem value="blueDark">{I18n.t('wm_theme_blueDark')}</MenuItem>
+                            <MenuItem value="techBlue">{I18n.t('wm_theme_techBlue')}</MenuItem>
                             <MenuItem value="styling-grey">{I18n.t('wm_theme_styling-grey')}</MenuItem>
                         </TextField>
                     ) : null}

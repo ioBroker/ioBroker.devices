@@ -91,6 +91,7 @@ import {
 import {
     copyDevice,
     findMainStateId,
+    getAliasCommonType,
     getLastPart,
     getAddedChannelStates,
     getParentId,
@@ -2606,10 +2607,11 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 return;
             }
 
+            const targetWasFree = await this.isPathFree(targetPath);
             const copyErrors = await this.onCopyDevice(draggedItem.id, targetPath);
             this.toggleExpanded(dropTarget.id, true);
             if (copyErrors.length) {
-                await this.removePartialCopy(targetPath);
+                await this.removePartialCopy(targetPath, targetWasFree);
                 this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
                 return;
             }
@@ -2629,9 +2631,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 return;
             }
 
+            const targetWasFree = await this.isPathFree(targetPath);
             const copyErrors = await this.onCopyDevice(draggedItem.id, targetPath);
             if (copyErrors.length) {
-                await this.removePartialCopy(targetPath);
+                await this.removePartialCopy(targetPath, targetWasFree);
                 this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
                 return;
             }
@@ -2654,11 +2657,32 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     }
 
     /**
-     * Remove what a failed copy left behind at the target path. The callers only copy onto paths
-     * that did not exist before, so everything below `targetPath` is debris of the failed copy —
-     * an incomplete device that could not be controlled and would shadow the kept original.
+     * Is `id` unused on the server? Asked before every copy, because the answer decides whether a
+     * failed one may be cleaned up afterwards. The object cache can lag behind, so this asks the
+     * server, and any error counts as "occupied" — a doubtful answer must never license a delete.
      */
-    private async removePartialCopy(targetPath: string): Promise<void> {
+    private async isPathFree(id: string): Promise<boolean> {
+        try {
+            return !(await this.props.socket.getObject(id));
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Remove what a failed copy left behind at the target path — but only if that path was free
+     * before the copy started, which is what `targetWasFree` records. Then everything below it was
+     * written by this copy, and removing it keeps an incomplete device from shadowing the original.
+     *
+     * If the path was already taken, the copy wrote INTO a foreign device rather than creating one.
+     * A recursive delete would then destroy that device's whole subtree — objects the user never
+     * asked to touch — so the debris is left in place and only logged.
+     */
+    private async removePartialCopy(targetPath: string, targetWasFree: boolean): Promise<void> {
+        if (!targetWasFree) {
+            console.warn(`Partial copy left at ${targetPath}: the path was already in use, so it is not deleted`);
+            return;
+        }
         try {
             await this.props.socket.delObjects(targetPath, true);
         } catch {
@@ -2969,12 +2993,19 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                         stateObj.common.states = data.states[state.name];
                                     }
 
+                                    const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
+                                    // The mapping just changed, so the source may be one that uses
+                                    // another of the types the pattern allows — issue #614.
+                                    stateObj.common.type = getAliasCommonType(
+                                        state,
+                                        sourceCommon?.type,
+                                        !stateObj.common.alias?.read && !stateObj.common.alias?.write,
+                                    );
+
                                     // Inherit min/max/unit/step from the (possibly new) source if the
                                     // alias does not define them yet — issue #22.
-                                    inheritCommonFromSource(
-                                        stateObj.common,
-                                        await this.getAliasSourceCommon(data.ids[state.name]),
-                                    );
+                                    inheritCommonFromSource(stateObj.common, sourceCommon);
 
                                     await this.props.socket.setObject(stateObj._id, stateObj);
                                 }
@@ -3034,11 +3065,19 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             stateObj.common.alias!.write = data.fx[state.name].write;
                         }
 
-                        common.type = getStateCommonType(state);
+                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
+                        // Follow the source where the pattern allows several types — a mode that
+                        // the device spells out must not be written as a number (issue #614).
+                        common.type = getAliasCommonType(
+                            state,
+                            sourceCommon?.type,
+                            !common.alias?.read && !common.alias?.write,
+                        );
 
                         // Inherit min/max/unit/step from the aliased source state — issue #22.
                         // Only fill fields the alias does not define yet.
-                        inheritCommonFromSource(common, await this.getAliasSourceCommon(data.ids[state.name]));
+                        inheritCommonFromSource(common, sourceCommon);
 
                         // Fall back to the pattern's default unit if neither alias nor source has one.
                         if (!common.unit) {
@@ -3136,14 +3175,19 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
                         }
-                        common.type = getStateCommonType(state);
+                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
+                        // A linked state forwards its source verbatim — there is no read/write
+                        // conversion here — so the source decides among the types the pattern
+                        // allows (issue #614).
+                        common.type = getAliasCommonType(state, sourceCommon?.type, true);
 
                         // Inherit min/max/unit/step from the linked source state — same fix the
                         // alias path received for issue #22. The previous code wrote a hard
                         // 0/100 whenever the pattern declares a min/max TYPE MARKER (its value
                         // is the string 'number', not a number), overwriting the real source
                         // range: a linked thermostat showed 0..100 instead of e.g. 5..35.
-                        inheritCommonFromSource(common, await this.getAliasSourceCommon(data.ids[state.name]));
+                        inheritCommonFromSource(common, sourceCommon);
 
                         // Fall back to the pattern's default unit if the source has none.
                         if (!common.unit) {
@@ -3305,11 +3349,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             // ignore
                         }
                     }
+                    // Unlike the two drag paths, a rename has no collision check in front of it,
+                    // so the new id may well belong to another device already. Recorded before the
+                    // copy, because afterwards the copy's own writes make the path look taken.
+                    const targetWasFree = await this.isPathFree(newId);
                     const copyErrors = await this.onCopyDevice(id, newId);
                     if (copyErrors.length) {
                         // An incomplete copy must not replace the device — keep the original
                         // (with all edits, they were saved to it above) and remove the debris.
-                        await this.removePartialCopy(newId);
+                        await this.removePartialCopy(newId, targetWasFree);
                         this.setState({ message: I18n.t('Copying the device failed, so the original was kept') });
                         return;
                     }

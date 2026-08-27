@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, LinearProgress } from '@mui/material';
-import { type Theme, createTheme, ThemeProvider } from '@mui/material/styles';
+import { type Theme, type ThemeOptions, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import { I18n } from '@iobroker/gui-components';
 
@@ -215,6 +215,19 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(245,245,245,0.65)',
         textDisabled: 'rgba(245,245,245,0.4)',
     },
+    // Neon outline look: the page and the tiles share almost the same near-black blue, and a tile
+    // is set apart by a lit blue ring rather than by a lighter surface. Deliberately flatter and
+    // colder than `blueDark`, which lifts its tiles out of the page instead.
+    techBlue: {
+        mode: 'dark',
+        primary: '#2f9bff',
+        secondary: '#35e0ff',
+        bgDefault: '#040910',
+        bgPaper: '#080f1d',
+        textPrimary: '#e9f2ff',
+        textSecondary: 'rgba(233,242,255,0.6)',
+        textDisabled: 'rgba(233,242,255,0.35)',
+    },
     // Deep navy, close to the mobile app look: near-black blue page, slightly lifted navy tiles.
     blueDark: {
         mode: 'dark',
@@ -236,6 +249,174 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(232,232,232,0.55)',
         textDisabled: 'rgba(232,232,232,0.35)',
     },
+};
+
+/** Accent of the Tech Blue preset, repeated here because component overrides get no theme. */
+const TECH_BLUE_ACCENT = '47,155,255';
+
+/**
+ * Component overrides that carry the Tech Blue look past the tiles.
+ *
+ * The tiles are styled in `getTileStyles`, but a dialog or a slider opened on top of them would
+ * fall back to the plain MUI dark surface and break the illusion — so everything with a surface
+ * of its own gets the same hairline ring and blue glow.
+ */
+const TECH_BLUE_COMPONENTS: ThemeOptions['components'] = {
+    MuiDialog: {
+        styleOverrides: {
+            paper: {
+                borderRadius: '16px',
+                backgroundImage: `linear-gradient(to bottom, rgba(${TECH_BLUE_ACCENT},0.1), transparent 40%)`,
+                border: `1px solid rgba(${TECH_BLUE_ACCENT},0.35)`,
+                boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 0 24px rgba(${TECH_BLUE_ACCENT},0.18)`,
+            },
+        },
+    },
+    MuiDialogTitle: {
+        styleOverrides: {
+            root: {
+                fontSize: '1rem',
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+            },
+        },
+    },
+    MuiDialogContent: {
+        styleOverrides: {
+            root: {
+                '&::-webkit-scrollbar': { width: 6 },
+                '&::-webkit-scrollbar-thumb': {
+                    background: `rgba(${TECH_BLUE_ACCENT},0.35)`,
+                    borderRadius: 3,
+                },
+            },
+        },
+    },
+    MuiButton: {
+        styleOverrides: {
+            outlined: {
+                borderRadius: '10px',
+                borderColor: `rgba(${TECH_BLUE_ACCENT},0.4)`,
+                '&:hover': {
+                    borderColor: `rgb(${TECH_BLUE_ACCENT})`,
+                    background: `rgba(${TECH_BLUE_ACCENT},0.08)`,
+                },
+            },
+            contained: {
+                borderRadius: '10px',
+                boxShadow: `0 0 14px rgba(${TECH_BLUE_ACCENT},0.35)`,
+            },
+        },
+    },
+    MuiIconButton: {
+        styleOverrides: {
+            root: {
+                '&:hover': { background: `rgba(${TECH_BLUE_ACCENT},0.1)` },
+            },
+        },
+    },
+    MuiSwitch: {
+        styleOverrides: {
+            root: {
+                '& .Mui-checked + .MuiSwitch-track': {
+                    boxShadow: `0 0 8px rgba(${TECH_BLUE_ACCENT},0.35)`,
+                },
+            },
+        },
+    },
+    MuiSlider: {
+        styleOverrides: {
+            root: {
+                '& .MuiSlider-track': { border: 'none', boxShadow: '0 0 10px currentColor' },
+                '& .MuiSlider-thumb': { boxShadow: `0 0 12px rgba(${TECH_BLUE_ACCENT},0.7)` },
+                '& .MuiSlider-rail': { opacity: 0.25 },
+            },
+        },
+    },
+    MuiDivider: {
+        styleOverrides: {
+            root: { borderColor: `rgba(${TECH_BLUE_ACCENT},0.18)` },
+        },
+    },
+};
+
+/**
+ * Component overrides of the neumorphic Styling Grey preset: soft, rounded, shadow-driven
+ * surfaces so a dialog matches the tiles instead of falling back to the plain MUI dark paper.
+ */
+const STYLING_GREY_COMPONENTS: ThemeOptions['components'] = {
+    MuiDialog: {
+        styleOverrides: {
+            paper: {
+                borderRadius: '28px',
+                background: 'linear-gradient(145deg, #222224, #1a1a1c)',
+                border: '1px solid rgba(255,255,255,0.04)',
+                boxShadow: '0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
+            },
+        },
+    },
+    MuiDialogTitle: {
+        styleOverrides: {
+            root: {
+                fontSize: '1rem',
+                fontWeight: 600,
+            },
+        },
+    },
+    MuiDialogContent: {
+        styleOverrides: {
+            root: {
+                '&::-webkit-scrollbar': { width: 6 },
+                '&::-webkit-scrollbar-thumb': {
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: 3,
+                },
+            },
+        },
+    },
+    MuiButton: {
+        styleOverrides: {
+            outlined: {
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderRadius: '14px',
+                '&:hover': {
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    background: 'rgba(255,255,255,0.04)',
+                },
+            },
+            contained: {
+                borderRadius: '14px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            },
+        },
+    },
+    MuiIconButton: {
+        styleOverrides: {
+            root: {
+                '&:hover': {
+                    background: 'rgba(255,255,255,0.06)',
+                },
+            },
+        },
+    },
+    MuiSlider: {
+        styleOverrides: {
+            root: {
+                '& .MuiSlider-track': {
+                    boxShadow: '0 0 8px currentColor',
+                },
+                '& .MuiSlider-thumb': {
+                    boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+                },
+            },
+        },
+    },
+};
+
+/** Presets that restyle MUI components on top of their palette. Others use the MUI defaults. */
+const PRESET_COMPONENTS: Record<string, ThemeOptions['components']> = {
+    techBlue: TECH_BLUE_COMPONENTS,
+    'styling-grey': STYLING_GREY_COMPONENTS,
 };
 
 /** The root category has no object of its own — its settings live in `guiConfig.root`. */
@@ -2179,78 +2360,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                     },
                 },
                 typography: { fontFamily: WM_FONT_FAMILY },
-                ...(resolvedThemeId === 'styling-grey'
-                    ? {
-                          components: {
-                              MuiDialog: {
-                                  styleOverrides: {
-                                      paper: {
-                                          borderRadius: '28px',
-                                          background: 'linear-gradient(145deg, #222224, #1a1a1c)',
-                                          border: '1px solid rgba(255,255,255,0.04)',
-                                          boxShadow: '0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03)',
-                                      },
-                                  },
-                              },
-                              MuiDialogTitle: {
-                                  styleOverrides: {
-                                      root: {
-                                          fontSize: '1rem',
-                                          fontWeight: 600,
-                                      },
-                                  },
-                              },
-                              MuiDialogContent: {
-                                  styleOverrides: {
-                                      root: {
-                                          '&::-webkit-scrollbar': { width: 6 },
-                                          '&::-webkit-scrollbar-thumb': {
-                                              background: 'rgba(255,255,255,0.1)',
-                                              borderRadius: 3,
-                                          },
-                                      },
-                                  },
-                              },
-                              MuiButton: {
-                                  styleOverrides: {
-                                      outlined: {
-                                          borderColor: 'rgba(255,255,255,0.1)',
-                                          borderRadius: '14px',
-                                          '&:hover': {
-                                              borderColor: 'rgba(255,255,255,0.2)',
-                                              background: 'rgba(255,255,255,0.04)',
-                                          },
-                                      },
-                                      contained: {
-                                          borderRadius: '14px',
-                                          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                                      },
-                                  },
-                              },
-                              MuiIconButton: {
-                                  styleOverrides: {
-                                      root: {
-                                          '&:hover': {
-                                              background: 'rgba(255,255,255,0.06)',
-                                          },
-                                      },
-                                  },
-                              },
-                              MuiSlider: {
-                                  styleOverrides: {
-                                      root: {
-                                          '& .MuiSlider-track': {
-                                              boxShadow: '0 0 8px currentColor',
-                                          },
-                                          '& .MuiSlider-thumb': {
-                                              boxShadow: '0 0 10px rgba(0,0,0,0.5)',
-                                          },
-                                      },
-                                  },
-                              },
-                          },
-                      }
-                    : {}),
+                ...(PRESET_COMPONENTS[resolvedThemeId] ? { components: PRESET_COMPONENTS[resolvedThemeId] } : {}),
             });
             // Store preset ID on theme so widgets can detect styling variants
             (this.widgetTheme as Theme & { wmPreset?: string }).wmPreset = resolvedThemeId;

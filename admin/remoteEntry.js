@@ -1,1 +1,12 @@
-import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__iobroker_devices__remoteEntry_js-BFH3xQUI.js";export{t as get,e as init};
+import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__iobroker_devices__remoteEntry_js-CmFMDt81.js";export{t as get,e as init};
+if (typeof document !== 'undefined' && document.head) {
+  try {
+    for (const __mfWarmupPath of ["assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__iobroker_devices__remoteEntry_js-CmFMDt81.js","assets/virtualExposes-C3ncxNRr.js","assets/virtual_mf-exposes___mfe_internal__iobroker_devices__remoteEntry_js-ChiJXsfH.js","assets/_virtual_mf-localSharedImportMap___mfe_internal__iobroker_devices__mf_owner__1-BrZ48rvx.js","assets/dist-C7GQG6cZ.js","assets/vite-preload-helper-B7qeedMF.js"]) {
+      const __mfWarmupLink = document.createElement('link');
+      __mfWarmupLink.rel = 'modulepreload';
+      __mfWarmupLink.crossOrigin = '';
+      __mfWarmupLink.href = new URL(__mfWarmupPath, import.meta.url).href;
+      document.head.appendChild(__mfWarmupLink);
+    }
+  } catch (__mfWarmupError) {}
+}

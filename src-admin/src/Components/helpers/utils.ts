@@ -29,6 +29,39 @@ export function getStateCommonType(
 }
 
 /**
+ * The type to write on an alias (or linked) state.
+ *
+ * `getStateCommonType` answers what the PATTERN declares, and for a pattern that lists several
+ * types it answers with the first one. That is the wrong answer for a device that uses one of the
+ * others: a thermostat or air conditioner may number its modes or spell them out, and forcing the
+ * pattern's first entry turns a spelled-out mode into a number and breaks it (issue #614).
+ *
+ * So where the pattern allows more than one type, the source decides which of them applies. Only a
+ * type the pattern actually lists may win — anything else would produce a state the type-detector
+ * cannot recognise the next time round.
+ *
+ * The source only decides while the alias forwards values verbatim. A read/write conversion may
+ * deliberately produce a different type than the source's (`val ? 1 : 0`), and there the pattern's
+ * type is the one that describes what the alias really carries.
+ */
+export function getAliasCommonType(
+    state: Pick<ExternalDetectorState, 'defaultType' | 'type' | 'defaultRole'>,
+    sourceType: ioBroker.CommonType | undefined,
+    forwardsVerbatim: boolean,
+): ioBroker.CommonType {
+    const patternType = getStateCommonType(state);
+    if (!forwardsVerbatim || !sourceType || sourceType === patternType) {
+        return patternType;
+    }
+    const allowed: ioBroker.CommonType[] = Array.isArray(state.type)
+        ? (state.type as ioBroker.CommonType[])
+        : state.type
+          ? [state.type as ioBroker.CommonType]
+          : [];
+    return allowed.includes(sourceType) ? sourceType : patternType;
+}
+
+/**
  * A state is mandatory either on its own (`required`) or as a member of a group of alternatives
  * (`requiredOneOf`, e.g. a thermostat's `SET` / `SET_HEATING` / `SET_COOLING`). Treating only
  * `required` as mandatory leaves types whose every mandatory state sits in a group — `thermostat`

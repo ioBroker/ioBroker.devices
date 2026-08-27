@@ -219,6 +219,16 @@ function DialogEditFolder(props: {
             } else {
                 const device = newDevices.find(device => el._id === device.channelId);
                 if (device?.channelId) {
+                    // Renaming onto an already existing folder name lands the copy on top of a
+                    // foreign device. Recorded before the copy, because only a path that was free
+                    // beforehand may be cleaned up afterwards.
+                    let targetWasFree: boolean;
+                    try {
+                        targetWasFree = !(await socket.getObject(newId));
+                    } catch {
+                        // A doubtful answer must never license a recursive delete.
+                        targetWasFree = false;
+                    }
                     const errors = await copyDevice(newId, {
                         socket: props.socket,
                         objects: props.objects,
@@ -226,13 +236,18 @@ function DialogEditFolder(props: {
                         channelObj: el,
                     });
                     if (errors.length) {
-                        // Keep this device's source; remove the incomplete copy (its path was
-                        // free before, so everything below it is debris of this failed copy).
+                        // Keep this device's source. The incomplete copy is only removed when the
+                        // path was free before — otherwise the delete would take a foreign device's
+                        // whole subtree with it, so the debris is left in place instead.
                         copyFailed = true;
-                        try {
-                            await socket.delObjects(newId, true);
-                        } catch {
-                            // the copy already failed — do not mask that with a cleanup error
+                        if (targetWasFree) {
+                            try {
+                                await socket.delObjects(newId, true);
+                            } catch {
+                                // the copy already failed — do not mask that with a cleanup error
+                            }
+                        } else {
+                            console.warn(`Partial copy left at ${newId}: the path was already in use`);
                         }
                         continue;
                     }

@@ -281,6 +281,23 @@ export function isOrangeDarkTheme(theme: Theme): boolean {
     return (theme as Theme & { wmPreset?: string }).wmPreset === 'orangeDark';
 }
 
+/** Check if the current theme is the neon-outline "techBlue" preset */
+export function isTechBlueTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'techBlue';
+}
+
+/**
+ * Marks the indicator cluster (battery, unreachable, error, settings gear …) of a tile.
+ *
+ * A theme that restyles the symbols inside a tile — Tech Blue repaints them in its blue and puts
+ * a halo around them — must be able to leave those small badges alone: they are the only place in
+ * the tile where colour still means something (red error, orange low battery).
+ */
+export const TILE_INDICATORS_CLASS = 'wm-tile-indicators';
+
+/** Corner radius of a Tech Blue tile — tighter than the panel presets, the outline stays crisp. */
+const TECH_BLUE_RADIUS = '12px';
+
 /**
  * Shadow stack shared by the dark presets: a lit hairline along the top edge, a faint vignette
  * towards the bottom and — while active — an accent ring with a glow bleeding in from the top.
@@ -442,6 +459,64 @@ export function getTileStyles(
             boxShadow: getPanelShadow(theme, isActive, accent, '0 6px 20px rgba(0,0,0,0.45)'),
             ...cornerLight(isActive ? 0.4 : 0.3),
             ...glassExtras,
+            ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+        };
+    }
+
+    /**
+     * "Tech Blue": the tile is not a raised panel but a lit outline. It keeps almost the page
+     * colour and gets its shape from a hairline ring — plain while idle, and only when the device
+     * is on does the ring brighten and bleed a narrow halo inwards. That halo has to be *inset*
+     * for the same reason the panel presets build their depth from inset shadows: the wrapper
+     * clips anything painted outside the tile.
+     *
+     * Every value here is deliberately low: the accent is a saturated blue on a near-black page,
+     * so tints that read as subtle on paper turn into a lamp on screen. Off is genuinely dark —
+     * that contrast is what makes a lit tile read as lit.
+     *
+     * The theme is monochrome: every symbol in a tile is repainted in the tile's own colour,
+     * bright while active and dimmed while idle. Only the indicator cluster is left alone,
+     * because a red error or an orange low battery must not blend into the blue.
+     */
+    if (isTechBlueTheme(theme)) {
+        const paper = theme.palette.background.paper;
+        // The ring is the theme's signature. A widget colour drives it, otherwise the accent does.
+        const ring = inactiveColor || theme.palette.primary.main;
+        const idleSurface =
+            tileStyle === 'flat'
+                ? inactiveColor
+                    ? `linear-gradient(${alpha(inactiveColor, 0.1)}, ${alpha(inactiveColor, 0.1)}), ${surface(paper)}`
+                    : surface(paper)
+                : `linear-gradient(to bottom, ${alpha(ring, 0.06)}, transparent 60%), ${surface(paper)}`;
+
+        return {
+            borderRadius: TECH_BLUE_RADIUS,
+            boxSizing: 'border-box',
+            padding: theme.spacing(2),
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: isActive
+                ? `linear-gradient(to bottom, ${alpha(accent, 0.11)}, ${alpha(accent, 0.03)} 50%, transparent 80%), ${surface(paper)}`
+                : idleSurface,
+            border: `1px solid ${isActive ? alpha(accent, 0.5) : alpha(ring, 0.22)}`,
+            boxShadow: isActive
+                ? // A narrow halo hugging the edge: wide blur pulled back by an equally large
+                  // negative spread, so the light stays at the rim instead of washing the tile.
+                  `inset 0 0 30px -20px ${alpha(accent, 0.8)}, 0 0 10px ${alpha(accent, 0.16)}`
+                : `inset 0 1px 0 ${alpha(white, 0.04)}`,
+            // No corner light: the outline is the only light source in this theme, a lit rim on
+            // top of it would read as a second one.
+            ...glassExtras,
+            // Monochrome pass. `:not(indicators *)` outranks the colour a widget sets on its own
+            // icon — `:not()` adds the specificity of its argument — so no `!important` is needed
+            // to win, and the status badges stay excluded instead of being overridden back.
+            //
+            // The halo is spelled out with an alpha instead of `currentColor`: at full opacity it
+            // doubles the icon's own brightness and the symbol blooms.
+            [`& .MuiSvgIcon-root:not(.${TILE_INDICATORS_CLASS} *)`]: {
+                color: isActive ? accent : alpha(ring, 0.55),
+                // An idle tile stays unlit — only what is switched on glows.
+                filter: isActive ? `drop-shadow(0 0 6px ${alpha(accent, 0.4)})` : 'none',
+            },
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }
@@ -1974,6 +2049,7 @@ export class WidgetGeneric<
 
         return (
             <Box
+                className={TILE_INDICATORS_CLASS}
                 sx={theme => ({
                     position: 'absolute',
                     top: isNeumorphicTheme(theme) ? 'max(4px, 2cqi)' : 'max(4px, 2cqi)',
@@ -2722,11 +2798,19 @@ export class WidgetGeneric<
     }
 
     static getStyleCompact(theme: Theme): React.CSSProperties {
+        let borderRadius = '16px';
+        if (isNeumorphicTheme(theme)) {
+            borderRadius = '24px';
+        } else if (isTechBlueTheme(theme)) {
+            borderRadius = TECH_BLUE_RADIUS;
+        }
+        // Must match the tile's own radius — the wrapper clips it, and a wider clip leaves the
+        // corners of the lit outline squared off.
         return {
             position: 'relative',
             containerType: 'inline-size',
             overflow: 'hidden',
-            borderRadius: isNeumorphicTheme(theme) ? '24px' : '16px',
+            borderRadius,
         };
     }
 
