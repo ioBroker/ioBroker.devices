@@ -225,8 +225,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 // A widget moved to another category counts towards *that* category, otherwise the
                 // target folder would be dropped as "empty" below and take the widget down with it.
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
-                    | Record<string, Record<string, unknown>>
-                    | undefined;
+                    Record<string, Record<string, unknown>> | undefined;
                 const override = custom?.[this.adapter.namespace]?.parent as string | undefined;
                 const parent = override && this.objects[override]?.type === 'folder' ? override : getParentId(key);
                 if (this.objects[parent]?.type === 'folder' || parent === 'alias.0') {
@@ -255,8 +254,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             // Include empty folders marked with showEmpty, or that hold plugin/custom widgets
             if (this.objects[key]) {
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
-                    | Record<string, Record<string, unknown>>
-                    | undefined;
+                    Record<string, Record<string, unknown>> | undefined;
                 if (
                     custom &&
                     Object.values(custom).some(
@@ -982,8 +980,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 // or that contain plugin / custom widgets.
                 const obj = this.objects[id];
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
-                    | Record<string, Record<string, unknown>>
-                    | undefined;
+                    Record<string, Record<string, unknown>> | undefined;
                 const keep =
                     custom &&
                     Object.values(custom).some(
