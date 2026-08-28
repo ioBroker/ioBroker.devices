@@ -61,8 +61,7 @@ async function doLoad(socket: Connection, admin: boolean, language: ioBroker.Lan
     const seen = new Set<string>();
     for (const id of Object.keys(view || {})) {
         const common = view[id]?.common as
-            | (ioBroker.InstanceCommon & { deviceWidgets?: ioBroker.DevicesWidgets })
-            | undefined;
+            (ioBroker.InstanceCommon & { deviceWidgets?: ioBroker.DevicesWidgets }) | undefined;
         // @ts-expect-error fixed in js-controller
         const manifestFile = common?.deviceWidgets?.iconsManifest;
         if (!manifestFile) {

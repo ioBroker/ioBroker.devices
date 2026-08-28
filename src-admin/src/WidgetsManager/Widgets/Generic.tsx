@@ -295,8 +295,16 @@ export function isTechBlueTheme(theme: Theme): boolean {
  */
 export const TILE_INDICATORS_CLASS = 'wm-tile-indicators';
 
+/** Check if the current theme is the light card preset "cleanLight" */
+export function isCleanLightTheme(theme: Theme): boolean {
+    return (theme as Theme & { wmPreset?: string }).wmPreset === 'cleanLight';
+}
+
 /** Corner radius of a Tech Blue tile — tighter than the panel presets, the outline stays crisp. */
 const TECH_BLUE_RADIUS = '12px';
+
+/** Corner radius of a Clean Light card — wide enough to read as paper, not as a button. */
+const CLEAN_LIGHT_RADIUS = '14px';
 
 /**
  * Shadow stack shared by the dark presets: a lit hairline along the top edge, a faint vignette
@@ -517,6 +525,59 @@ export function getTileStyles(
                 // An idle tile stays unlit — only what is switched on glows.
                 filter: isActive ? `drop-shadow(0 0 6px ${alpha(accent, 0.4)})` : 'none',
             },
+            ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
+        };
+    }
+
+    /**
+     * "Clean Light": white cards on a light grey page. The separation comes from the page being
+     * grey while the card stays pure white, plus a hairline a shade darker than the page — the
+     * classic soft drop shadow under such a card is painted outside the tile and the wrapper clips
+     * it, so it cannot be what carries the look here.
+     *
+     * State is deliberately carried by the CONTENT, not by the surface: a card whose device is on
+     * keeps its white paper and only picks up a blue rim, while the label, the toggle and the
+     * chevrons inside turn accent-coloured. Washing the whole tile blue — what every other preset
+     * does — would flatten the calm this design lives on.
+     *
+     * And no monochrome pass: unlike Tech Blue directly above, the coloured icons ARE the design
+     * here (a yellow bulb, a red thermometer), so nothing repaints them.
+     */
+    if (isCleanLightTheme(theme)) {
+        const paper = theme.palette.background.paper;
+        // A widget colour tints the hairline and a whisper of the surface — never floods it.
+        const tint = inactiveColor;
+        const idleSurface = tint
+            ? `linear-gradient(${alpha(tint, 0.06)}, ${alpha(tint, 0.06)}), ${surface(paper)}`
+            : surface(paper);
+
+        let borderColor: string;
+        if (isActive) {
+            borderColor = alpha(accent, 0.35);
+        } else if (tint) {
+            borderColor = alpha(tint, 0.3);
+        } else {
+            borderColor = alpha(black, 0.08);
+        }
+
+        return {
+            borderRadius: CLEAN_LIGHT_RADIUS,
+            boxSizing: 'border-box',
+            padding: theme.spacing(2),
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: isActive
+                ? `linear-gradient(${alpha(accent, 0.05)}, ${alpha(accent, 0.02)}), ${surface(paper)}`
+                : idleSurface,
+            border: `1px solid ${borderColor}`,
+            // The inset half survives the wrapper's clip and does the work; the outer half only
+            // pays off where a tile is rendered without that wrapper. `flat` opts out of both.
+            boxShadow:
+                tileStyle === 'flat'
+                    ? 'none'
+                    : isActive
+                      ? `inset 0 0 0 1px ${alpha(accent, 0.1)}, 0 2px 8px ${alpha(accent, 0.18)}`
+                      : `inset 0 -1px 0 ${alpha(black, 0.035)}, 0 1px 3px ${alpha(black, 0.07)}`,
+            ...glassExtras,
             ...(interactive ? { '&:active': { transform: 'scale(0.97)' } } : {}),
         };
     }
@@ -1335,9 +1396,7 @@ export class WidgetGeneric<
             let unit = '';
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    | ioBroker.StateObject
-                    | null
-                    | undefined;
+                    ioBroker.StateObject | null | undefined;
                 if (obj?.common) {
                     unit = obj.common.unit || '';
                 }
@@ -2121,8 +2180,7 @@ export class WidgetGeneric<
             .getObject(widgetId)
             .then(obj => {
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
-                    | Record<string, Record<string, unknown>>
-                    | undefined;
+                    Record<string, Record<string, unknown>> | undefined;
                 const settings = custom?.[instanceId];
                 const update: Partial<WidgetGenericState> = {};
                 const ct = settings?.chartType;
@@ -2803,6 +2861,8 @@ export class WidgetGeneric<
             borderRadius = '24px';
         } else if (isTechBlueTheme(theme)) {
             borderRadius = TECH_BLUE_RADIUS;
+        } else if (isCleanLightTheme(theme)) {
+            borderRadius = CLEAN_LIGHT_RADIUS;
         }
         // Must match the tile's own radius — the wrapper clips it, and a wider clip leaves the
         // corners of the lit outline squared off.

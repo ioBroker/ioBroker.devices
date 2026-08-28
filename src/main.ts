@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { Adapter, type AdapterOptions } from '@iobroker/adapter-core';
-import DevicesDeviceManagement from './lib/WidgetsManagement';
+import DevicesWidgetsManagement from './lib/WidgetsManagement';
+import DevicesDeviceManagement from './lib/DeviceManagement';
 
 export default class DevicesAdapter extends Adapter {
+    private widgetsManagement: DevicesWidgetsManagement | null = null;
     private deviceManagement: DevicesDeviceManagement | null = null;
     public language: ioBroker.Languages = 'en';
 
@@ -11,7 +13,7 @@ export default class DevicesAdapter extends Adapter {
             ...options,
             name: 'devices',
             objectChange: (id: string, obj: ioBroker.Object | null | undefined): void => {
-                this.deviceManagement?.objectChange(id, obj);
+                this.widgetsManagement?.objectChange(id, obj);
             },
             ready: () => this.main(),
             unload: cb => this.unload(cb),
@@ -238,12 +240,18 @@ export default class DevicesAdapter extends Adapter {
     }
 
     unload(cb: () => void): void {
-        this.deviceManagement?.destroy();
+        // `DeviceManagement` has no teardown of its own — it only listens on the adapter's
+        // message event, which goes away with the adapter.
+        this.widgetsManagement?.destroy();
         cb?.();
     }
 
     async main(): Promise<void> {
-        this.deviceManagement = new DevicesDeviceManagement(this, true);
+        this.widgetsManagement = new DevicesWidgetsManagement(this, true);
+        // Presents the same detected devices in the ioBroker Device Manager. io-package.json
+        // advertises `supportedMessages.deviceManager`, so Admin sends `dm:*` commands for this
+        // instance; without this they were never answered.
+        this.deviceManagement = new DevicesDeviceManagement(this, this.widgetsManagement);
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.language = systemConfig?.common?.language || 'en';
         this.subscribeForeignObjects('*');

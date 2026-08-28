@@ -242,9 +242,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj?.common) {
                 const min = obj.common.min != null ? Number(obj.common.min) : 0;
                 const max = obj.common.max != null ? Number(obj.common.max) : 100;
@@ -263,9 +261,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.ctId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj?.common) {
                 const min = obj.common.min != null ? Number(obj.common.min) : 2000;
                 const max = obj.common.max != null ? Number(obj.common.max) : 6500;

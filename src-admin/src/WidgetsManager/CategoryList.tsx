@@ -215,15 +215,19 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textSecondary: 'rgba(245,245,245,0.65)',
         textDisabled: 'rgba(245,245,245,0.4)',
     },
-    // Neon outline look: the page and the tiles share almost the same near-black blue, and a tile
-    // is set apart by a lit blue ring rather than by a lighter surface. Deliberately flatter and
-    // colder than `blueDark`, which lifts its tiles out of the page instead.
+    // Neon outline look: the page and the tiles share almost the same dark blue, and a tile is set
+    // apart by a lit blue ring rather than by a lighter surface. Deliberately flatter and colder
+    // than `blueDark`, which lifts its tiles out of the page instead.
+    //
+    // The two surfaces stay close to each other on purpose — but not near-black. At R4/G9/B16 the
+    // page read as plain black and the theme lost the colour it is named after, so both are lifted
+    // far enough for the blue to be visible while the gap between them stays small.
     techBlue: {
         mode: 'dark',
         primary: '#2f9bff',
         secondary: '#35e0ff',
-        bgDefault: '#040910',
-        bgPaper: '#080f1d',
+        bgDefault: '#0a1526',
+        bgPaper: '#0f1e33',
         textPrimary: '#e9f2ff',
         textSecondary: 'rgba(233,242,255,0.6)',
         textDisabled: 'rgba(233,242,255,0.35)',
@@ -238,6 +242,19 @@ const WM_THEME_PRESETS: Record<string, WmThemePreset> = {
         textPrimary: '#e8eef7',
         textSecondary: 'rgba(232,238,247,0.6)',
         textDisabled: 'rgba(232,238,247,0.38)',
+    },
+    // White cards on a light grey page. The one preset whose page is NOT the same colour as its
+    // tiles — that difference is what makes a card read as a card here, since the soft drop shadow
+    // such a look normally leans on is clipped away by the tile wrapper.
+    cleanLight: {
+        mode: 'light',
+        primary: '#2f7ef5',
+        secondary: '#34c759',
+        bgDefault: '#eef0f4',
+        bgPaper: '#ffffff',
+        textPrimary: '#1b1f24',
+        textSecondary: 'rgba(27,31,36,0.6)',
+        textDisabled: 'rgba(27,31,36,0.35)',
     },
     'styling-grey': {
         mode: 'dark',
@@ -413,9 +430,75 @@ const STYLING_GREY_COMPONENTS: ThemeOptions['components'] = {
     },
 };
 
+/** Accent of the Clean Light preset, repeated here because component overrides get no theme. */
+const CLEAN_LIGHT_ACCENT = '47,126,245';
+
+/**
+ * Component overrides that carry the Clean Light look past the tiles.
+ *
+ * Everything with a surface of its own gets the same recipe as a tile: white paper, a hairline a
+ * shade darker than the page, a wide soft shadow — and no borrowed MUI elevation, whose grey
+ * layering would muddy the white.
+ */
+const CLEAN_LIGHT_COMPONENTS: ThemeOptions['components'] = {
+    MuiDialog: {
+        styleOverrides: {
+            paper: {
+                borderRadius: '16px',
+                border: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 18px 48px rgba(27,31,36,0.16), 0 2px 6px rgba(27,31,36,0.06)',
+                backgroundImage: 'none',
+            },
+        },
+    },
+    MuiDialogTitle: {
+        styleOverrides: {
+            root: { fontSize: '1rem', fontWeight: 600 },
+        },
+    },
+    MuiDialogContent: {
+        styleOverrides: {
+            root: {
+                '&::-webkit-scrollbar': { width: 6 },
+                '&::-webkit-scrollbar-thumb': { background: 'rgba(0,0,0,0.18)', borderRadius: 3 },
+            },
+        },
+    },
+    MuiButton: {
+        styleOverrides: {
+            outlined: {
+                borderRadius: '10px',
+                borderColor: 'rgba(0,0,0,0.14)',
+                '&:hover': {
+                    borderColor: `rgb(${CLEAN_LIGHT_ACCENT})`,
+                    background: `rgba(${CLEAN_LIGHT_ACCENT},0.06)`,
+                },
+            },
+            // A flat filled button: the design gets its hierarchy from colour, not from elevation.
+            contained: { borderRadius: '10px', boxShadow: 'none' },
+        },
+    },
+    MuiIconButton: {
+        styleOverrides: {
+            root: { '&:hover': { background: 'rgba(0,0,0,0.05)' } },
+        },
+    },
+    MuiPaper: {
+        styleOverrides: {
+            root: { backgroundImage: 'none' },
+        },
+    },
+    MuiDivider: {
+        styleOverrides: {
+            root: { borderColor: 'rgba(0,0,0,0.08)' },
+        },
+    },
+};
+
 /** Presets that restyle MUI components on top of their palette. Others use the MUI defaults. */
 const PRESET_COMPONENTS: Record<string, ThemeOptions['components']> = {
     techBlue: TECH_BLUE_COMPONENTS,
+    cleanLight: CLEAN_LIGHT_COMPONENTS,
     'styling-grey': STYLING_GREY_COMPONENTS,
 };
 
@@ -1616,9 +1699,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(categoryId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj) {
                 const common = obj.common || {};
                 // name, color and icon go to common
@@ -2034,9 +2115,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(widgetId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj) {
                 const common = obj.common || ({} as ioBroker.StateCommon);
                 common.custom ||= {};

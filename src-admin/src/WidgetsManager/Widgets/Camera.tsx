@@ -121,9 +121,7 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.ptzId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             const min = obj?.common?.min != null ? Number(obj.common.min) : 0;
             const max = obj?.common?.max != null ? Number(obj.common.max) : 100;
             if (!isNaN(min) && !isNaN(max) && max > min) {

@@ -4,7 +4,7 @@
 
 Tab-only ioBroker adapter with **two separate codebases**:
 
-- **Backend** (`src/`): Minimal TypeScript adapter (`src/main.ts`) using `@iobroker/dm-utils` for device management. `src/lib/WidgetsManagement.ts` (733 lines) detects physical devices via `@iobroker/type-detector` and exposes them as `dm-utils` controls (switches, sliders, buttons). Runs as an ioBroker adapter process.
+- **Backend** (`src/`): TypeScript adapter (`src/main.ts`) running as an ioBroker adapter process. It detects the devices under `alias.0.*` and `linkeddevices.0.*` via `@iobroker/type-detector` in `src/lib/WidgetsManagement.ts`, and presents that one detection result twice: as widgets for the WidgetsManager GUI over its own `dm:loadItems` protocol (state `info.widgetManager`), and as cards for the ioBroker Device Manager in `src/lib/DeviceManagement.ts`, which extends `@iobroker/dm-utils` (state `info.deviceManager`). Both classes listen on the adapter's `message` event and filter on the `dm:` prefix; neither has a `default` branch, so each ignores the other's commands.
 - **Frontend** (`src-admin/src/`): React 18 + TypeScript + MUI 6 + Vite SPA. Entry: `App.tsx` → `Tabs/ListDevices.tsx` (3644 lines, main UI). Creates/edits virtual alias devices in the `alias.0` namespace. Uses `@dnd-kit` for drag-and-drop, `@iobroker/gui-components` for admin integration.
 
 **Data flow**: Physical adapter states → `@iobroker/type-detector` detects device patterns → user maps states to alias devices via the React UI → alias objects written to ioBroker object DB → consumed by Material UI, IoT, Matter adapters.
@@ -47,7 +47,7 @@ Full `npm test` requires network access to ioBroker servers — use `test/packag
 - **i18n**: 11 languages in `src-admin/src/i18n/*.json`. All UI strings go through `I18n.t()` from `@iobroker/gui-components`. Backend labels use inline `{ en: '...', de: '...' }` objects.
 - **Type detection**: `@iobroker/type-detector` `Types` enum defines device types (dimmer, thermostat, blind, etc.). `PatternControl` describes detected state patterns. Extended as `PatternControlEx` in `src-admin/src/types.d.ts` with rooms/functions metadata.
 - **Alias namespace**: Virtual devices are created under `alias.0.*` in ioBroker's object tree.
-- **No runtime backend logic**: `src/main.ts` is near-empty (reads language config). All heavy logic is in `WidgetsManagement.ts` (device detection + control building) using the `dm-utils` framework.
+- **Thin `main.ts`**: `src/main.ts` wires things up and reads the language config. The detection and the widget list live in `src/lib/WidgetsManagement.ts`; the Device Manager cards built on top of that result live in `src/lib/DeviceManagement.ts`.
 - **Build output**: `tasks.js` copies `src-admin/build/` → `admin/`, renames `index.html` → `tab.html` + `index_m.html` via `patchHtmlFile()`. Never edit files in `admin/` directly.
 - **Inline styles**: React components use `const styles: Record<string, React.CSSProperties>` objects, not CSS modules. Only `App.css` exists for global styles.
 

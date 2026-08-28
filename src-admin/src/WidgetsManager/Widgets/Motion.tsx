@@ -57,9 +57,7 @@ export class WidgetMotion extends WidgetGeneric<WidgetMotionState, WidgetGeneric
     private async loadBrightnessObject(): Promise<void> {
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.brightnessId!)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj?.common) {
                 const unit = (obj.common.unit || '').trim().toLowerCase();
                 const max = obj.common.max != null ? Number(obj.common.max) : null;

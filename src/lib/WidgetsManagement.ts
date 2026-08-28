@@ -225,7 +225,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 // A widget moved to another category counts towards *that* category, otherwise the
                 // target folder would be dropped as "empty" below and take the widget down with it.
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
-                    Record<string, Record<string, unknown>> | undefined;
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
                 const override = custom?.[this.adapter.namespace]?.parent as string | undefined;
                 const parent = override && this.objects[override]?.type === 'folder' ? override : getParentId(key);
                 if (this.objects[parent]?.type === 'folder' || parent === 'alias.0') {
@@ -254,7 +255,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
             // Include empty folders marked with showEmpty, or that hold plugin/custom widgets
             if (this.objects[key]) {
                 const custom = (this.objects[key].common as Record<string, unknown>)?.custom as
-                    Record<string, Record<string, unknown>> | undefined;
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
                 if (
                     custom &&
                     Object.values(custom).some(
@@ -841,7 +843,36 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         await this.adapter.subscribeForeignObjectsAsync('*');
     }
 
-    // ── loadDevices (called by dm-utils framework) ────────────────────
+    // ── Detected devices, for consumers outside the widget GUI ────────
+
+    /**
+     * The devices this adapter manages, once detection has run.
+     *
+     * `loadItems` below turns the same list into the widget GUI's own format; this returns it raw
+     * so a second presentation — the ioBroker Device Manager, see `lib/DeviceManagement.ts` — can
+     * build its cards from it instead of running the whole detection a second time.
+     */
+    public async getDetectedDevices(): Promise<{ device: DevicesPatternControl; obj: ioBroker.Object }[]> {
+        if (!this.loaded) {
+            this.loaded = this.initialLoad();
+        }
+        await this.loaded;
+        const result: { device: DevicesPatternControl; obj: ioBroker.Object }[] = [];
+        for (const device of this.enabledDevices) {
+            const obj = this.objects[device.storeId];
+            if (obj) {
+                result.push({ device, obj });
+            }
+        }
+        return result;
+    }
+
+    /** An object from the already-loaded cache, so a consumer need not re-read what is in memory. */
+    public getCachedObject(id: string): ioBroker.Object | undefined {
+        return this.objects[id];
+    }
+
+    // ── Widget list for the WidgetsManager GUI ────────────────────────
 
     protected async loadItems(): Promise<void> {
         if (!this.loaded) {
@@ -980,7 +1011,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                 // or that contain plugin / custom widgets.
                 const obj = this.objects[id];
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
-                    Record<string, Record<string, unknown>> | undefined;
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
                 const keep =
                     custom &&
                     Object.values(custom).some(

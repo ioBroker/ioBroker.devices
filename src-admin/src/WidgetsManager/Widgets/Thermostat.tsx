@@ -235,9 +235,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.modeId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 this.setState({ modeStates: parsed });
@@ -253,9 +251,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.workingModeId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 this.setState({ workingModeStates: parsed });
@@ -279,9 +275,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             }
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    | ioBroker.StateObject
-                    | null
-                    | undefined;
+                    ioBroker.StateObject | null | undefined;
                 metas[kind] = metaFromCommon(obj?.common, fallback);
             } catch {
                 // A datapoint that cannot be read contributes nothing rather than failing the rest

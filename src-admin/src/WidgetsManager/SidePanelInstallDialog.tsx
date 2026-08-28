@@ -17,14 +17,18 @@ import { I18n, type Connection } from '@iobroker/gui-components';
 import ioBrokerLogo from './assets/ioBrokerLogo.png';
 
 /** Copy text to clipboard with fallback for non-secure contexts (HTTP) */
-function copyText(text: string): Promise<void> {
+async function copyText(text: string): Promise<void> {
     if (navigator.clipboard?.writeText) {
-        return navigator.clipboard.writeText(text).catch(() => copyTextFallback(text));
+        try {
+            return await navigator.clipboard.writeText(text);
+        } catch {
+            return await copyTextFallback(text);
+        }
     }
     return copyTextFallback(text);
 }
 
-function copyTextFallback(text: string): Promise<void> {
+async function copyTextFallback(text: string): Promise<void> {
     const ta = document.createElement('textarea');
     ta.value = text;
     ta.style.position = 'fixed';
@@ -56,6 +60,15 @@ function dosDateTime(date: Date): { time: number; date: number } {
     };
 }
 
+/**
+ * A byte buffer backed by an ordinary `ArrayBuffer`.
+ *
+ * Since TypeScript 5.7 `Uint8Array` is generic over its buffer and the bare name also covers a
+ * `SharedArrayBuffer` — which `BlobPart` rejects, so a bare `Uint8Array[]` cannot go into
+ * `new Blob()`. Nothing here ever produces a shared buffer, so the whole chain says so.
+ */
+type Bytes = Uint8Array<ArrayBuffer>;
+
 function writeU16(arr: Uint8Array, offset: number, val: number): void {
     arr[offset] = val & 0xff;
     arr[offset + 1] = (val >> 8) & 0xff;
@@ -68,13 +81,13 @@ function writeU32(arr: Uint8Array, offset: number, val: number): void {
     arr[offset + 3] = (val >> 24) & 0xff;
 }
 
-function buildZip(files: { name: string; content: string | Uint8Array }[]): Blob {
+function buildZip(files: { name: string; content: string | Bytes }[]): Blob {
     const encoder = new TextEncoder();
     const now = new Date();
     const { time, date } = dosDateTime(now);
 
-    const entries: { name: Uint8Array; data: Uint8Array; crc: number; offset: number }[] = [];
-    const chunks: Uint8Array[] = [];
+    const entries: { name: Bytes; data: Bytes; crc: number; offset: number }[] = [];
+    const chunks: Bytes[] = [];
     let offset = 0;
 
     // Local file headers + data
@@ -143,7 +156,7 @@ function buildZip(files: { name: string; content: string | Uint8Array }[]): Blob
     writeU16(eocd, 20, 0); // comment
     chunks.push(eocd);
 
-    return new Blob(chunks as BlobPart[], { type: 'application/zip' });
+    return new Blob(chunks, { type: 'application/zip' });
 }
 
 // ---- Icon generator: resize the ioBroker logo to required sizes ----
@@ -157,7 +170,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     });
 }
 
-function imageToResizedPng(img: HTMLImageElement, size: number): Uint8Array {
+function imageToResizedPng(img: HTMLImageElement, size: number): Bytes {
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -382,9 +395,9 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
         }
 
         // Load the ioBroker logo and resize to required icon sizes
-        let icon16: Uint8Array;
-        let icon48: Uint8Array;
-        let icon128: Uint8Array;
+        let icon16: Bytes;
+        let icon48: Bytes;
+        let icon128: Bytes;
         try {
             const img = await loadImage(ioBrokerLogo);
             icon16 = imageToResizedPng(img, 16);
@@ -397,7 +410,7 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
             icon128 = new Uint8Array(0);
         }
 
-        const files: { name: string; content: string | Uint8Array }[] = [
+        const files: { name: string; content: string | Bytes }[] = [
             { name: 'panel.html', content: generatePanel(pageUrl) },
             { name: 'icon-16.png', content: icon16 },
             { name: 'icon-48.png', content: icon48 },

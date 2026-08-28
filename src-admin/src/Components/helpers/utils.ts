@@ -416,9 +416,7 @@ export function inheritCommonFromSource(
 
 async function addToEnum(enumId: string, id: string, socket: AdminConnection): Promise<void> {
     const obj: ioBroker.EnumObject | null | undefined = (await socket.getObject(enumId)) as
-        | ioBroker.EnumObject
-        | null
-        | undefined;
+        ioBroker.EnumObject | null | undefined;
 
     if (obj?.common) {
         obj.common.members ||= [];
@@ -432,9 +430,7 @@ async function addToEnum(enumId: string, id: string, socket: AdminConnection): P
 
 async function removeFromEnum(enumId: string, id: string, socket: AdminConnection): Promise<void> {
     const obj: ioBroker.EnumObject | null | undefined = (await socket.getObject(enumId)) as
-        | ioBroker.EnumObject
-        | null
-        | undefined;
+        ioBroker.EnumObject | null | undefined;
 
     if (obj?.common?.members) {
         const pos = obj.common.members.indexOf(id);

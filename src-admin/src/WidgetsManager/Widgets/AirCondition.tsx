@@ -290,9 +290,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
     ): Promise<void> {
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 if (stateKey === 'modeStates') {
@@ -316,9 +314,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.speedLevelId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             const range = rangeFromCommon(obj?.common, this.state.speedLevelRange);
             if (range) {
                 this.setState({ speedLevelRange: range });
@@ -339,9 +335,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.swingId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj?.common) {
                 const parsed = parseCommonStates(obj.common.states);
                 // A boolean datapoint that ships its own two labels is still a list, not a switch
@@ -370,9 +364,7 @@ export class WidgetAirCondition extends WidgetGeneric<WidgetAirConditionState> {
             }
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    | ioBroker.StateObject
-                    | null
-                    | undefined;
+                    ioBroker.StateObject | null | undefined;
                 metas[kind] = metaFromCommon(obj?.common, fallback);
             } catch {
                 // A datapoint that cannot be read contributes nothing rather than failing the rest
