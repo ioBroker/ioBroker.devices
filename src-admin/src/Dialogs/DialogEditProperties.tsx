@@ -205,7 +205,8 @@ export default class DialogEditProperties extends Component<DialogEditProperties
 
         let name = '';
         const channelObj: ioBroker.ChannelObject | undefined = this.props.objects[this.props.channelId] as
-            ioBroker.ChannelObject | undefined;
+            | ioBroker.ChannelObject
+            | undefined;
 
         const mainStateId = findMainStateId(this.props.channelInfo);
 

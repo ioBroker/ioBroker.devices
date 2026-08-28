@@ -171,7 +171,9 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.powerId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common?.type === 'number' || obj?.common?.type === 'boolean') {
                 this.powerIsNumber = obj.common.type === 'number';
                 this.powerTypeKnown = true;
@@ -188,7 +190,9 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.airflowId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             this.setState({ airflowStates: Object.keys(parsed).length ? parsed : this.patternAirflowStates });
         } catch {
@@ -207,7 +211,9 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.speedId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 this.setState({ speedStates: parsed });
@@ -232,7 +238,9 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.speedLevelId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             const range = explicitRangeFromCommon(obj?.common);
             if (range) {
                 this.setState({ speedLevelRange: range });
@@ -248,7 +256,9 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.swingId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common) {
                 const parsed = parseCommonStates(obj.common.states);
                 // A boolean datapoint that ships its own two labels is still a list, not a switch

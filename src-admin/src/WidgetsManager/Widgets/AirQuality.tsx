@@ -262,7 +262,9 @@ export class WidgetAirQuality extends WidgetGeneric<WidgetAirQualityState> {
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.aqiId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             const parsed = parseCommonStates(obj?.common?.states);
             if (Object.keys(parsed).length) {
                 this.setState({ aqiDeviceStates: parsed });
@@ -284,7 +286,9 @@ export class WidgetAirQuality extends WidgetGeneric<WidgetAirQualityState> {
         const results = await Promise.allSettled(
             entries.map(async ([id, name]) => {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    ioBroker.StateObject | null | undefined;
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
                 return { name, parsed: parseCommonStates(obj?.common?.states) };
             }),
         );

@@ -2966,7 +2966,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 // update state
                                 const stateObj: ioBroker.StateObject | null | undefined =
                                     (await this.props.socket.getObject(state.id)) as
-                                        ioBroker.StateObject | null | undefined;
+                                        | ioBroker.StateObject
+                                        | null
+                                        | undefined;
 
                                 if (stateObj) {
                                     stateObj.common ||= {} as ioBroker.StateCommon;
@@ -3016,7 +3018,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         let stateObj: ioBroker.StateObject | null | undefined;
                         try {
                             stateObj = (await this.props.socket.getObject(state.id)) as
-                                ioBroker.StateObject | null | undefined;
+                                | ioBroker.StateObject
+                                | null
+                                | undefined;
                         } catch {
                             // ignore
                         }
@@ -3141,7 +3145,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         let stateObj: ioBroker.StateObject | null | undefined;
                         try {
                             stateObj = (await this.props.socket.getObject(state.id)) as
-                                ioBroker.StateObject | null | undefined;
+                                | ioBroker.StateObject
+                                | null
+                                | undefined;
                         } catch {
                             // ignore
                         }
@@ -3228,7 +3234,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
             if (mainStateId) {
                 mainStateObj = (await this.props.socket.getObject(mainStateId)) as
-                    ioBroker.StateObject | null | undefined;
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
                 if (mainStateObj) {
                     oldSmartName = getSmartName(mainStateObj, this.state.iotNoCommon, this.state.iotInstance, language);
                 }
@@ -3379,7 +3387,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 if (functions.includes(id)) {
                     if (!members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            ioBroker.EnumObject | null | undefined;
+                            | ioBroker.EnumObject
+                            | null
+                            | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3392,7 +3402,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 } else {
                     if (members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            ioBroker.EnumObject | null | undefined;
+                            | ioBroker.EnumObject
+                            | null
+                            | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3412,7 +3424,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 if (rooms.includes(id)) {
                     if (!members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            ioBroker.EnumObject | null | undefined;
+                            | ioBroker.EnumObject
+                            | null
+                            | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3425,7 +3439,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 } else {
                     if (members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            ioBroker.EnumObject | null | undefined;
+                            | ioBroker.EnumObject
+                            | null
+                            | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3461,7 +3477,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     this.objects[enumId].common.members.includes(device.channelId)
                 ) {
                     const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(enumId)) as
-                        ioBroker.EnumObject | null | undefined;
+                        | ioBroker.EnumObject
+                        | null
+                        | undefined;
                     if (!obj?.common?.members) {
                         continue;
                     }

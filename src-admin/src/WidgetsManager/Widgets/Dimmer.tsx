@@ -147,7 +147,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common) {
                 const min = obj.common.min != null ? Number(obj.common.min) : 0;
                 const max = obj.common.max != null ? Number(obj.common.max) : 100;
@@ -166,7 +168,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.effectId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common?.states && typeof obj.common.states === 'object') {
                 this.setState({ effectStates: obj.common.states as Record<string, string> });
             }
@@ -181,7 +185,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(this.transitionTimeId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common) {
                 const max = obj.common.max != null ? Number(obj.common.max) : 10000;
                 if (!isNaN(max) && max > 0) {

@@ -239,7 +239,9 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         }
         try {
             const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj?.common) {
                 const min = obj.common.min != null ? Number(obj.common.min) : 0;
                 const max = obj.common.max != null ? Number(obj.common.max) : 100;

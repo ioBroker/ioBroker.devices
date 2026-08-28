@@ -1396,7 +1396,9 @@ export class WidgetGeneric<
             let unit = '';
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    ioBroker.StateObject | null | undefined;
+                    | ioBroker.StateObject
+                    | null
+                    | undefined;
                 if (obj?.common) {
                     unit = obj.common.unit || '';
                 }
@@ -2180,7 +2182,8 @@ export class WidgetGeneric<
             .getObject(widgetId)
             .then(obj => {
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
-                    Record<string, Record<string, unknown>> | undefined;
+                    | Record<string, Record<string, unknown>>
+                    | undefined;
                 const settings = custom?.[instanceId];
                 const update: Partial<WidgetGenericState> = {};
                 const ct = settings?.chartType;
