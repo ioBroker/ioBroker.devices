@@ -1,4 +1,7 @@
 # Older changes
+## 3.0.2 (2026-06-30)
+* (@GermanBluefox) Added support for widget icons
+
 ## 3.0.1 (2026-06-29)
 - (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
 - (krobipd) Reduced Safari rendering lag of the device list
