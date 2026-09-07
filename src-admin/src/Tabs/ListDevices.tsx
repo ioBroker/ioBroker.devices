@@ -1766,7 +1766,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             if (
                 item.visible &&
                 filter.text &&
-                !item.title.includes(filter.text) &&
+                !item.title.toLowerCase().includes(filter.text) &&
                 !item.id.toLowerCase().includes(filter.text)
             ) {
                 item.visible = false;
