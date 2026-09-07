@@ -1243,7 +1243,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         if (expandedIDs === null) {
             expandedIDs = [];
             listItems.forEach(
-                item => item.parent && expandedIDs!.includes(item.parent) && expandedIDs!.push(item.parent),
+                item => item.parent && !expandedIDs!.includes(item.parent) && expandedIDs!.push(item.parent),
             );
         }
 
