@@ -280,6 +280,7 @@ export default class DevicesAdapter extends Adapter {
     private async checkWebInstances(): Promise<void> {
         try {
             let found = false;
+            let webInstances = 0;
             const res = await this.getObjectViewAsync('system', 'instance', {
                 startkey: 'system.adapter.web.',
                 endkey: 'system.adapter.web.香',
@@ -290,6 +291,7 @@ export default class DevicesAdapter extends Adapter {
                 if (!/^system\.adapter\.web\.\d+$/.test(id)) {
                     continue;
                 }
+                webInstances++;
                 const native = (row.value?.native || {}) as { usePureWebSockets?: boolean; socketio?: string };
                 if (!native.socketio && native.usePureWebSockets) {
                     found = true;
@@ -300,7 +302,9 @@ export default class DevicesAdapter extends Adapter {
                     break;
                 }
             }
-            if (!found) {
+            // Nothing to configure on a system that has no web instance at all — the warning
+            // would name a setting the user cannot reach.
+            if (webInstances && !found) {
                 this.log.warn(
                     `web instance is not configured for the devices GUI — enable "Pure Web Sockets" or set "Socket.io adapter" to a "ws.X" instance, otherwise the widget view will hang.`,
                 );
