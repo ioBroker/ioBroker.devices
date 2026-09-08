@@ -21,6 +21,7 @@ export default [
             'node_modules/**/*',
             'build/**/*',
             '.**/*',
+            'modulefederation.devices.config.d.ts',
             'modulefederation.devices.config.js',
             'src/**/*.js',
         ],
