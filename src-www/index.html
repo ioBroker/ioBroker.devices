@@ -43,7 +43,7 @@
 
             script.src =
                 window.location.port === '3000'
-                    ? `${window.location.protocol}//${query.host || window.location.hostname}:${query.port || 8081}/lib/js/socket.io.js`
+                    ? `${window.location.protocol}//${query.host || window.location.hostname}:${query.port || 8082}/lib/js/socket.io.js`
                     : '../../lib/js/socket.io.js';
 
             document.head.appendChild(script);
