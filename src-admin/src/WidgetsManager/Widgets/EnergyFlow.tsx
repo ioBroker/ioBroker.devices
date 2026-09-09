@@ -1582,15 +1582,21 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
         const BOTTOM_ROW_TOP_PCT = 64; // top of the bottom-row metric boxes (% of tile)
         const ARROW_TIP_Y = BOTTOM_ROW_TOP_PCT - 4; // a touch above the row
 
-        return (
+        const tile = (
             <Box
                 onClick={() => this.setState({ flowDialogOpen: true })}
                 sx={(theme: Theme) => ({
-                    width: '100%',
-                    // Let aspectRatio drive the height — height:100% would force the tile
-                    // to fill the grid row instead, defeating aspectRatio.
-                    height: size === '2x0.5' ? 80 : 'auto',
-                    aspectRatio: size === '2x0.5' ? undefined : size === '2x1' ? '2 / 1' : '1',
+                    // 2x1 is sized by the sizer below, so the tile only has to fill it.
+                    ...(size === '2x1'
+                        ? { position: 'absolute' as const, inset: 0 }
+                        : {
+                              position: 'relative' as const,
+                              width: '100%',
+                              // Let aspectRatio drive the height — height:100% would force the tile
+                              // to fill the grid row instead, defeating aspectRatio.
+                              height: size === '2x0.5' ? 80 : 'auto',
+                              aspectRatio: size === '2x0.5' ? undefined : '1',
+                          }),
                     p: 1.25,
                     borderRadius: '14px',
                     cursor: 'pointer',
@@ -1600,7 +1606,6 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                     } 75%)`,
                     border: `1px solid ${accent}55`,
                     transition: 'transform 0.15s, border-color 0.15s',
-                    position: 'relative',
                     overflow: 'hidden',
                     // Required so the indicators' `cqi` units (e.g. settings gear at
                     // top:max(4px,2cqi)) resolve against the tile width — without this
@@ -1857,6 +1862,21 @@ export class WidgetEnergyFlow extends WidgetGeneric<WidgetEnergyFlowState, Widge
                           })
                         : null}
                 </Box>
+            </Box>
+        );
+
+        if (size !== '2x1') {
+            return tile;
+        }
+
+        // A 2x1 tile spans two columns, so `aspect-ratio: 2` overshoots the height of a single
+        // column by the grid gap. Use the same sizer as every other widget's `renderWideTall()`:
+        // one column wide with aspect-ratio 1, with the tile laid over it.
+        return (
+            <Box sx={{ position: 'relative' }}>
+                {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
+                <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />
+                {tile}
             </Box>
         );
     }

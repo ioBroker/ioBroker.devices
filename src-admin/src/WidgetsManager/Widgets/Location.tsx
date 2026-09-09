@@ -951,39 +951,55 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
 
     // --- Render: always map background ---
 
-    private renderMapTile(isWide: boolean, aspectRatio?: string, huge?: boolean): React.JSX.Element {
+    private renderMapTile(size: '1x1' | '2x0.5' | '2x1' | '2x2'): React.JSX.Element {
         const { name } = this.state;
         const isActive = this.isTileActive();
         const settingsButton = this.renderSettingsButton();
         const indicators = this.renderIndicators(settingsButton);
         const showCoords = this.props.settings?.showCoordinates;
+        // Only the 1x1 tile scales its typography with the container (cqi); every wider size
+        // keeps the regular font sizes.
+        const isWide = size !== '1x1';
 
         return (
             <Box
                 id={String(this.props.widget.id)}
                 className={this.getWidgetClass()}
-                sx={theme =>
-                    huge
-                        ? WidgetGeneric.getStyleHuge(theme)
-                        : isWide
-                          ? WidgetGeneric.getStyleCompact(theme)
-                          : WidgetGeneric.getStyleWide(theme)
-                }
+                sx={theme => {
+                    if (size === '2x2') {
+                        return WidgetGeneric.getStyleHuge(theme);
+                    }
+                    if (size === '2x1') {
+                        return WidgetGeneric.getStyleWideTall(theme);
+                    }
+                    if (size === '2x0.5') {
+                        return WidgetGeneric.getStyleWide(theme);
+                    }
+                    return WidgetGeneric.getStyleCompact(theme);
+                }}
             >
+                {/* Sizer: exactly 1 column wide with aspect-ratio 1 to match 1x1 tile height */}
+                {size === '2x1' ? <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} /> : null}
                 <Box
                     onClick={() => this.onTileClick()}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
-                        width: '100%',
-                        ...(aspectRatio ? { aspectRatio } : { height: 80 }),
+                        // 2x1 is sized by the sizer above, so the tile itself is absolutely
+                        // positioned on top of it; the other sizes size themselves.
+                        ...(size === '2x1'
+                            ? { position: 'absolute' as const, inset: 0 }
+                            : {
+                                  position: 'relative' as const,
+                                  width: '100%',
+                                  ...(size === '2x0.5' ? { height: 80 } : { aspectRatio: '1' }),
+                              }),
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
                         ...this.applyTileStyles(theme, isActive, { interactive: false }),
                         padding: 0,
-                        position: 'relative',
                     })}
                 >
                     {/* Map fills entire tile */}
@@ -1057,19 +1073,19 @@ export class WidgetLocation extends WidgetGeneric<WidgetLocationState, LocationW
     }
 
     renderCompact(): React.JSX.Element {
-        return this.renderMapTile(false, '1');
+        return this.renderMapTile('1x1');
     }
 
     renderWide(): React.JSX.Element {
-        return this.renderMapTile(true);
+        return this.renderMapTile('2x0.5');
     }
 
     renderWideTall(): React.JSX.Element {
-        return this.renderMapTile(true, '1');
+        return this.renderMapTile('2x1');
     }
 
     renderHuge(): React.JSX.Element {
-        return this.renderMapTile(true, '1', true);
+        return this.renderMapTile('2x2');
     }
 
     render(): React.JSX.Element {

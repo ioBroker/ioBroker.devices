@@ -275,6 +275,17 @@ interface GridSpan {
 /** Width a category tile wants for itself; see `Category.categoryGridColumns`. */
 const CATEGORY_MIN_PX = 560;
 
+/**
+ * Span of one grid cell. Together with the wrapper element every item is rendered into, this is
+ * the ONLY place that decides how much of the grid an item occupies.
+ *
+ * Widgets must never be direct children of the grid: their root carries `gridColumn: span 2`
+ * (see `WidgetGeneric.getStyleWide`/`getStyleHuge`) and would otherwise resize the cell behind
+ * this function's back, and the grid's default `align-items: stretch` would blow the root up to
+ * the row height — defeating a root `aspect-ratio` and dropping anything anchored to the root's
+ * bottom edge below the visible tile. Edit mode always wraps (`SortableItem`); the play-mode
+ * branches below must do the same.
+ */
 function getGridColumn(
     item: OrderedItem,
     widgetSettings: Record<string, WidgetSettingsBase>,
@@ -768,15 +779,18 @@ function SortableGrid(props: {
             >
                 {mapWithCategoryRows(orderedItems, category.categoryGridColumns, (item, inRow) => {
                     const gridSpan = inRow ? undefined : getGridColumn(item, widgetSettings);
-                    return gridSpan ? (
+                    // A category tile sharing a row with its siblings stays a direct grid child,
+                    // so the grid stretches them all to the same height.
+                    if (inRow && item.type === 'category') {
+                        return <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>;
+                    }
+                    return (
                         <div
                             key={item.id}
-                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
+                            style={{ gridColumn: gridSpan?.gridColumn, gridRow: gridSpan?.gridRow }}
                         >
                             {renderContent(item)}
                         </div>
-                    ) : (
-                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
                     );
                 })}
             </Box>
@@ -1006,15 +1020,13 @@ function GroupSortableGrid(props: {
             >
                 {items.map(item => {
                     const gridSpan = getGridColumn(item, widgetSettings);
-                    return gridSpan ? (
+                    return (
                         <div
                             key={item.id}
-                            style={{ gridColumn: gridSpan.gridColumn, gridRow: gridSpan.gridRow }}
+                            style={{ gridColumn: gridSpan?.gridColumn, gridRow: gridSpan?.gridRow }}
                         >
                             {renderContent(item)}
                         </div>
-                    ) : (
-                        <React.Fragment key={item.id}>{renderContent(item)}</React.Fragment>
                     );
                 })}
             </Box>
