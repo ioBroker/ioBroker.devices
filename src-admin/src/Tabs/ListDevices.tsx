@@ -194,7 +194,7 @@ const prepareList = (
 
         let icon = obj.common.icon || null;
         if (icon && typeof icon === 'string' && !icon.includes('/')) {
-            icon = `'../../adapter/${(obj.obj?._id || ids[i]).split('.')[0]}/${icon}`;
+            icon = `../../adapter/${(obj.obj?._id || ids[i]).split('.')[0]}/${icon}`;
         }
 
         result.push({
@@ -1329,7 +1329,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             if (icon && !icon.includes('/')) {
                 // add adapter prefix
                 const parts = id.split('.');
-                icon = `'../../adapter/${parts[0]}/${icon}`;
+                icon = `../../adapter/${parts[0]}/${icon}`;
             }
 
             stateIds[id] = {
