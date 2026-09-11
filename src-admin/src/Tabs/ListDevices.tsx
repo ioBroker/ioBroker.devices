@@ -157,6 +157,27 @@ const UNSUPPORTED_TYPES = [Types.unknown];
 // so detecting many devices does not block the main thread (UI freeze, esp. in Safari).
 const DETECT_CHUNK = 10;
 
+/**
+ * A device that `createDevice` wrote and the user has not confirmed yet. The editor opens on the
+ * fresh device automatically, and until it is saved once, cancelling it takes the creation back.
+ */
+interface CreatedDevice {
+    channelId: string;
+    /**
+     * The channel path was unused on the server when `createDevice` started. Then everything below
+     * it was written during this creation — by `createDevice` itself, or by the editor's dialogs
+     * that write straight away (add state, import state, edit state) — and the whole subtree can go.
+     * If the path was taken (the object cache lagging behind the wizard's check), only what
+     * `createDevice` itself wrote is removed, so a foreign object never loses its children.
+     */
+    wasFree: boolean;
+    /** What `createDevice` wrote — the fallback when `wasFree` is false. */
+    stateIds: string[];
+    /** The enums `createDevice` put the channel into — the only ones it may leave when `wasFree` is false. */
+    functions: string[];
+    rooms: string[];
+}
+
 interface InternalObject {
     common: {
         name: string;
@@ -859,6 +880,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
     private editCreatedId: string | null = null;
 
+    /** Set while a just-created device waits for its first save; see `CreatedDevice`. */
+    private createdDevice: CreatedDevice | null = null;
+
     private readonly patterns: {
         [type: string]: ExternalPatternControl;
     };
@@ -1062,6 +1086,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     onHashChange = (): void => {
         const location = Router.getLocation();
         if (location.dialog === 'edit' && location.id && location.id !== this.state.editId) {
+            if (location.id !== this.createdDevice?.channelId) {
+                // Navigated to a different device — same reasoning as in `onEdit`.
+                this.createdDevice = null;
+            }
             this.setState({ editId: location.id });
         }
     };
@@ -1606,6 +1634,9 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     onEdit(editId: string, e?: React.MouseEvent<HTMLButtonElement>): void {
         e?.preventDefault();
         e?.stopPropagation();
+        // Opening a device by hand ends the creation it may still be in: from here on Cancel means
+        // "discard my edits", never "delete the device".
+        this.createdDevice = null;
         Router.doNavigate('list', 'edit', editId);
         this.setState({ editId });
     }
@@ -2938,6 +2969,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         let somethingChanged = false;
         const device = channelInfo || this.state.devices.find(({ channelId }) => channelId === this.state.editId)!;
         if (data) {
+            // Saved once — the creation is confirmed and can no longer be taken back.
+            this.createdDevice = null;
             // const device = this.state.devices[this.state.editIndex];
             const channelId = device.channelId;
 
@@ -3213,6 +3246,13 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 // update enums, name
                 this.updateEnumsForOneDevice(device);
             }
+        } else if (this.createdDevice && this.createdDevice.channelId === this.state.editId) {
+            // Cancel on a device that was created a moment ago and never saved. `handleOk` also
+            // ends up here with `null`, but only after it has passed the edited data through the
+            // branch above, which drops the note — so a saved device never reaches this.
+            const created = this.createdDevice;
+            this.createdDevice = null;
+            await this.discardCreatedDevice(created);
         }
 
         await this.setStateAsync({ editId: null });
@@ -3564,6 +3604,17 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             type: 'channel',
         };
 
+        // Note down what is written here. The editor opens on this device by itself, and its
+        // Cancel has to be able to undo the creation — see `discardCreatedDevice`. Asked before
+        // the first write, and on the server, for the same reason `removePartialCopy` does.
+        const created: CreatedDevice = {
+            channelId: options.id,
+            wasFree: await this.isPathFree(options.id),
+            stateIds: [],
+            functions: options.functions || [],
+            rooms: options.rooms || [],
+        };
+
         // create a channel
         await this.props.socket.setObject(options.id, obj);
 
@@ -3598,11 +3649,75 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 type: 'state',
             };
             await this.props.socket.setObject(`${options.id}.${state.name}`, obj);
+            created.stateIds.push(obj._id);
         }
 
         await this.setEnumsOfDevice(options.id, options.functions, options.rooms);
 
         this.editCreatedId = obj._id;
+        this.createdDevice = created;
+    }
+
+    /**
+     * Take back a device that was created but never confirmed.
+     *
+     * Creating a device writes the channel, its mandatory states and the enum memberships straight
+     * away, and only then opens the editor. Cancelling that editor used to leave all of it behind,
+     * although the user had saved nothing.
+     *
+     * The channel was free when the creation started (the wizard refuses a taken name, and
+     * `wasFree` re-checked it on the server), so everything below it belongs to this creation —
+     * including what the editor's own dialogs wrote in the meantime, which do not wait for Save
+     * (add state, import state, edit state). Hence the whole subtree is removed, the same way a
+     * folder is deleted. `deleteDevice` is deliberately not used: it enumerates a device from the
+     * detector's view, which is right for a device that has lived for a while and wrong for one
+     * whose contents were written a moment ago.
+     *
+     * Enums first, while the channel still exists. The same distinction as for the objects: a
+     * channel that was free belonged to no enum before `createDevice` put it there, so it may
+     * leave them all (empty lists make `setEnumsOfDevice` remove it everywhere). A channel that
+     * already existed may have been in rooms of its own — then only the memberships this creation
+     * added are taken back, by removing exactly those from the lists the channel is kept in.
+     *
+     * @param created The device `createDevice` wrote
+     */
+    private async discardCreatedDevice(created: CreatedDevice): Promise<void> {
+        try {
+            if (created.wasFree) {
+                await this.setEnumsOfDevice(created.channelId, [], []);
+            } else {
+                const device = this.state.devices.find(d => d.channelId === created.channelId);
+                await this.setEnumsOfDevice(
+                    created.channelId,
+                    (device?.functions || []).filter(id => !created.functions.includes(id)),
+                    (device?.rooms || []).filter(id => !created.rooms.includes(id)),
+                );
+            }
+        } catch (e) {
+            console.warn(`Cannot remove ${created.channelId} from its enums: ${e as Error}`);
+        }
+        if (created.wasFree) {
+            try {
+                await this.props.socket.delObjects(created.channelId, true);
+            } catch (e) {
+                console.warn(`Cannot delete ${created.channelId}: ${e as Error}`);
+            }
+            return;
+        }
+        // The path was already taken when the creation started, so only the objects written by
+        // `createDevice` are removed — never the children of whatever was there before.
+        for (const id of created.stateIds) {
+            try {
+                await this.props.socket.delObject(id);
+            } catch (e) {
+                console.warn(`Cannot delete ${id}: ${e as Error}`);
+            }
+        }
+        try {
+            await this.props.socket.delObject(created.channelId);
+        } catch (e) {
+            console.warn(`Cannot delete ${created.channelId}: ${e as Error}`);
+        }
     }
 
     renderAddDialog(): React.JSX.Element | null {
