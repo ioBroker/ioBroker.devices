@@ -165,10 +165,18 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
         };
     }
 
-    onClose(): void {
+    /**
+     * The dialog edits a list of rows, the caller hands in and expects a map — this is the single
+     * place that converts back, so the OK button can compare like with like.
+     */
+    private toStates(): { [value: string]: string } {
         const result: { [value: string]: string } = {};
         this.state.states.forEach(item => (result[item.value] = item.label));
-        this.props.onClose(result);
+        return result;
+    }
+
+    onClose(): void {
+        this.props.onClose(this.toStates());
     }
 
     onDelete = (i: number): void => {
@@ -191,9 +199,10 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
     onSortEnd = (props: { oldIndex: number; newIndex: number }): void => {
         const { oldIndex, newIndex } = props;
         const states: { label: string; value: string }[] = JSON.parse(JSON.stringify(this.state.states));
-        const item = states[oldIndex];
-        states[oldIndex] = states[newIndex];
-        states[newIndex] = item;
+        // Move the row to its new place instead of trading it with whatever sits there: dragging
+        // across several rows would otherwise shuffle the ones in between.
+        const [item] = states.splice(oldIndex, 1);
+        states.splice(newIndex, 0, item);
         this.setState({ states });
     };
 
@@ -213,20 +222,24 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
                         size="small"
                         style={{ marginBottom: 10 }}
                         onClick={() => {
-                            const states = JSON.parse(JSON.stringify(this.state.states));
-                            // find max value
-                            let max = states.length ? parseFloat(states[0].value) : 0;
-                            for (let i = 1; i < states.length; i++) {
-                                const val = parseFloat(states[i].value);
-                                if (val > max) {
+                            const states: { label: string; value: string }[] = JSON.parse(
+                                JSON.stringify(this.state.states),
+                            );
+                            // Continue the numbering after the highest value there is. The values
+                            // may well be plain text — a thermostat's modes, for instance — and
+                            // then there is nothing to count on: starting from `states[0]` made
+                            // `max` NaN, every later comparison false, and the new row arrived as
+                            // {value: NaN, label: 'NaN'}. Values that are not numbers are skipped
+                            // instead, and the value is written as the string the type asks for.
+                            let max = -1;
+                            for (const state of states) {
+                                const val = parseFloat(state.value);
+                                if (!isNaN(val) && val > max) {
                                     max = val;
                                 }
                             }
-                            if (states.length) {
-                                states.push({ value: max + 1, label: (max + 1).toString() });
-                            } else {
-                                states.push({ value: 0, label: '0' });
-                            }
+                            const next = (max + 1).toString();
+                            states.push({ value: next, label: next });
                             this.setState({ states });
                         }}
                     >
@@ -255,7 +268,8 @@ class DialogEditStates extends React.Component<DialogEditStatesProps, DialogEdit
                     <Button
                         variant="contained"
                         disabled={
-                            JSON.stringify(this.props.states) === JSON.stringify(this.state.states) || this.state.error
+                            JSON.stringify(this.props.states || {}) === JSON.stringify(this.toStates()) ||
+                            this.state.error
                         }
                         onClick={() => this.onClose()}
                         color="primary"
