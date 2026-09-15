@@ -308,7 +308,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
 
         if (expanded === null) {
             expanded = [];
-            listItems.forEach(item => item.parent && expanded!.includes(item.parent) && expanded!.push(item.parent));
+            listItems.forEach(item => item.parent && !expanded!.includes(item.parent) && expanded!.push(item.parent));
         }
 
         this.state = {
