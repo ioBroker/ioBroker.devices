@@ -1231,8 +1231,13 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         this.funcEnums = this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         this.roomsEnums = this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
 
-        // find channelID for every device
-        devices.map(device => this.updateEnumsForOneDevice(device, this.funcEnums, this.roomsEnums));
+        // Find the channelID for every device, and drop the ones that have none: a single
+        // undescribable device must not cost the whole list (see updateEnumsForOneDevice).
+        for (let d = devices.length - 1; d >= 0; d--) {
+            if (!this.updateEnumsForOneDevice(devices[d], this.funcEnums, this.roomsEnums)) {
+                devices.splice(d, 1);
+            }
+        }
 
         const listItems = this.onObjectsGenerate(
             this.objects || {},
@@ -1440,37 +1445,56 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         return prepareList(stateIds, null, objects);
     };
 
-    updateEnumsForOneDevice(device: PatternControlEx, funcEnums?: string[] | null, roomsEnums?: string[] | null): void {
+    /**
+     * Fill in the channel id, enums, name and icon of one detected device.
+     *
+     * @param device Detected device
+     * @param funcEnums Function enum ids; read from `enumIDs` when not passed
+     * @param roomsEnums Room enum ids; read from `enumIDs` when not passed
+     * @returns whether the device could be described. Everything below the channel — enums, name,
+     * icon — is derived from the mandatory state, so a device without one cannot be listed and the
+     * caller drops it.
+     */
+    updateEnumsForOneDevice(
+        device: PatternControlEx,
+        funcEnums?: string[] | null,
+        roomsEnums?: string[] | null,
+    ): boolean {
         funcEnums ||= this.enumIDs.filter(id => id.startsWith('enum.functions.'));
         roomsEnums ||= this.enumIDs.filter(id => id.startsWith('enum.rooms.'));
         if (!device) {
-            return;
+            return false;
         }
         const mainStateId = findMainStateId(device);
-
-        if (mainStateId) {
-            const statesCount = device.states.filter(state => state.id).length;
-            let channelId = mainStateId;
-            if (
-                mainStateId.includes('.') &&
-                (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))
-            ) {
-                channelId = getParentId(mainStateId);
-                if (
-                    !this.objects[channelId]?.common ||
-                    (this.objects[channelId].type !== 'channel' &&
-                        this.objects[channelId].type !== 'device' &&
-                        this.objects[channelId].type !== 'folder')
-                ) {
-                    channelId = mainStateId;
-                }
-            }
-
-            device.channelId = channelId;
-        } else {
-            // Should never happen!!
-            throw new Error(`Device without main state: ${JSON.stringify(device)}`);
+        if (!mainStateId) {
+            // Reachable: `chart` is the one type-detector pattern that declares no mandatory state
+            // at all, so an echarts object that is a member of a room or function is detected and
+            // arrives here. Throwing aborted the whole list rebuild before `loading` was cleared,
+            // and `onObjectChanged` returns early while `loading` is set, so nothing retried: the
+            // devices tab stayed on its loading spinner for good — including every device already
+            // processed. The backend twin `resolveChannelId` (src/lib/WidgetsManagement.ts) skips
+            // such a device instead, and this now does the same.
+            return false;
         }
+
+        const statesCount = device.states.filter(state => state.id).length;
+        let channelId = mainStateId;
+        if (
+            mainStateId.includes('.') &&
+            (statesCount > 1 || channelId.startsWith(ALIAS) || channelId.startsWith(LINKEDDEVICES))
+        ) {
+            channelId = getParentId(mainStateId);
+            if (
+                !this.objects[channelId]?.common ||
+                (this.objects[channelId].type !== 'channel' &&
+                    this.objects[channelId].type !== 'device' &&
+                    this.objects[channelId].type !== 'folder')
+            ) {
+                channelId = mainStateId;
+            }
+        }
+
+        device.channelId = channelId;
 
         const functions = funcEnums.filter(id => {
             const obj = this.objects[id];
@@ -1519,6 +1543,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             }
         }
         // all new created or modified objects will be reported to onObjectChange and there is no need to update
+        return true;
     }
 
     searchIcon = (channelId: string): string | null => {
