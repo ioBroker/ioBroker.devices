@@ -719,6 +719,22 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         }, 100);
     }
 
+    /**
+     * The adapter is shutting down.
+     *
+     * The base class has nothing to tear down, but the debounce timer above does outlive an
+     * unload: its callback talks to the GUI through an adapter that is already gone. Under
+     * `common.mode: daemon` the process ends anyway, but this adapter also runs in compact mode,
+     * where it does not.
+     */
+    public override destroy(): void {
+        if (this.notifyTimeout) {
+            clearTimeout(this.notifyTimeout);
+            this.notifyTimeout = null;
+        }
+        super.destroy();
+    }
+
     // ── Object change (incremental) ───────────────────────────────────
 
     public objectChange(id: string, obj: ioBroker.Object | null | undefined): void {
