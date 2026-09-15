@@ -140,7 +140,7 @@ const styles: Record<string, any> = {
         display: 'flex',
         flexDirection: 'column',
         background: '#00000057',
-        m: '10üx',
+        m: '10px',
         p: '4px',
         borderRadius: '4px',
         mb: '10px',
@@ -510,11 +510,16 @@ export default function DialogImporter(props: {
                     if (!objects[newId]) {
                         const newObjFolder = objects[device.rooms[0]];
                         await addNewFolder(
-                            {
-                                objName: newObjFolder.common.name,
-                                color: newObjFolder.common.color,
-                                icon: newObjFolder.common.icon,
-                            },
+                            newObjFolder?.common
+                                ? {
+                                      objName: newObjFolder.common.name,
+                                      color: newObjFolder.common.color,
+                                      icon: newObjFolder.common.icon,
+                                  }
+                                : // The enum is read from the local object cache and may be
+                                  // missing there; the folder is still created, named after the
+                                  // id it is about to get.
+                                  { name: getLastPart(newId) },
                             newId,
                         );
                         await addDevice(newId, el);
@@ -527,11 +532,16 @@ export default function DialogImporter(props: {
                     if (!objects[newId]) {
                         const newObjFolder = objects[device.functions[0]];
                         await addNewFolder(
-                            {
-                                objName: newObjFolder.common.name,
-                                color: newObjFolder.common.color,
-                                icon: newObjFolder.common.icon,
-                            },
+                            newObjFolder?.common
+                                ? {
+                                      objName: newObjFolder.common.name,
+                                      color: newObjFolder.common.color,
+                                      icon: newObjFolder.common.icon,
+                                  }
+                                : // The enum is read from the local object cache and may be
+                                  // missing there; the folder is still created, named after the
+                                  // id it is about to get.
+                                  { name: getLastPart(newId) },
                             newId,
                         );
                         await addDevice(newId, el);
