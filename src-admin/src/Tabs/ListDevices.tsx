@@ -159,7 +159,9 @@ const DETECT_CHUNK = 10;
 
 /**
  * A device that `createDevice` wrote and the user has not confirmed yet. The editor opens on the
- * fresh device automatically, and until it is saved once, cancelling it takes the creation back.
+ * fresh device automatically as the second step of the wizard: Save is enabled right away and
+ * confirms the creation as it is, Cancel takes it back. Only that automatic opening keeps the
+ * note — opening the device any other way, saving it once, or navigating elsewhere drops it.
  */
 interface CreatedDevice {
     channelId: string;
@@ -883,6 +885,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     /** Set while a just-created device waits for its first save; see `CreatedDevice`. */
     private createdDevice: CreatedDevice | null = null;
 
+    /**
+     * The device the list is about to open by itself after `createDevice` — the only opening that
+     * keeps `createdDevice` armed. Set right before the navigation and consumed by `onHashChange`.
+     */
+    private autoOpenId: string | null = null;
+
     private readonly patterns: {
         [type: string]: ExternalPatternControl;
     };
@@ -1086,10 +1094,13 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     onHashChange = (): void => {
         const location = Router.getLocation();
         if (location.dialog === 'edit' && location.id && location.id !== this.state.editId) {
-            if (location.id !== this.createdDevice?.channelId) {
-                // Navigated to a different device — same reasoning as in `onEdit`.
+            if (location.id !== this.autoOpenId) {
+                // Any opening other than the automatic one after `createDevice` — another device,
+                // or the fresh one reached later through the URL — ends the creation the same way
+                // `onEdit` does: from here on Cancel discards edits, never the device.
                 this.createdDevice = null;
             }
+            this.autoOpenId = null;
             this.setState({ editId: location.id });
         }
     };
@@ -1296,6 +1307,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
             this.editCreatedId = null;
+            // The one opening that keeps the creation undoable — see `onHashChange`.
+            this.autoOpenId = id;
             Router.doNavigate('list', 'edit', id);
         }
     };
@@ -3387,6 +3400,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 channelId={device.channelId}
                 type={device.type}
                 channelInfo={device}
+                isNew={this.createdDevice?.channelId === device.channelId}
                 objects={this.objects}
                 patterns={this.patterns}
                 theme={this.props.theme}
