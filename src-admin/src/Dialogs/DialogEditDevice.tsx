@@ -376,6 +376,14 @@ interface DialogEditDeviceProps {
     ) => Promise<void>;
     onSaveProperties: (properties: DialogEditPropertiesState, channelInfo: PatternControlEx) => Promise<void>;
     onCopyDevice: (id: string, newChannelId: string, functions?: string[], rooms?: string[]) => Promise<void>;
+    /**
+     * The device was created a moment ago and has not been saved yet. The editor is then the second
+     * step of the wizard: Save confirms the creation as it is, so it is enabled even before anything
+     * was changed, and the other button reads Cancel and takes the creation back (see
+     * `ListDevices.discardCreatedDevice`). Without this flag an untouched fresh device only offered
+     * a disabled Save and a "Close" button that would have discarded it.
+     */
+    isNew?: boolean;
 }
 
 interface DialogEditDeviceState {
@@ -2238,13 +2246,15 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
     }
 
     render(): React.JSX.Element {
+        const nothingChanged =
+            JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) &&
+            JSON.stringify(this.state.states) === this.state.statesInit &&
+            JSON.stringify(this.fx) === this.state.fxInit &&
+            JSON.stringify(this.state.ids) === this.state.idsInit;
+        // A fresh device may be confirmed as it is (`isNew`); validation and a running save still
+        // disable the button.
         const okDisabled =
-            (JSON.stringify(this.state.initChangeProperties) === JSON.stringify(this.state.changeProperties) &&
-                JSON.stringify(this.state.states) === this.state.statesInit &&
-                JSON.stringify(this.fx) === this.state.fxInit &&
-                JSON.stringify(this.state.ids) === this.state.idsInit) ||
-            this.state.disabledButton ||
-            this.state.startTheProcess;
+            (nothingChanged && !this.props.isNew) || this.state.disabledButton || this.state.startTheProcess;
 
         return (
             <Dialog
