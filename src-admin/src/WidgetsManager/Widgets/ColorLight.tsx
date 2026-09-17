@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Slider, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
+import { Box, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
 import { LightbulbOutlined } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
@@ -12,6 +12,8 @@ import WidgetGeneric, {
 } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
 import ColorLightDialog from './ColorLightDialog';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for ColorLight widget */
@@ -56,10 +58,9 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     protected readonly cieId: string | null; // CIE xy string
 
     private arcRef = React.createRef<HTMLDivElement>();
-    private dragStartPos: { x: number; y: number } | null = null;
-    private isDragging = false;
+    /** Tells a drag on the arc from a finger that scrolls the page across it */
+    private readonly gesture = new TouchGestureGuard(this.arcRef);
     private longPressTimer: ReturnType<typeof setTimeout> | null = null;
-    private longPressTriggered = false;
 
     constructor(props: WidgetGenericProps<ColorLightWidgetSettings>) {
         super(props);
@@ -295,7 +296,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     // --- State change callbacks ---
 
     private onBrightnessChange = (_id: string, state: ioBroker.State): void => {
-        if (this.isDragging) {
+        if (this.gesture.dragging) {
             return;
         }
         const raw = Number(state.val) || 0;
@@ -428,14 +429,17 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     };
 
     private onSliderChange = (_e: Event, value: number | number[]): void => {
-        const percent = value as number;
+        this.sendBrightness(value as number);
+    };
+
+    private sendBrightness(percent: number): void {
         if (this.setId) {
             void this.setValue(this.setId, this.percentToRaw(percent));
         }
         if (this.onSetId && !this.state.isOn && percent > 0) {
             void this.setValue(this.onSetId, true);
         }
-    };
+    }
 
     // --- Dialog callbacks ---
 
@@ -502,17 +506,19 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
+        if (!this.gesture.start(e)) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        this.dragStartPos = { x: e.clientX, y: e.clientY };
-        this.isDragging = false;
-        this.longPressTriggered = false;
 
         // When power control exists (dedicated or brightness-simulated): tap = toggle, long press = dialog
         if (this.onSetId || this.setId) {
+            this.clearLongPress();
             this.longPressTimer = setTimeout(() => {
-                this.longPressTriggered = true;
-                this.dragStartPos = null;
+                this.longPressTimer = null;
+                // The dialog is open now, so the trailing pointerUp/cancel must do nothing
+                this.gesture.abort();
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     navigator.vibrate(50);
                 }
@@ -522,59 +528,48 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
+        const dragging = this.gesture.move(e);
+        if (this.gesture.moved) {
+            this.clearLongPress();
         }
-        const dx = e.clientX - this.dragStartPos.x;
-        const dy = e.clientY - this.dragStartPos.y;
-        if (!this.isDragging && Math.sqrt(dx * dx + dy * dy) > 8) {
-            this.isDragging = true;
-            this.setState({ dragging: true });
-            if (this.longPressTimer) {
-                clearTimeout(this.longPressTimer);
-                this.longPressTimer = null;
-            }
-        }
-        if (this.isDragging) {
+        if (dragging) {
             const percent = this.pointerToPercent(e.clientX, e.clientY);
-            this.setState({ brightness: percent, isOn: this.state.isOn || percent > 0 });
+            this.setState({ dragging: true, brightness: percent, isOn: this.state.isOn || percent > 0 });
         }
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
+        this.clearLongPress();
+        const gesture = this.gesture.end(e);
+        if (gesture === 'drag') {
+            this.sendBrightness(this.pointerToPercent(e.clientX, e.clientY));
+        } else if (gesture === 'tap') {
+            if (this.onSetId || this.setId) {
+                // Tap with power control — toggle on/off
+                this.toggleOnOff();
+            } else {
+                // Tap without any power control — open dialog directly
+                this.openDialog();
+            }
+        }
+        this.setState({ dragging: this.gesture.dragging });
+    };
+
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
+    private onArcPointerCancel = (e: React.PointerEvent): void => {
+        this.clearLongPress();
+        if (this.gesture.cancel(e) === 'drag') {
+            this.sendBrightness(this.state.brightness);
+        }
+        this.setState({ dragging: this.gesture.dragging });
+    };
+
+    private clearLongPress(): void {
         if (this.longPressTimer) {
             clearTimeout(this.longPressTimer);
             this.longPressTimer = null;
         }
-
-        // Long-press already opened the dialog — swallow the trailing pointerUp/cancel.
-        if (this.longPressTriggered) {
-            this.longPressTriggered = false;
-            this.dragStartPos = null;
-            this.isDragging = false;
-            this.setState({ dragging: false });
-            return;
-        }
-
-        if (this.isDragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            if (this.setId) {
-                void this.setValue(this.setId, this.percentToRaw(percent));
-            }
-            if (this.onSetId && !this.state.isOn && percent > 0) {
-                void this.setValue(this.onSetId, true);
-            }
-        } else if (this.onSetId || this.setId) {
-            // Tap with power control — toggle on/off
-            this.toggleOnOff();
-        } else {
-            // Tap without any power control — open dialog directly
-            this.openDialog();
-        }
-        this.dragStartPos = null;
-        this.isDragging = false;
-        this.setState({ dragging: false });
-    };
+    }
 
     // --- Overrides ---
 
@@ -676,7 +671,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     }}
                 />
                 {this.setId ? (
-                    <Slider
+                    <TouchSafeSlider
                         disabled={this.isReadOnly}
                         value={brightness}
                         min={0}
@@ -726,11 +721,11 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.arcRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onArcPointerDown}
                     onPointerMove={this.onArcPointerMove}
                     onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerUp}
+                    onPointerCancel={this.onArcPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -741,7 +736,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         ...this.applyTileStyles(theme, isActive),
                         padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
@@ -833,6 +828,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     title={I18n.t('wm_Long press for settings')}
                     disableTouchListener
                     enterDelay={500}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     {tile}
                 </Tooltip>

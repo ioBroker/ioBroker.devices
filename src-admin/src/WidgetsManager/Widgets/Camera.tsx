@@ -1,11 +1,12 @@
 import React from 'react';
-import { Box, Dialog, IconButton, Slider, Switch, Typography } from '@mui/material';
+import { Box, Dialog, IconButton, Switch, Typography } from '@mui/material';
 import { Close, Refresh, Videocam, VideocamOff } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import { WidgetImage, type ImageWidgetSettings, type PictureDefaults, type WidgetImageState } from './Image';
 import WidgetGeneric, { type WidgetGenericProps } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
 
 /** Boolean camera features, in the order they are offered in the dialog */
 const SWITCH_STATES: { name: string; label: string }[] = [
@@ -277,7 +278,7 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
                                 >
                                     {I18n.t('wm_PTZ')}
                                 </Typography>
-                                <Slider
+                                <TouchSafeSlider
                                     value={this.state.ptz ?? this.state.ptzMin}
                                     min={this.state.ptzMin}
                                     max={this.state.ptzMax}

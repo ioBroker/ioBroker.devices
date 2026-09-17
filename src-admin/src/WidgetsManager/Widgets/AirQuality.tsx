@@ -497,7 +497,10 @@ export class WidgetAirQuality extends WidgetGeneric<WidgetAirQualityState> {
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ...dimmed }}>
                 {this.isPoweredOff() ? (
-                    <Tooltip title={I18n.t('wm_On/Off')}>
+                    <Tooltip
+                        title={I18n.t('wm_On/Off')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <PowerSettingsNew sx={{ fontSize: variant === 'caption' ? 14 : 16, color: 'text.disabled' }} />
                     </Tooltip>
                 ) : null}

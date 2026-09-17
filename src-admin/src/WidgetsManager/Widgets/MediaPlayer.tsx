@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Dialog, IconButton, Slider, Typography } from '@mui/material';
+import { Box, Dialog, IconButton, Typography } from '@mui/material';
 import { alpha, type Theme } from '@mui/material/styles';
 import {
     PlayArrow,
@@ -16,6 +16,7 @@ import {
 import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
 
 interface WidgetMediaPlayerState extends WidgetGenericState {
     playing: boolean;
@@ -1002,7 +1003,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                     {/* Seek slider */}
                     {duration ? (
                         <Box>
-                            <Slider
+                            <TouchSafeSlider
                                 disabled={this.isReadOnly}
                                 value={elapsed}
                                 min={0}
@@ -1126,7 +1127,7 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                             </IconButton>
                             {this.volumeId ? (
                                 <>
-                                    <Slider
+                                    <TouchSafeSlider
                                         value={volume}
                                         min={0}
                                         max={100}

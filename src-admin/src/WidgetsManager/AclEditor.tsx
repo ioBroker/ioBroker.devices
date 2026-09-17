@@ -66,6 +66,7 @@ function LevelSelect(props: { value?: AclLevel; onChange: (level: AclLevel) => v
                 <Tooltip
                     key={level.value}
                     title={I18n.t(level.label)}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <ToggleButton value={level.value}>{level.icon}</ToggleButton>
                 </Tooltip>
@@ -152,7 +153,10 @@ export default function AclEditor(props: AclEditorProps): React.JSX.Element {
                     value={acl?.default}
                     onChange={level => onChange(compact({ ...acl, default: level }))}
                 />
-                <Tooltip title={I18n.t('wm_acl_inherit')}>
+                <Tooltip
+                    title={I18n.t('wm_acl_inherit')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <span>
                         <IconButton
                             size="small"

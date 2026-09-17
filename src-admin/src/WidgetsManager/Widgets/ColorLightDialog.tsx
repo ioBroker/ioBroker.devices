@@ -5,7 +5,6 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    Slider,
     Switch as MuiSwitch,
     ToggleButton,
     ToggleButtonGroup,
@@ -15,6 +14,7 @@ import { Close, Palette, Thermostat } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb } from './colorUtils';
+import TouchSafeSlider from './TouchSafeSlider';
 
 export interface ColorLightDialogProps {
     open: boolean;
@@ -217,7 +217,7 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                         >
                             {I18n.t('wm_Hue')}
                         </Typography>
-                        <Slider
+                        <TouchSafeSlider
                             value={hue}
                             min={0}
                             max={360}
@@ -246,7 +246,7 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                         >
                             {I18n.t('wm_Saturation')}
                         </Typography>
-                        <Slider
+                        <TouchSafeSlider
                             value={sat}
                             min={0}
                             max={100}
@@ -283,7 +283,7 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                                 {Math.round(brightness)}%
                             </Typography>
                         </Box>
-                        <Slider
+                        <TouchSafeSlider
                             value={brightness}
                             min={0}
                             max={100}
@@ -308,7 +308,7 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                         >
                             {I18n.t('wm_Color temperature')}
                         </Typography>
-                        <Slider
+                        <TouchSafeSlider
                             value={ctValue}
                             min={ctMin}
                             max={ctMax}

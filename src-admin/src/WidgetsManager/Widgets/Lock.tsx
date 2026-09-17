@@ -252,7 +252,10 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
                     </Box>
                 ) : null}
                 {doorOpen != null ? (
-                    <Tooltip title={doorOpen ? I18n.t('wm_Open') : I18n.t('wm_Closed')}>
+                    <Tooltip
+                        title={doorOpen ? I18n.t('wm_Open') : I18n.t('wm_Closed')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <SensorDoor
                             sx={theme => ({
                                 position: 'absolute',
@@ -339,7 +342,10 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
                     </IconButton>
                 ) : null}
                 {doorOpen != null ? (
-                    <Tooltip title={doorOpen ? I18n.t('wm_Open') : I18n.t('wm_Closed')}>
+                    <Tooltip
+                        title={doorOpen ? I18n.t('wm_Open') : I18n.t('wm_Closed')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <SensorDoor
                             sx={theme => ({
                                 fontSize: 20,
@@ -362,7 +368,10 @@ export class WidgetLock extends WidgetGeneric<WidgetLockState, LockWidgetSetting
         return (
             <Box sx={{ position: 'relative' }}>
                 {base}
-                <Tooltip title={I18n.t('wm_Open door')}>
+                <Tooltip
+                    title={I18n.t('wm_Open door')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <IconButton
                         onClick={e => {
                             e.stopPropagation();

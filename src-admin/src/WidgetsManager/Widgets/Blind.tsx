@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import {
     KeyboardArrowDown,
     KeyboardArrowUp,
@@ -17,6 +17,8 @@ import WidgetGeneric, {
     type WidgetGenericSettings,
 } from './Generic';
 import { ICON_BLINDS, ICON_CURTAINS } from './configIcons';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Blind widget */
@@ -320,9 +322,10 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     private readonly tiltCloseId: string | null;
 
     private tileRef = React.createRef<HTMLDivElement>();
-    private dragStartPos: { x: number; y: number } | null = null;
+    /** Tells a drag on the tile from a finger that scrolls the page across it */
+    private readonly gesture = new TouchGestureGuard(this.tileRef);
+    private dragStartPos = { x: 0, y: 0 };
     private dragStartPosition = 0;
-    private isDragging = false;
 
     constructor(props: WidgetGenericProps<BlindWidgetSettings>) {
         super(props);
@@ -517,7 +520,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     }
 
     onPositionChange = (_id: string, state: ioBroker.State): void => {
-        if (this.isDragging) {
+        if (this.gesture.dragging) {
             return;
         }
         const raw = Number(state.val) || 0;
@@ -624,64 +627,58 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
     // --- Vertical drag interaction ---
 
     private onPointerDown = (e: React.PointerEvent): void => {
+        // A curtain follows horizontal drags, a shutter vertical ones
+        if (!this.gesture.start(e, this.props.settings?.blindType === 'curtain' ? 'x' : 'y')) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         this.dragStartPos = { x: e.clientX, y: e.clientY };
         this.dragStartPosition = this.state.position;
-        this.isDragging = false;
     };
 
     private onPointerMove = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-
-        const isCurtain = this.props.settings?.blindType === 'curtain';
-        const d = isCurtain ? e.clientX - this.dragStartPos.x : e.clientY - this.dragStartPos.y;
-        const dist = Math.abs(d);
-
-        if (!this.isDragging && dist > 8) {
-            this.isDragging = true;
-            this.setState({ dragging: true });
-        }
-
-        if (this.isDragging) {
-            const el = this.tileRef.current;
-            const rect = el?.getBoundingClientRect();
-            const span = isCurtain ? rect?.width || 150 : rect?.height || 150;
-            // Curtain: drag right = open; Shutter: drag up = open
-            const delta = ((isCurtain ? d : -d) / span) * 100;
-            const percent = Math.max(0, Math.min(100, Math.round(this.dragStartPosition + delta)));
-            this.setState({ position: percent });
+        if (this.gesture.move(e)) {
+            this.setState({ dragging: true, position: this.dragPercent(e) });
         }
     };
 
     private onPointerUp = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-
-        if (this.isDragging) {
-            const isCurtain = this.props.settings?.blindType === 'curtain';
-            const el = this.tileRef.current;
-            const rect = el?.getBoundingClientRect();
-            const span = isCurtain ? rect?.width || 150 : rect?.height || 150;
-            const d = isCurtain ? e.clientX - this.dragStartPos.x : e.clientY - this.dragStartPos.y;
-            const delta = ((isCurtain ? d : -d) / span) * 100;
-            const percent = Math.max(0, Math.min(100, Math.round(this.dragStartPosition + delta)));
-            if (this.setId) {
-                this.lastCommand = percent > this.state.position ? 'open' : 'close';
-                this.setTargetPosition(percent);
-                void this.setValue(this.setId, this.percentToRaw(percent));
-            }
-        } else {
+        const gesture = this.gesture.end(e);
+        if (gesture === 'drag') {
+            this.commitDrag(this.dragPercent(e));
+        } else if (gesture === 'tap') {
             this.onTap();
         }
-
-        this.dragStartPos = null;
-        this.isDragging = false;
-        this.setState({ dragging: false });
+        this.setState({ dragging: this.gesture.dragging });
     };
+
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the position it reached */
+    private onPointerCancel = (e: React.PointerEvent): void => {
+        if (this.gesture.cancel(e) === 'drag') {
+            this.commitDrag(this.state.position);
+        }
+        this.setState({ dragging: this.gesture.dragging });
+    };
+
+    /** Position the running drag points to */
+    private dragPercent(e: React.PointerEvent): number {
+        const isCurtain = this.props.settings?.blindType === 'curtain';
+        const rect = this.tileRef.current?.getBoundingClientRect();
+        const span = isCurtain ? rect?.width || 150 : rect?.height || 150;
+        const d = isCurtain ? e.clientX - this.dragStartPos.x : e.clientY - this.dragStartPos.y;
+        // Curtain: drag right = open; Shutter: drag up = open
+        const delta = ((isCurtain ? d : -d) / span) * 100;
+        return Math.max(0, Math.min(100, Math.round(this.dragStartPosition + delta)));
+    }
+
+    private commitDrag(percent: number): void {
+        if (this.setId) {
+            this.lastCommand = percent > this.state.position ? 'open' : 'close';
+            this.setTargetPosition(percent);
+            void this.setValue(this.setId, this.percentToRaw(percent));
+        }
+    }
 
     /**
      * Tap on the tile.
@@ -777,7 +774,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {/* Position slider */}
-                <Slider
+                <TouchSafeSlider
                     disabled={this.isReadOnly}
                     value={targetPosition ?? position}
                     min={0}
@@ -794,10 +791,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                 />
                 {/* Tilt slider */}
                 {this.tiltSetId && tiltPosition != null ? (
-                    <Tooltip title={I18n.t('wm_Tilted')}>
+                    <Tooltip
+                        title={I18n.t('wm_Tilted')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                             <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Slider
+                            <TouchSafeSlider
                                 disabled={this.isReadOnly}
                                 value={this.clampTilt(tiltPosition)}
                                 min={this.state.tiltMin}
@@ -899,11 +899,11 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.tileRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onPointerDown}
                     onPointerMove={this.onPointerMove}
                     onPointerUp={this.onPointerUp}
-                    onPointerCancel={this.onPointerUp}
+                    onPointerCancel={this.onPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -914,7 +914,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: this.props.settings?.blindType === 'curtain' ? 'ew-resize' : 'ns-resize',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),

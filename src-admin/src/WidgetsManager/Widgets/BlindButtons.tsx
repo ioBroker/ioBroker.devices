@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, ButtonBase, IconButton, Slider, Tooltip, Typography, type Theme } from '@mui/material';
+import { Box, ButtonBase, IconButton, Tooltip, Typography, type Theme } from '@mui/material';
 import {
     KeyboardArrowDown,
     KeyboardArrowUp,
@@ -11,6 +11,7 @@ import {
 import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
 
 interface WidgetBlindButtonsState extends WidgetGenericState {
     /** Direction: 0 = none, 1 = up/open, 2 = down/close */
@@ -252,10 +253,13 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {this.tiltSetId && tiltPosition != null ? (
-                    <Tooltip title={I18n.t('wm_Tilt')}>
+                    <Tooltip
+                        title={I18n.t('wm_Tilt')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                             <SwapVert sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Slider
+                            <TouchSafeSlider
                                 disabled={this.isReadOnly}
                                 value={this.clampTilt(tiltPosition)}
                                 min={this.state.tiltMin}
@@ -454,7 +458,7 @@ export class WidgetBlindButtons extends WidgetGeneric<WidgetBlindButtonsState> {
                     {showTiltSlider ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5 }}>
                             <SwapVert sx={{ fontSize: 'max(12px, 7cqi)', color: 'text.secondary', flexShrink: 0 }} />
-                            <Slider
+                            <TouchSafeSlider
                                 disabled={this.isReadOnly}
                                 value={this.clampTilt(tiltPosition)}
                                 min={this.state.tiltMin}

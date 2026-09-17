@@ -5,7 +5,38 @@
  *
  **/
 const { deleteFoldersRecursive, buildReact, npmInstall, copyFiles, patchHtmlFile } = require('@iobroker/build-tools');
-const { copyFileSync, existsSync, unlinkSync } = require('node:fs');
+const { copyFileSync, existsSync, unlinkSync, readFileSync, writeFileSync } = require('node:fs');
+
+/**
+ * Take over the version from the root package.json into package.json (and package-lock.json) of the given GUI project
+ *
+ * @param {string} dir project directory, e.g. src-admin
+ */
+function syncVersion(dir) {
+    const { version } = JSON.parse(readFileSync(`${__dirname}/package.json`, 'utf8'));
+
+    for (const file of ['package.json', 'package-lock.json']) {
+        const fileName = `${__dirname}/${dir}/${file}`;
+        if (!existsSync(fileName)) {
+            continue;
+        }
+        const pack = JSON.parse(readFileSync(fileName, 'utf8'));
+        let changed = false;
+        if (pack.version !== version) {
+            pack.version = version;
+            changed = true;
+        }
+        // package-lock.json stores the version of the root project a second time
+        if (pack.packages?.['']?.version && pack.packages[''].version !== version) {
+            pack.packages[''].version = version;
+            changed = true;
+        }
+        if (changed) {
+            writeFileSync(fileName, `${JSON.stringify(pack, null, 4)}\n`);
+            console.log(`Version in ${dir}/${file} set to ${version}`);
+        }
+    }
+}
 
 async function copyAllFilesAdmin() {
     copyFiles(
@@ -53,6 +84,7 @@ if (process.argv.includes('--0-clean')) {
         });
     }
 } else if (process.argv.includes('--2-build')) {
+    syncVersion('src-admin');
     buildReact(`${__dirname}/src-admin`, { rootDir: `${__dirname}/src-admin`, tsc: true, vite: true }).catch(e => {
         console.error(`Cannot build: ${e}`);
         process.exit(2);
@@ -72,6 +104,7 @@ if (process.argv.includes('--0-clean')) {
         });
     }
 } else if (process.argv.includes('--2-build-www')) {
+    syncVersion('src-www');
     buildReact(`${__dirname}/src-www`, { rootDir: `${__dirname}/src-www`, tsc: true, vite: true }).catch(e => {
         console.error(`Cannot build: ${e}`);
         process.exit(2);
@@ -82,18 +115,22 @@ if (process.argv.includes('--0-clean')) {
         process.exit(2);
     });
 } else if (process.argv.includes('--build-www')) {
-    cleanAdmin();
+    cleanWww();
+    syncVersion('src-www');
     npmInstall(`${__dirname}/src-www`)
         .then(() => buildReact(`${__dirname}/src-www`, { rootDir: `${__dirname}/src-www`, tsc: true, vite: true }))
         .then(() => copyAllFilesWww());
 } else if (process.argv.includes('--build-admin')) {
     cleanAdmin();
+    syncVersion('src-admin');
     npmInstall(`${__dirname}/src-admin`)
         .then(() => buildReact(`${__dirname}/src-admin`, { rootDir: `${__dirname}/src-admin`, tsc: true, vite: true }))
         .then(() => copyAllFilesAdmin());
 } else {
     cleanAdmin();
     cleanWww();
+    syncVersion('src-admin');
+    syncVersion('src-www');
     npmInstall(`${__dirname}/src-admin`)
         .then(() => npmInstall(`${__dirname}/src-www`))
         .then(() => buildReact(`${__dirname}/src-admin`, { rootDir: `${__dirname}/src-admin`, tsc: true, vite: true }))

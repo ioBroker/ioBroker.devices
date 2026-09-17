@@ -1930,6 +1930,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="unreach"
                     title={I18n.t('wm_Unreachable')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <WifiOff sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -1942,6 +1943,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="connected"
                     title={I18n.t('wm_Disconnected')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <LinkOff sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -1954,6 +1956,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="error"
                     title={indicators.error}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <ErrorIcon sx={{ fontSize: sz, color: 'error.main' }} />
                 </Tooltip>,
@@ -1966,6 +1969,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="lowbat"
                     title={I18n.t('wm_Low battery')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <BatteryAlert sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
@@ -1991,6 +1995,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="battery"
                     title={`${I18n.t('wm_Battery')}: ${pct}%`}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     {batteryIcon}
                 </Tooltip>,
@@ -2006,6 +2011,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key={key}
                     title={I18n.t(label)}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <IndicatorIcon sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
@@ -2028,6 +2034,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="rssi"
                     title={`${I18n.t('wm_Signal strength')}: ${dbm} dBm`}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     {signalIcon}
                 </Tooltip>,
@@ -2040,6 +2047,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="maintain"
                     title={I18n.t('wm_Maintenance')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <Build sx={{ fontSize: sz, color: 'warning.main' }} />
                 </Tooltip>,
@@ -2054,6 +2062,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="direction"
                     title={I18n.t('wm_Up / Open')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <ArrowUpward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
@@ -2063,6 +2072,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="direction"
                     title={I18n.t('wm_Down / Close')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <ArrowDownward sx={{ fontSize: sz, color: 'info.main' }} />
                 </Tooltip>,
@@ -2075,6 +2085,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="working"
                     title={I18n.t('wm_Working')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <Sync
                         sx={{
@@ -2098,6 +2109,7 @@ export class WidgetGeneric<
                 <Tooltip
                     key="readOnly"
                     title={I18n.t('wm_acl_read_only')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <Lock sx={{ fontSize: INDICATOR_ICON_SIZE, color: 'text.disabled' }} />
                 </Tooltip>,
@@ -2154,7 +2166,14 @@ export class WidgetGeneric<
                   ? I18n.t('wm_Trend falling')
                   : I18n.t('wm_Trend stable');
 
-        return <Tooltip title={`${label} (${minutes} min)`}>{icon}</Tooltip>;
+        return (
+            <Tooltip
+                title={`${label} (${minutes} min)`}
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+            >
+                {icon}
+            </Tooltip>
+        );
     }
 
     // --- Chart ---
@@ -2551,6 +2570,7 @@ export class WidgetGeneric<
                 title={`${periodLabel}: ${I18n.t('wm_Minimum')} ${format(minMax.min)} (${time(minMax.minTs)}), ${I18n.t(
                     'wm_Maximum',
                 )} ${format(minMax.max)} (${time(minMax.maxTs)})`}
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <Box
                     sx={{

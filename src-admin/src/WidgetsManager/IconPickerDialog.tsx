@@ -212,6 +212,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                                                     <Tooltip
                                                         key={icon.id}
                                                         title={icon.label}
+                                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                                     >
                                                         <Box
                                                             onClick={() => handlePredefinedSelect(icon)}
@@ -264,6 +265,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                                                 <Tooltip
                                                     key={`${icon.adapter}_${icon.id}`}
                                                     title={icon.label}
+                                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                                 >
                                                     <Box
                                                         onClick={() => onSelect(icon.icon)}

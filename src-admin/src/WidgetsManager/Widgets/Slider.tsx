@@ -7,7 +7,6 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    Slider as MuiSlider,
     SvgIcon,
     Typography,
 } from '@mui/material';
@@ -22,6 +21,8 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import { ICON_TUNE, ICON_VALVE, ICON_AIR, ICON_SPEED } from './configIcons';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
@@ -100,8 +101,8 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     private readonly actualId: string | null;
 
     private arcRef = React.createRef<HTMLDivElement>();
-    private dragStartPos: { x: number; y: number } | null = null;
-    private isDragging = false;
+    /** Tells a drag on the tile from a finger that scrolls the page across it */
+    private readonly gesture = new TouchGestureGuard(this.arcRef);
     /** true when the valve vertical fill bar is shown (compact); false when arc knob is used */
     private verticalDragMode = false;
 
@@ -296,7 +297,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         this.lastConfirmedRaw = rawValue;
         // While dragging, while a delayed write is still pending, or while the confirmation dialog is
         // open, keep showing the user's chosen value instead of snapping back to the not-yet-written one.
-        if (this.isDragging || this.confirmTimer || this.state.confirmDialogOpen) {
+        if (this.gesture.dragging || this.confirmTimer || this.state.confirmDialogOpen) {
             return;
         }
         const level = this.rawToPercent(rawValue);
@@ -454,39 +455,36 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
+        // The valve bar reads the height only, so a touch moving sideways across it is no drag
+        if (!this.gesture.start(e, this.verticalDragMode ? 'y' : 'both')) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        this.dragStartPos = { x: e.clientX, y: e.clientY };
-        this.isDragging = false;
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
+        if (!this.gesture.move(e)) {
             return;
         }
-        const dx = e.clientX - this.dragStartPos.x;
-        const dy = e.clientY - this.dragStartPos.y;
-        if (!this.isDragging && Math.sqrt(dx * dx + dy * dy) > 8) {
-            this.isDragging = true;
-            this.setState({ dragging: true });
-        }
-        if (this.isDragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            this.setState({ level: percent, rawValue: this.percentToRaw(percent) });
-        }
+        const percent = this.pointerToPercent(e.clientX, e.clientY);
+        this.setState({ dragging: true, level: percent, rawValue: this.percentToRaw(percent) });
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-        if (this.isDragging) {
+        if (this.gesture.end(e) === 'drag') {
             const percent = this.pointerToPercent(e.clientX, e.clientY);
             this.writeValue(this.percentToRaw(percent));
         }
-        this.dragStartPos = null;
-        this.isDragging = false;
-        this.setState({ dragging: false });
+        this.setState({ dragging: this.gesture.dragging });
+    };
+
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
+    private onArcPointerCancel = (e: React.PointerEvent): void => {
+        if (this.gesture.cancel(e) === 'drag') {
+            this.writeValue(this.percentToRaw(this.state.level));
+        }
+        this.setState({ dragging: this.gesture.dragging });
     };
 
     // --- Slider handlers for wide modes ---
@@ -859,17 +857,17 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
 
         return (
             <Box
-                ref={this.arcRef}
+                ref={this.gesture.ref}
                 onPointerDown={this.onArcPointerDown}
                 onPointerMove={this.onArcPointerMove}
                 onPointerUp={this.onArcPointerUp}
-                onPointerCancel={this.onArcPointerUp}
+                onPointerCancel={this.onArcPointerCancel}
                 onClick={e => e.stopPropagation()}
                 sx={{
                     width: 48,
                     height: 48,
                     flexShrink: 0,
-                    touchAction: 'none',
+                    touchAction: TOUCH_ACTION,
                     userSelect: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -945,7 +943,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
         return (
             <>
                 {this.renderPowerButton()}
-                <MuiSlider
+                <TouchSafeSlider
                     value={level}
                     min={0}
                     max={100}
@@ -1011,11 +1009,11 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.arcRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onArcPointerDown}
                     onPointerMove={this.onArcPointerMove}
                     onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerUp}
+                    onPointerCancel={this.onArcPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -1026,7 +1024,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         position: 'relative',
                         ...this.applyTileStyles(theme, isActive),
@@ -1133,11 +1131,11 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.arcRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onArcPointerDown}
                     onPointerMove={this.onArcPointerMove}
                     onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerUp}
+                    onPointerCancel={this.onArcPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -1148,7 +1146,7 @@ export class WidgetSlider extends WidgetGeneric<WidgetSliderState, SliderWidgetS
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),

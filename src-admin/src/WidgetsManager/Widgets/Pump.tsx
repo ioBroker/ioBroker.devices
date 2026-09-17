@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Dialog, DialogContent, IconButton, Slider, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogContent, IconButton, Typography } from '@mui/material';
 import {
     Close,
     Compress,
@@ -19,6 +19,7 @@ import WidgetGeneric, {
     type WidgetGenericState,
 } from './Generic';
 import { clampToRange, explicitRangeFromCommon, type SetpointRange as NumericRange } from './climate';
+import TouchSafeSlider from './TouchSafeSlider';
 
 const ACCENT_COLOR = '#0288d1';
 
@@ -468,7 +469,7 @@ export class WidgetPump extends WidgetGeneric<WidgetPumpState> {
                                 {I18n.t('wm_Level')}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, ...dimmedSx }}>
-                                <Slider
+                                <TouchSafeSlider
                                     disabled={this.isReadOnly}
                                     value={level ?? levelRange.min}
                                     min={levelRange.min}

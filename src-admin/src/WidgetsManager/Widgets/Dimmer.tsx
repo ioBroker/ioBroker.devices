@@ -5,7 +5,6 @@ import {
     Dialog,
     DialogContent,
     IconButton,
-    Slider,
     Switch as MuiSwitch,
     Tooltip,
     Typography,
@@ -20,6 +19,8 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider/Dimmer/Volume widgets */
@@ -52,8 +53,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     private readonly transitionTimeId: string | null;
 
     private arcRef = React.createRef<HTMLDivElement>();
-    private dragStartPos: { x: number; y: number } | null = null;
-    private isDragging = false;
+    /** Tells a drag on the arc from a finger that scrolls the page across it */
+    private readonly gesture = new TouchGestureGuard(this.arcRef);
 
     constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
@@ -266,7 +267,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
 
     onBrightnessChange = (_id: string, state: ioBroker.State): void => {
         // Ignore backend updates while user is dragging
-        if (this.isDragging) {
+        if (this.gesture.dragging) {
             return;
         }
         const raw = Number(state.val) || 0;
@@ -288,14 +289,17 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     };
 
     setBrightness = (_e: Event, value: number | number[]): void => {
-        const percent = value as number;
+        this.sendBrightness(value as number);
+    };
+
+    private sendBrightness(percent: number): void {
         if (this.setId) {
             void this.setValue(this.setId, this.percentToRaw(percent));
         }
         if (this.onSetId && !this.state.isOn && percent > 0) {
             void this.setValue(this.onSetId, true);
         }
-    };
+    }
 
     toggleOnOff = (): void => {
         if (this.onSetId) {
@@ -351,60 +355,43 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
+        if (!this.gesture.start(e)) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-
-        this.dragStartPos = { x: e.clientX, y: e.clientY };
-        this.isDragging = false;
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
+        if (!this.gesture.move(e)) {
             return;
         }
-
-        const dx = e.clientX - this.dragStartPos.x;
-        const dy = e.clientY - this.dragStartPos.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (!this.isDragging && dist > 8) {
-            this.isDragging = true;
-            this.setState({ dragging: true });
-        }
-
-        if (this.isDragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            if (this.onActualId) {
-                // Show as active during drag if moving above 0
-                this.setState({ brightness: percent, isOn: this.state.isOn || percent > 0 });
-            } else {
-                this.setState({ brightness: percent, isOn: percent > 0 });
-            }
+        const percent = this.pointerToPercent(e.clientX, e.clientY);
+        if (this.onActualId) {
+            // Show as active during drag if moving above 0
+            this.setState({ dragging: true, brightness: percent, isOn: this.state.isOn || percent > 0 });
+        } else {
+            this.setState({ dragging: true, brightness: percent, isOn: percent > 0 });
         }
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-
-        if (this.isDragging) {
+        const gesture = this.gesture.end(e);
+        if (gesture === 'drag') {
             // Drag end — send final brightness and activate if off
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            if (this.setId) {
-                void this.setValue(this.setId, this.percentToRaw(percent));
-            }
-            if (this.onSetId && !this.state.isOn && percent > 0) {
-                void this.setValue(this.onSetId, true);
-            }
-        } else {
-            // Tap — toggle on/off
+            this.sendBrightness(this.pointerToPercent(e.clientX, e.clientY));
+        } else if (gesture === 'tap') {
             this.toggleOnOff();
         }
+        this.setState({ dragging: this.gesture.dragging });
+    };
 
-        this.dragStartPos = null;
-        this.isDragging = false;
-        this.setState({ dragging: false });
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
+    private onArcPointerCancel = (e: React.PointerEvent): void => {
+        if (this.gesture.cancel(e) === 'drag') {
+            this.sendBrightness(this.state.brightness);
+        }
+        this.setState({ dragging: this.gesture.dragging });
     };
 
     // --- Overrides ---
@@ -476,7 +463,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     {isActive ? `${Math.round(brightness)}%` : I18n.t('wm_Off')}
                 </Typography>
                 {hasEffect ? (
-                    <Tooltip title={effectLabel}>
+                    <Tooltip
+                        title={effectLabel}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <AutoFixHigh sx={{ fontSize: 12, color: accent || 'primary.main' }} />
                     </Tooltip>
                 ) : null}
@@ -497,17 +487,17 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
 
         return (
             <Box
-                ref={this.arcRef}
+                ref={this.gesture.ref}
                 onPointerDown={this.onArcPointerDown}
                 onPointerMove={this.onArcPointerMove}
                 onPointerUp={this.onArcPointerUp}
-                onPointerCancel={this.onArcPointerUp}
+                onPointerCancel={this.onArcPointerCancel}
                 onClick={e => e.stopPropagation()}
                 sx={{
                     width: 48,
                     height: 48,
                     flexShrink: 0,
-                    touchAction: 'none',
+                    touchAction: TOUCH_ACTION,
                     userSelect: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -566,7 +556,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {this.hasExtendedControls() ? (
-                    <Tooltip title={I18n.t('wm_Effect')}>
+                    <Tooltip
+                        title={I18n.t('wm_Effect')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <IconButton
                             size="small"
                             onClick={e => {
@@ -582,7 +575,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 {isRound ? (
                     this.renderArcKnob()
                 ) : (
-                    <Slider
+                    <TouchSafeSlider
                         disabled={this.isReadOnly}
                         value={brightness}
                         min={0}
@@ -703,7 +696,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                 {I18n.t('wm_Transition time')}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                                <Slider
+                                <TouchSafeSlider
                                     disabled={this.isReadOnly}
                                     value={transitionTime ?? 0}
                                     min={0}
@@ -752,11 +745,11 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.arcRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onArcPointerDown}
                     onPointerMove={this.onArcPointerMove}
                     onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerUp}
+                    onPointerCancel={this.onArcPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -767,7 +760,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),

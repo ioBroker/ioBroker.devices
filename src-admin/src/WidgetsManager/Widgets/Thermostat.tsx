@@ -6,7 +6,6 @@ import {
     Dialog,
     DialogContent,
     IconButton,
-    Slider,
     TextField,
     Tooltip,
     Typography,
@@ -40,6 +39,8 @@ import WidgetGeneric, {
 } from './Generic';
 import ClimateArc from './ClimateArc';
 import { parseCommonStates, stateKeyToValue } from './commonStates';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import {
     COOLING_COLOR,
     HEATING_COLOR,
@@ -546,36 +547,40 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         return fraction == null ? null : fractionToValue(fraction, this.state.range);
     }
 
-    /** Pointer that owns the running drag, so a second finger cannot take over its thumb */
-    private dragPointerId: number | null = null;
+    /**
+     * Tells a drag on the dial from a finger that scrolls the dialog across it. It also keeps a second
+     * finger from stealing the thumb the first one is holding.
+     */
+    private readonly gesture = new TouchGestureGuard(this.arcRef);
+    /** Setpoint the pressed spot belongs to; it only shows as dragged once the gesture is a drag */
+    private pressedTarget: SetpointKind | null = null;
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
-        // A second finger must not steal the thumb the first one is holding. An id left behind by a
-        // gesture that never ended is stale, so it does not lock the dial.
-        if (this.isDialReadOnly || (this.dragPointerId !== null && this.state.dragging)) {
+        if (this.isDialReadOnly) {
+            return;
+        }
+        const value = this.pointerToSetpoint(e);
+        const target =
+            value == null
+                ? null
+                : this.dual
+                  ? pickDragTarget(value, this.state.setHeating, this.state.setCooling)
+                  : this.singleKind;
+        if (!target || !this.gesture.start(e)) {
             return;
         }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        const value = this.pointerToSetpoint(e);
-        if (value == null) {
-            return;
-        }
-        const target = this.dual
-            ? pickDragTarget(value, this.state.setHeating, this.state.setCooling)
-            : this.singleKind;
-        if (!target) {
-            return;
-        }
-        this.dragPointerId = e.pointerId;
-        this.setState({ dragging: true, dragTarget: target });
-        this.showSetpoint(target, value);
+        this.pressedTarget = target;
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        const kind = this.state.dragTarget;
-        if (!this.state.dragging || !kind || e.pointerId !== this.dragPointerId) {
+        const kind = this.pressedTarget;
+        if (!kind || !this.gesture.move(e)) {
             return;
+        }
+        if (!this.state.dragging) {
+            this.setState({ dragging: true, dragTarget: kind });
         }
         const value = this.pointerToSetpoint(e);
         if (value != null) {
@@ -584,12 +589,23 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
-        const kind = this.state.dragTarget;
-        if (!this.state.dragging || !kind || e.pointerId !== this.dragPointerId) {
-            return;
+        const kind = this.pressedTarget;
+        // A tap sets the spot it hits, just like a drag ending there
+        if (kind && this.gesture.end(e)) {
+            this.finishDial(kind, this.pointerToSetpoint(e));
         }
-        this.dragPointerId = null;
-        const pointed = this.pointerToSetpoint(e);
+    };
+
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
+    private onArcPointerCancel = (e: React.PointerEvent): void => {
+        const kind = this.pressedTarget;
+        if (kind && this.gesture.cancel(e) === 'drag') {
+            this.finishDial(kind, this.setpointValue(kind));
+        }
+    };
+
+    private finishDial(kind: SetpointKind, pointed: number | null): void {
+        this.pressedTarget = null;
         const value =
             pointed == null
                 ? this.setpointValue(kind)
@@ -601,7 +617,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             this.showSetpoint(kind, value);
         }
         this.setState({ dragging: false, dragTarget: null });
-    };
+    }
 
     protected getHistoryIds(): { id: string; color: string }[] {
         const ids: { id: string; color: string }[] = [];
@@ -684,7 +700,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const isFloatComma = this.props.stateContext.isFloatComma;
         if (!this.dual) {
             return (
-                <Tooltip title={I18n.t('wm_Set temperature')}>
+                <Tooltip
+                    title={I18n.t('wm_Set temperature')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <Typography
                         variant={variant}
                         sx={sx}
@@ -698,7 +717,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         const dimmed = this.dimmedThumb;
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
-                <Tooltip title={I18n.t('wm_Heating setpoint')}>
+                <Tooltip
+                    title={I18n.t('wm_Heating setpoint')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <Typography
                         variant={variant}
                         sx={{ fontWeight: 700, color: HEATING_COLOR, opacity: dimmed === 'heating' ? 0.5 : 1 }}
@@ -706,7 +728,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         {WidgetThermostat.formatTemp(this.state.setHeating, isFloatComma)}
                     </Typography>
                 </Tooltip>
-                <Tooltip title={I18n.t('wm_Cooling setpoint')}>
+                <Tooltip
+                    title={I18n.t('wm_Cooling setpoint')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <Typography
                         variant={variant}
                         sx={{ fontWeight: 700, color: COOLING_COLOR, opacity: dimmed === 'cooling' ? 0.5 : 1 }}
@@ -769,7 +794,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {actualTemp != null ? (
-                        <Tooltip title={I18n.t('wm_Actual temperature')}>
+                        <Tooltip
+                            title={I18n.t('wm_Actual temperature')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <Typography
                                 variant="caption"
                                 sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.2, color: 'text.primary' }}
@@ -783,17 +811,26 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         : null}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 14, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_On/Off')}>
+                        <Tooltip
+                            title={I18n.t('wm_On/Off')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <PowerSettingsNew sx={{ fontSize: 14, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
                     {party ? (
-                        <Tooltip title={I18n.t('wm_Party')}>
+                        <Tooltip
+                            title={I18n.t('wm_Party')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <Celebration sx={{ fontSize: 14, color: '#ff9800' }} />
                         </Tooltip>
                     ) : null}
                     {modeLabel ? (
-                        <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
+                        <Tooltip
+                            title={WidgetThermostat.getModeInfo(modeLabel).displayName}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             {WidgetThermostat.renderModeIcon(modeLabel, 14)}
                         </Tooltip>
                     ) : null}
@@ -825,7 +862,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {actualTemp != null ? (
-                        <Tooltip title={I18n.t('wm_Actual temperature')}>
+                        <Tooltip
+                            title={I18n.t('wm_Actual temperature')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <Typography
                                 variant="body2"
                                 sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
@@ -837,17 +877,26 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     {this.renderSetpointText('h6', { fontWeight: 700, whiteSpace: 'nowrap' })}
                     {boost ? <LocalFireDepartment sx={{ fontSize: 18, color: '#f44336' }} /> : null}
                     {power === false ? (
-                        <Tooltip title={I18n.t('wm_On/Off')}>
+                        <Tooltip
+                            title={I18n.t('wm_On/Off')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <PowerSettingsNew sx={{ fontSize: 18, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
                     {party ? (
-                        <Tooltip title={I18n.t('wm_Party')}>
+                        <Tooltip
+                            title={I18n.t('wm_Party')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <Celebration sx={{ fontSize: 18, color: '#ff9800' }} />
                         </Tooltip>
                     ) : null}
                     {modeLabel ? (
-                        <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
+                        <Tooltip
+                            title={WidgetThermostat.getModeInfo(modeLabel).displayName}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             {WidgetThermostat.renderModeIcon(modeLabel, 18)}
                         </Tooltip>
                     ) : null}
@@ -979,7 +1028,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                 <>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, mb: 2, ...dimmedSx }}>
                         <Whatshot sx={{ color: HEATING_COLOR }} />
-                        <Slider
+                        <TouchSafeSlider
                             disabled={this.isDialReadOnly}
                             value={this.sliderPair.value}
                             min={range.min}
@@ -1017,16 +1066,16 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     >
                         <Remove />
                     </IconButton>
-                    <Slider
+                    <TouchSafeSlider
                         disabled={this.isDialReadOnly}
                         value={current ?? range.min}
                         min={range.min}
                         max={range.max}
                         step={range.step}
-                        onMouseDown={() => this.setState({ dragging: true })}
-                        onTouchStart={() => this.setState({ dragging: true })}
                         onChange={(_e, value) => {
                             if (!Array.isArray(value)) {
+                                // Not on pointerdown: a touch that turns out to scroll never reports a commit
+                                this.setState({ dragging: true });
                                 this.showSetpoint(kind, value);
                             }
                         }}
@@ -1174,11 +1223,11 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                     {/* Arc + set temp */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2, ...dimmedSx }}>
                         <Box
-                            ref={this.arcRef}
+                            ref={this.gesture.ref}
                             onPointerDown={this.onArcPointerDown}
                             onPointerMove={this.onArcPointerMove}
                             onPointerUp={this.onArcPointerUp}
-                            onPointerCancel={this.onArcPointerUp}
+                            onPointerCancel={this.onArcPointerCancel}
                             sx={{
                                 position: 'relative',
                                 width: 200,
@@ -1187,7 +1236,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                touchAction: 'none',
+                                touchAction: TOUCH_ACTION,
                                 userSelect: 'none',
                             }}
                         >
@@ -1284,7 +1333,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 </Box>
                             ) : null}
                             {workingModeLabel ? (
-                                <Tooltip title={I18n.t('wm_Working mode')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Working mode')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                         {WidgetThermostat.renderModeIcon(workingModeLabel, 18)}
                                         <Typography
@@ -1551,7 +1603,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                             {actualTemp != null && this.hasSetpoint ? (
-                                <Tooltip title={I18n.t('wm_Actual temperature')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Actual temperature')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <Typography
                                         variant="caption"
                                         sx={{ color: 'text.secondary', fontSize: 'max(0.6rem, 6cqi)' }}
@@ -1646,7 +1701,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                                 {actualTemp != null ? (
-                                    <Tooltip title={I18n.t('wm_Actual temperature')}>
+                                    <Tooltip
+                                        title={I18n.t('wm_Actual temperature')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
                                         <Typography
                                             variant="body2"
                                             sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}
@@ -1679,7 +1737,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 ) : null}
                                 {party ? <Celebration sx={{ fontSize: 16, color: '#ff9800' }} /> : null}
                                 {modeLabel ? (
-                                    <Tooltip title={WidgetThermostat.getModeInfo(modeLabel).displayName}>
+                                    <Tooltip
+                                        title={WidgetThermostat.getModeInfo(modeLabel).displayName}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
                                         {WidgetThermostat.renderModeIcon(modeLabel, 16)}
                                     </Tooltip>
                                 ) : null}

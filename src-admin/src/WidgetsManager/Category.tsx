@@ -1172,7 +1172,10 @@ function LightsGroupControl(props: {
     };
 
     return (
-        <Tooltip title={someOn ? I18n.t('wm_Turn all off') : I18n.t('wm_Turn all on')}>
+        <Tooltip
+            title={someOn ? I18n.t('wm_Turn all off') : I18n.t('wm_Turn all on')}
+            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+        >
             <IconButton
                 onClick={handleToggle}
                 size="small"
@@ -2463,7 +2466,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         {I18n.t('wm_Widget type not supported').replace('%s', typeName)}
                     </Typography>
                     {this.props.onDeleteWidgetById ? (
-                        <Tooltip title={I18n.t('wm_Delete')}>
+                        <Tooltip
+                            title={I18n.t('wm_Delete')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <IconButton
                                 size="small"
                                 color="error"
@@ -2776,6 +2782,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     <Tooltip
                         key={ic.id}
                         title={ic.name}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <Box sx={{ display: 'flex' }}>
                             {ic.src ? (
@@ -2861,7 +2868,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     </Box>
                 ) : null}
                 {status.motionActive ? (
-                    <Tooltip title={I18n.t('wm_Motion')}>
+                    <Tooltip
+                        title={I18n.t('wm_Motion')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <DirectionsRun sx={{ fontSize: 16, color: 'warning.main' }} />
                     </Tooltip>
                 ) : null}
@@ -2883,6 +2893,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 <Tooltip
                                     key={sensor.stateId}
                                     title={tooltip}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     {iconSrc ? (
                                         <Box sx={{ display: 'flex' }}>
@@ -2913,6 +2924,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         title={status.lowBatteryDevices
                             .map(d => `${d.name}${d.level != null ? `: ${d.level}%` : ''}`)
                             .join(', ')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                             <BatteryAlert sx={{ fontSize: 16, color: 'error.main' }} />
@@ -3216,7 +3228,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                     </Box>
                 ) : null}
                 {motionActive ? (
-                    <Tooltip title={I18n.t('wm_Motion')}>
+                    <Tooltip
+                        title={I18n.t('wm_Motion')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <DirectionsRun sx={{ fontSize: 20, color: 'warning.main' }} />
                     </Tooltip>
                 ) : null}
@@ -3238,6 +3253,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 <Tooltip
                                     key={sensor.stateId}
                                     title={tooltip}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     {iconSrc ? (
                                         <Box sx={{ display: 'flex' }}>
@@ -3275,6 +3291,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             <Tooltip
                                 key={dev.name}
                                 title={`${dev.name}${dev.level != null ? `: ${dev.level}%` : ''}`}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <BatteryAlert sx={{ fontSize: 20, color: 'error.main' }} />
                             </Tooltip>
@@ -3367,7 +3384,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 {!hasHeader && this.props.onToggleConfigMode ? (
                     <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 0.5 }}>
                         {supportsSidePanel && this.props.configMode && this.props.onInstallSidePanel ? (
-                            <Tooltip title={I18n.t('wm_Install as Side Panel')}>
+                            <Tooltip
+                                title={I18n.t('wm_Install as Side Panel')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            >
                                 <IconButton
                                     size="small"
                                     onClick={this.props.onInstallSidePanel}
@@ -3382,7 +3402,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         ) : null}
                         {this.props.configMode ? this.props.viewAsSelect : null}
                         {this.props.onToggleConfigMode ? (
-                            <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                            <Tooltip
+                                title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            >
                                 <IconButton
                                     size="small"
                                     onClick={this.props.onToggleConfigMode}
@@ -3518,7 +3541,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </>
                             )}
                             {this.props.onAddCustomWidget && categoryId !== '__favorites__' ? (
-                                <Tooltip title={I18n.t('wm_Add widget')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Add widget')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={() => this.props.onAddCustomWidget!(categoryId)}
@@ -3529,7 +3555,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {this.props.onToggleGrouping ? (
-                                <Tooltip title={I18n.t(isGrouped ? 'wm_Ungroup widgets' : 'wm_Group by type')}>
+                                <Tooltip
+                                    title={I18n.t(isGrouped ? 'wm_Ungroup widgets' : 'wm_Group by type')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={() => this.props.onToggleGrouping!(categoryId, this.getOrderedItems())}
@@ -3544,7 +3573,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {this.props.onOpenCategorySettings ? (
-                                <Tooltip title={I18n.t('wm_Category settings')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Category settings')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={() =>
@@ -3560,7 +3592,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {supportsSidePanel && this.props.configMode && this.props.onInstallSidePanel ? (
-                                <Tooltip title={I18n.t('wm_Install as Side Panel')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Install as Side Panel')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={this.props.onInstallSidePanel}
@@ -3575,7 +3610,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             ) : null}
                             {this.props.configMode ? this.props.viewAsSelect : null}
                             {this.props.onToggleConfigMode ? (
-                                <Tooltip title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}>
+                                <Tooltip
+                                    title={I18n.t(this.props.configMode ? 'wm_Play mode' : 'wm_Config mode')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={this.props.onToggleConfigMode}
@@ -3599,7 +3637,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 </Tooltip>
                             ) : null}
                             {this.props.onBackToDevices ? (
-                                <Tooltip title={I18n.t('wm_Back to devices')}>
+                                <Tooltip
+                                    title={I18n.t('wm_Back to devices')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={this.props.onBackToDevices}
@@ -3616,7 +3657,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                             <Box sx={{ flex: 1 }}>{this.renderCategoryStatus()}</Box>
                             {widgetGroups?.length ? (
                                 <Box sx={{ display: 'flex', ml: 'auto' }}>
-                                    <Tooltip title={I18n.t('wm_Expand all')}>
+                                    <Tooltip
+                                        title={I18n.t('wm_Expand all')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
                                         <IconButton
                                             size="small"
                                             onClick={() => {
@@ -3632,7 +3676,10 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                             <UnfoldMore sx={{ fontSize: 18 }} />
                                         </IconButton>
                                     </Tooltip>
-                                    <Tooltip title={I18n.t('wm_Collapse all')}>
+                                    <Tooltip
+                                        title={I18n.t('wm_Collapse all')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
                                         <IconButton
                                             size="small"
                                             onClick={() => {

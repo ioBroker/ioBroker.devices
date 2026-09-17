@@ -1714,8 +1714,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
         return (
             <Tooltip
-                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 title={content}
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <ButtonBase
                     focusRipple
@@ -2141,8 +2141,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 )
                             ) : (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('You can drag & drop device')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <Box
                                         style={{ background: background || undefined }}
@@ -2250,8 +2250,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         style={styles.toggleCell}
                     >
                         <Tooltip
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={I18n.t('Show device in GUI')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <Switch
                                 size="small"
@@ -2273,8 +2273,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     >
                         <div style={styles.wrapperButton}>
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Copy device')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -2285,8 +2285,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                 </IconButton>
                             </Tooltip>
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Edit states')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -2298,8 +2298,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             </Tooltip>
                             {device.channelId.startsWith(ALIAS) || device.channelId.startsWith(LINKEDDEVICES) ? (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Delete device with all states')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         style={styles.emptyBlock}
@@ -2360,8 +2360,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         {item.importer && (
                             <div style={styles.wrapperButton}>
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Importer')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         style={styles.emptyBlock}
@@ -2380,8 +2380,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             item.id !== 'alias.0.linked_devices' && (
                                 <div style={styles.wrapperButton}>
                                     <Tooltip
-                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                         title={I18n.t('Edit folder')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     >
                                         <IconButton
                                             style={styles.emptyBlock}
@@ -2393,8 +2393,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                     </Tooltip>
                                     {!countSpan ? (
                                         <Tooltip
-                                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                             title={I18n.t('Delete folder')}
+                                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                         >
                                             <IconButton
                                                 style={styles.emptyBlock}
@@ -3899,8 +3899,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             <Toolbar variant="dense">
                 <div style={styles.wrapperHeadButtons}>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t('Create new device with Aliases')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <span>
                             <IconButton
@@ -3913,8 +3913,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     </Tooltip>
                     {this.state.linkeddevices && (
                         <Tooltip
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={I18n.t('Create new device with LinkedDevices')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <IconButton onClick={() => this.setState({ showAddDialog: this.state.linkeddevices })}>
                                 <IconAdd style={{ color: colorLinkedDevices }} />
@@ -3922,8 +3922,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </Tooltip>
                     )}
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t('Refresh')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <IconButton
                             onClick={() => this.detectDevices()}
@@ -3933,8 +3933,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </IconButton>
                     </Tooltip>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t(this.state.filter.noInfo ? 'Show info devices' : 'Hide info devices')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         {/* Highlighted while the filter is active, i.e. while info devices are hidden.
                             The colour is set via `sx` (not the `color` prop) so it also reaches the
@@ -3951,8 +3951,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </IconButton>
                     </Tooltip>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={disabledButtons ? I18n.t('Create new folder in root') : I18n.t('Create new folder')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <IconButton
                             color={disabledButtons ? 'secondary' : 'primary'}
@@ -3962,8 +3962,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </IconButton>
                     </Tooltip>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t('Expand all nodes')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <IconButton
                             color="primary"
@@ -3973,8 +3973,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </IconButton>
                     </Tooltip>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t('Collapse all nodes')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <IconButton
                             color="primary"
@@ -3984,7 +3984,6 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         </IconButton>
                     </Tooltip>
                     <Tooltip
-                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         title={I18n.t(
                             this.state.splitScreen === 'off'
                                 ? 'Toggle split screen'
@@ -3992,6 +3991,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                   ? 'GUI only'
                                   : 'Close preview',
                         )}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <IconButton
                             color={this.state.splitScreen !== 'off' ? 'primary' : 'inherit'}

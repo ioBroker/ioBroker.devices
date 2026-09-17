@@ -616,6 +616,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                             <Tooltip
                                 title={cameraAvailable ? '' : I18n.t('wm_Camera requires HTTPS')}
                                 arrow
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <span style={{ flex: 1 }}>
                                     <Button
@@ -987,7 +988,10 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
                     {isRoot ? (
                         <Box sx={{ mt: 2 }}>
-                            <Tooltip title={I18n.t('wm_App icon tooltip')}>
+                            <Tooltip
+                                title={I18n.t('wm_App icon tooltip')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            >
                                 <Typography
                                     variant="body2"
                                     sx={{ mb: 1, fontWeight: 500 }}

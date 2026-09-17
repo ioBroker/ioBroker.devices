@@ -1,11 +1,12 @@
 import React from 'react';
-import { Box, Button, Dialog, DialogContent, IconButton, Slider, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogContent, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import { Air, Close, PowerSettingsNew, SwapHoriz, SwapVert } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
 import WidgetGeneric, { toNumberOrNull, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import { parseCommonStates, stateKeyToValue } from './commonStates';
 import { clampToRange, explicitRangeFromCommon, type SetpointRange as NumericRange } from './climate';
+import TouchSafeSlider from './TouchSafeSlider';
 
 /**
  * Control surface shared by `fan` and `airPurifier`: both declare the identical SPEED / POWER /
@@ -559,7 +560,10 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {poweredOff ? (
-                        <Tooltip title={I18n.t('wm_On/Off')}>
+                        <Tooltip
+                            title={I18n.t('wm_On/Off')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <PowerSettingsNew sx={{ fontSize: iconSize + 2, color: 'text.disabled' }} />
                         </Tooltip>
                     ) : null}
@@ -653,7 +657,7 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
                     </Box>
                 ) : speedRange ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, ...dimmedSx }}>
-                        <Slider
+                        <TouchSafeSlider
                             disabled={this.isReadOnly}
                             value={typeof speed === 'number' ? speed : speedRange.min}
                             min={speedRange.min}
@@ -778,7 +782,7 @@ export abstract class WidgetFanBase extends WidgetGeneric<WidgetFanBaseState> {
                                 {I18n.t('wm_Fan level')}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, ...dimmedSx }}>
-                                <Slider
+                                <TouchSafeSlider
                                     disabled={this.isReadOnly}
                                     value={speedLevel ?? speedLevelRange.min}
                                     min={speedLevelRange.min}

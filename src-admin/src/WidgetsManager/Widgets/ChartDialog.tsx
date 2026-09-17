@@ -1230,7 +1230,10 @@ function ChartDialog(props: ChartDialogProps): React.JSX.Element | null {
                         </ButtonGroup>
                     )}
                     {!isBoolean && (
-                        <Tooltip title={I18n.t('wm_Settings')}>
+                        <Tooltip
+                            title={I18n.t('wm_Settings')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <IconButton
                                 size="small"
                                 onClick={e => setSettingsAnchor(e.currentTarget)}

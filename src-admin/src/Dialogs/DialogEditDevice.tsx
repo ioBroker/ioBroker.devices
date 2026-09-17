@@ -1220,8 +1220,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 <div style={styles.menuWrapperIcons}>
                     {this.state.indicatorsVisible && this.state.indicatorsAvailable && !this.state.startTheProcess && (
                         <Tooltip
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={I18n.t('Show hide indicators')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <IconButton
                                 style={{
@@ -1245,8 +1245,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     )}
                     {this.state.extendedAvailable && !this.state.startTheProcess && (
                         <Tooltip
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={I18n.t('Add state')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <IconButton
                                 onClick={() =>
@@ -1264,8 +1264,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     )}
                     {this.state.extendedAvailable && !this.state.startTheProcess && (
                         <Tooltip
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={I18n.t('Import state')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <IconButton
                                 style={{ color: '#e67e229e' }}
@@ -1471,8 +1471,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         <div style={styles.displayFlex}>
                             <div style={styles.displayFlexRow}>
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={titleTooltip}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <div
                                         style={{
@@ -1549,8 +1549,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     <Box sx={styles.wrapperItemButtons}>
                                         {(alias || linkedDevices) && !this.state.startTheProcess && (
                                             <Tooltip
-                                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                                 title={I18n.t('Select ID')}
+                                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                             >
                                                 <IconButton
                                                     size="small"
@@ -1568,8 +1568,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             </div>
                             <div style={styles.displayFlexRow}>
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={titleTooltip}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <div style={styles.wrapperOidName}>
                                         <Box sx={styles.wrapperOidNameIcon}>
@@ -1639,8 +1639,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     <Box sx={styles.wrapperItemButtons}>
                                         {(alias || linkedDevices) && !this.state.startTheProcess && (
                                             <Tooltip
-                                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                                 title={I18n.t('Select ID')}
+                                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                             >
                                                 <IconButton
                                                     size="small"
@@ -1660,8 +1660,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         <Box sx={styles.wrapperItemButtons}>
                             {(alias || linkedDevices) && !this.state.startTheProcess && (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Use one state for read and write')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         size="small"
@@ -1678,8 +1678,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             this.state.ids[name] &&
                             !this.state.startTheProcess ? (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Edit convert functions')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         size="small"
@@ -1701,8 +1701,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             )}
                             {isAddedName === 'add' && (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Edit state')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         size="small"
@@ -1719,8 +1719,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             )}
                             {this.state.states[name] && !this.state.startTheProcess && this.state.ids[name] && (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Edit states')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         size="small"
@@ -1733,8 +1733,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             )}
                             {(item as AddedState).noType && !this.state.startTheProcess && (
                                 <Tooltip
-                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     title={I18n.t('Delete state')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         size="small"
@@ -1758,8 +1758,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                 style={!item.id && !this.state.ids[name] ? { opacity: 0.6 } : {}}
             >
                 <Tooltip
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     title={titleTooltip}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <div
                         style={{
@@ -1839,8 +1839,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                     <Box sx={styles.wrapperItemButtons}>
                         {(alias || linkedDevices) && !this.state.startTheProcess && (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Select ID')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -1854,8 +1854,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                         {(alias || linkedDevices) && !this.state.startTheProcess && (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Use different states for read and write')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -1869,8 +1869,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                         {alias && this.state.ids[name] && !this.state.startTheProcess ? (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Edit convert functions')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -1897,8 +1897,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                         {isAddedName === 'add' && (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Edit state')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -1916,8 +1916,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                         {this.state.states[name] && !this.state.startTheProcess && this.state.ids[name] && (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Edit states')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -1931,8 +1931,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
                         {(item as AddedState).noType && !this.state.startTheProcess && (
                             <Tooltip
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 title={I18n.t('Delete state')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             >
                                 <IconButton
                                     size="small"
@@ -2401,7 +2401,9 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         onClick={this.handleClose}
                         startIcon={<IconClose />}
                     >
-                        {okDisabled ? I18n.t('Close') : I18n.t('Cancel')}
+                        {/* For a fresh device this button always takes the creation back, even while an
+                            invalid name keeps Save disabled - so it must not read "Close" there. */}
+                        {okDisabled && !this.props.isNew ? I18n.t('Close') : I18n.t('Cancel')}
                     </Button>
                 </DialogActions>
                 {this.renderEditStates()}

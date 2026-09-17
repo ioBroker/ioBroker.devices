@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Slider, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { VolumeUp, VolumeDown, VolumeMute, VolumeOff } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
@@ -10,6 +10,8 @@ import WidgetGeneric, {
     type WidgetGenericProps,
     type WidgetGenericState,
 } from './Generic';
+import TouchSafeSlider from './TouchSafeSlider';
+import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for Slider/Dimmer/Volume widgets */
@@ -30,8 +32,8 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
     private lastNonZeroVolume = 50;
 
     private arcRef = React.createRef<HTMLDivElement>();
-    private dragStartPos: { x: number; y: number } | null = null;
-    private isDragging = false;
+    /** Tells a drag on the arc from a finger that scrolls the page across it */
+    private readonly gesture = new TouchGestureGuard(this.arcRef);
 
     constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
         super(props);
@@ -88,7 +90,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
     }
 
     private onVolumeChange = (_id: string, state: ioBroker.State): void => {
-        if (this.isDragging) {
+        if (this.gesture.dragging) {
             return;
         }
         const volume = Math.round(Number(state.val) || 0);
@@ -145,48 +147,46 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
     }
 
     private onArcPointerDown = (e: React.PointerEvent): void => {
+        if (!this.gesture.start(e)) {
+            return;
+        }
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        this.dragStartPos = { x: e.clientX, y: e.clientY };
-        this.isDragging = false;
     };
 
     private onArcPointerMove = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-        const dx = e.clientX - this.dragStartPos.x;
-        const dy = e.clientY - this.dragStartPos.y;
-        if (!this.isDragging && Math.sqrt(dx * dx + dy * dy) > 8) {
-            this.isDragging = true;
-            this.setState({ dragging: true });
-        }
-        if (this.isDragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            this.setState({ volume: percent });
+        if (this.gesture.move(e)) {
+            this.setState({ dragging: true, volume: this.pointerToPercent(e.clientX, e.clientY) });
         }
     };
 
     private onArcPointerUp = (e: React.PointerEvent): void => {
-        if (!this.dragStartPos) {
-            return;
-        }
-        if (this.isDragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            if (this.setId) {
-                void this.setValue(this.setId, percent);
-            }
-            if (percent > 0) {
-                this.lastNonZeroVolume = percent;
-            }
-        } else {
+        const gesture = this.gesture.end(e);
+        if (gesture === 'drag') {
+            this.sendVolume(this.pointerToPercent(e.clientX, e.clientY));
+        } else if (gesture === 'tap') {
             // Tap — toggle mute
             this.toggleMute();
         }
-        this.dragStartPos = null;
-        this.isDragging = false;
-        this.setState({ dragging: false });
+        this.setState({ dragging: this.gesture.dragging });
     };
+
+    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
+    private onArcPointerCancel = (e: React.PointerEvent): void => {
+        if (this.gesture.cancel(e) === 'drag') {
+            this.sendVolume(this.state.volume);
+        }
+        this.setState({ dragging: this.gesture.dragging });
+    };
+
+    private sendVolume(volume: number): void {
+        if (this.setId) {
+            void this.setValue(this.setId, volume);
+        }
+        if (volume > 0) {
+            this.lastNonZeroVolume = volume;
+        }
+    }
 
     // --- Slider handlers for wide modes ---
 
@@ -196,12 +196,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
 
     private onSliderCommit = (_e: Event | React.SyntheticEvent, value: number | number[]): void => {
         const volume = value as number;
-        if (this.setId) {
-            void this.setValue(this.setId, volume);
-        }
-        if (volume > 0) {
-            this.lastNonZeroVolume = volume;
-        }
+        this.sendVolume(volume);
         this.setState({ volume, dragging: false });
     };
 
@@ -279,17 +274,17 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
 
         return (
             <Box
-                ref={this.arcRef}
+                ref={this.gesture.ref}
                 onPointerDown={this.onArcPointerDown}
                 onPointerMove={this.onArcPointerMove}
                 onPointerUp={this.onArcPointerUp}
-                onPointerCancel={this.onArcPointerUp}
+                onPointerCancel={this.onArcPointerCancel}
                 onClick={e => e.stopPropagation()}
                 sx={{
                     width: 48,
                     height: 48,
                     flexShrink: 0,
-                    touchAction: 'none',
+                    touchAction: TOUCH_ACTION,
                     userSelect: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -349,7 +344,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
         }
 
         return (
-            <Slider
+            <TouchSafeSlider
                 disabled={this.isReadOnly}
                 value={volume}
                 min={0}
@@ -389,11 +384,11 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                 sx={theme => WidgetGeneric.getStyleCompact(theme)}
             >
                 <Box
-                    ref={this.arcRef}
+                    ref={this.gesture.ref}
                     onPointerDown={this.onArcPointerDown}
                     onPointerMove={this.onArcPointerMove}
                     onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerUp}
+                    onPointerCancel={this.onArcPointerCancel}
                     sx={theme => ({
                         display: 'flex',
                         flexDirection: 'column',
@@ -404,7 +399,7 @@ export class WidgetVolume extends WidgetGeneric<WidgetVolumeState, SliderWidgetS
                         textAlign: 'left',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        touchAction: 'none',
+                        touchAction: TOUCH_ACTION,
                         userSelect: 'none',
                         ...this.applyTileStyles(theme, isActive),
                         ...(isNeumorphicTheme(theme) ? { padding: 'max(12px, 8cqi)' } : {}),

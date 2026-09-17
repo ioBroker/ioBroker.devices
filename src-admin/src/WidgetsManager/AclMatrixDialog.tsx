@@ -195,6 +195,7 @@ export default function AclMatrixDialog(props: AclMatrixDialogProps): React.JSX.
                                                 <Tooltip
                                                     key={level.value}
                                                     title={I18n.t(level.label)}
+                                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                                 >
                                                     <ToggleButton
                                                         value={level.value}
