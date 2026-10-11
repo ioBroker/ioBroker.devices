@@ -1,4 +1,10 @@
 # Older changes
+## 4.1.0 (2026-08-16)
+* (@Apollon77) Added support for new device types
+* (@GermanBluefox) Datapoints added to an alias device by hand now reach the widget GUI, so a tank can show the litres it has left next to its fill level
+* (@GermanBluefox) The tank tile shows that second reading where it used to print its fill level a second time
+* (@GermanBluefox) Fixed the settings button of a 2x0.5 tank tile sitting in the middle of the tile instead of in its top-right corner
+
 ## 4.0.2 (2026-08-10)
 * (@SimonFischer04) Added WindowTilt support in the widgets GUI (#609)
 * (@GermanBluefox) Added min/max values (last 24 hours or today) for widgets with history (#610)
