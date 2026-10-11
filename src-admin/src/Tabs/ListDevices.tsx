@@ -3134,6 +3134,11 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
                                 if (stateObj) {
                                     stateObj.common ||= {} as ioBroker.StateCommon;
+                                    // Up to 4.2 the states created with a new device were named only
+                                    // after their slot ("ACTUAL"), unlike every other state (issue #696)
+                                    if (!stateObj.common.name || stateObj.common.name === state.name) {
+                                        stateObj.common.name = getAutoStateName(stateObj._id);
+                                    }
                                     if (stateObj.common.alias) {
                                         stateObj.common.alias.id = data.ids[state.name];
                                     } else {
@@ -3757,7 +3762,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
         for (const state of getStatesToCreate(states)) {
             const common: ioBroker.StateCommon = {
-                name: state.name,
+                // Named like the states the editor creates later, after the device's path (issue #696)
+                name: getAutoStateName(`${options.id}.${state.name}`),
                 role: state.defaultRole,
                 type: getStateCommonType(state),
                 read: state.read === undefined ? true : state.read,
