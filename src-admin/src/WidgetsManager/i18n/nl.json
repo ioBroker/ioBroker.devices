@@ -599,5 +599,7 @@
     "wm_Presets": "Snelkeuze",
     "wm_Save current state": "Huidige toestand opslaan",
     "wm_Edit presets": "Snelkeuze bewerken",
-    "wm_Done": "Klaar"
+    "wm_Done": "Klaar",
+    "wm_Invert position": "Positie omkeren (0% = open)",
+    "wm_Invert position help": "Voor apparaten waarvan de positiewaarde 0 voor open en 100 voor gesloten gebruikt (zoals Alexa). De widget toont 100% nog steeds als open."
 }

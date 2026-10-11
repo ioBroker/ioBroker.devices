@@ -599,5 +599,7 @@
     "wm_Presets": "Szybki wybór",
     "wm_Save current state": "Zapisz bieżący stan",
     "wm_Edit presets": "Edytuj szybki wybór",
-    "wm_Done": "Gotowe"
+    "wm_Done": "Gotowe",
+    "wm_Invert position": "Odwróć pozycję (0% = otwarte)",
+    "wm_Invert position help": "Dla urządzeń, których stan pozycji używa 0 dla otwartego i 100 dla zamkniętego (jak Alexa). Widżet nadal pokazuje 100% jako otwarte."
 }

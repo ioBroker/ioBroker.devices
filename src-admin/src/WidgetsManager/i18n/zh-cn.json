@@ -599,5 +599,7 @@
     "wm_Presets": "快速选择",
     "wm_Save current state": "保存当前状态",
     "wm_Edit presets": "编辑快速选择",
-    "wm_Done": "完成"
+    "wm_Done": "完成",
+    "wm_Invert position": "反转位置（0% = 打开）",
+    "wm_Invert position help": "适用于位置状态以 0 表示打开、100 表示关闭的设备（与 Alexa 相同）。小部件仍将 100% 显示为打开。"
 }

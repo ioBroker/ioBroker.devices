@@ -599,5 +599,7 @@
     "wm_Presets": "Schnellauswahl",
     "wm_Save current state": "Aktuellen Zustand speichern",
     "wm_Edit presets": "Schnellauswahl bearbeiten",
-    "wm_Done": "Fertig"
+    "wm_Done": "Fertig",
+    "wm_Invert position": "Position invertieren (0 % = offen)",
+    "wm_Invert position help": "Für Geräte, deren Positionswert 0 für offen und 100 für geschlossen verwendet (wie Alexa). Das Widget zeigt weiterhin 100 % als offen an."
 }

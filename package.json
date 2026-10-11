@@ -6,6 +6,9 @@
     "name": "bluefox",
     "email": "dogafox@gmail.com"
   },
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "homepage": "https://github.com/ioBroker/ioBroker.devices",
   "license": "MIT",
   "keywords": [

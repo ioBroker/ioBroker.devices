@@ -599,5 +599,7 @@
     "wm_Presets": "Quick selection",
     "wm_Save current state": "Save current state",
     "wm_Edit presets": "Edit quick selection",
-    "wm_Done": "Done"
+    "wm_Done": "Done",
+    "wm_Invert position": "Invert position (0% = open)",
+    "wm_Invert position help": "For devices whose position state uses 0 for open and 100 for closed (as Alexa does). The widget still shows 100% as open."
 }

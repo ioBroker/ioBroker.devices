@@ -24,6 +24,11 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 /** Settings for Blind widget */
 export interface BlindWidgetSettings extends WidgetGenericSettings {
     blindType?: 'shutter' | 'curtain';
+    /**
+     * The position state counts the other way: 0 = open, 100 = closed, as Alexa does now (issue #713).
+     * The widget itself always shows 100% = open; only the conversion to and from the state turns.
+     */
+    invertPosition?: boolean;
 }
 
 interface WidgetBlindState extends WidgetGenericState {
@@ -366,6 +371,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         return {
             ...WidgetGeneric.getDefaultSettings(),
             blindType: 'shutter',
+            invertPosition: false,
         };
     }
 
@@ -385,6 +391,13 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
                         default: 'shutter',
                         format: 'radio',
                     },
+                    invertPosition: {
+                        newLine: true,
+                        type: 'checkbox',
+                        label: 'wm_Invert position',
+                        help: 'wm_Invert position help',
+                        default: false,
+                    },
                 },
             },
         };
@@ -400,6 +413,15 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
         void this.loadBlindObject();
         void this.loadTiltRange();
+    }
+
+    componentDidUpdate(prevProps: Readonly<WidgetGenericProps<BlindWidgetSettings>>): void {
+        super.componentDidUpdate(prevProps);
+        // Turned in the settings: the position shown must follow at once, not with the next report
+        if (!!prevProps.settings?.invertPosition !== this.inverted && this.lastRaw !== null) {
+            this.setTargetPosition(null);
+            this.setState({ position: this.rawToPercent(this.lastRaw) });
+        }
     }
 
     componentWillUnmount(): void {
@@ -459,18 +481,29 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         }
     }
 
+    /** The state says 0 = open, 100 = closed (issue #713) */
+    private get inverted(): boolean {
+        return !!this.props.settings?.invertPosition;
+    }
+
+    /** Last value of ACTUAL, to show it again when the direction is turned in the settings */
+    private lastRaw: number | null = null;
+
+    /** State value to the position shown, 100 = open */
     private rawToPercent(raw: number): number {
         const { min, max } = this.state;
         const range = max - min;
         if (range <= 0) {
             return 0;
         }
-        return Math.round(((raw - min) / range) * 100);
+        const percent = Math.round(((raw - min) / range) * 100);
+        return this.inverted ? 100 - percent : percent;
     }
 
+    /** Position shown, 100 = open, to the state value */
     private percentToRaw(percent: number): number {
         const { min, max } = this.state;
-        return min + (percent / 100) * (max - min);
+        return min + ((this.inverted ? 100 - percent : percent) / 100) * (max - min);
     }
 
     /** Tolerance in percent within which the drive counts as having reached the target. */
@@ -524,6 +557,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
             return;
         }
         const raw = Number(state.val) || 0;
+        this.lastRaw = raw;
         const position = this.rawToPercent(raw);
         if (position !== this.state.position) {
             this.setState({ position });
@@ -587,7 +621,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         if (this.openId) {
             void this.setValue(this.openId, true);
         } else if (this.setId) {
-            void this.setValue(this.setId, this.state.max);
+            void this.setValue(this.setId, this.percentToRaw(100));
         }
     };
 
@@ -598,7 +632,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         if (this.closeId) {
             void this.setValue(this.closeId, true);
         } else if (this.setId) {
-            void this.setValue(this.setId, this.state.min);
+            void this.setValue(this.setId, this.percentToRaw(0));
         }
     };
 
@@ -703,7 +737,7 @@ export class WidgetBlind extends WidgetGeneric<WidgetBlindState, BlindWidgetSett
         const goOpen = this.lastCommand ? this.lastCommand === 'close' : this.state.position <= 50;
         this.lastCommand = goOpen ? 'open' : 'close';
         this.setTargetPosition(goOpen ? 100 : 0);
-        void this.setValue(this.setId, goOpen ? this.state.max : this.state.min);
+        void this.setValue(this.setId, this.percentToRaw(goOpen ? 100 : 0));
     }
 
     // --- Overrides ---
