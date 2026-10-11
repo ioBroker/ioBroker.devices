@@ -595,5 +595,9 @@
     "wm_level_low": "Basso",
     "wm_level_medium": "Medio",
     "wm_level_high": "Alto",
-    "wm_level_critical": "Critico"
+    "wm_level_critical": "Critico",
+    "wm_Presets": "Selezione rapida",
+    "wm_Save current state": "Salva lo stato attuale",
+    "wm_Edit presets": "Modifica selezione rapida",
+    "wm_Done": "Fatto"
 }

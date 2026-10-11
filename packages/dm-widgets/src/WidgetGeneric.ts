@@ -28,6 +28,8 @@ export interface WidgetGenericProps<TPluginWidgetSettings extends WidgetSettings
     stateContext: IStateContext;
     settings: TPluginWidgetSettings;
     onOpenSettings?: (widgetId: string | number) => void;
+    /** Persist some settings of this widget from its own UI, e.g. presets; also outside the edit mode */
+    onSaveSettings?: (widgetId: string, patch: Partial<TPluginWidgetSettings>) => void;
     /** Widget dialog ID to auto-open (from hash). Matches `${widget.id}_chart` or `${widget.id}_info` or just `${widget.id}` */
     openDialogId?: string | null;
     /** Persist an opened dialog to the URL hash */

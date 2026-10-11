@@ -58,6 +58,36 @@ export function getAliasCommonType(
 }
 
 /**
+ * Whether an alias (or linked) state may declare itself writable.
+ *
+ * The pattern says what the slot is *for* — a thermostat's `SET` is a setpoint, so the pattern
+ * declares it writable — but an alias can only ever write as far as the datapoint behind it reaches.
+ * A device that merely measures a temperature can still fill that setpoint slot (the detector
+ * accepts a matching role even without write access, as long as the role is the pattern's default
+ * one), and a widget then has to show the setpoint as a readout instead of a dial nobody can turn.
+ * Its only evidence for that is the alias' own `common.write`, so the alias must not claim more
+ * than its source grants.
+ *
+ * Write access is only ever taken away, never granted: a slot the pattern declares read-only stays
+ * read-only, and a source that says nothing about itself (`common.write === undefined`) leaves the
+ * pattern's answer alone.
+ *
+ * @param patternWrite What the pattern slot declares (`state.write`)
+ * @param currentWrite What the alias object declares today
+ * @param targetCommon Common of the datapoint a write would land on — with separate read/write ids
+ * that is the write one, otherwise the single source
+ * @returns The value for the alias' `common.write`
+ */
+export function resolveAliasWrite(
+    patternWrite: boolean | undefined,
+    currentWrite: boolean | undefined,
+    targetCommon: ioBroker.StateCommon | undefined,
+): boolean {
+    const declared = patternWrite ?? currentWrite ?? false;
+    return declared && targetCommon?.write !== false;
+}
+
+/**
  * A state is mandatory either on its own (`required`) or as a member of a group of alternatives
  * (`requiredOneOf`, e.g. a thermostat's `SET` / `SET_HEATING` / `SET_COOLING`). Treating only
  * `required` as mandatory leaves types whose every mandatory state sits in a group — `thermostat`
@@ -343,6 +373,58 @@ export function normalizeName(name: ioBroker.StringOrTranslated | undefined, lan
     return str.replace(Utils.FORBIDDEN_CHARS, '_').replace(/\s/g, '_').replace(/\./g, '_');
 }
 
+/**
+ * The name a new alias state gets: its path without `alias.0.` / `linkeddevices.0.`, with dots and
+ * underscores as spaces and every word capitalized — `alias.0.Keller.Saunalicht.DIMMER` becomes
+ * "Keller Saunalicht DIMMER", so the user sees in the object list which device the state belongs to.
+ */
+export function getAutoStateName(id: string): string {
+    return id
+        .replace(/^alias\.0\./, '')
+        .replace(/^linkeddevices\.0\./, '')
+        .replace(/_/g, ' ')
+        .replace(/\./g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/(^|\s)\S/g, l => l.toUpperCase());
+}
+
+/**
+ * Carry the device part of a state name over to the device's new id (issue #684).
+ *
+ * A state name made by {@link getAutoStateName} starts with the device's path, so a copied, moved or
+ * renamed device would keep naming its states after the old one. Only that leading path is replaced;
+ * a name the user wrote does not start with it and is left alone. Works on every translation.
+ *
+ * @param name `common.name` of the copied state
+ * @param oldChannelId Id of the device the state is copied from
+ * @param newChannelId Id of the device the state is copied to
+ */
+export function renameStateForChannel(
+    name: ioBroker.StringOrTranslated | undefined,
+    oldChannelId: string,
+    newChannelId: string,
+): ioBroker.StringOrTranslated | undefined {
+    const oldPrefix = getAutoStateName(oldChannelId);
+    const newPrefix = getAutoStateName(newChannelId);
+    if (!name || !oldPrefix || oldPrefix === newPrefix) {
+        return name;
+    }
+    const rename = (text: string): string =>
+        text === oldPrefix || text.startsWith(`${oldPrefix} `) ? newPrefix + text.substring(oldPrefix.length) : text;
+
+    if (typeof name === 'object') {
+        const result = { ...name };
+        for (const lang of Object.keys(result) as ioBroker.Languages[]) {
+            if (typeof result[lang] === 'string') {
+                result[lang] = rename(result[lang]);
+            }
+        }
+        return result;
+    }
+    return rename(name);
+}
+
 export function getLastPart(id: string): string {
     const pos = id.lastIndexOf('.');
     if (pos !== -1) {
@@ -544,15 +626,14 @@ export function getAddedChannelStates(
         .filter(key => !channelInfo.states.find(item => item.id === key) && objects[key].type === 'state')
         .map(key => {
             const objOriginal = objects[key];
-            let name: ioBroker.StringOrTranslated = objOriginal?.common?.name;
-            if (name && typeof name === 'object') {
-                name = name[I18n.getLanguage()] || name.en;
-            }
             return {
                 defaultRole: objOriginal?.common?.role,
                 id: objOriginal?._id,
                 noType: true,
-                name,
+                // Keyed by the last part of the id, like the pattern's own states (issue #684). Taken
+                // from `common.name`, a name changed in the object browser renamed the state in the
+                // editor, and a copy of the device created it under a new id.
+                name: getLastPart(key),
                 type: objOriginal?.common?.type,
                 write: objOriginal?.common?.write,
                 indicator: false,
@@ -712,6 +793,9 @@ export async function copyDevice(
 
         if (!isAlias) {
             obj.common.alias = { id: state.id };
+        } else {
+            // Issue #684: the states must not keep the name of the device they were copied from
+            obj.common.name = renameStateForChannel(obj.common.name, originalChannelId, newChannelId);
         }
 
         tasks.push({ id: obj._id, obj });
@@ -730,6 +814,8 @@ export async function copyDevice(
 
         if (!isAlias) {
             obj.common.alias = { id: state.id };
+        } else {
+            obj.common.name = renameStateForChannel(obj.common.name, originalChannelId, newChannelId);
         }
 
         tasks.push({ id: obj._id, obj });

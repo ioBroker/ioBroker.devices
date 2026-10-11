@@ -11,7 +11,7 @@ import WidgetGeneric, {
     type WidgetGenericSettings,
 } from './Generic';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
-import ColorLightDialog from './ColorLightDialog';
+import ColorLightDialog, { type ColorLightPreset } from './ColorLightDialog';
 import TouchSafeSlider from './TouchSafeSlider';
 import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import type { ConfigItemPanel } from '@iobroker/json-config';
@@ -19,6 +19,8 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 /** Settings for ColorLight widget */
 export interface ColorLightWidgetSettings extends WidgetGenericSettings {
     onBrightness?: number;
+    /** States saved in the color dialog for quick selection */
+    colorPresets?: ColorLightPreset[];
 }
 // --- State interface ---
 
@@ -35,6 +37,18 @@ interface WidgetColorLightState extends WidgetGenericState {
     ctMin: number;
     ctMax: number;
 }
+
+type ColorLightWriteKind = 'brightness' | 'color' | 'ct';
+
+interface PendingWrite {
+    timer: ReturnType<typeof setTimeout>;
+    write: () => void;
+}
+
+/** How long a slider must rest before its value is written */
+const WRITE_DELAY = 300;
+/** How long the device's reports are ignored after a write, so its confirmation cannot move the slider */
+const ECHO_HOLD = 1000;
 
 // --- Widget ---
 
@@ -61,6 +75,20 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     /** Tells a drag on the arc from a finger that scrolls the page across it */
     private readonly gesture = new TouchGestureGuard(this.arcRef);
     private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /**
+     * Writes from sliders wait for the pointer to rest, one timer per value kind. A device confirms every
+     * write it gets, and confirmations of the values passed on the way would pull the slider back.
+     */
+    private readonly pendingWrites: Partial<Record<ColorLightWriteKind, PendingWrite>> = {};
+    /** Until when the device's reports of a value kind are ignored, after its last write went out */
+    private readonly holdUntil: Partial<Record<ColorLightWriteKind, number>> = {};
+    /** On/off as the device reports it, not as shown while a write is pending */
+    private deviceIsOn = false;
+    /** Whether the device writes its RGB string with a leading '#', the default for level.color.rgb */
+    private rgbHash = true;
+    /** White channel of an RGBW string, kept when only the color changes */
+    private rgbwWhite = '00';
 
     constructor(props: WidgetGenericProps<ColorLightWidgetSettings>) {
         super(props);
@@ -199,6 +227,8 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
             clearTimeout(this.longPressTimer);
             this.longPressTimer = null;
         }
+        // A value the user already set must not get lost because the widget went away
+        this.flushWrites();
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onBrightnessChange);
         }
@@ -293,10 +323,45 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         return dimMin + (percent / 100) * (dimMax - dimMin);
     }
 
+    // --- Delayed writes ---
+
+    /** Write after the value rested for WRITE_DELAY; a newer value of the same kind replaces the pending one */
+    private scheduleWrite(kind: ColorLightWriteKind, write: () => void): void {
+        const pending = this.pendingWrites[kind];
+        if (pending) {
+            clearTimeout(pending.timer);
+        }
+        this.pendingWrites[kind] = {
+            timer: setTimeout(() => this.runWrite(kind), WRITE_DELAY),
+            write,
+        };
+    }
+
+    private runWrite(kind: ColorLightWriteKind): void {
+        const pending = this.pendingWrites[kind];
+        if (!pending) {
+            return;
+        }
+        clearTimeout(pending.timer);
+        delete this.pendingWrites[kind];
+        this.holdUntil[kind] = Date.now() + ECHO_HOLD;
+        pending.write();
+    }
+
+    /** Write everything still waiting, e.g. when the dialog closes */
+    private flushWrites(): void {
+        (Object.keys(this.pendingWrites) as ColorLightWriteKind[]).forEach(kind => this.runWrite(kind));
+    }
+
+    /** True while the user's value of this kind is pending or its confirmations are still coming in */
+    private isHeld(kind: ColorLightWriteKind): boolean {
+        return !!this.pendingWrites[kind] || Date.now() < (this.holdUntil[kind] ?? 0);
+    }
+
     // --- State change callbacks ---
 
     private onBrightnessChange = (_id: string, state: ioBroker.State): void => {
-        if (this.gesture.dragging) {
+        if (this.gesture.dragging || this.isHeld('brightness')) {
             return;
         }
         const raw = Number(state.val) || 0;
@@ -312,6 +377,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
 
     private onOnOffChange = (_id: string, state: ioBroker.State): void => {
         const isOn = !!state.val;
+        this.deviceIsOn = isOn;
         if (isOn !== this.state.isOn) {
             this.setState({ isOn });
         }
@@ -323,17 +389,28 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     private channelValues: { r: number; g: number; b: number } = { r: 0, g: 0, b: 0 };
 
     private onRgbChange = (_id: string, state: ioBroker.State): void => {
-        const val = String(state.val || '').replace(/^#/, '');
+        const raw = String(state.val || '');
+        const val = raw.replace(/^#/, '');
         if (val.length >= 6) {
-            this.setState({ color: `#${val.slice(0, 6)}` });
+            this.rgbHash = raw.startsWith('#');
+            if (!this.isHeld('color')) {
+                this.setState({ color: `#${val.slice(0, 6)}` });
+            }
         }
     };
 
     private onRgbwChange = (_id: string, state: ioBroker.State): void => {
-        // RGBW: take first 6 hex chars as RGB
-        const val = String(state.val || '').replace(/^#/, '');
+        // RGBW: take first 6 hex chars as RGB, the next 2 as white
+        const raw = String(state.val || '');
+        const val = raw.replace(/^#/, '');
         if (val.length >= 6) {
-            this.setState({ color: `#${val.slice(0, 6)}` });
+            this.rgbHash = raw.startsWith('#');
+            if (val.length >= 8) {
+                this.rgbwWhite = val.slice(6, 8);
+            }
+            if (!this.isHeld('color')) {
+                this.setState({ color: `#${val.slice(0, 6)}` });
+            }
         }
     };
 
@@ -346,8 +423,10 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         } else if (id === this.blueId) {
             this.channelValues.b = val;
         }
-        const { r, g, b } = this.channelValues;
-        this.setState({ color: rgbToHex(r, g, b) });
+        if (!this.isHeld('color')) {
+            const { r, g, b } = this.channelValues;
+            this.setState({ color: rgbToHex(r, g, b) });
+        }
     };
 
     /** Hue/saturation raw values */
@@ -360,11 +439,17 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         } else if (id === this.saturationId) {
             this.hsvValues.s = val;
         }
+        if (this.isHeld('color')) {
+            return;
+        }
         const [r, g, b] = hsvToRgb(this.hsvValues.h, this.hsvValues.s / 100, 1);
         this.setState({ color: rgbToHex(r, g, b) });
     };
 
     private onCtChange = (_id: string, state: ioBroker.State): void => {
+        if (this.isHeld('ct')) {
+            return;
+        }
         const kelvin = Number(state.val) || 4000;
         const [r, g, b] = ctToRgb(kelvin);
         this.setState({ color: rgbToHex(r, g, b), ctValue: kelvin });
@@ -373,7 +458,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     private onCieChange = (_id: string, state: ioBroker.State): void => {
         const val = String(state.val || '');
         const parts = val.split(',').map(Number);
-        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && !this.isHeld('color')) {
             const [r, g, b] = cieToRgb(parts[0], parts[1]);
             this.setState({ color: rgbToHex(r, g, b) });
         }
@@ -384,12 +469,15 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     protected sendColor(hex: string): void {
         const type = this.props.widget.control.type;
         const [r, g, b] = hexToRgb(hex);
+        // Written in the format the device reports: e.g. the sonoff adapter cuts the first character off,
+        // so a value without its '#' reaches Tasmota one digit short and with the channels shifted
+        const rgb = `${this.rgbHash ? '#' : ''}${hex.replace(/^#/, '')}`;
 
         if (type === Types.rgbSingle && this.rgbId) {
-            void this.setValue(this.rgbId, hex.replace(/^#/, ''));
+            void this.setValue(this.rgbId, rgb);
         } else if (type === Types.rgbwSingle && this.rgbwId) {
             // Keep existing white channel
-            void this.setValue(this.rgbwId, `${hex.replace(/^#/, '')}00`);
+            void this.setValue(this.rgbwId, `${rgb}${this.rgbwWhite}`);
         } else if (type === Types.rgb) {
             if (this.redId) {
                 void this.setValue(this.redId, r);
@@ -429,14 +517,21 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     };
 
     private onSliderChange = (_e: Event, value: number | number[]): void => {
-        this.sendBrightness(value as number);
+        this.changeBrightness(value as number);
     };
+
+    /** Show the brightness at once and write it once the slider rests */
+    private changeBrightness(percent: number): void {
+        this.setState({ brightness: percent, isOn: percent > 0 || (!!this.onSetId && this.state.isOn) });
+        this.scheduleWrite('brightness', () => this.sendBrightness(percent));
+    }
 
     private sendBrightness(percent: number): void {
         if (this.setId) {
             void this.setValue(this.setId, this.percentToRaw(percent));
         }
-        if (this.onSetId && !this.state.isOn && percent > 0) {
+        // The shown on/off already follows the slider, so ask the device whether it is on
+        if (this.onSetId && !this.deviceIsOn && percent > 0) {
             void this.setValue(this.onSetId, true);
         }
     }
@@ -450,24 +545,43 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
 
     private onDialogColorChange = (hex: string): void => {
         this.setState({ color: hex });
-        this.sendColor(hex);
+        this.scheduleWrite('color', () => this.sendColor(hex));
     };
 
     private onDialogBrightnessChange = (percent: number): void => {
-        this.setState({ brightness: percent, isOn: percent > 0 });
-        if (this.setId) {
-            void this.setValue(this.setId, this.percentToRaw(percent));
-        }
-        if (this.onSetId && !this.state.isOn && percent > 0) {
-            void this.setValue(this.onSetId, true);
-        }
+        this.changeBrightness(percent);
     };
 
     private onDialogCtChange = (kelvin: number): void => {
         this.setState({ ctValue: kelvin });
-        if (this.ctId) {
-            void this.setValue(this.ctId, kelvin);
+        const ctId = this.ctId;
+        if (ctId) {
+            this.scheduleWrite('ct', () => void this.setValue(ctId, kelvin));
         }
+    };
+
+    /** Apply a stored state at once — a tap, not a drag, so nothing to wait for */
+    private onDialogApplyPreset = (preset: ColorLightPreset): void => {
+        const { color, ct, brightness } = preset;
+        if (color && this.hasColorControl()) {
+            this.setState({ color });
+            this.scheduleWrite('color', () => this.sendColor(color));
+        } else if (ct !== undefined && this.ctId) {
+            this.onDialogCtChange(ct);
+        }
+        if (brightness !== undefined && this.setId) {
+            this.changeBrightness(brightness);
+        } else if (this.onSetId && !this.deviceIsOn) {
+            void this.setValue(this.onSetId, true);
+        }
+        // Brightness last: some devices (e.g. Tasmota) derive their dimmer from a new color
+        this.runWrite('color');
+        this.runWrite('ct');
+        this.runWrite('brightness');
+    };
+
+    private onDialogPresetsChange = (colorPresets: ColorLightPreset[]): void => {
+        this.props.onSaveSettings?.(String(this.props.widget.id), { colorPresets });
     };
 
     private openDialog = (): void => {
@@ -475,6 +589,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     };
 
     private closeDialog = (): void => {
+        this.flushWrites();
         this.setState({ dialogOpen: false });
     };
 
@@ -861,6 +976,11 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     onBrightnessChange={this.onDialogBrightnessChange}
                     onCtChange={this.onDialogCtChange}
                     onToggle={this.toggleOnOff}
+                    presets={this.props.settings?.colorPresets || []}
+                    onPresetsChange={
+                        this.props.onSaveSettings && !this.isReadOnly ? this.onDialogPresetsChange : undefined
+                    }
+                    onApplyPreset={this.onDialogApplyPreset}
                 />
             </>
         );

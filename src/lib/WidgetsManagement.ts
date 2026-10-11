@@ -92,6 +92,37 @@ function removeForeignAliasStates(device: DevicesPatternControl, objects: Record
     }
 }
 
+/**
+ * Guard against one datapoint filling two slots of the same pattern (twin of
+ * `removeDuplicateStateIds` in src-admin/src/Devices/SmartDetector.ts).
+ *
+ * After its main pass the type-detector runs a second one for the `searchInParent` and indicator
+ * slots that scans every datapoint under the device again — this time without regard for the ids the
+ * main pass already took. A device whose setpoint cannot be written (a thermostat `SET` mapped onto a
+ * bare temperature sensor) therefore lands on `ACTUAL` as well, because a read-only temperature is
+ * exactly what `ACTUAL` looks for. The widget would then show one reading twice, once as the target
+ * and once as the measurement, inventing a second value the device never reported.
+ *
+ * Only the later slot of such a pair is cleared, and never a mandatory one. Slots that share a name
+ * are left alone: a pattern may declare one slot twice with different types (`airCondition`'s SWING),
+ * and both entries then stand for the same thing.
+ */
+function removeDuplicateStateIds(device: DevicesPatternControl): void {
+    // id -> name of the slot that got it first
+    const owners = new Map<string, string>();
+    for (const state of device.states) {
+        if (!state.id) {
+            continue;
+        }
+        const owner = owners.get(state.id);
+        if (owner === undefined) {
+            owners.set(state.id, state.name);
+        } else if (owner !== state.name && !isStateRequired(state)) {
+            state.id = '';
+        }
+    }
+}
+
 export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesAdapter> {
     private readonly detector = new ChannelDetector();
     private objects: Record<string, ioBroker.Object> = {};
@@ -492,6 +523,8 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
                     const d = device as DevicesPatternControl;
                     // #597/#536: strip datapoints leaked from sibling channels of an alias grouping
                     removeForeignAliasStates(d, this.objects);
+                    // ...and the same datapoint arriving on a second slot of the pattern
+                    removeDuplicateStateIds(d);
                     this.resolveChannelId(d);
                     if (d.storeId) {
                         this.addUserAddedStates(d);

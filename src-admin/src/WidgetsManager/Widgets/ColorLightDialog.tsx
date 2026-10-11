@@ -8,13 +8,24 @@ import {
     Switch as MuiSwitch,
     ToggleButton,
     ToggleButtonGroup,
+    Tooltip,
     Typography,
 } from '@mui/material';
-import { Close, Palette, Thermostat } from '@mui/icons-material';
+import { Add, Check, Close, Edit, Palette, Thermostat } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb } from './colorUtils';
 import TouchSafeSlider from './TouchSafeSlider';
+
+/** A stored state of the light, to be applied again with one tap */
+export interface ColorLightPreset {
+    /** Color as #rrggbb at full value, set when the preset was saved in color mode */
+    color?: string;
+    /** Color temperature in Kelvin, set when the preset was saved in CT mode */
+    ct?: number;
+    /** Brightness in percent, when the light can be dimmed */
+    brightness?: number;
+}
 
 export interface ColorLightDialogProps {
     open: boolean;
@@ -33,6 +44,10 @@ export interface ColorLightDialogProps {
     onBrightnessChange: (percent: number) => void;
     onCtChange: (kelvin: number) => void;
     onToggle: () => void;
+    presets: ColorLightPreset[];
+    /** Missing when the presets may not be changed, e.g. read-only */
+    onPresetsChange?: (presets: ColorLightPreset[]) => void;
+    onApplyPreset: (preset: ColorLightPreset) => void;
 }
 
 const RAINBOW = 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)';
@@ -60,6 +75,14 @@ const SLIDER_SX = {
     },
 } as const;
 
+function isSamePreset(a: ColorLightPreset, b: ColorLightPreset): boolean {
+    return (
+        (a.color || '').toLowerCase() === (b.color || '').toLowerCase() &&
+        a.ct === b.ct &&
+        a.brightness === b.brightness
+    );
+}
+
 function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | null {
     const {
         open,
@@ -78,18 +101,27 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
         onBrightnessChange,
         onCtChange,
         onToggle,
+        presets,
+        onPresetsChange,
+        onApplyPreset,
     } = props;
 
     const [hue, setHue] = useState(0);
     const [sat, setSat] = useState(100);
     const [mode, setMode] = useState<'color' | 'ct'>('color');
+    const [editPresets, setEditPresets] = useState(false);
+
+    const setHueSatFrom = (hex: string): void => {
+        const [r, g, b] = hexToRgb(hex);
+        const [h, s] = rgbToHsv(r, g, b);
+        setHue(Math.round(h));
+        setSat(Math.round(s * 100));
+    };
 
     useEffect(() => {
         if (open) {
-            const [r, g, b] = hexToRgb(color);
-            const [h, s] = rgbToHsv(r, g, b);
-            setHue(Math.round(h));
-            setSat(Math.round(s * 100));
+            setHueSatFrom(color);
+            setEditPresets(false);
         }
     }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,6 +135,41 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
 
     const fullHueHex = rgbToHex(...hsvToRgb(hue, 1, 1));
     const currentColorHex = showColor ? rgbToHex(...hsvToRgb(hue, sat / 100, 1)) : rgbToHex(...ctToRgb(ctValue));
+
+    /** The state shown in the dialog, as it would be stored */
+    const currentPreset: ColorLightPreset = {};
+    if (showColor) {
+        currentPreset.color = currentColorHex;
+    } else if (showCt) {
+        currentPreset.ct = Math.round(ctValue);
+    }
+    if (hasBrightness) {
+        currentPreset.brightness = Math.round(brightness);
+    }
+
+    const savePreset = (): void => {
+        if (onPresetsChange && !presets.some(p => isSamePreset(p, currentPreset))) {
+            onPresetsChange([...presets, currentPreset]);
+        }
+    };
+
+    const deletePreset = (index: number): void => {
+        const next = presets.filter((_p, i) => i !== index);
+        if (!next.length) {
+            setEditPresets(false);
+        }
+        onPresetsChange?.(next);
+    };
+
+    const applyPreset = (preset: ColorLightPreset): void => {
+        if (preset.color && hasColor) {
+            setHueSatFrom(preset.color);
+            setMode('color');
+        } else if (preset.ct !== undefined && hasCt) {
+            setMode('ct');
+        }
+        onApplyPreset(preset);
+    };
 
     const handleHueChange = (_e: Event, value: number | number[]): void => {
         const h = value as number;
@@ -182,6 +249,119 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
                         }}
                     />
                 </Box>
+
+                {/* Presets — stored states to apply with one tap */}
+                {presets.length || onPresetsChange ? (
+                    <Box sx={{ mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 500 }}
+                            >
+                                {I18n.t('wm_Presets')}
+                            </Typography>
+                            {onPresetsChange && presets.length ? (
+                                <Tooltip title={I18n.t(editPresets ? 'wm_Done' : 'wm_Edit presets')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setEditPresets(!editPresets)}
+                                    >
+                                        {editPresets ? <Check fontSize="small" /> : <Edit fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                        </Box>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                            {presets.map((preset, i) => {
+                                const swatch = preset.color || rgbToHex(...ctToRgb(preset.ct ?? 4000));
+                                const active = !editPresets && isOn && isSamePreset(preset, currentPreset);
+                                return (
+                                    <Box
+                                        key={i}
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: 0.5,
+                                        }}
+                                    >
+                                        <Box
+                                            component="button"
+                                            type="button"
+                                            title={editPresets ? I18n.t('wm_Delete') : undefined}
+                                            onClick={() => (editPresets ? deletePreset(i) : applyPreset(preset))}
+                                            sx={{
+                                                position: 'relative',
+                                                width: 36,
+                                                height: 36,
+                                                p: 0,
+                                                borderRadius: '50%',
+                                                backgroundColor: swatch,
+                                                border: '3px solid',
+                                                borderColor: active ? 'text.primary' : 'divider',
+                                                cursor: 'pointer',
+                                                transition: 'border-color 0.2s ease',
+                                            }}
+                                        >
+                                            {editPresets ? (
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: -8,
+                                                        right: -8,
+                                                        width: 18,
+                                                        height: 18,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: 'error.main',
+                                                        color: 'error.contrastText',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <Close sx={{ fontSize: 14 }} />
+                                                </Box>
+                                            ) : null}
+                                        </Box>
+                                        {preset.brightness !== undefined ? (
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: 'text.secondary', lineHeight: 1 }}
+                                            >
+                                                {preset.brightness}%
+                                            </Typography>
+                                        ) : null}
+                                    </Box>
+                                );
+                            })}
+                            {onPresetsChange && !editPresets ? (
+                                <Tooltip title={I18n.t('wm_Save current state')}>
+                                    <Box
+                                        component="button"
+                                        type="button"
+                                        onClick={savePreset}
+                                        sx={{
+                                            width: 36,
+                                            height: 36,
+                                            p: 0,
+                                            borderRadius: '50%',
+                                            border: '2px dashed',
+                                            borderColor: 'text.secondary',
+                                            backgroundColor: 'transparent',
+                                            color: 'text.secondary',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <Add fontSize="small" />
+                                    </Box>
+                                </Tooltip>
+                            ) : null}
+                        </Box>
+                    </Box>
+                ) : null}
 
                 {/* Mode toggle — only when both color and CT are available */}
                 {hasBothModes ? (

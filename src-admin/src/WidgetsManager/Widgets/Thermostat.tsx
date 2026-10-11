@@ -56,6 +56,7 @@ import {
     mergeRanges,
     metaFromCommon,
     offDialSetpointKinds,
+    allSetpointsReadOnly,
     pickDragTarget,
     setpointId,
     singleSetpointKind,
@@ -504,13 +505,19 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
         return this.isReadOnly || !!this.state.metas[kind]?.readOnly;
     }
 
+    /**
+     * True when the device itself declares no setpoint it can write.
+     *
+     * Then there is nothing to put a control on, so the dial turns into a readout and the slider and
+     * +/- buttons below it are left out altogether rather than shown dead.
+     */
+    private get hasNoWritableSetpoint(): boolean {
+        return allSetpointsReadOnly(this.state.metas, this.dual, this.singleKind);
+    }
+
     /** True when no setpoint the dial carries can be written, so the dial must not respond to a drag */
     private get isDialReadOnly(): boolean {
-        if (this.isReadOnly) {
-            return true;
-        }
-        const carried: SetpointKind[] = this.dual ? ['heating', 'cooling'] : this.singleKind ? [this.singleKind] : [];
-        return carried.length > 0 && carried.every(kind => !!this.state.metas[kind]?.readOnly);
+        return this.isReadOnly || this.hasNoWritableSetpoint;
     }
 
     private sendSetpoint(kind: SetpointKind, value: number): void {
@@ -699,6 +706,10 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
     ): React.JSX.Element {
         const isFloatComma = this.props.stateContext.isFloatComma;
         if (!this.dual) {
+            // The arrow reads as "target". A setpoint the device does not let anyone set is no
+            // target, so it keeps the arrow only where an actual value stands next to it and the two
+            // have to be told apart.
+            const withArrow = arrow && (!this.hasNoWritableSetpoint || this.state.actualTemp != null);
             return (
                 <Tooltip
                     title={I18n.t('wm_Set temperature')}
@@ -708,7 +719,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                         variant={variant}
                         sx={sx}
                     >
-                        {arrow ? '→ ' : ''}
+                        {withArrow ? '→ ' : ''}
                         {WidgetThermostat.formatTemp(this.displaySetpoint, isFloatComma)}
                     </Typography>
                 </Tooltip>
@@ -1023,6 +1034,12 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
      */
     private renderSetpointControls(dimmedSx: Record<string, unknown>): React.JSX.Element | null {
         const { range } = this.state;
+        // Nothing the device lets us set: the dial above already reads the setpoint out, and a dead
+        // slider with dead buttons beside it would only invite a gesture that cannot do anything.
+        if (this.hasNoWritableSetpoint) {
+            const rows = this.renderOffDialSetpointRows();
+            return rows ? <>{rows}</> : null;
+        }
         if (this.isPairEditable) {
             return (
                 <>
@@ -1235,7 +1252,7 @@ export class WidgetThermostat extends WidgetGeneric<WidgetThermostatState> {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                cursor: 'pointer',
+                                cursor: this.hasNoWritableSetpoint ? 'default' : 'pointer',
                                 touchAction: TOUCH_ACTION,
                                 userSelect: 'none',
                             }}

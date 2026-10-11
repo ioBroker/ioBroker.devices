@@ -77,3 +77,35 @@ export function removeForeignAliasStates(control: PatternControl, objects: Recor
         }
     }
 }
+
+/**
+ * Devices-side guard against one datapoint filling two slots of the same pattern.
+ *
+ * After its main pass the type-detector runs a second one for the `searchInParent` and indicator
+ * slots that scans every datapoint under the device again — this time without regard for the ids the
+ * main pass already took. A device whose setpoint cannot be written (a thermostat `SET` mapped onto a
+ * bare temperature sensor) therefore lands on `ACTUAL` as well, because a read-only temperature is
+ * exactly what `ACTUAL` looks for. One reading would then be shown twice, once as the target and once
+ * as the measurement, inventing a second value the device never reported.
+ *
+ * Only the later slot of such a pair is cleared, and never a mandatory one. Slots that share a name
+ * are left alone: a pattern may declare one slot twice with different types (`airCondition`'s SWING),
+ * and both entries then stand for the same thing.
+ *
+ * Twin of `removeDuplicateStateIds` in src/lib/WidgetsManagement.ts; the two build roots share no code.
+ */
+export function removeDuplicateStateIds(control: PatternControl): void {
+    // id -> name of the slot that got it first
+    const owners = new Map<string, string>();
+    for (const state of control.states) {
+        if (!state.id) {
+            continue;
+        }
+        const owner = owners.get(state.id);
+        if (owner === undefined) {
+            owners.set(state.id, state.name);
+        } else if (owner !== state.name && !isStateRequired(state)) {
+            state.id = '';
+        }
+    }
+}

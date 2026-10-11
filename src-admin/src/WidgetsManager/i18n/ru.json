@@ -595,5 +595,9 @@
     "wm_level_low": "Низкий",
     "wm_level_medium": "Средний",
     "wm_level_high": "Высокий",
-    "wm_level_critical": "Критический"
+    "wm_level_critical": "Критический",
+    "wm_Presets": "Быстрый выбор",
+    "wm_Save current state": "Сохранить текущее состояние",
+    "wm_Edit presets": "Редактировать быстрый выбор",
+    "wm_Done": "Готово"
 }

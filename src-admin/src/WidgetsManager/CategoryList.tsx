@@ -1276,6 +1276,22 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
+    /** A widget changed some of its settings from its own UI (e.g. color presets) */
+    private onSaveWidgetSettings = (widgetId: string, patch: Partial<WidgetSettingsBase>): void => {
+        const id = String(widgetId);
+        let current = this.state.widgetSettings[id];
+        if (!current) {
+            // Without stored settings the icon lives only in common.icon, and saving an empty one would remove it
+            const widget = this.state.widgets.find(w => String(w.id) === id);
+            const defaults = WidgetGeneric.getDefaultSettings();
+            // The icon may also be bound to a state; it is kept as it is, as extractSingleWidgetSettings() does
+            current = { ...defaults, icon: (widget?.icon as string | undefined) || defaults.icon };
+        }
+        const updated: WidgetSettingsBase = { ...current, ...patch };
+        this.setState(prev => ({ widgetSettings: { ...prev.widgetSettings, [id]: updated } }));
+        void this.saveWidgetSettingsToObject(id, updated);
+    };
+
     private onToggleFavorite = (widgetId: string): void => {
         const current = this.state.widgetSettings[widgetId] || WidgetGeneric.getDefaultSettings();
         const updated: WidgetSettingsBase = { ...current, favorite: !current.favorite };
@@ -2598,6 +2614,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 }}
                                 widgetSettings={this.state.widgetSettings}
                                 onOpenSettings={editing ? this.onOpenSettings : undefined}
+                                onSaveWidgetSettings={this.onSaveWidgetSettings}
                                 categorySettings={categorySettings}
                                 onOpenCategorySettings={editing ? this.onOpenCategorySettings : undefined}
                                 onAddCustomWidget={editing ? this.onOpenCustomWidgetDialog : undefined}

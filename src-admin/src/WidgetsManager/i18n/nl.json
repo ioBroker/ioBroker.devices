@@ -595,5 +595,9 @@
     "wm_level_low": "Laag",
     "wm_level_medium": "Gemiddeld",
     "wm_level_high": "Hoog",
-    "wm_level_critical": "Kritiek"
+    "wm_level_critical": "Kritiek",
+    "wm_Presets": "Snelkeuze",
+    "wm_Save current state": "Huidige toestand opslaan",
+    "wm_Edit presets": "Snelkeuze bewerken",
+    "wm_Done": "Klaar"
 }

@@ -595,5 +595,9 @@
     "wm_level_low": "Niedrig",
     "wm_level_medium": "Mittel",
     "wm_level_high": "Hoch",
-    "wm_level_critical": "Kritisch"
+    "wm_level_critical": "Kritisch",
+    "wm_Presets": "Schnellauswahl",
+    "wm_Save current state": "Aktuellen Zustand speichern",
+    "wm_Edit presets": "Schnellauswahl bearbeiten",
+    "wm_Done": "Fertig"
 }

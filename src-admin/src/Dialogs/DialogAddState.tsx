@@ -123,16 +123,9 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
             if (newObj) {
                 setType(newObj.common.type);
                 setRole(newObj.common.role);
-                if (newObj.common.name && typeof newObj.common.name === 'object') {
-                    setName(
-                        newObj.common.name[I18n.getLanguage()] ||
-                            newObj.common.name.en ||
-                            newObj.common.name[Object.keys(newObj.common.name)[0] as ioBroker.Languages] ||
-                            '',
-                    );
-                } else {
-                    setName(newObj.common.name || '');
-                }
+                // The field edits the id of the state, which `common.name` only matches until the
+                // user renames the state in the object browser (issue #684)
+                setName(editState.split('.').pop() || '');
 
                 if (newObj.common.type === 'number') {
                     setMin(newObj.common.min);
@@ -330,7 +323,12 @@ function DialogAddState(props: DialogAddStateProps): React.JSX.Element {
                             if (editState) {
                                 obj = JSON.parse(JSON.stringify(objects[editState]));
                                 obj._id = `${channelId}.${name}`;
-                                obj.common.name = name;
+                                // Follow a new id only with a name that still is the old id; one the
+                                // user gave the state in the object browser stays
+                                const oldName = obj.common.name;
+                                if (!oldName || oldName === editState.split('.').pop()) {
+                                    obj.common.name = name;
+                                }
                                 obj.common.role = roleInput || 'state';
                                 obj.common.type = type;
                             }

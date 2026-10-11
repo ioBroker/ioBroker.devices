@@ -54,13 +54,15 @@ import {
     extendDeviceTypeTranslation,
 } from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
-import { removeForeignAliasStates } from '../Devices/SmartDetector';
+import { removeDuplicateStateIds, removeForeignAliasStates } from '../Devices/SmartDetector';
 
 import DialogEditProperties, { type DialogEditPropertiesState } from './DialogEditProperties';
 import DialogAddState from './DialogAddState';
 import DialogEditFx from './DialogEditFx';
 import {
     getAddedChannelStates,
+    getAutoStateName,
+    getLastPart,
     getParentId,
     isStateRequired,
     normalizeStates,
@@ -590,19 +592,8 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                             this.setState({ dialogAddState: null });
                             return;
                         }
-                        // The dialog writes `common.name` as a plain string; only a foreign/older
-                        // object could still carry a translation record here.
-                        const objName = obj?.common?.name;
-                        let newName: string;
-                        if (typeof objName === 'object') {
-                            newName =
-                                objName[I18n.getLanguage()] ||
-                                objName.en ||
-                                objName[Object.keys(objName)[0] as ioBroker.Languages] ||
-                                '';
-                        } else {
-                            newName = objName || '';
-                        }
+                        // An added state is keyed by the last part of its id, as in getAddedChannelStates()
+                        const newName = getLastPart(obj._id);
 
                         // Delete the old object only on a real rename: with an unchanged name the
                         // dialog has overwritten the object in place, so `item.id` IS the object
@@ -821,7 +812,11 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
 
         // #597/#536: strip indicator datapoints that leaked in from sibling channels
         // of an alias-device grouping so auto-fill does not re-introduce them.
-        detected.forEach(control => removeForeignAliasStates(control, this.props.objects));
+        detected.forEach(control => {
+            removeForeignAliasStates(control, this.props.objects);
+            // ...and the same datapoint arriving on a second slot of the pattern.
+            removeDuplicateStateIds(control);
+        });
 
         // Use the first detection result matching our device type
         const match = detected.find(d => d.type === deviceType);
@@ -942,15 +937,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         obj._id = `${this.channelId}.${lastPart}`;
                         obj.native = {};
                         // Take as name the full path without alias.0, so the user understands what state it is
-                        obj.common.name = obj._id.replace(/^alias\.0\./, '').replace(/^linkeddevices\.0\./, '');
-
-                        // Replace dots with spaces and make the first letter of every word big
-                        obj.common.name = obj.common.name
-                            .replace(/_/g, ' ')
-                            .replace(/\./g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim()
-                            .replace(/(^|\s)\S/g, l => l.toUpperCase());
+                        obj.common.name = getAutoStateName(obj._id);
 
                         if (!isAlias) {
                             obj.common.alias = { id };

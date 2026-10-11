@@ -595,5 +595,9 @@
     "wm_level_low": "低",
     "wm_level_medium": "中",
     "wm_level_high": "高",
-    "wm_level_critical": "严重"
+    "wm_level_critical": "严重",
+    "wm_Presets": "快速选择",
+    "wm_Save current state": "保存当前状态",
+    "wm_Edit presets": "编辑快速选择",
+    "wm_Done": "完成"
 }

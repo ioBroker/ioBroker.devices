@@ -142,6 +142,8 @@ interface CategoryProps {
     onNavigate: (category: CategoryInfo) => void;
     widgetSettings: Record<string, WidgetSettingsBase>;
     onOpenSettings?: (widgetId: string | number) => void;
+    /** Persist settings a widget changes from its own UI */
+    onSaveWidgetSettings?: (widgetId: string, patch: Partial<WidgetSettingsBase>) => void;
     categorySettings: Record<string, CategorySettings>;
     onOpenCategorySettings?: (categoryId: string, candidates: StatusCandidates) => void;
     onAddCustomWidget?: (categoryId: string) => void;
@@ -2491,6 +2493,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                 widget={widget}
                 settings={settings}
                 onOpenSettings={this.props.onOpenSettings}
+                onSaveSettings={this.props.onSaveWidgetSettings}
                 openDialogId={this.props.openDialogId}
                 onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                 onCloseWidgetDialog={this.props.onCloseWidgetDialog}

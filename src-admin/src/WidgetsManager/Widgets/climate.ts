@@ -136,6 +136,17 @@ export function singleSetpointKind(ids: SetpointIds): SetpointKind | null {
 }
 
 /**
+ * The setpoints under the thumbs: the heating/cooling pair, or the single one.
+ *
+ * @param dual Whether the dial carries the heating/cooling pair
+ * @param single The setpoint a single-thumb dial follows
+ * @returns The setpoints on the dial, empty when the device declares none at all
+ */
+export function dialSetpointKinds(dual: boolean, single: SetpointKind | null): SetpointKind[] {
+    return dual ? ['heating', 'cooling'] : single ? [single] : [];
+}
+
+/**
  * The setpoints the dial cannot carry, which therefore need a field of their own.
  *
  * The dial shows one thumb, or the heating/cooling pair. Any further setpoint the device declares —
@@ -148,7 +159,7 @@ export function singleSetpointKind(ids: SetpointIds): SetpointKind | null {
  * @returns The declared setpoints that are not on the dial
  */
 export function offDialSetpointKinds(ids: SetpointIds, dual: boolean, single: SetpointKind | null): SetpointKind[] {
-    const onDial: SetpointKind[] = dual ? ['heating', 'cooling'] : single ? [single] : [];
+    const onDial = dialSetpointKinds(dual, single);
     return SETPOINT_KINDS.filter(kind => setpointId(ids, kind) && !onDial.includes(kind));
 }
 
@@ -240,6 +251,25 @@ export type SetpointMetas = Partial<Record<SetpointKind, SetpointMeta>>;
  */
 export function metaFromCommon(common: ioBroker.StateCommon | undefined, fallback: SetpointRange): SetpointMeta {
     return { range: rangeFromCommon(common, fallback), readOnly: common?.write === false };
+}
+
+/**
+ * True when the device declares setpoints on its dial but not one of them can be written.
+ *
+ * Such a device has no setpoint to set — a thermostat whose `SET` is a plain temperature reading,
+ * for instance — so the dial is a readout and the slider and +/- buttons under it have nothing left
+ * to act on. This asks the datapoints only: a widget the current user may merely watch keeps its
+ * full layout and blocks the write instead, so that what it offers does not depend on who is
+ * looking.
+ *
+ * @param metas What each setpoint declared
+ * @param dual Whether the dial carries the heating/cooling pair
+ * @param single The setpoint a single-thumb dial follows
+ * @returns Whether every setpoint on the dial is read-only
+ */
+export function allSetpointsReadOnly(metas: SetpointMetas, dual: boolean, single: SetpointKind | null): boolean {
+    const carried = dialSetpointKinds(dual, single);
+    return carried.length > 0 && carried.every(kind => !!metas[kind]?.readOnly);
 }
 
 /**

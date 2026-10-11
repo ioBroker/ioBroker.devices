@@ -94,17 +94,19 @@ import {
     getAliasCommonType,
     getLastPart,
     getAddedChannelStates,
+    getAutoStateName,
     getParentId,
     getSmartName,
     getStateCommonType,
     getStatesToCreate,
     inheritCommonFromSource,
     keepStateWhenCleared,
+    resolveAliasWrite,
     setSmartName,
 } from '../Components/helpers/utils';
 import type { PatternControlEx, ListItem } from '../types';
 import { getIconForRole } from '../Components/helpers/roleIcons';
-import SmartDetector, { removeForeignAliasStates } from '../Devices/SmartDetector';
+import SmartDetector, { removeDuplicateStateIds, removeForeignAliasStates } from '../Devices/SmartDetector';
 import DialogEdit from '../Dialogs/DialogEditDevice';
 import DialogNew from '../Dialogs/DialogNewDevice';
 import LocalUtils from '../Components/helpers/LocalUtils';
@@ -1257,6 +1259,8 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 // #597/#536: drop indicator datapoints that leaked in from sibling
                 // channels of an alias-device grouping before they reach the UI.
                 removeForeignAliasStates(device, this.objects);
+                // ...and the same datapoint arriving on a second slot of the pattern.
+                removeDuplicateStateIds(device);
                 devices.push(device as PatternControlEx);
             });
             if (di % DETECT_CHUNK === DETECT_CHUNK - 1) {
@@ -1296,13 +1300,14 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         await this.setStateAsync({ devices, expandedIDs, listItems, loading: false, browse: false });
 
         // One-time workarounds for alias states written by older versions: the min/max placeholder
-        // (issue #22), the pattern's value list (issue #654) and the missing read/write (issue
-        // #535). One after the other rather than side by side — all three read a state object and
-        // write it back, so on a state that needs two of them the later write would drop the
-        // earlier one's change.
+        // (issue #22), the pattern's value list (issue #654), the missing read/write (issue #535)
+        // and the write claim a read-only source never backed. One after the other rather than side
+        // by side — they all read a state object and write it back, so on a state that needs two of
+        // them the later write would drop the earlier one's change.
         void this.fixThermostatAliasRanges(devices)
             .then(() => this.fixAliasStateLists(devices))
-            .then(() => this.fixMissingReadWrite(devices));
+            .then(() => this.fixMissingReadWrite(devices))
+            .then(() => this.fixAliasWriteClaims(devices));
 
         if (this.editCreatedId && this.objects[this.editCreatedId]) {
             const id = this.editCreatedId;
@@ -2783,11 +2788,22 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
     /**
      * Resolve the `common` of the state an alias points to, so the alias can inherit its display
      * metadata (min/max/unit/step/states). Issue #22. The id may be a plain string or a `{read, write}` map.
+     *
+     * @param idEntry The mapping the editor holds for one state — one id, or a read/write pair
+     * @param prefer Which half of a read/write pair to resolve. Display metadata describes what the
+     * alias reports, so it comes from the read id; whether the alias can be written is decided by
+     * the datapoint a write lands on, so `resolveAliasWrite` asks for the write one.
      */
     private async getAliasSourceCommon(
         idEntry: string | { read: string; write: string } | undefined,
+        prefer: 'read' | 'write' = 'read',
     ): Promise<ioBroker.StateCommon | undefined> {
-        const sourceId = typeof idEntry === 'string' ? idEntry : idEntry?.read || idEntry?.write;
+        const sourceId =
+            typeof idEntry === 'string'
+                ? idEntry
+                : prefer === 'write'
+                  ? idEntry?.write || idEntry?.read
+                  : idEntry?.read || idEntry?.write;
         if (!sourceId) {
             return undefined;
         }
@@ -2800,6 +2816,81 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
             }
         }
         return obj?.common;
+    }
+
+    /**
+     * The `common` of the datapoint a write to this mapping would land on.
+     *
+     * The same as the source unless the editor maps read and write onto two different datapoints —
+     * then only the write half decides whether the alias can be written at all.
+     *
+     * @param idEntry The mapping the editor holds for one state — one id, or a read/write pair
+     * @param sourceCommon The already resolved read-side common, reused where both halves agree
+     */
+    private async getAliasWriteTargetCommon(
+        idEntry: string | { read: string; write: string } | undefined,
+        sourceCommon: ioBroker.StateCommon | undefined,
+    ): Promise<ioBroker.StateCommon | undefined> {
+        if (typeof idEntry === 'string' || !idEntry?.write || idEntry.write === idEntry.read) {
+            return sourceCommon;
+        }
+        return this.getAliasSourceCommon(idEntry, 'write');
+    }
+
+    /** One-time guard for the alias write-claim workaround. */
+    private aliasWriteClaimsFixed = false;
+
+    /**
+     * Workaround for alias states that claim to be writable although the datapoint behind them is
+     * not. `common.write` used to be taken from the pattern alone, so a slot the pattern declares
+     * writable — a thermostat's `SET` — kept `write: true` even when it was mapped onto a plain
+     * temperature sensor. The widget reads exactly that attribute to decide whether a setpoint can
+     * be set, so it offered a dial that writes into a datapoint nobody can write.
+     *
+     * The signature is deliberately narrow: only an alias that forwards values verbatim (a
+     * read/write conversion may well be what makes a write meaningful), whose pattern slot is
+     * writable, and whose source says `write: false` outright — a source that leaves the attribute
+     * undefined has said nothing and is left alone. Runs once per session; corrected objects no
+     * longer match.
+     *
+     * @param devices Detected devices of the current list
+     */
+    private async fixAliasWriteClaims(devices: PatternControlEx[]): Promise<void> {
+        if (this.aliasWriteClaimsFixed) {
+            return;
+        }
+        this.aliasWriteClaimsFixed = true;
+        let fixed = 0;
+        for (const device of devices) {
+            for (const state of device.states) {
+                if (!state.id || !state.id.startsWith(ALIAS) || state.write !== true) {
+                    continue;
+                }
+                const cc = (this.objects[state.id] as ioBroker.StateObject | undefined)?.common;
+                if (!cc?.alias?.id || cc.alias.read || cc.alias.write || cc.write !== true) {
+                    continue;
+                }
+                const sourceCommon = await this.getAliasSourceCommon(cc.alias.id);
+                if (sourceCommon?.write !== false) {
+                    continue;
+                }
+                try {
+                    const obj = (await this.props.socket.getObject(state.id)) as ioBroker.StateObject | null;
+                    // Re-check on the fresh object so a meanwhile-edited flag is never overwritten.
+                    if (!obj?.common || obj.common.write !== true) {
+                        continue;
+                    }
+                    obj.common.write = false;
+                    await this.props.socket.setObject(obj._id, obj);
+                    fixed++;
+                } catch (e) {
+                    console.error(`Cannot correct common.write of ${state.id}: ${e}`);
+                }
+            }
+        }
+        if (fixed) {
+            console.log(`[devices] Marked ${fixed} alias state(s) read-only — their source cannot be written`);
+        }
     }
 
     /** One-time guard for the thermostat min/max workaround (issue #22). */
@@ -3078,6 +3169,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                     // alias does not define them yet — issue #22.
                                     inheritCommonFromSource(stateObj.common, sourceCommon);
 
+                                    // The new mapping may reach a datapoint that cannot be written —
+                                    // a thermostat setpoint pointed at a bare temperature sensor. The
+                                    // alias has to say so, or the widget keeps offering a dial for it.
+                                    stateObj.common.write = resolveAliasWrite(
+                                        state.write,
+                                        stateObj.common.write,
+                                        await this.getAliasWriteTargetCommon(data.ids[state.name], sourceCommon),
+                                    );
+
                                     await this.props.socket.setObject(stateObj._id, stateObj);
                                 }
                             }
@@ -3107,23 +3207,21 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         } else {
                             common.alias = { id: data.ids[state.name] };
                         }
-                        if (!common.name) {
-                            // Take as name the full path without alias.0, so the user understands what state it is
-                            common.name = state.id.replace(/^alias\.0\./, '').replace(/^linkeddevices\.0\./, '');
-
-                            // Replace dots with spaces and make the first letter of every word big
-                            common.name = common.name
-                                .replace(/_/g, ' ')
-                                .replace(/\./g, ' ')
-                                .replace(/\s+/g, ' ')
-                                .trim()
-                                .replace(/(^|\s)\S/g, l => l.toUpperCase());
-                        }
+                        // Take as name the full path without alias.0, so the user understands what state it is
+                        common.name ||= getAutoStateName(state.id);
 
                         common.role = state.defaultRole || 'state';
 
+                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
                         common.read = state.read ?? common.read ?? true;
-                        common.write = state.write ?? common.write ?? false;
+                        // Not further than the source reaches: a setpoint slot filled with a sensor
+                        // is a readout, and only `common.write` tells the widget so.
+                        common.write = resolveAliasWrite(
+                            state.write,
+                            common.write,
+                            await this.getAliasWriteTargetCommon(data.ids[state.name], sourceCommon),
+                        );
 
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
@@ -3135,8 +3233,6 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         if (data.fx[state.name].write) {
                             stateObj.common.alias!.write = data.fx[state.name].write;
                         }
-
-                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
 
                         // Follow the source where the pattern allows several types — a mode that
                         // the device spells out must not be written as a number (issue #614).
@@ -3240,13 +3336,15 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         common.name ||= state.name;
                         common.role = state.defaultRole || 'state';
 
+                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
                         common.read = state.read ?? common.read ?? true;
-                        common.write = state.write ?? common.write ?? false;
+                        // Not further than the source reaches — same contract as on the alias path.
+                        common.write = resolveAliasWrite(state.write, common.write, sourceCommon);
 
                         if (state.defaultStates) {
                             common.states = state.defaultStates;
                         }
-                        const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
 
                         // A linked state forwards its source verbatim — there is no read/write
                         // conversion here — so the source decides among the types the pattern
