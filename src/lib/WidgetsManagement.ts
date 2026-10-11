@@ -897,9 +897,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     /**
      * The devices this adapter manages, once detection has run.
      *
-     * `loadItems` below turns the same list into the widget GUI's own format; this returns it raw
-     * so a second presentation — the ioBroker Device Manager, see `lib/DeviceManagement.ts` — can
-     * build its cards from it instead of running the whole detection a second time.
+     * Returned raw so a second presentation — the ioBroker Device Manager, see
+     * `lib/DeviceManagement.ts` — can build its cards from it instead of running the whole detection
+     * a second time. All of them, like the adapter's own tab lists them: whether a device is enabled
+     * for the widget GUI only decides what `loadItems` below hands to that GUI (issue #693).
      */
     public async getDetectedDevices(): Promise<{ device: DevicesPatternControl; obj: ioBroker.Object }[]> {
         if (!this.loaded) {
@@ -907,7 +908,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
         }
         await this.loaded;
         const result: { device: DevicesPatternControl; obj: ioBroker.Object }[] = [];
-        for (const device of this.enabledDevices) {
+        for (const device of this.allDevices) {
             const obj = this.objects[device.storeId];
             if (obj) {
                 result.push({ device, obj });

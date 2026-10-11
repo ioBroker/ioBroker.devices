@@ -134,6 +134,8 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) A device that only reports a temperature can now fill a thermostat or air conditioner: the alias no longer claims to be writable when the datapoint behind it is not, and the widget shows such a setpoint as a readout instead of offering a dial, a slider and +/- buttons for it
 * (@GermanBluefox) One datapoint no longer fills two slots of the same device — a read-only setpoint was shown a second time as the actual value
+* (@GermanBluefox) Show all devices in config manager
+* (@GermanBluefox) Corrected RGB widget
 
 ### 4.2.2 (2026-09-17)
 * (@GermanBluefox) Sliders, dials and swipeable tiles in the widget GUI no longer change their value when a finger only scrolls the page across them. A touch becomes a drag when it starts sideways or after the finger has rested for a moment; a touch the browser takes over for scrolling changes nothing
