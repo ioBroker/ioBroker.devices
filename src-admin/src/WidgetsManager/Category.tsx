@@ -634,6 +634,18 @@ function SortableGrid(props: {
     // trigger any state change on drop.
     const [forbiddenDropId, setForbiddenDropId] = useState<string | null>(null);
 
+    // A reorder moves the widget (into another slot it is even remounted), the grid reflows and
+    // dnd-kit reports a new `over` for the same pointer position — often the one the widget just
+    // left. Reordering again before the layout settled flips the widget to and fro until React
+    // aborts with error #185, so reorders wait one frame for the previous one.
+    const reorderLockRef = useRef(false);
+    const lockReorder = useCallback((): void => {
+        reorderLockRef.current = true;
+        requestAnimationFrame(() => {
+            reorderLockRef.current = false;
+        });
+    }, []);
+
     const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(String(event.active.id));
         setDropCategoryId(null);
@@ -667,6 +679,10 @@ function SortableGrid(props: {
             if (overId.startsWith('slot:')) {
                 const slotK = Number(overId.slice('slot:'.length));
                 setDropCategoryId(null);
+                if (reorderLockRef.current) {
+                    return;
+                }
+                lockReorder();
                 setLiveOrder(prev => {
                     const oldIdx = prev.indexOf(String(active.id));
                     if (oldIdx < 0 || !Number.isFinite(slotK)) {
@@ -710,6 +726,10 @@ function SortableGrid(props: {
             }
 
             setDropCategoryId(null);
+            if (reorderLockRef.current) {
+                return;
+            }
+            lockReorder();
             setLiveOrder(prev => {
                 const oldIdx = prev.indexOf(String(active.id));
                 const newIdx = prev.indexOf(overId);
@@ -719,7 +739,7 @@ function SortableGrid(props: {
                 return arrayMove(prev, oldIdx, newIdx);
             });
         },
-        [itemMap, onMoveWidgetToCategory],
+        [itemMap, onMoveWidgetToCategory, lockReorder],
     );
 
     const handleDragEnd = useCallback(
@@ -1274,6 +1294,16 @@ function GroupedContent(props: {
     const groupedIds = new Set(liveGroups.flatMap(g => g.widgetIds));
     const ungrouped = allItems.filter(i => i.type !== 'category' && !groupedIds.has(i.id));
 
+    // Same guard as in `SortableGrid`: a move to another group reflows the layout, and moving
+    // again before it settled flips the widget between the groups until React aborts (#185)
+    const reorderLockRef = useRef(false);
+    const lockReorder = useCallback((): void => {
+        reorderLockRef.current = true;
+        requestAnimationFrame(() => {
+            reorderLockRef.current = false;
+        });
+    }, []);
+
     const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(String(event.active.id));
         setDropCategoryId(null);
@@ -1303,6 +1333,9 @@ function GroupedContent(props: {
                 return;
             }
             setDropCategoryId(null);
+            if (reorderLockRef.current) {
+                return;
+            }
 
             // Find which groups the active and over items belong to
             const currentGroups = liveGroupsRef.current;
@@ -1321,9 +1354,11 @@ function GroupedContent(props: {
                         targetGroup.widgetIds = arrayMove(targetGroup.widgetIds, activeIdx, overIdx);
                     }
                 }
+                lockReorder();
                 setLiveGroups(moved);
             } else if (activeGroup && activeGroup === overGroup) {
                 // Within same group: reorder
+                lockReorder();
                 setLiveGroups(prev =>
                     prev.map(g => {
                         if (g.id !== activeGroup) {
@@ -1339,7 +1374,7 @@ function GroupedContent(props: {
                 );
             }
         },
-        [itemMap, onMoveWidgetToCategory],
+        [itemMap, onMoveWidgetToCategory, lockReorder],
     );
 
     const handleDragEnd = useCallback(

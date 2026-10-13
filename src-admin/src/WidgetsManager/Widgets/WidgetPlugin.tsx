@@ -6,7 +6,7 @@ import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import type { CustomWidgetPlugin } from '../../../../packages/dm-widgets/src/index';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
-import { describePluginError, loadPluginComponent } from '../pluginLoader';
+import { describePluginError, getLoadedPluginComponent, loadPluginComponent } from '../pluginLoader';
 
 interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
@@ -55,13 +55,23 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
 
     constructor(props: WidgetGenericProps<CustomWidgetPlugin>) {
         super(props);
-        this.state = { ...this.state, PluginComp: null, loading: true, error: null };
+        // A loaded plugin renders at once. Drag & drop remounts the tile whenever it moves to another
+        // slot; a loading placeholder of another size in between shifts the grid, the drag target flips
+        // back and the widget is moved to and fro until React gives up (error #185).
+        const { pluginAdapter, pluginComponent } = props.settings;
+        const PluginComp =
+            pluginAdapter && pluginComponent
+                ? (getLoadedPluginComponent(pluginAdapter, pluginComponent) as typeof WidgetGeneric<any, any> | null)
+                : null;
+        this.state = { ...this.state, PluginComp, loading: !PluginComp, error: null };
     }
 
     componentDidMount(): void {
         super.componentDidMount();
         this.mounted = true;
-        this.loadComponent();
+        if (!this.state.PluginComp) {
+            this.loadComponent();
+        }
     }
 
     componentDidUpdate(prevProps: Readonly<WidgetGenericProps<CustomWidgetPlugin>>): void {

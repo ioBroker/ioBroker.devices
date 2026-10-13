@@ -267,6 +267,11 @@ export function isPluginLoaded(adapterName: string, componentName: string): bool
     return componentCache.has(`${adapterName}/${componentName}`);
 }
 
+/** The already loaded plugin component, without waiting for a promise; `null` if not loaded yet */
+export function getLoadedPluginComponent(adapterName: string, componentName: string): WidgetComponent | null {
+    return componentCache.get(`${adapterName}/${componentName}`) || null;
+}
+
 /**
  * Get the config schema from a loaded plugin component's static getConfigSchema() method.
  * Returns null if the component is not loaded or has no getConfigSchema.

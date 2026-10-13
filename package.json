@@ -67,7 +67,7 @@
     "release-patch": "release-script patch --yes",
     "release-minor": "release-script minor --yes",
     "release-major": "release-script major --yes",
-    "update-packages": "npx -y npm-check-updates --upgrade && cd src-admin && npx -y npm-check-updates --upgrade && cd ../src-www && npx -y npm-check-updates --upgrade",
+    "update-packages": "npx -y npm-check-updates --upgrade && cd src-admin && npx -y npm-check-updates --upgrade && cd ../src-www && npx -y npm-check-updates --upgrade && cd ../packages/dm-widgets && npx -y npm-check-updates --upgrade",
     "npm": "npm i && cd src-admin && npm i -f && cd ../src-www && npm i -f && cd ../packages/dm-widgets && npm i",
     "test": "npm run test:unit && npm run test:integration && npm run test:package",
     "0-clean": "node tasks --0-clean",

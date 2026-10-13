@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Dragging a plugin widget no longer crashes the widget GUI (React error #185)
+
 ### 4.2.3 (2026-10-11)
 * (@GermanBluefox) A read-only temperature in a thermostat setpoint is shown as a readout, not as a dial
 * (@GermanBluefox) One datapoint no longer fills two slots of the same device
