@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart
+
 ### 4.2.4 (2026-10-13)
 * (@GermanBluefox) Dragging a plugin widget no longer crashes the widget GUI (React error #185)
 

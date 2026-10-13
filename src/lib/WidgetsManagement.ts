@@ -699,27 +699,25 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     /**
      * For a given changed object ID, find the detection IDs (from idsInEnums) that are affected.
      * A state change affects its parent channel/device.
+     *
+     * All matches are collected: a state can be an enum member itself while its channel or device is
+     * one too (e.g. a switch in a room, the whole device in a function). Stopping at the first match
+     * left the device detected from the channel untouched, so a changed role never reached its widget.
      */
     private getAffectedChannelIds(id: string): string[] {
-        // Direct match in idsInEnums
-        if (this.idsInEnums.includes(id)) {
-            return [id];
-        }
-
-        // Parent is a detection ID (state changed under a channel)
+        const affected: string[] = [];
         const parentId = getParentId(id);
-        if (parentId && this.idsInEnums.includes(parentId)) {
-            return [parentId];
-        }
+        const grandParentId = parentId ? getParentId(parentId) : '';
 
-        // Grandparent (state under device>channel hierarchy)
-        const grandParentId = getParentId(parentId);
-        if (grandParentId && this.idsInEnums.includes(grandParentId)) {
-            return [grandParentId];
+        // Grandparent (state under device>channel hierarchy), parent (state under a channel) and the
+        // ID itself — outermost first, so the bigger device is detected before its single states
+        for (const candidate of [grandParentId, parentId, id]) {
+            if (candidate && this.idsInEnums.includes(candidate) && !affected.includes(candidate)) {
+                affected.push(candidate);
+            }
         }
 
         // Check if any existing device references this ID in its states
-        const affected: string[] = [];
         for (const device of this.allDevices) {
             if (device.storeId === id || device.states.some(s => s.id === id)) {
                 if (!affected.includes(device.storeId)) {
