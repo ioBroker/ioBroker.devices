@@ -133,6 +133,8 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 -->
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart
+* (@GermanBluefox) Picking a hue for a white RGB lamp sets the full color, instead of staying white until the saturation is moved
+* (@GermanBluefox) The color circle of an RGB lamp tile is larger and no longer covered by the dimmer slider at 0
 
 ### 4.2.4 (2026-10-13)
 * (@GermanBluefox) Dragging a plugin widget no longer crashes the widget GUI (React error #185)

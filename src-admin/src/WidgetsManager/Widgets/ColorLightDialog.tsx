@@ -174,7 +174,13 @@ function ColorLightDialog(props: ColorLightDialogProps): React.JSX.Element | nul
     const handleHueChange = (_e: Event, value: number | number[]): void => {
         const h = value as number;
         setHue(h);
-        const [r, g, b] = hsvToRgb(h, sat / 100, 1);
+        // A white lamp has no saturation, so picking a hue would keep it white: go to the full color instead
+        let s = sat;
+        if (s < 5) {
+            s = 100;
+            setSat(s);
+        }
+        const [r, g, b] = hsvToRgb(h, s / 100, 1);
         onColorChange(rgbToHex(r, g, b));
     };
 

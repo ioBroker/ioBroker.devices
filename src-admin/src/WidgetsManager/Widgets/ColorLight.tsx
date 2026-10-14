@@ -774,14 +774,17 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         this.openDialog();
                     }}
                     sx={{
-                        width: 24,
-                        height: 24,
+                        width: 32,
+                        height: 32,
                         borderRadius: '50%',
                         backgroundColor: color,
                         border: '2px solid',
                         borderColor: 'divider',
                         cursor: 'pointer',
                         flexShrink: 0,
+                        // Above the slider: its thumb at 0 sits at the slider's left edge and reaches over the swatch
+                        position: 'relative',
+                        zIndex: 1,
                         transition: 'background-color 0.2s ease',
                     }}
                 />
@@ -796,8 +799,11 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         onChange={this.onSliderChange}
                         sx={theme => ({
                             width: 60,
+                            mx: 1,
                             color: accent || theme.palette.primary.main,
                             '& .MuiSlider-thumb': { width: 14, height: 14 },
+                            // MUI's invisible touch area around the thumb is 42px wide; keep it off the swatch
+                            '& .MuiSlider-thumb::after': { width: 24, height: 24 },
                         })}
                     />
                 ) : null}
