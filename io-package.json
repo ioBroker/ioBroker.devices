@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "devices",
-    "version": "4.2.4",
+    "version": "4.2.5",
     "news": {
+      "4.2.5": {
+        "en": "A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart\nPicking a hue for a white RGB lamp sets the full color, instead of staying white until the saturation is moved\nThe color circle of an RGB lamp tile is larger and no longer covered by the dimmer slider at 0",
+        "de": "Ein Datenpunkt ändert seine Rolle sofort, nicht erst nach einem Adapter-Neustart\nWenn Sie einen Farbton für eine weiße RGB-Lampe wählen, bleibt sie weiß, bis die Sättigung steigt\nDer Farbkreis einer RGB-Lampe ist größer und der Dimmerregler bei 0 ist weg.",
+        "ru": "Измененная роль точки данных применяется к виджету сразу, а не только после перезапуска адаптера\nПри выборе оттенка для белой RGB-лампы цвет переходит к полному цвету, а не к тому, чтобы оставаться белым до тех пор, пока насыщенность не изменится.\nЦветовой круг плитки лампы RGB больше и больше не покрывается ползунком диммера в точке 0",
+        "pt": "A função alterada de um datapoint é aplicada ao widget logo, não só após o reinício do adaptador\nEscolher um tom para uma lâmpada RGB define toda a cor, em vez de ficar branca até a saturação mudar\nO círculo colorido de uma lâmpada RGB é maior e não é mais coberto pelo dimmer em 0",
+        "nl": "Een gewijzigde rol van een datapunt wordt onmiddellijk toegepast op de widget, niet alleen nadat de adapter opnieuw is opgestart\nAls u een tint kiest voor een witte RGB-lamp, wordt de volledige kleur ingesteld, in plaats van wit te blijven totdat de verzadiging is verplaatst\nDe kleurencirkel van een RGB-lamptegel is groter en wordt niet langer bedekt door de dimmerschuifregelaar op 0",
+        "fr": "La modification du rôle d'un point de données est appliquée à son widget, et pas seulement après le redémarrage\nChoisir la teinte d'une lampe RVB blanche donne toute la couleur au lieu de rester blanche tant que la saturation\nLe cercle chromatique d'une lampe RGB est plus grand et n'est plus recouvert par le variateur à 0",
+        "it": "Un nuovo ruolo di datapoint viene applicato al widget subito, non solo dopo il riavvio\nScegliere una tonalità per una lampada RGB bianca imposta il colore pieno invece che la saturazione\nIl cerchio colorato di una lampada RGB è più grande e non è più coperto dal cursore a 0",
+        "es": "El cambio de rol de un punto de datos se aplica a su widget inmediatamente, no solo al reiniciar el adaptador\nElegir el tono de una lámpara RGB blanca establece todo el color, en lugar de permanecer en blanco hasta que la saturación\nEl círculo de color de una lámpara RGB es más grande y ya no lo cubre el regulador de intensidad en 0",
+        "pl": "Zmieniona rola punktu danych jest stosowana do widżetu natychmiast, nie tylko po ponownym uruchomieniu adaptera\nWybór odcienia dla białej lampy RGB ustawia pełny kolor, zamiast pozostawać biały, dopóki nasycenie nie zostanie przesunięte\nOkrąg kolorów płytki lampy RGB jest większy i nie jest już pokryty suwakiem ściemniacza o wartości 0",
+        "uk": "Змінена роль точки даних застосовується до його віджету негайно, а не тільки після перезавантаження адаптера\nВибір відтінку для білої RGB лампи встановлює повний колір, замість того, щоб залишатися білим, поки насиченість не буде переміщена\nКольорове коло плитки RGB світильника більше і більше не покривається повзунком диммера на 0",
+        "zh-cn": "更改后的数据点角色会立即应用于其控件，而不仅仅是在适配器重新启动之后\n为白色 RGB 灯选择一个色调来设置全彩，而不是在饱和度移动之前保持白色\nRGB 灯块的色圈更大，且不再被调光器滑块覆盖 0"
+      },
       "4.2.4": {
         "en": "Dragging a plugin widget no longer crashes the widget GUI (React error #185)",
         "de": "Beim Ziehen stürzt die GUI nicht mehr ab (React-Fehler #185)",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono zapisywanie stanów bez `common.read` i `common.write`, które musi zawierać każdy obiekt stanu: okno dialogowe „dodawania stanu” pomijało oba typy plików i usuwało je ze wszystkich edytowanych stanów, które ich jeszcze nie zawierały (#535, #533, #463)\nStany zapisane we wcześniejszych wersjach mają dwa atrybuty dodane jednorazowo podczas ładowania listy urządzeń. Brakujące dane pochodzą z typu urządzenia i ze źródła aliasu, więc stan, który urządzenie rzeczywiście może zapisać, nie staje się stanem tylko do odczytu.",
         "uk": "Виправлено запис станів без `common.read` та `common.write`, які повинен містити кожен об'єкт стану: діалогове вікно \"додати стан\" не враховувало обидва для застарілого типу `file` та видаляло їх з будь-якого стану, який редагувався, але в якому їх ще не було (#535, #533, #463)\nСтанам, записаним у попередніх версіях, ці два атрибути додаються один раз під час завантаження списку пристроїв. Відсутні атрибути взяті з типу пристрою та з псевдонімного джерела, тому стан, який пристрій дійсно може записати, не стає доступним лише для читання.",
         "zh-cn": "修复了状态写入时缺少 `common.read` 和 `common.write` 的问题，每个状态对象都必须具备这两个属性：对于已弃用的 `file` 类型，“添加状态”对话框遗漏了这两个属性，并且从它编辑的任何尚未包含这两个属性的状态中删除了它们（#535、#533、#463）。\n早期版本写入的状态会在设备列表加载时添加一次这两个属性。缺失的值则取自设备类型和别名来源，因此设备实际可以写入的状态不会变为只读。"
-      },
-      "4.1.0": {
-        "en": "Added support of new device types",
-        "de": "Unterstützung für neue Gerätetypen hinzugefügt",
-        "ru": "Добавлена поддержка новых типов устройств.",
-        "pt": "Adicionado suporte a novos tipos de dispositivos.",
-        "nl": "Ondersteuning voor nieuwe apparaattypen toegevoegd.",
-        "fr": "Ajout de la prise en charge de nouveaux types d'appareils",
-        "it": "Aggiunto il supporto per nuovi tipi di dispositivi.",
-        "es": "Se ha añadido compatibilidad con nuevos tipos de dispositivos.",
-        "pl": "Dodano obsługę nowych typów urządzeń",
-        "uk": "Додана підтримка нових типів пристроїв",
-        "zh-cn": "新增对新型设备类型的支持"
       }
     },
     "titleLang": {
