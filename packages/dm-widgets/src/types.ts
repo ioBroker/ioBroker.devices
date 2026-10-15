@@ -4,6 +4,7 @@
  */
 import type { DetectorState, Types } from '@iobroker/type-detector/build/types';
 import type { ChartLineType, ChartSeries, IndicatorValues } from './WidgetGeneric';
+import type { IStateContext } from './StateContext';
 
 export type Color = 'primary' | 'secondary' | (string & {});
 export type ValueOrObject<T> = T | { objectId: string; property: string };
@@ -186,6 +187,26 @@ export interface CustomWidgetPlugin extends CustomWidgetBase {
     pluginComponent?: string;
     /** Plugin: URL to load the widget bundle (federation remote entry) */
     pluginUrl?: string;
+}
+
+/**
+ * Props of a background service of a plugin, named in `common.deviceWidgets.services` of io-package.json and exported
+ * by the `Components` module like the widgets.
+ *
+ * The app renders every service once, next to the category and whichever category is shown - for what must not stop
+ * with its category, e.g. a phone that has to stay registered to ring.
+ */
+export interface DmServiceProps {
+    /**
+     * The plugin widgets of this adapter in all categories that the user may control: neither hidden nor read-only.
+     * Every widget once, also if it is a favourite. Changes with the settings.
+     */
+    widgets: CustomWidgetPlugin[];
+    stateContext: IStateContext;
+    /** The configuration mode is on */
+    editMode: boolean;
+    /** Show the category of a widget, e.g. the one a call is for */
+    onShowWidget: (widgetId: string) => void;
 }
 
 export interface WidgetGenericState {

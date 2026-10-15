@@ -62,6 +62,7 @@ Full `npm test` requires network access to ioBroker servers — use `test/packag
 | `src-admin/src/Components/TypeOptions.tsx`   | Device type → platform compatibility matrix (Alexa, Google, Material, Alisa)           |
 | `src-admin/src/Devices/SmartDetector.ts`     | Thin wrapper around `@iobroker/type-detector` with key caching                         |
 | `src-admin/src/Components/helpers/utils.ts`  | Shared utilities: device copying, renaming, ID manipulation                            |
+| `src-admin/src/WidgetsManager/PluginServices.tsx` | Background services of plugins (`common.deviceWidgets.services`), rendered next to the category; which widgets they get: `serviceWidgets.ts` |
 | `tasks.js`                                   | Build orchestration using `@iobroker/build-tools`                                      |
 | `io-package.json`                            | ioBroker adapter manifest (version, news, dependencies, config)                        |
 

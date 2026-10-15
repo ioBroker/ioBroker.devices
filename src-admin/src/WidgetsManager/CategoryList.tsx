@@ -42,6 +42,8 @@ import { autoGroupItems, flattenGroups, moveWidgetToGroup, stripCollapsed, type 
 import CategoryListDialogs from './CategoryListDialogs';
 import WidgetGeneric, { resolveTranslated } from './Widgets/Generic';
 import { loadPluginComponent, isPluginLoaded } from './pluginLoader';
+import PluginServices from './PluginServices';
+import { findWidgetCategory } from './serviceWidgets';
 import type {
     WidgetSettingsBase,
     CustomWidgetBase,
@@ -164,6 +166,8 @@ interface CategoryListState extends CommunicationState {
 
 const ROOT_CATEGORY = '__root__';
 const FAVORITES_CATEGORY = '__favorites__';
+/** Categories that only show widgets placed elsewhere */
+const VIRTUAL_CATEGORIES = [FAVORITES_CATEGORY];
 
 /**
  * Device List Component
@@ -786,6 +790,16 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         this.setState({ openDialogId: dialogId });
         if (this.state.currentCategory) {
             this.updateHash(this.state.currentCategory, dialogId);
+        }
+    };
+
+    /** A background service wants the category of one of its widgets shown, e.g. of a phone that is ringing */
+    private onShowServiceWidget = (widgetId: string): void => {
+        const categoryId = findWidgetCategory(this.state.categorySettings, widgetId, VIRTUAL_CATEGORIES);
+        const category = categoryId ? this.state.categories.find(c => String(c.id) === categoryId) : undefined;
+        if (category && String(category.id) !== String(this.state.currentCategory?.id)) {
+            this.setState({ currentCategory: category });
+            this.updateHash(category);
         }
     };
 
@@ -2696,6 +2710,17 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 onWidgetGroupMove={this.onWidgetGroupMove}
                                 getCategoryName={this.getCategoryName}
                                 stateContext={this.stateContext}
+                            />
+                            {/* next to the category, not in it: the services live while another one is shown */}
+                            <PluginServices
+                                adapterWidgets={this.state.adapterWidgets}
+                                categorySettings={this.state.categorySettings}
+                                virtualCategories={VIRTUAL_CATEGORIES}
+                                acl={acl}
+                                stateContext={this.stateContext}
+                                editMode={editing}
+                                admin={this.props.admin}
+                                onShowWidget={this.onShowServiceWidget}
                             />
                         </Box>
                     </ThemeProvider>

@@ -29,6 +29,21 @@
  *     // Override renderCompact(), renderTileIcon(), etc.
  * }
  * ```
+ *
+ * ## Background services
+ *
+ * The app renders only the shown category, so a widget lives only while its category is open. For what must not stop
+ * with it - e.g. a phone that has to stay registered to ring - a plugin may bring background services: components in
+ * the `Components` module like the widgets, named in `common.deviceWidgets.services` of io-package.json. The app
+ * renders every service once, next to the category, with `DmServiceProps`: the widgets of the adapter in all
+ * categories that the user may control. Only an adapter with widgets in the categories gets its services rendered.
+ *
+ * ```typescript
+ * export function MyService({ widgets, stateContext }: DmServiceProps): React.JSX.Element | null {
+ *     // keep something running for every widget, show a dialog over any category
+ * }
+ * export default { MyWidget, MyService };
+ * ```
  */
 
 import * as _stubs from './WidgetGeneric';
@@ -75,6 +90,7 @@ export type {
     CustomWidgetBase,
     CustomWidgetPlugin,
     CustomWidgetType,
+    DmServiceProps,
     DeviceStatus,
     DevicesDetectorState,
     DevicesPatternControl,
