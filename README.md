@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Better devices detection
+
 ### 4.2.5 (2026-10-14)
 * (@GermanBluefox) A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart
 * (@GermanBluefox) Picking a hue for a white RGB lamp sets the full color, instead of staying white until the saturation is moved
