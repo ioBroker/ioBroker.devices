@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.2.6 (2026-10-22)
 * (@GermanBluefox) Better devices detection
 
 ### 4.2.5 (2026-10-14)
@@ -165,9 +165,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 * (@krobipd) The warning about the web instance configuration is no longer logged when no web instance is installed
 * (@krobipd) The widget notification timer is cleared when the adapter stops, so it does not stay behind in compact mode
 * (@GermanBluefox) The build takes the version of the GUI packages from the adapter's `package.json`, and `common.welcomeScreen` is written as the array the current io-package schema expects
-
-### 4.2.1 (2026-09-09)
-* (@GermanBluefox) Fixed layout
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
