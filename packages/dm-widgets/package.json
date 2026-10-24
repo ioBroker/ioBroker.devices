@@ -27,7 +27,7 @@
     },
     "devDependencies": {
         "@iobroker/gui-components": "^10.3.12",
-        "@iobroker/type-detector": "^6.1.0",
+        "@iobroker/type-detector": "^6.2.0",
         "@iobroker/types": "^7.2.5",
         "@mui/icons-material": "^9.5.0",
         "@mui/material": "^9.5.0",

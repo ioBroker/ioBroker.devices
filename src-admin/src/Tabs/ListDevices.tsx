@@ -85,7 +85,6 @@ import {
     type ThemeType,
     type ThemeName,
     Loader,
-    DeviceTypeIcon,
 } from '@iobroker/gui-components';
 
 import {
@@ -115,6 +114,7 @@ import DialogDeleteFolder from '../Dialogs/DialogDeleteFolder';
 import DialogEditFolder from '../Dialogs/DialogEditFolder';
 import TYPE_OPTIONS, { type ApplicationType, ICONS_TYPE } from '../Components/TypeOptions';
 import DragWrapper from '../Components/DragWrapper';
+import TypeIcon from '../Components/TypeIcon';
 import DropWrapper from '../Components/DropWrapper';
 import DialogImporter from '../Dialogs/DialogImporter';
 import { type DialogEditPropertiesState } from '../Dialogs/DialogEditProperties';
@@ -1753,7 +1753,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
         return (
             <div style={{ ...styles.wrapperIconEnumCell, ...styles.spaceBetween }}>
                 <div style={styles.typeCellNameAndIcon}>
-                    <DeviceTypeIcon
+                    <TypeIcon
                         style={styles.enumIcon}
                         type={type}
                     />
@@ -2156,7 +2156,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                         {roleIcon ? (
                                             <roleIcon.Comp style={{ ...styles.tableIconImg, color }} />
                                         ) : (
-                                            <DeviceTypeIcon
+                                            <TypeIcon
                                                 src={item.icon}
                                                 style={{ ...styles.tableIconImg, color }}
                                                 // DeviceTypeIcon ignores `src` as soon as `type` is set,
@@ -2516,7 +2516,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         key={item.value}
                         value={item.value}
                     >
-                        <DeviceTypeIcon
+                        <TypeIcon
                             style={{ ...styles.enumIcon, ...styles.iconInSelect }}
                             type={item.value}
                         />

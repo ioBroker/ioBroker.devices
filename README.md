@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Added widget for the device type `tv` with a remote control dialog
+
 ### 4.2.6 (2026-10-22)
 * (@GermanBluefox) Better devices detection
 

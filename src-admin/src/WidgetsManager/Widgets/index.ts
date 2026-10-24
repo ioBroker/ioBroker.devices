@@ -37,6 +37,7 @@ export { WidgetSwitch } from './Switch';
 export { WidgetTank } from './Tank';
 export { WidgetTemperature } from './Temperature';
 export { WidgetThermostat } from './Thermostat';
+export { WidgetTv } from './Tv';
 export { WidgetUniversal, type WidgetUniversalSettings } from './Universal';
 export { WidgetVacuumCleaner } from './VacuumCleaner';
 export { WidgetPresence, type WidgetPresenceSettings } from './Presence';

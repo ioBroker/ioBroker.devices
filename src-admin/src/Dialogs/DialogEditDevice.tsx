@@ -48,7 +48,6 @@ import {
     IconFx as IconFunction,
     type IobTheme,
     type AdminConnection,
-    DeviceTypeIcon,
     Icon,
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
@@ -68,6 +67,7 @@ import {
     normalizeStates,
     renameMultipleEntries,
 } from '../Components/helpers/utils';
+import TypeIcon from '../Components/TypeIcon';
 import DialogEditStates from './DialogEditStates';
 import IconPickerDialog from '../WidgetsManager/IconPickerDialog';
 import type { PatternControlEx } from '../types';
@@ -1099,7 +1099,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                         style={styles.deviceIconStyle as React.CSSProperties}
                     />
                 ) : (
-                    <DeviceTypeIcon
+                    <TypeIcon
                         type={this.state.channelInfo.type}
                         style={{
                             ...styles.deviceIconStyle,

@@ -90,6 +90,7 @@ import {
     WidgetWeather,
     WidgetVolume,
     WidgetMediaPlayer,
+    WidgetTv,
     WidgetColorLight,
     WidgetInfo as WidgetInfoWidget,
     WidgetLocation,
@@ -2429,6 +2430,8 @@ export default class Category extends Component<CategoryProps, CategoryState> {
             Widget = WidgetVolume;
         } else if (type === Types.media) {
             Widget = WidgetMediaPlayer;
+        } else if (type === Types.tv) {
+            Widget = WidgetTv;
         } else if (type === Types.fillLevel) {
             Widget = WidgetTank;
         } else if (type === Types.slider || type === Types.percentage) {

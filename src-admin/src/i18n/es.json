@@ -164,5 +164,6 @@
     "tooltip_user": "Usuario",
     "tooltip_value": "Valor",
     "Required datapoints are not assigned: %s": "Puntos de datos obligatorios sin asignar: %s",
-    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Sin ellos el dispositivo deja de reconocerse como \"%s\" y los controles desaparecen del widget."
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Sin ellos el dispositivo deja de reconocerse como \"%s\" y los controles desaparecen del widget.",
+    "type-tv": "Televisor"
 }

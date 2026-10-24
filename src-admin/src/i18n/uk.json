@@ -164,5 +164,6 @@
     "tooltip_user": "Користувач",
     "tooltip_value": "Значення",
     "Required datapoints are not assigned: %s": "Обовʼязкові точки даних не призначені: %s",
-    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Без них пристрій більше не розпізнається як \"%s\", і елементи керування зникнуть із віджета."
+    "Without them the device is no longer recognised as \"%s\" and controls will disappear from the widget.": "Без них пристрій більше не розпізнається як \"%s\", і елементи керування зникнуть із віджета.",
+    "type-tv": "Телевізор"
 }

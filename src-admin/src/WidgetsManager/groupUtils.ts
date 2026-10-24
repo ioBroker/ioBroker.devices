@@ -44,6 +44,7 @@ const TYPE_TO_GROUP: Partial<Record<Types, string>> = {
     [Types.volume]: 'media',
     [Types.volumeGroup]: 'media',
     [Types.media]: 'media',
+    [Types.tv]: 'media',
 
     [Types.temperature]: 'info',
     [Types.humidity]: 'info',
