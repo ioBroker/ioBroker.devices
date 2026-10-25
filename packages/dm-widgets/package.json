@@ -26,7 +26,7 @@
         "react-dom": "^19.0.0"
     },
     "devDependencies": {
-        "@iobroker/gui-components": "^10.3.12",
+        "@iobroker/gui-components": "^10.3.14",
         "@iobroker/type-detector": "^6.2.0",
         "@iobroker/types": "^7.2.5",
         "@mui/icons-material": "^9.5.0",
