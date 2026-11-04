@@ -4,7 +4,7 @@
     "private": true,
     "dependencies": {
         "@emotion/styled": "^11.14.1",
-        "@iobroker/gui-components": "^10.3.16",
+        "@iobroker/gui-components": "^10.4.0",
         "@iobroker/json-config": "^10.1.12",
         "@iobroker/type-detector": "^6.2.0",
         "@iobroker/types": "^7.2.5",
