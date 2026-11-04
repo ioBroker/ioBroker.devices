@@ -29,7 +29,6 @@ import {
 import {
     Close as IconClose,
     Check as IconCheck,
-    Delete as IconDelete,
     Add as IconAdd,
     Publish as IconPublish,
     Edit as IconEdit,
@@ -51,6 +50,7 @@ import {
     Icon,
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
+    IconTrash,
 } from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
 import { removeDuplicateStateIds, removeForeignAliasStates } from '../Devices/SmartDetector';
@@ -1728,7 +1728,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                         onClick={() => this.markStateForDeletion(item.id)}
                                         sx={styles.button}
                                     >
-                                        <IconDelete />
+                                        <IconTrash />
                                     </IconButton>
                                 </Tooltip>
                             )}
@@ -1926,7 +1926,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                     onClick={() => this.markStateForDeletion(item.id)}
                                     sx={styles.button}
                                 >
-                                    <IconDelete />
+                                    <IconTrash />
                                 </IconButton>
                             </Tooltip>
                         )}

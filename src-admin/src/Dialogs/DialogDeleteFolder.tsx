@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 
 import { Button, Dialog, DialogActions, DialogContent, Checkbox, DialogTitle, FormControlLabel } from '@mui/material';
 
-import { Close as IconClose, Delete as IconDelete } from '@mui/icons-material';
+import { Close as IconClose } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/gui-components';
+import { I18n, IconTrash } from '@iobroker/gui-components';
 
 const styles: Record<string, React.CSSProperties> = {
     paper: {
@@ -72,7 +72,7 @@ export default function DialogDeleteFolder(props: {
                         setOpen(false);
                         onClose(true, checked);
                     }}
-                    startIcon={<IconDelete />}
+                    startIcon={<IconTrash />}
                     color="primary"
                 >
                     {I18n.t('Delete')}

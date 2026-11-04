@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Tab, Tabs } from '@mui/material';
-import { Close, Delete, Save } from '@mui/icons-material';
-import { I18n, type IobTheme } from '@iobroker/gui-components';
+import { Close, Save } from '@mui/icons-material';
+import { I18n, IconTrash, type IobTheme } from '@iobroker/gui-components';
 import type { AdminConnection } from '@iobroker/socket-client';
 
 import { getText } from '@iobroker/web-components';
@@ -363,7 +363,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 <Button
                     variant="outlined"
                     color="error"
-                    startIcon={<Delete />}
+                    startIcon={<IconTrash />}
                     onClick={() => {
                         onDelete();
                         onClose();

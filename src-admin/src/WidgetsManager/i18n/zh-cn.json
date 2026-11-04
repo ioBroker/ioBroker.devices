@@ -628,7 +628,21 @@
     "wm_Previous": "上一个",
     "wm_Next": "下一个",
     "wm_Number keys": "数字键",
+    "wm_Step": "步长",
+    "wm_Presets help": "百分比数值，用逗号分隔。留空：不显示按钮",
+    "wm_Dimmer control": "控制方式",
+    "wm_dimmer_slider": "滑块和快捷选择",
+    "wm_dimmer_bar": "亮度条和 ± 按钮",
     "wm_Web component": "Web 组件",
     "wm_Web component is not installed": "Web 组件 %s 未安装",
-    "wm_Web component cannot be loaded": "无法加载 Web 组件 %s"
+    "wm_Web component cannot be loaded": "无法加载 Web 组件 %s",
+    "wm_Search widgets": "搜索小部件",
+    "wm_All widgets": "所有小部件",
+    "wm_Built-in": "内置",
+    "wm_From adapters": "来自适配器",
+    "wm_set_info": "信息",
+    "wm_set_values": "数值和能源",
+    "wm_set_layout": "结构",
+    "wm_No widget matches the search": "没有与搜索匹配的小部件",
+    "wm_Search in all sets": "在所有集合中搜索"
 }

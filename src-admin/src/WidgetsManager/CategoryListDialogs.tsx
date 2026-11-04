@@ -256,6 +256,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onAddPlugin={props.onAddPluginWidget}
                 webComponents={props.webComponents}
                 onAddWebComponent={props.onAddWebComponent}
+                stateContext={stateContext}
                 language={stateContext.language}
             />
             <CustomWidgetSettingsDialog

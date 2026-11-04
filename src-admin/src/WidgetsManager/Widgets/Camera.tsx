@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Dialog, IconButton, Switch, Typography } from '@mui/material';
-import { Close, Refresh, Videocam, VideocamOff } from '@mui/icons-material';
-import { I18n } from '@iobroker/gui-components';
+import { Close, Videocam, VideocamOff } from '@mui/icons-material';
+import { I18n, IconRefresh } from '@iobroker/gui-components';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 import { WidgetImage, type ImageWidgetSettings, type PictureDefaults, type WidgetImageState } from './Image';
@@ -223,7 +223,7 @@ export class WidgetCamera extends WidgetImage<WidgetCameraState> {
                         onClick={this.refreshSnapshot}
                         title={I18n.t('wm_Refresh')}
                     >
-                        <Refresh />
+                        <IconRefresh />
                     </IconButton>
                     <IconButton
                         size="small"

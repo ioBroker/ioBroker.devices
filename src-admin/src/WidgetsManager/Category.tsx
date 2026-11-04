@@ -8,7 +8,6 @@ import {
     Build,
     ChevronRight,
     Close,
-    Delete,
     DirectionsRun,
     ElectricBolt,
     DragIndicator,
@@ -52,7 +51,7 @@ import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@d
 import { CSS } from '@dnd-kit/utilities';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Icon } from '@iobroker/gui-components';
+import { I18n, Icon, IconTrash } from '@iobroker/gui-components';
 
 import { detectBrowser } from './SidePanelInstallDialog';
 import {
@@ -2517,7 +2516,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                                 color="error"
                                 onClick={() => this.props.onDeleteWidgetById!(widget.id)}
                             >
-                                <Delete fontSize="small" />
+                                <IconTrash fontSize="small" />
                             </IconButton>
                         </Tooltip>
                     ) : null}

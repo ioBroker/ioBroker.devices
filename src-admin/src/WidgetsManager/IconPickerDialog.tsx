@@ -13,8 +13,8 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { Close, CloudUpload, Delete, Extension, FolderOpen, GridView } from '@mui/icons-material';
-import { I18n, Icon, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
+import { Close, CloudUpload, Extension, FolderOpen, GridView } from '@mui/icons-material';
+import { I18n, Icon, IconTrash, type Connection, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
 
 import { PREDEFINED_ICONS, ICON_CATEGORIES, pathToDataUri, type PredefinedIcon } from './predefinedIcons';
 import { loadWidgetSetIcons, type WidgetSetIcon } from './widgetSetIcons';
@@ -139,7 +139,7 @@ export default function IconPickerDialog(props: IconPickerDialogProps): React.JS
                                 size="small"
                                 onClick={() => onSelect('')}
                             >
-                                <Delete fontSize="small" />
+                                <IconTrash fontSize="small" />
                             </IconButton>
                         </Box>
                     ) : null}

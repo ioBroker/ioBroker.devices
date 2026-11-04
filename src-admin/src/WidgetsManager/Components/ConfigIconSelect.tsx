@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
-import { Delete } from '@mui/icons-material';
-import { I18n, Icon } from '@iobroker/gui-components';
+import { I18n, Icon, IconTrash } from '@iobroker/gui-components';
 
 import { ConfigGeneric, type ConfigGenericProps, type ConfigGenericState } from '@iobroker/json-config';
 import IconPickerDialog from '../IconPickerDialog';
@@ -71,7 +70,7 @@ export default class ConfigIconSelect extends ConfigGeneric<ConfigGenericProps, 
                                 void this.onChange(attr, '');
                             }}
                         >
-                            <Delete fontSize="small" />
+                            <IconTrash fontSize="small" />
                         </IconButton>
                     ) : null}
                 </Box>

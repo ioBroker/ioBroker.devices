@@ -3,7 +3,6 @@ import { Box, Dialog, IconButton, Typography } from '@mui/material';
 import { alpha, type Theme } from '@mui/material/styles';
 import {
     PlayArrow,
-    Pause,
     SkipPrevious,
     SkipNext,
     Stop,
@@ -13,7 +12,7 @@ import {
     VolumeOff,
     KeyboardArrowDown,
 } from '@mui/icons-material';
-import { I18n } from '@iobroker/gui-components';
+import { I18n, IconPlayPause } from '@iobroker/gui-components';
 
 import WidgetGeneric, { isNeumorphicTheme, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 import TouchSafeSlider from './TouchSafeSlider';
@@ -487,11 +486,11 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                     justifyContent: 'center',
                                 }}
                             >
-                                {playing ? (
-                                    <Pause sx={{ fontSize: 18, color: '#fff' }} />
-                                ) : (
-                                    <PlayArrow sx={{ fontSize: 18, color: '#fff' }} />
-                                )}
+                                <IconPlayPause
+                                    running={playing}
+                                    fontSize={18}
+                                    style={{ color: '#fff' }}
+                                />
                             </Box>
                             {this.renderMutedBadge(28)}
                         </Box>
@@ -800,11 +799,11 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                     backdropFilter: 'blur(4px)',
                                 }}
                             >
-                                {playing ? (
-                                    <Pause sx={{ fontSize: 22, color: '#fff' }} />
-                                ) : (
-                                    <PlayArrow sx={{ fontSize: 22, color: '#fff' }} />
-                                )}
+                                <IconPlayPause
+                                    running={playing}
+                                    fontSize={22}
+                                    style={{ color: '#fff' }}
+                                />
                             </Box>
                         </Box>
 
@@ -1083,7 +1082,10 @@ export class WidgetMediaPlayer extends WidgetGeneric<WidgetMediaPlayerState> {
                                 transition: 'transform 0.15s ease',
                             })}
                         >
-                            {playing ? <Pause sx={{ fontSize: 36 }} /> : <PlayArrow sx={{ fontSize: 36 }} />}
+                            <IconPlayPause
+                                running={playing}
+                                fontSize={36}
+                            />
                         </IconButton>
 
                         {this.nextId ? (

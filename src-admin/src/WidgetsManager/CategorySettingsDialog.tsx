@@ -19,8 +19,8 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { CameraAlt, Close, Delete, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
-import { I18n, Icon, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
+import { CameraAlt, Close, Save, CloudUpload, FolderOpen } from '@mui/icons-material';
+import { I18n, Icon, IconTrash, type IobTheme, DialogSelectFile } from '@iobroker/gui-components';
 
 import type { CustomWidgetBase, WmAcl } from '../../../packages/dm-widgets/src/index';
 import type { WidgetGroup } from './groupUtils';
@@ -553,7 +553,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                     size="small"
                                     onClick={() => setLocal({ ...local, color: '' })}
                                 >
-                                    <Delete fontSize="small" />
+                                    <IconTrash fontSize="small" />
                                 </IconButton>
                             ) : null}
                         </Box>
@@ -590,7 +590,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                     size="small"
                                     onClick={() => setLocal({ ...local, backgroundColor: '' })}
                                 >
-                                    <Delete fontSize="small" />
+                                    <IconTrash fontSize="small" />
                                 </IconButton>
                             ) : null}
                         </Box>
@@ -652,7 +652,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                     size="small"
                                     onClick={handleDeleteImage}
                                 >
-                                    <Delete fontSize="small" />
+                                    <IconTrash fontSize="small" />
                                 </IconButton>
                             ) : null}
                         </Box>
@@ -734,7 +734,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                         size="small"
                                         onClick={() => setLocal(prev => ({ ...prev, icon: '' }))}
                                     >
-                                        <Delete fontSize="small" />
+                                        <IconTrash fontSize="small" />
                                     </IconButton>
                                 ) : null}
                             </Box>
@@ -1044,7 +1044,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                         size="small"
                                         onClick={handleDeleteIcon}
                                     >
-                                        <Delete fontSize="small" />
+                                        <IconTrash fontSize="small" />
                                     </IconButton>
                                 ) : null}
                             </Box>
@@ -1086,7 +1086,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
                                             setLocal(prev => ({ ...prev, rootIcon: '' }));
                                         }}
                                     >
-                                        <Delete fontSize="small" />
+                                        <IconTrash fontSize="small" />
                                     </IconButton>
                                 ) : null}
                             </Box>

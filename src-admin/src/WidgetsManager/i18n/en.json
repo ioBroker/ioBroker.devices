@@ -628,7 +628,21 @@
     "wm_Previous": "Previous",
     "wm_Next": "Next",
     "wm_Number keys": "Number keys",
+    "wm_Step": "Step",
+    "wm_Presets help": "Values in %, separated by commas. Empty: no buttons",
+    "wm_Dimmer control": "Control",
+    "wm_dimmer_slider": "Slider with quick selection",
+    "wm_dimmer_bar": "Bar with ± buttons",
     "wm_Web component": "Web component",
     "wm_Web component is not installed": "Web component %s is not installed",
-    "wm_Web component cannot be loaded": "Web component %s cannot be loaded"
+    "wm_Web component cannot be loaded": "Web component %s cannot be loaded",
+    "wm_Search widgets": "Search widgets",
+    "wm_All widgets": "All widgets",
+    "wm_Built-in": "Built-in",
+    "wm_From adapters": "From adapters",
+    "wm_set_info": "Information",
+    "wm_set_values": "Values and energy",
+    "wm_set_layout": "Structure",
+    "wm_No widget matches the search": "No widget matches the search",
+    "wm_Search in all sets": "Search in all sets"
 }

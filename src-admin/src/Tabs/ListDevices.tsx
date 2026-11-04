@@ -18,7 +18,6 @@ import {
 import {
     ButtonBase,
     IconButton,
-    CircularProgress,
     Table,
     TableBody,
     TableCell,
@@ -37,13 +36,7 @@ import {
     type SxProps,
 } from '@mui/material';
 
-import {
-    MdAdd as IconAdd,
-    MdRefresh as IconRefresh,
-    MdClear as IconClear,
-    MdDelete as IconDelete,
-    MdModeEdit as IconEdit,
-} from 'react-icons/md';
+import { MdAdd as IconAdd, MdClear as IconClear, MdModeEdit as IconEdit } from 'react-icons/md';
 
 import type { IconType } from 'react-icons';
 
@@ -59,7 +52,7 @@ import {
     FaLockOpen as IconLock,
     FaThermometer as IconThermometer,
     FaFolderOpen as IconFolderOpened,
-    FaFolder as IconFolder,
+    FaFolder as IconFolderClosed,
 } from 'react-icons/fa';
 
 import { HiLink } from 'react-icons/hi';
@@ -85,6 +78,9 @@ import {
     type ThemeType,
     type ThemeName,
     Loader,
+    IconFolder,
+    IconRefresh,
+    IconTrash,
 } from '@iobroker/gui-components';
 
 import {
@@ -2133,17 +2129,11 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     <div style={styles.displayFlex}>
                         <ListItemIcon style={styles.iconStyle}>
                             {item.type === 'folder' ? (
-                                isExpanded ? (
-                                    <IconFolderOpened
-                                        onClick={() => this.toggleExpanded(item.id)}
-                                        style={iconStyle}
-                                    />
-                                ) : (
-                                    <IconFolder
-                                        onClick={() => this.toggleExpanded(item.id)}
-                                        style={iconStyle}
-                                    />
-                                )
+                                <IconFolder
+                                    open={isExpanded}
+                                    onClick={() => this.toggleExpanded(item.id)}
+                                    style={iconStyle}
+                                />
                             ) : (
                                 <Tooltip
                                     title={I18n.t('You can drag & drop device')}
@@ -2313,7 +2303,13 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                             this.setState({ deleteFolderAndDevice: { index: index!, device: true } })
                                         }
                                     >
-                                        <IconDelete />
+                                        <IconTrash
+                                            fontSize="inherit"
+                                            open={
+                                                !!this.state.deleteFolderAndDevice?.device &&
+                                                this.state.deleteFolderAndDevice.index === index
+                                            }
+                                        />
                                     </IconButton>
                                 </Tooltip>
                             ) : (
@@ -2408,7 +2404,14 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                                     this.setState({ deleteFolderAndDevice: { id: item.id } })
                                                 }
                                             >
-                                                <IconDelete />
+                                                <IconTrash
+                                                    fontSize="inherit"
+                                                    open={
+                                                        !!this.state.deleteFolderAndDevice &&
+                                                        !this.state.deleteFolderAndDevice.device &&
+                                                        this.state.deleteFolderAndDevice.id === item.id
+                                                    }
+                                                />
                                             </IconButton>
                                         </Tooltip>
                                     ) : (
@@ -4033,7 +4036,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             onClick={() => this.detectDevices()}
                             disabled={this.state.browse}
                         >
-                            {this.state.browse ? <CircularProgress size={20} /> : <IconRefresh />}
+                            <IconRefresh
+                                fontSize="inherit"
+                                loading={this.state.browse}
+                            />
                         </IconButton>
                     </Tooltip>
                     <Tooltip
@@ -4084,7 +4090,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             color="primary"
                             onClick={() => this.onCollapseAll()}
                         >
-                            <IconFolder />
+                            <IconFolderClosed />
                         </IconButton>
                     </Tooltip>
                     <Tooltip

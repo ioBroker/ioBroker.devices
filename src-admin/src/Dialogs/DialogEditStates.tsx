@@ -34,11 +34,10 @@ import {
     Add as IconAdd,
     Check as IconCheck,
     Close as IconClose,
-    Delete as IconDelete,
     DragHandle as IconDragHandle,
 } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/gui-components';
+import { I18n, IconTrash } from '@iobroker/gui-components';
 
 function SortableItem(props: {
     id: string;
@@ -88,7 +87,7 @@ function SortableItem(props: {
             </TableCell>
             <TableCell>
                 <IconButton onClick={() => onDelete(ownIndex)}>
-                    <IconDelete />
+                    <IconTrash />
                 </IconButton>
             </TableCell>
         </TableRow>

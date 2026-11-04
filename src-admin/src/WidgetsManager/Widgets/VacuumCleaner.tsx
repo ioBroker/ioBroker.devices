@@ -9,8 +9,8 @@ import {
     Switch as MuiSwitch,
     Typography,
 } from '@mui/material';
-import { BatteryFull, CleaningServices, Close, Home, Pause, PlayArrow } from '@mui/icons-material';
-import { I18n } from '@iobroker/gui-components';
+import { BatteryFull, CleaningServices, Close, Home } from '@mui/icons-material';
+import { I18n, IconPlayPause } from '@iobroker/gui-components';
 
 import WidgetGeneric, { toNumberOrNull, type WidgetGenericProps, type WidgetGenericState } from './Generic';
 
@@ -407,7 +407,7 @@ export class WidgetVacuumCleaner extends WidgetGeneric<WidgetVacuumCleanerState>
                             color: this.state.paused ? accent || theme.palette.primary.main : 'text.secondary',
                         })}
                     >
-                        {this.state.paused ? <PlayArrow /> : <Pause />}
+                        <IconPlayPause running={!this.state.paused} />
                     </IconButton>
                 ) : null}
                 {this.powerId ? (

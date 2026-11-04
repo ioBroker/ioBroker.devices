@@ -24,7 +24,7 @@ import type { IconType } from 'react-icons';
 
 import {
     FaFolderOpen as IconFolderOpened,
-    FaFolder as IconFolder,
+    FaFolder as IconFolderClosed,
     FaQuestion as IconTypeGeneric,
 } from 'react-icons/fa';
 import {
@@ -35,7 +35,7 @@ import {
 import { MdCheck as IconOK, MdCancel as IconCancel } from 'react-icons/md';
 import { CreateNewFolder as CreateNewFolderIcon, Clear as ClearIcon } from '@mui/icons-material';
 
-import { I18n, Utils, Icon, type IobTheme, type ThemeType } from '@iobroker/gui-components';
+import { I18n, Utils, Icon, IconFolder, type IobTheme, type ThemeType } from '@iobroker/gui-components';
 
 const LEVEL_OFFSET = 14;
 
@@ -633,17 +633,12 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
             >
                 <ListItemIcon style={styles.iconStyle}>
                     {item.type === 'folder' ? (
-                        isExpanded ? (
-                            <IconFolderOpened
-                                onClick={() => this.toggleExpanded(item.id)}
-                                style={iconStyle}
-                            />
-                        ) : (
-                            <IconFolder
-                                onClick={() => this.toggleExpanded(item.id)}
-                                style={iconStyle}
-                            />
-                        )
+                        <IconFolder
+                            open={isExpanded}
+                            fontSize="inherit"
+                            onClick={() => this.toggleExpanded(item.id)}
+                            style={iconStyle}
+                        />
                     ) : (
                         <Icon
                             style={styles.itemIcon}
@@ -749,7 +744,7 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                             disabled={this.props.disabled}
                             onClick={() => this.onCollapseAll()}
                         >
-                            <IconFolder />
+                            <IconFolderClosed />
                         </IconButton>
                     </div>
                 </Tooltip>

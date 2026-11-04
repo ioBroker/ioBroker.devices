@@ -12,8 +12,8 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { Delete, Visibility, VisibilityOff, TouchApp } from '@mui/icons-material';
-import { I18n } from '@iobroker/gui-components';
+import { Visibility, VisibilityOff, TouchApp } from '@mui/icons-material';
+import { I18n, IconTrash } from '@iobroker/gui-components';
 
 import { ADMIN_GROUP_ID, ADMIN_USER_ID, type AclLevel, type WmAcl } from './acl';
 import type StateContext from './StateContext';
@@ -163,7 +163,7 @@ export default function AclEditor(props: AclEditorProps): React.JSX.Element {
                             disabled={!acl?.default}
                             onClick={() => onChange(compact({ ...acl, default: undefined }))}
                         >
-                            <Delete fontSize="small" />
+                            <IconTrash fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
@@ -185,7 +185,7 @@ export default function AclEditor(props: AclEditorProps): React.JSX.Element {
                         size="small"
                         onClick={() => remove(row.subject)}
                     >
-                        <Delete fontSize="small" />
+                        <IconTrash fontSize="small" />
                     </IconButton>
                 </Box>
             ))}

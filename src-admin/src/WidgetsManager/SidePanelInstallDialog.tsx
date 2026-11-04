@@ -11,8 +11,9 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { Check, Close, ContentCopy, Download } from '@mui/icons-material';
-import { I18n, type Connection } from '@iobroker/gui-components';
+import { useTheme } from '@mui/material/styles';
+import { Close, ContentCopy, Download } from '@mui/icons-material';
+import { I18n, IconResult, type Connection } from '@iobroker/gui-components';
 
 import ioBrokerLogo from './assets/ioBrokerLogo.png';
 
@@ -361,6 +362,7 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
     const [loading, setLoading] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
     const [copied, setCopied] = useState(false);
+    const theme = useTheme();
 
     // Detect URL when dialog opens
     useEffect(() => {
@@ -499,7 +501,17 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                         <Button
                             variant="contained"
                             color={downloaded ? 'success' : 'primary'}
-                            startIcon={downloaded ? <Check /> : <Download />}
+                            startIcon={
+                                downloaded ? (
+                                    // The button turns green itself, so the mark takes its text colour
+                                    <IconResult
+                                        type="success"
+                                        style={{ color: 'inherit' }}
+                                    />
+                                ) : (
+                                    <Download />
+                                )
+                            }
                             onClick={handleDownload}
                             disabled={!serverUrl}
                             fullWidth
@@ -554,7 +566,11 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                             >
                                 about:debugging#/runtime/this-firefox
                                 {copied ? (
-                                    <Check sx={{ fontSize: 14, color: 'success.main' }} />
+                                    <IconResult
+                                        type="success"
+                                        fontSize={14}
+                                        style={{ color: theme.palette.success.main }}
+                                    />
                                 ) : (
                                     <ContentCopy sx={{ fontSize: 14, opacity: 0.5 }} />
                                 )}
@@ -599,7 +615,11 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                             >
                                 chrome://extensions
                                 {copied ? (
-                                    <Check sx={{ fontSize: 14, color: 'success.main' }} />
+                                    <IconResult
+                                        type="success"
+                                        fontSize={14}
+                                        style={{ color: theme.palette.success.main }}
+                                    />
                                 ) : (
                                     <ContentCopy sx={{ fontSize: 14, opacity: 0.5 }} />
                                 )}

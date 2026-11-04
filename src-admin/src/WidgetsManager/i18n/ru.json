@@ -628,7 +628,21 @@
     "wm_Previous": "Предыдущий",
     "wm_Next": "Следующий",
     "wm_Number keys": "Цифровые кнопки",
+    "wm_Step": "Шаг",
+    "wm_Presets help": "Значения в %, через запятую. Пусто: без кнопок",
+    "wm_Dimmer control": "Управление",
+    "wm_dimmer_slider": "Ползунок с быстрым выбором",
+    "wm_dimmer_bar": "Шкала с кнопками ±",
     "wm_Web component": "Веб-компонент",
     "wm_Web component is not installed": "Веб-компонент %s не установлен",
-    "wm_Web component cannot be loaded": "Веб-компонент %s не может быть загружен"
+    "wm_Web component cannot be loaded": "Веб-компонент %s не может быть загружен",
+    "wm_Search widgets": "Поиск виджетов",
+    "wm_All widgets": "Все виджеты",
+    "wm_Built-in": "Встроенные",
+    "wm_From adapters": "Из адаптеров",
+    "wm_set_info": "Информация",
+    "wm_set_values": "Значения и энергия",
+    "wm_set_layout": "Структура",
+    "wm_No widget matches the search": "Ни один виджет не соответствует поиску",
+    "wm_Search in all sets": "Искать во всех наборах"
 }

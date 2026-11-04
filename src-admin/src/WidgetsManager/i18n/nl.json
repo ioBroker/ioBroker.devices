@@ -628,7 +628,21 @@
     "wm_Previous": "Vorige",
     "wm_Next": "Volgende",
     "wm_Number keys": "Cijfertoetsen",
+    "wm_Step": "Stapgrootte",
+    "wm_Presets help": "Waarden in %, gescheiden door komma's. Leeg: geen knoppen",
+    "wm_Dimmer control": "Bediening",
+    "wm_dimmer_slider": "Schuifregelaar met snelkeuze",
+    "wm_dimmer_bar": "Balk met ±-knoppen",
     "wm_Web component": "Webcomponent",
     "wm_Web component is not installed": "Webcomponent %s is niet geïnstalleerd",
-    "wm_Web component cannot be loaded": "Webcomponent %s kan niet worden geladen"
+    "wm_Web component cannot be loaded": "Webcomponent %s kan niet worden geladen",
+    "wm_Search widgets": "Widgets zoeken",
+    "wm_All widgets": "Alle widgets",
+    "wm_Built-in": "Ingebouwd",
+    "wm_From adapters": "Van adapters",
+    "wm_set_info": "Informatie",
+    "wm_set_values": "Waarden en energie",
+    "wm_set_layout": "Structuur",
+    "wm_No widget matches the search": "Geen widget past bij de zoekopdracht",
+    "wm_Search in all sets": "In alle sets zoeken"
 }

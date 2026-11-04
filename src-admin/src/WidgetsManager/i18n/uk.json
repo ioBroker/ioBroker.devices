@@ -628,7 +628,21 @@
     "wm_Previous": "Попередній",
     "wm_Next": "Наступний",
     "wm_Number keys": "Цифрові кнопки",
+    "wm_Step": "Крок",
+    "wm_Presets help": "Значення у %, через кому. Порожньо: без кнопок",
+    "wm_Dimmer control": "Керування",
+    "wm_dimmer_slider": "Повзунок зі швидким вибором",
+    "wm_dimmer_bar": "Шкала з кнопками ±",
     "wm_Web component": "Вебкомпонент",
     "wm_Web component is not installed": "Вебкомпонент %s не встановлено",
-    "wm_Web component cannot be loaded": "Неможливо завантажити вебкомпонент %s"
+    "wm_Web component cannot be loaded": "Неможливо завантажити вебкомпонент %s",
+    "wm_Search widgets": "Пошук віджетів",
+    "wm_All widgets": "Усі віджети",
+    "wm_Built-in": "Вбудовані",
+    "wm_From adapters": "З адаптерів",
+    "wm_set_info": "Інформація",
+    "wm_set_values": "Значення та енергія",
+    "wm_set_layout": "Структура",
+    "wm_No widget matches the search": "Жоден віджет не відповідає пошуку",
+    "wm_Search in all sets": "Шукати в усіх наборах"
 }
