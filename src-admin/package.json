@@ -14,7 +14,7 @@
         "@iobroker/types": "^7.2.5",
         "@iobroker/web-components": "^0.3.0",
         "@module-federation/runtime": "^2.9.2",
-        "@module-federation/vite": "^1.23.5",
+        "@module-federation/vite": "^1.23.9",
         "@mui/icons-material": "^9.5.0",
         "@mui/material": "^9.5.0",
         "@sentry/browser": "^11.9.0",
