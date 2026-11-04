@@ -9,6 +9,7 @@ import { WidgetWind } from './Widgets/Wind';
 import { WidgetUniversal } from './Widgets/Universal';
 import { WidgetPresence } from './Widgets/Presence';
 import { WidgetPlugin } from './Widgets/WidgetPlugin';
+import { WidgetWebComponent } from './Widgets/WidgetWebComponent';
 import { WidgetEnergyFlow } from './Widgets/EnergyFlow';
 
 // Re-export utilities from configUtils (no circular dependency)
@@ -24,6 +25,7 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
     wind: WidgetWind.getConfigSchema(),
     universal: WidgetUniversal.getConfigSchema(),
     plugin: WidgetPlugin.getConfigSchema(),
+    webComponent: WidgetWebComponent.getConfigSchema(),
     newline: { type: 'panel', label: 'wm_New line', items: {} },
     presence: WidgetPresence.getConfigSchema(),
     energyFlow: WidgetEnergyFlow.getConfigSchema(),

@@ -85,6 +85,7 @@ export type CustomWidgetType =
     | 'gauge'
     | 'universal'
     | 'plugin'
+    | 'webComponent'
     | 'newline'
     | 'presence'
     | 'energyFlow';
@@ -187,6 +188,22 @@ export interface CustomWidgetPlugin extends CustomWidgetBase {
     pluginComponent?: string;
     /** Plugin: URL to load the widget bundle (federation remote entry) */
     pluginUrl?: string;
+}
+
+/**
+ * A web component of an adapter (`common.webComponents`, contract of `@iobroker/web-components`) as a tile
+ *
+ * The settings of the component are kept apart from those of the tile, so that a setting cannot overwrite e.g. the
+ * size of the tile, whatever the component calls it.
+ */
+export interface CustomWidgetWebComponent extends CustomWidgetBase {
+    type: 'webComponent';
+    /** Adapter that brings the component */
+    wcAdapter: string;
+    /** Name of the custom element, e.g. `iob-flow-diagram` - what the tile looks for among the loaded components */
+    wcTag: string;
+    /** The settings of the component, as its manifest describes them; a setting at its default is left out */
+    wcSettings?: Record<string, string | number | boolean>;
 }
 
 /**

@@ -627,5 +627,8 @@
     "wm_Volume down": "Volume -",
     "wm_Previous": "Précédent",
     "wm_Next": "Suivant",
-    "wm_Number keys": "Touches numériques"
+    "wm_Number keys": "Touches numériques",
+    "wm_Web component": "Composant web",
+    "wm_Web component is not installed": "Le composant web %s n'est pas installé",
+    "wm_Web component cannot be loaded": "Impossible de charger le composant web %s"
 }

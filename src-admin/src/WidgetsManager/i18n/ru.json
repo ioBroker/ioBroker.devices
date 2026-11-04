@@ -627,5 +627,8 @@
     "wm_Volume down": "Тише",
     "wm_Previous": "Предыдущий",
     "wm_Next": "Следующий",
-    "wm_Number keys": "Цифровые кнопки"
+    "wm_Number keys": "Цифровые кнопки",
+    "wm_Web component": "Веб-компонент",
+    "wm_Web component is not installed": "Веб-компонент %s не установлен",
+    "wm_Web component cannot be loaded": "Веб-компонент %s не может быть загружен"
 }

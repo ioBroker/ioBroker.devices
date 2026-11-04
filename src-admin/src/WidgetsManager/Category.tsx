@@ -109,6 +109,7 @@ import {
     WidgetEnergyFlow,
     WidgetGate,
     WidgetPlugin,
+    WidgetWebComponent,
 } from './Widgets';
 
 import type StateContext from './StateContext';
@@ -132,6 +133,7 @@ import type {
     WidgetInfo,
     DevicesDetectorState,
     CustomWidgetPlugin,
+    CustomWidgetWebComponent,
 } from '../../../packages/dm-widgets/src/index';
 import { WidgetGeneric, getTileStyles } from './Widgets/Generic';
 
@@ -2702,6 +2704,18 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         openDialogId={this.props.openDialogId}
                         onOpenWidgetDialog={this.props.onOpenWidgetDialog}
                         onCloseWidgetDialog={this.props.onCloseWidgetDialog}
+                    />
+                );
+                break;
+            case 'webComponent':
+                content = (
+                    <WidgetWebComponent
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def as CustomWidgetWebComponent}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
                     />
                 );
                 break;

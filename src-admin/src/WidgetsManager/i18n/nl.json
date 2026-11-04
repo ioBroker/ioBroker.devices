@@ -627,5 +627,8 @@
     "wm_Volume down": "Volume omlaag",
     "wm_Previous": "Vorige",
     "wm_Next": "Volgende",
-    "wm_Number keys": "Cijfertoetsen"
+    "wm_Number keys": "Cijfertoetsen",
+    "wm_Web component": "Webcomponent",
+    "wm_Web component is not installed": "Webcomponent %s is niet geïnstalleerd",
+    "wm_Web component cannot be loaded": "Webcomponent %s kan niet worden geladen"
 }

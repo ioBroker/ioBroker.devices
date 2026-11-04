@@ -627,5 +627,8 @@
     "wm_Volume down": "Leiser",
     "wm_Previous": "Vorheriger",
     "wm_Next": "Nächster",
-    "wm_Number keys": "Zifferntasten"
+    "wm_Number keys": "Zifferntasten",
+    "wm_Web component": "Web-Komponente",
+    "wm_Web component is not installed": "Web-Komponente %s ist nicht installiert",
+    "wm_Web component cannot be loaded": "Web-Komponente %s kann nicht geladen werden"
 }

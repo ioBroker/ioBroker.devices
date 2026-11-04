@@ -627,5 +627,8 @@
     "wm_Volume down": "音量减",
     "wm_Previous": "上一个",
     "wm_Next": "下一个",
-    "wm_Number keys": "数字键"
+    "wm_Number keys": "数字键",
+    "wm_Web component": "Web 组件",
+    "wm_Web component is not installed": "Web 组件 %s 未安装",
+    "wm_Web component cannot be loaded": "无法加载 Web 组件 %s"
 }

@@ -6,7 +6,7 @@
 import type { AdapterInstance } from '@iobroker/adapter-core';
 import type { WidgetInfo, CategoryInfo, DeviceStatus } from '@iobroker/dm-widgets';
 import type { RetVal, BackendToGuiCommand } from './types';
-import type { WmResponseItems } from './types/api';
+import type { WmResponseItems, WmWebComponentInstance } from './types/api';
 
 export abstract class WidgetsManagement<TAdapter extends AdapterInstance = AdapterInstance> {
     protected widgets?: Map<string, WidgetInfo>;
@@ -78,13 +78,19 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
         this.log.debug(`DeviceManagement received: ${JSON.stringify(msg)}`);
         switch (msg.command) {
             case 'dm:loadItems': {
-                const [, adapterWidgets] = await Promise.all([this.loadItems(), this.loadCustomWidgets()]);
+                const [, { adapterWidgets, webComponents }] = await Promise.all([
+                    this.loadItems(),
+                    this.loadCustomWidgets(),
+                ]);
                 const response: WmResponseItems = {
                     categories: [...this.categories!.values()],
                     widgets: [...this.widgets!.values()],
                 };
                 if (Object.keys(adapterWidgets).length) {
                     response.adapterWidgets = adapterWidgets;
+                }
+                if (webComponents.length) {
+                    response.webComponents = webComponents;
                 }
                 this.sendReply<WmResponseItems>(response, msg);
                 return;
@@ -93,11 +99,17 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
     }
 
     /**
-     * Read all adapter instances that have `common.deviceWidgets` and return them
-     * as `{ adapterName: { widget1: any, widget2: any } }`.
+     * Read all adapter instances that have `common.deviceWidgets` or `common.webComponents`.
+     *
+     * `adapterWidgets` comes as `{ adapterName: { widget1: any, widget2: any } }`, `webComponents` as one instance
+     * per adapter - the frontend resolves the URLs, because only it knows where it is served from.
      */
-    private async loadCustomWidgets(): Promise<Record<string, ioBroker.DevicesWidgets>> {
+    private async loadCustomWidgets(): Promise<{
+        adapterWidgets: Record<string, ioBroker.DevicesWidgets>;
+        webComponents: WmWebComponentInstance[];
+    }> {
         const result: Record<string, ioBroker.DevicesWidgets> = {};
+        const webComponents: WmWebComponentInstance[] = [];
         try {
             const instances = await this.adapter.getObjectViewAsync('system', 'instance', {
                 startkey: 'system.adapter.',
@@ -114,12 +126,25 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                             result[adapterName] = common.deviceWidgets;
                         }
                     }
+                    // not in the types of js-controller (yet)
+                    const list = (common as { webComponents?: unknown } | undefined)?.webComponents;
+                    if (Array.isArray(list)) {
+                        const urls = list.filter((url): url is string => typeof url === 'string' && !!url);
+                        const adapterName = row.id.split('.')[2];
+                        // every instance of an adapter lists the same files
+                        if (urls.length && !webComponents.some(other => other._id.split('.')[2] === adapterName)) {
+                            webComponents.push({
+                                _id: row.id,
+                                common: { version: common?.version, webComponents: urls },
+                            });
+                        }
+                    }
                 }
             }
         } catch (e) {
             this.log.error(`Cannot load custom widgets from instances: ${e}`);
         }
-        return result;
+        return { adapterWidgets: result, webComponents };
     }
 
     private sendReply<T>(reply: T, msg: ioBroker.Message): void {

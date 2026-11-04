@@ -29,6 +29,8 @@ import {
 } from '@mui/icons-material';
 import { I18n, Icon } from '@iobroker/gui-components';
 
+import { getText, resolveManifestUrl, type LoadedWebComponent } from '@iobroker/web-components';
+
 import type { CustomWidgetType } from '../../../packages/dm-widgets/src/index';
 import { resolveTranslated } from './Widgets';
 
@@ -105,12 +107,17 @@ interface CustomWidgetDialogProps {
     adapterWidgets?: Record<string, ioBroker.DevicesWidgets>;
     /** Callback to add a plugin widget */
     onAddPlugin?: (adapter: string, component: string, url: string, label: string) => void;
+    /** Web components of the adapters (`common.webComponents`) */
+    webComponents?: LoadedWebComponent[];
+    /** Callback to add a web component, by the name of its element */
+    onAddWebComponent?: (tag: string) => void;
     admin: boolean;
     language: ioBroker.Languages;
 }
 
 export default function CustomWidgetDialog(props: CustomWidgetDialogProps): React.JSX.Element {
-    const { open, onClose, onAdd, onCreateCategory, adapterWidgets, onAddPlugin } = props;
+    const { open, onClose, onAdd, onCreateCategory, adapterWidgets, onAddPlugin, webComponents, onAddWebComponent } =
+        props;
     const [showNameInput, setShowNameInput] = useState(false);
     const [categoryName, setCategoryName] = useState('');
 
@@ -255,6 +262,43 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                     );
                                 }),
                             )}
+                        </>
+                    ) : null}
+                    {/* Web components from adapters */}
+                    {webComponents?.length && onAddWebComponent ? (
+                        <>
+                            <Divider />
+                            {webComponents.map(component => {
+                                const { manifest } = component;
+                                const icon = resolveManifestUrl(manifest.icon, component.url);
+                                return (
+                                    <ListItemButton
+                                        key={manifest.tag}
+                                        onClick={() => {
+                                            onAddWebComponent(manifest.tag);
+                                            handleClose();
+                                        }}
+                                    >
+                                        <ListItemIcon>
+                                            {icon ? (
+                                                <Icon
+                                                    src={icon}
+                                                    alt=""
+                                                    style={{ width: 24, height: 24 }}
+                                                />
+                                            ) : (
+                                                <Extension />
+                                            )}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={getText(manifest.name, props.language) || manifest.tag}
+                                            secondary={
+                                                getText(manifest.description, props.language) || component.adapter
+                                            }
+                                        />
+                                    </ListItemButton>
+                                );
+                            })}
                         </>
                     ) : null}
                 </List>

@@ -24,6 +24,7 @@ import type {
 import type { WmAcl } from './acl';
 import WidgetGeneric from './Widgets/Generic';
 import type StateContext from './StateContext';
+import type { LoadedWebComponent } from '@iobroker/web-components';
 
 /** Widget types whose settings offer a separate icon for the active state */
 const ALARM_ICON_TYPES = new Set<Types>([
@@ -71,6 +72,9 @@ export interface CategoryListDialogsProps {
     onCreateCategory?: (name: string) => void;
     adapterWidgets?: Record<string, ioBroker.DevicesWidgets>;
     onAddPluginWidget?: (adapter: string, component: string, url: string, label: string) => void;
+    /** Web components of the adapters, for the palette */
+    webComponents?: LoadedWebComponent[];
+    onAddWebComponent?: (tag: string) => void;
 
     // --- Custom widget settings dialog ---
     customWidgetSettingsCategoryId: string | null;
@@ -250,6 +254,8 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onCreateCategory={props.onCreateCategory}
                 adapterWidgets={props.adapterWidgets}
                 onAddPlugin={props.onAddPluginWidget}
+                webComponents={props.webComponents}
+                onAddWebComponent={props.onAddWebComponent}
                 language={stateContext.language}
             />
             <CustomWidgetSettingsDialog

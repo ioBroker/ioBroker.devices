@@ -42,6 +42,7 @@ import { autoGroupItems, flattenGroups, moveWidgetToGroup, stripCollapsed, type 
 import CategoryListDialogs from './CategoryListDialogs';
 import WidgetGeneric, { resolveTranslated } from './Widgets/Generic';
 import { loadPluginComponent, isPluginLoaded } from './pluginLoader';
+import { getLoadedWebComponent, getTileSize, loadDeviceWebComponents } from './webComponents';
 import PluginServices from './PluginServices';
 import { findWidgetCategory } from './serviceWidgets';
 import type {
@@ -50,8 +51,10 @@ import type {
     CategoryInfo,
     WidgetInfo,
     CustomWidgetType,
+    CustomWidgetWebComponent,
     ItemInfo,
 } from '../../../packages/dm-widgets/src/index';
+import type { LoadedWebComponent } from '@iobroker/web-components';
 
 interface SpecialTile {
     type: 'clock';
@@ -162,6 +165,8 @@ interface CategoryListState extends CommunicationState {
     openDialogId: string | null;
     /** Plugin widgets available from adapter instances */
     adapterWidgets: Record<string, ioBroker.DevicesWidgets>;
+    /** Web components of the adapters (`common.webComponents`), once they are loaded */
+    webComponents: LoadedWebComponent[];
 }
 
 const ROOT_CATEGORY = '__root__';
@@ -669,6 +674,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             sidePanelDialogOpen: false,
             openDialogId: null,
             adapterWidgets: {},
+            webComponents: [],
         };
 
         this.lastTriggerLoad = this.props.triggerLoad || 0;
@@ -1140,6 +1146,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         openDialogId,
                         adapterWidgets: result.adapterWidgets || {},
                     });
+                    // the tiles wait for them themselves; the list is for the palette
+                    void loadDeviceWebComponents(result.webComponents || []).then(webComponents =>
+                        this.setState({ webComponents }),
+                    );
                     // Update hash to reflect the resolved category (preserve dialog if present)
                     this.updateHash(currentCategory, openDialogId);
                     console.log(
@@ -2236,6 +2246,39 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         }
     };
 
+    /**
+     * Add a tile with a web component, in the size nearest to the one its manifest asks for
+     *
+     * @param tag name of the custom element
+     */
+    private onAddWebComponent = (tag: string): void => {
+        const { customWidgetDialogCategoryId } = this.state;
+        const component = getLoadedWebComponent(tag);
+        if (!customWidgetDialogCategoryId || customWidgetDialogCategoryId === FAVORITES_CATEGORY || !component) {
+            return;
+        }
+        const id = `custom_wc_${tag}_${Date.now().toString(36)}`;
+        const def = {
+            id,
+            type: 'webComponent',
+            wcAdapter: component.adapter,
+            wcTag: tag,
+            size: getTileSize(component.manifest),
+        } as unknown as CustomWidgetWebComponent;
+        const settings = this.state.categorySettings[customWidgetDialogCategoryId] || { ...DEFAULT_CATEGORY_SETTINGS };
+        const customWidgets = [...(settings.customWidgets || []), def];
+        this.setState({
+            categorySettings: {
+                ...this.state.categorySettings,
+                [customWidgetDialogCategoryId]: { ...settings, customWidgets },
+            },
+            customWidgetDialogCategoryId: null,
+            customWidgetSettingsCategoryId: customWidgetDialogCategoryId,
+            customWidgetSettingsWidgetId: id,
+        });
+        this.persistCustomWidgets(customWidgetDialogCategoryId, customWidgets);
+    };
+
     private onCloseCustomWidgetDialog = (): void => {
         this.setState({ customWidgetDialogCategoryId: null });
     };
@@ -2698,6 +2741,8 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                                 onCreateCategory={this.onCreateCategory}
                                 adapterWidgets={this.state.adapterWidgets}
                                 onAddPluginWidget={this.onAddPluginWidget}
+                                webComponents={this.state.webComponents}
+                                onAddWebComponent={this.onAddWebComponent}
                                 customWidgetSettingsCategoryId={this.state.customWidgetSettingsCategoryId}
                                 customWidgetSettingsWidgetId={this.state.customWidgetSettingsWidgetId}
                                 onCloseCustomWidgetSettings={this.onCloseCustomWidgetSettings}

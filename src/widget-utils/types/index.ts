@@ -6,4 +6,4 @@ export type {
     BackendToGuiCommandDeviceDelete,
     RetVal,
 } from './base';
-export type { WmResponseItems } from './api';
+export type { WmResponseItems, WmWebComponentInstance } from './api';

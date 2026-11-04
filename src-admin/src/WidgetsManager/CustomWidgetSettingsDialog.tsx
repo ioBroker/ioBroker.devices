@@ -4,12 +4,15 @@ import { Close, Delete, Save } from '@mui/icons-material';
 import { I18n, type IobTheme } from '@iobroker/gui-components';
 import type { AdminConnection } from '@iobroker/socket-client';
 
-import type { CustomWidgetBase, WmAcl } from '../../../packages/dm-widgets/src/index';
+import { getText } from '@iobroker/web-components';
+
+import type { CustomWidgetBase, CustomWidgetWebComponent, WmAcl } from '../../../packages/dm-widgets/src/index';
 import AclEditor from './AclEditor';
 import { loadSettingsTab, storeSettingsTab } from './settingsTab';
 import { getPluginConfigSchema } from './pluginLoader';
 import { CUSTOM_WIDGET_CONFIGS, getConfigDefault } from './CustomWidgetConfigs';
-import { BASE_WIDGET_ITEMS } from './configUtils';
+import { BASE_WIDGET_ITEMS, SIZE_OPTIONS_WITH_2X2 } from './configUtils';
+import { getLoadedWebComponent, getWebComponentConfigItems, getWebComponentValueNames } from './webComponents';
 import {
     type ConfigGeneric,
     type ConfigGenericProps,
@@ -56,6 +59,54 @@ function flattenItems(items: Record<string, any>): Record<string, any> {
     return result;
 }
 
+/**
+ * The fields of a web component tile: size and color of the tile, then the settings of the component.
+ *
+ * The active color is left out - the tile of a component is never "active" - and the size too if the component
+ * works in its own size only.
+ *
+ * @param def the tile
+ * @param lang language of the user
+ */
+function getWebComponentConfig(def: CustomWidgetWebComponent, lang: ioBroker.Languages): ConfigItemPanel {
+    const component = getLoadedWebComponent(def.wcTag);
+    const items: Record<string, ConfigItemAny> = {};
+    if (!component?.manifest.size?.noResize) {
+        items.size = { ...BASE_WIDGET_ITEMS.size, options: SIZE_OPTIONS_WITH_2X2 } as ConfigItemAny;
+    }
+    items.color = { ...BASE_WIDGET_ITEMS.color, sm: 12 };
+    if (component) {
+        Object.assign(items, getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS)));
+    }
+    return {
+        type: 'panel',
+        label: (component && getText(component.manifest.name, lang)) || def.wcTag,
+        items,
+    };
+}
+
+/**
+ * The settings of a web component in the tile: name -> default of the manifest
+ *
+ * @param def the tile
+ */
+function getWebComponentDefaults(def: CustomWidgetBase): Map<string, unknown> {
+    const defaults = new Map<string, unknown>();
+    if (def.type !== 'webComponent') {
+        return defaults;
+    }
+    const component = getLoadedWebComponent((def as CustomWidgetWebComponent).wcTag);
+    if (component) {
+        const items = getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS));
+        for (const name of getWebComponentValueNames(component.manifest)) {
+            if (items[name]) {
+                defaults.set(name, (items[name] as { default?: unknown }).default);
+            }
+        }
+    }
+    return defaults;
+}
+
 /** Extra keys that citySearch can write besides its own key */
 const EXTRA_KEYS = ['latitude', 'longitude'] as const;
 
@@ -86,6 +137,10 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         // Newline has no settings at all
         if (widgetDef.type === 'newline') {
             return CUSTOM_WIDGET_CONFIGS.newline;
+        }
+
+        if (widgetDef.type === 'webComponent') {
+            return getWebComponentConfig(widgetDef as CustomWidgetWebComponent, stateContext.language);
         }
 
         const wd = widgetDef as any;
@@ -121,7 +176,28 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
         }
 
         return null;
-    }, [widgetDef]);
+    }, [widgetDef, stateContext.language]);
+
+    /** The settings of a web component, kept in `wcSettings` of the tile, not next to its size */
+    const wcDefaults = useMemo(
+        () => (widgetDef ? getWebComponentDefaults(widgetDef) : new Map<string, unknown>()),
+        [widgetDef],
+    );
+
+    /**
+     * The value of a field as stored in the tile
+     *
+     * @param def the tile
+     * @param key name of the field
+     * @param item the field
+     */
+    const getStored = (def: CustomWidgetBase, key: string, item: ConfigItemAny): unknown => {
+        if (wcDefaults.has(key)) {
+            return (def as CustomWidgetWebComponent).wcSettings?.[key] ?? wcDefaults.get(key);
+        }
+        const stored = (def as unknown as Record<string, unknown>)[key];
+        return stored !== undefined ? stored : getConfigDefault(item);
+    };
 
     // Initialize values from widgetDef when dialog opens
     useEffect(() => {
@@ -129,8 +205,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
             const initial: Record<string, any> = {};
             const allItems = flattenItems(config.items);
             for (const [key, item] of Object.entries(allItems)) {
-                const stored = (widgetDef as unknown as Record<string, unknown>)[key];
-                initial[key] = stored !== undefined ? stored : getConfigDefault(item);
+                initial[key] = getStored(widgetDef, key, item);
             }
             for (const extraKey of EXTRA_KEYS) {
                 const stored = (widgetDef as unknown as Record<string, unknown>)[extraKey];
@@ -151,11 +226,7 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
 
     const allItems = flattenItems(config.items);
     const hasChanges =
-        Object.entries(allItems).some(([key, item]) => {
-            const stored = (widgetDef as unknown as Record<string, unknown>)[key];
-            const original = stored !== undefined ? stored : getConfigDefault(item);
-            return values[key] !== original;
-        }) ||
+        Object.entries(allItems).some(([key, item]) => values[key] !== getStored(widgetDef, key, item)) ||
         EXTRA_KEYS.some(k => {
             const stored = (widgetDef as unknown as Record<string, unknown>)[k];
             return values[k] !== undefined && values[k] !== stored;
@@ -184,7 +255,29 @@ export default function CustomWidgetSettingsDialog(props: CustomWidgetSettingsDi
                 newDef.pluginUrl = p.pluginUrl;
             }
         }
+        if (widgetDef.type === 'webComponent') {
+            const wc = widgetDef as CustomWidgetWebComponent;
+            newDef.wcAdapter = wc.wcAdapter;
+            newDef.wcTag = wc.wcTag;
+            // a component that works in its own size only has no size field: its tile keeps the size it got
+            if (!allItems.size && wc.size) {
+                newDef.size = wc.size;
+            }
+            const wcSettings: Record<string, unknown> = {};
+            for (const [key, defaultVal] of wcDefaults) {
+                const value = values[key];
+                if (value !== undefined && value !== null && value !== defaultVal) {
+                    wcSettings[key] = value;
+                }
+            }
+            if (Object.keys(wcSettings).length) {
+                newDef.wcSettings = wcSettings;
+            }
+        }
         for (const [key, item] of Object.entries(allItems)) {
+            if (wcDefaults.has(key)) {
+                continue;
+            }
             const value = values[key];
             const defaultVal = getConfigDefault(item);
             if (value !== defaultVal) {

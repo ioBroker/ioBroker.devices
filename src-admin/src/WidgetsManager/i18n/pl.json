@@ -627,5 +627,8 @@
     "wm_Volume down": "Ciszej",
     "wm_Previous": "Poprzedni",
     "wm_Next": "Następny",
-    "wm_Number keys": "Klawisze numeryczne"
+    "wm_Number keys": "Klawisze numeryczne",
+    "wm_Web component": "Komponent webowy",
+    "wm_Web component is not installed": "Komponent webowy %s nie jest zainstalowany",
+    "wm_Web component cannot be loaded": "Nie można załadować komponentu webowego %s"
 }

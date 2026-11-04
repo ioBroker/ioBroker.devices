@@ -89,6 +89,7 @@ export type {
     CategoryInfo,
     CustomWidgetBase,
     CustomWidgetPlugin,
+    CustomWidgetWebComponent,
     CustomWidgetType,
     DmServiceProps,
     DeviceStatus,

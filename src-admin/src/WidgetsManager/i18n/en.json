@@ -627,5 +627,8 @@
     "wm_Volume down": "Volume down",
     "wm_Previous": "Previous",
     "wm_Next": "Next",
-    "wm_Number keys": "Number keys"
+    "wm_Number keys": "Number keys",
+    "wm_Web component": "Web component",
+    "wm_Web component is not installed": "Web component %s is not installed",
+    "wm_Web component cannot be loaded": "Web component %s cannot be loaded"
 }

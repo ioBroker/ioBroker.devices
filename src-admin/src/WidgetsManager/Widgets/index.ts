@@ -1,4 +1,5 @@
 export { WidgetPlugin } from './WidgetPlugin';
+export { WidgetWebComponent } from './WidgetWebComponent';
 export { WidgetAirCondition } from './AirCondition';
 export { WidgetAirPurifier } from './AirPurifier';
 export { WidgetAirQuality } from './AirQuality';
