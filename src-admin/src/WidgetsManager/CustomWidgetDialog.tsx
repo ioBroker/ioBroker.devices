@@ -127,6 +127,87 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
         onClose();
     };
 
+    const pluginAdapters = adapterWidgets && onAddPlugin ? Object.keys(adapterWidgets) : [];
+    const components = webComponents && onAddWebComponent ? webComponents : [];
+    // the adapters in the order of the plugins, then those that bring web components only
+    const adapters = [...new Set([...pluginAdapters, ...components.map(component => component.adapter)])];
+
+    const renderPlugin = (
+        adapter: string,
+        desc: ioBroker.DevicesWidgets,
+        comp: ioBroker.DevicesWidgets['components'][number],
+    ): React.JSX.Element => {
+        const label = resolveTranslated(comp.label, props.language);
+        const description = resolveTranslated(comp.description, props.language);
+        return (
+            <ListItemButton
+                key={`${adapter}_${comp.name}`}
+                onClick={() => {
+                    onAddPlugin!(adapter, comp.name, desc.url || 'customDevices.js', label || comp.name);
+                    handleClose();
+                }}
+            >
+                <ListItemIcon>
+                    {comp.icon ? (
+                        comp.icon.startsWith('data:') || comp.icon.startsWith('http') ? (
+                            <Icon
+                                src={comp.icon}
+                                alt=""
+                                style={{ width: 24, height: 24 }}
+                            />
+                        ) : (
+                            <Icon
+                                src={
+                                    props.admin
+                                        ? `../../adapter/${adapter}/dm-widgets/${comp.icon}`
+                                        : `../${adapter}.admin/dm-widgets/${comp.icon}`
+                                }
+                                alt=""
+                                style={{ width: 24, height: 24 }}
+                            />
+                        )
+                    ) : (
+                        <Extension />
+                    )}
+                </ListItemIcon>
+                <ListItemText
+                    primary={label || comp.name}
+                    secondary={description || adapter}
+                />
+            </ListItemButton>
+        );
+    };
+
+    const renderWebComponent = (component: LoadedWebComponent): React.JSX.Element => {
+        const { manifest } = component;
+        const icon = resolveManifestUrl(manifest.icon, component.url);
+        return (
+            <ListItemButton
+                key={manifest.tag}
+                onClick={() => {
+                    onAddWebComponent!(manifest.tag);
+                    handleClose();
+                }}
+            >
+                <ListItemIcon>
+                    {icon ? (
+                        <Icon
+                            src={icon}
+                            alt=""
+                            style={{ width: 24, height: 24 }}
+                        />
+                    ) : (
+                        <Extension />
+                    )}
+                </ListItemIcon>
+                <ListItemText
+                    primary={getText(manifest.name, props.language) || manifest.tag}
+                    secondary={getText(manifest.description, props.language) || component.adapter}
+                />
+            </ListItemButton>
+        );
+    };
+
     const handleCreateCategory = (): void => {
         const name = categoryName.trim();
         if (name && onCreateCategory) {
@@ -210,97 +291,19 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                             />
                         </ListItemButton>
                     ))}
-                    {/* Plugin widgets from adapters */}
-                    {adapterWidgets && onAddPlugin && Object.keys(adapterWidgets).length > 0 ? (
-                        <>
+                    {/* The entries of an adapter stand together - its plugins, then its web components -
+                        like the widget sets of vis-2 */}
+                    {adapters.map(adapter => (
+                        <React.Fragment key={adapter}>
                             <Divider />
-                            {Object.entries(adapterWidgets).flatMap(([adapter, desc]) =>
-                                desc.components.map(comp => {
-                                    const label = resolveTranslated(comp.label, props.language);
-                                    const description = resolveTranslated(comp.description, props.language);
-                                    return (
-                                        <ListItemButton
-                                            key={`${adapter}_${comp.name}`}
-                                            onClick={() => {
-                                                onAddPlugin(
-                                                    adapter,
-                                                    comp.name,
-                                                    desc.url || 'customDevices.js',
-                                                    label || comp.name,
-                                                );
-                                                handleClose();
-                                            }}
-                                        >
-                                            <ListItemIcon>
-                                                {comp.icon ? (
-                                                    comp.icon.startsWith('data:') || comp.icon.startsWith('http') ? (
-                                                        <Icon
-                                                            src={comp.icon}
-                                                            alt=""
-                                                            style={{ width: 24, height: 24 }}
-                                                        />
-                                                    ) : (
-                                                        <Icon
-                                                            src={
-                                                                props.admin
-                                                                    ? `../../adapter/${adapter}/dm-widgets/${comp.icon}`
-                                                                    : `../${adapter}.admin/dm-widgets/${comp.icon}`
-                                                            }
-                                                            alt=""
-                                                            style={{ width: 24, height: 24 }}
-                                                        />
-                                                    )
-                                                ) : (
-                                                    <Extension />
-                                                )}
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary={label || comp.name}
-                                                secondary={description || adapter}
-                                            />
-                                        </ListItemButton>
-                                    );
-                                }),
-                            )}
-                        </>
-                    ) : null}
-                    {/* Web components from adapters */}
-                    {webComponents?.length && onAddWebComponent ? (
-                        <>
-                            <Divider />
-                            {webComponents.map(component => {
-                                const { manifest } = component;
-                                const icon = resolveManifestUrl(manifest.icon, component.url);
-                                return (
-                                    <ListItemButton
-                                        key={manifest.tag}
-                                        onClick={() => {
-                                            onAddWebComponent(manifest.tag);
-                                            handleClose();
-                                        }}
-                                    >
-                                        <ListItemIcon>
-                                            {icon ? (
-                                                <Icon
-                                                    src={icon}
-                                                    alt=""
-                                                    style={{ width: 24, height: 24 }}
-                                                />
-                                            ) : (
-                                                <Extension />
-                                            )}
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={getText(manifest.name, props.language) || manifest.tag}
-                                            secondary={
-                                                getText(manifest.description, props.language) || component.adapter
-                                            }
-                                        />
-                                    </ListItemButton>
-                                );
-                            })}
-                        </>
-                    ) : null}
+                            {pluginAdapters.includes(adapter)
+                                ? adapterWidgets![adapter].components.map(comp =>
+                                      renderPlugin(adapter, adapterWidgets![adapter], comp),
+                                  )
+                                : null}
+                            {components.filter(component => component.adapter === adapter).map(renderWebComponent)}
+                        </React.Fragment>
+                    ))}
                 </List>
             </DialogContent>
         </Dialog>
