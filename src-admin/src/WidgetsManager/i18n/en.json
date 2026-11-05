@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Search in all sets",
     "wm_Quick selection shows": "Quick selection shows",
     "wm_Saved states": "Saved states",
-    "wm_Saved states help": "\"+\" on the tile saves the color and brightness; edit and delete them in the color dialog"
+    "wm_Saved states help": "\"+\" on the tile saves the color and brightness; edit and delete them in the color dialog",
+    "wm_Widget cannot be loaded": "Widget %s cannot be loaded"
 }

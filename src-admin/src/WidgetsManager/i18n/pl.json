@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Szukaj we wszystkich zestawach",
     "wm_Quick selection shows": "Szybki wybór pokazuje",
     "wm_Saved states": "Zapisane stany",
-    "wm_Saved states help": "„+” na kafelku zapisuje kolor i jasność; edycja i usuwanie w oknie koloru"
+    "wm_Saved states help": "„+” na kafelku zapisuje kolor i jasność; edycja i usuwanie w oknie koloru",
+    "wm_Widget cannot be loaded": "Nie można załadować widżetu %s"
 }

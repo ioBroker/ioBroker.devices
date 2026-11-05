@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Pesquisar em todos os conjuntos",
     "wm_Quick selection shows": "A seleção rápida mostra",
     "wm_Saved states": "Estados guardados",
-    "wm_Saved states help": "\"+\" no bloco guarda a cor e o brilho; edite-os e elimine-os na caixa de diálogo de cor"
+    "wm_Saved states help": "\"+\" no bloco guarda a cor e o brilho; edite-os e elimine-os na caixa de diálogo de cor",
+    "wm_Widget cannot be loaded": "Não é possível carregar o widget %s"
 }

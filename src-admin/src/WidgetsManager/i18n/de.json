@@ -647,5 +647,6 @@
     "wm_Search in all sets": "In allen Sets suchen",
     "wm_Quick selection shows": "Schnellauswahl zeigt",
     "wm_Saved states": "Gespeicherte Zustände",
-    "wm_Saved states help": "„+“ auf der Kachel speichert Farbe und Helligkeit; bearbeiten und löschen im Farbdialog"
+    "wm_Saved states help": "„+“ auf der Kachel speichert Farbe und Helligkeit; bearbeiten und löschen im Farbdialog",
+    "wm_Widget cannot be loaded": "Widget %s kann nicht geladen werden"
 }

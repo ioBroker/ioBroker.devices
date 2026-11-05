@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Buscar en todos los conjuntos",
     "wm_Quick selection shows": "La selección rápida muestra",
     "wm_Saved states": "Estados guardados",
-    "wm_Saved states help": "\"+\" en el mosaico guarda el color y el brillo; edítalos y elimínalos en el diálogo de color"
+    "wm_Saved states help": "\"+\" en el mosaico guarda el color y el brillo; edítalos y elimínalos en el diálogo de color",
+    "wm_Widget cannot be loaded": "No se puede cargar el widget %s"
 }

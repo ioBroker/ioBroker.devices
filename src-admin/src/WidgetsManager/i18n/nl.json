@@ -647,5 +647,6 @@
     "wm_Search in all sets": "In alle sets zoeken",
     "wm_Quick selection shows": "Snelle keuze toont",
     "wm_Saved states": "Opgeslagen standen",
-    "wm_Saved states help": "\"+\" op de tegel slaat kleur en helderheid op; bewerken en verwijderen in het kleurvenster"
+    "wm_Saved states help": "\"+\" op de tegel slaat kleur en helderheid op; bewerken en verwijderen in het kleurvenster",
+    "wm_Widget cannot be loaded": "Widget %s kan niet worden geladen"
 }

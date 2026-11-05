@@ -3,10 +3,20 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { Extension } from '@mui/icons-material';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
+import { I18n } from '@iobroker/gui-components';
 
 import type { CustomWidgetPlugin } from '../../../../packages/dm-widgets/src/index';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import RemoveWidgetButton from './RemoveWidgetButton';
 import { describePluginError, getLoadedPluginComponent, loadPluginComponent } from '../pluginLoader';
+
+interface WidgetPluginProps extends WidgetGenericProps<CustomWidgetPlugin> {
+    /** Removes the tile; only in the edit mode */
+    onRemove?: () => void;
+}
+
+/** Below this width the tile shows only the name of the widget that failed and the delete button */
+const NARROW = '@container (max-width: 179.98px)';
 
 interface WidgetPluginState extends WidgetGenericState {
     PluginComp: typeof WidgetGeneric<any, any> | null;
@@ -51,9 +61,11 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
         };
     }
 
+    declare readonly props: Readonly<WidgetPluginProps>;
+
     private mounted = false;
 
-    constructor(props: WidgetGenericProps<CustomWidgetPlugin>) {
+    constructor(props: WidgetPluginProps) {
         super(props);
         // A loaded plugin renders at once. Drag & drop remounts the tile whenever it moves to another
         // slot; a loading placeholder of another size in between shifts the grid, the drag target flips
@@ -134,11 +146,14 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
             const isWideTall = size === '2x1';
             const isWide = size === '2x0.5';
 
+            const { onRemove } = this.props;
+            // The low tiles have the delete button beside the text, the square one below it
+            const row = isWide || isWideTall;
             const content = (
                 <Box
                     sx={theme => ({
                         display: 'flex',
-                        flexDirection: 'column',
+                        flexDirection: row ? 'row' : 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         width: '100%',
@@ -161,13 +176,49 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
                         <CircularProgress size={24} />
                     ) : (
                         <>
-                            <Extension sx={{ fontSize: 32, opacity: 0.3 }} />
-                            <Typography
-                                variant="caption"
-                                sx={{ color: 'error.main', textAlign: 'center', px: 1 }}
+                            {/* With the delete button there is no room for the symbol */}
+                            {row || onRemove ? null : (
+                                <Extension
+                                    sx={{ fontSize: 32, opacity: 0.3, flexShrink: 0, [NARROW]: { display: 'none' } }}
+                                />
+                            )}
+                            {/* The whole error on hover; on the tile only its beginning, the URLs in it are long */}
+                            <Box
+                                title={error || undefined}
+                                sx={{
+                                    flex: row ? 1 : undefined,
+                                    minWidth: 0,
+                                    maxWidth: '100%',
+                                    textAlign: row ? 'left' : 'center',
+                                    overflowWrap: 'anywhere',
+                                }}
                             >
-                                {error || `${pluginAdapter}/${pluginComponent}`}
-                            </Typography>
+                                <Typography
+                                    variant="caption"
+                                    component="div"
+                                    sx={{ color: 'error.main', fontWeight: 500, lineHeight: 1.3 }}
+                                >
+                                    {I18n.t('wm_Widget cannot be loaded', `${pluginAdapter}/${pluginComponent}`)}
+                                </Typography>
+                                {error ? (
+                                    <Typography
+                                        variant="caption"
+                                        component="div"
+                                        sx={{
+                                            color: 'text.secondary',
+                                            lineHeight: 1.3,
+                                            overflow: 'hidden',
+                                            display: '-webkit-box',
+                                            WebkitBoxOrient: 'vertical',
+                                            WebkitLineClamp: isWide ? 1 : isWideTall ? 4 : 3,
+                                            [NARROW]: { display: 'none' },
+                                        }}
+                                    >
+                                        {error}
+                                    </Typography>
+                                ) : null}
+                            </Box>
+                            {onRemove ? <RemoveWidgetButton onRemove={onRemove} /> : null}
                         </>
                     )}
                 </Box>
@@ -187,6 +238,8 @@ export class WidgetPlugin extends WidgetGeneric<WidgetPluginState, CustomWidgetP
                     {/* Sizer: matches 1x1 tile height for 2x1 layout */}
                     {isWideTall && <Box sx={{ width: 'calc(50% - 6px)', aspectRatio: '1' }} />}
                     {content}
+                    {/* The settings dialog of the tile can delete it as well */}
+                    {this.renderIndicators(this.renderSettingsButton())}
                 </Box>
             );
         }

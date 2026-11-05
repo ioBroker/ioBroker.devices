@@ -647,5 +647,6 @@
     "wm_Search in all sets": "在所有集合中搜索",
     "wm_Quick selection shows": "快速选择显示",
     "wm_Saved states": "已保存的状态",
-    "wm_Saved states help": "磁贴上的\"+\"保存颜色和亮度；在颜色对话框中编辑和删除"
+    "wm_Saved states help": "磁贴上的\"+\"保存颜色和亮度；在颜色对话框中编辑和删除",
+    "wm_Widget cannot be loaded": "无法加载小部件 %s"
 }

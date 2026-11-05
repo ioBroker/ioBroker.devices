@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Cerca in tutti i set",
     "wm_Quick selection shows": "La selezione rapida mostra",
     "wm_Saved states": "Stati salvati",
-    "wm_Saved states help": "\"+\" sul riquadro salva colore e luminosità; modificali ed eliminali nella finestra del colore"
+    "wm_Saved states help": "\"+\" sul riquadro salva colore e luminosità; modificali ed eliminali nella finestra del colore",
+    "wm_Widget cannot be loaded": "Impossibile caricare il widget %s"
 }

@@ -647,5 +647,6 @@
     "wm_Search in all sets": "Rechercher dans tous les ensembles",
     "wm_Quick selection shows": "La sélection rapide affiche",
     "wm_Saved states": "États enregistrés",
-    "wm_Saved states help": "« + » sur la tuile enregistre la couleur et la luminosité ; modifiez-les et supprimez-les dans la boîte de dialogue des couleurs"
+    "wm_Saved states help": "« + » sur la tuile enregistre la couleur et la luminosité ; modifiez-les et supprimez-les dans la boîte de dialogue des couleurs",
+    "wm_Widget cannot be loaded": "Impossible de charger le widget %s"
 }

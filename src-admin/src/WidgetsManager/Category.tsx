@@ -2699,6 +2699,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         settings={def as CustomWidgetPlugin}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
+                        onRemove={removeCb}
                         onHide={this.hideCb}
                         openDialogId={this.props.openDialogId}
                         onOpenWidgetDialog={this.props.onOpenWidgetDialog}
@@ -2714,6 +2715,7 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         settings={def as CustomWidgetWebComponent}
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
+                        onRemove={removeCb}
                         onHide={this.hideCb}
                     />
                 );

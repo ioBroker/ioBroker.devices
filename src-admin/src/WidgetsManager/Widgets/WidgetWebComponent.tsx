@@ -25,6 +25,7 @@ import {
 import type { CustomWidgetWebComponent } from '../../../../packages/dm-widgets/src/index';
 import { I18n } from '@iobroker/gui-components';
 import WidgetGeneric, { type WidgetGenericProps, type WidgetGenericState } from './Generic';
+import RemoveWidgetButton from './RemoveWidgetButton';
 import type { OpenWebComponentDialog } from './WebComponentDialogs';
 import { getDeviceWebComponents, getElementSettings, getLoadedWebComponent } from '../webComponents';
 
@@ -37,6 +38,8 @@ interface WebComponentHostProps {
     settings: WebComponentSettings;
     editMode: boolean;
     dialogs: WebComponentDialogs;
+    /** Removes the tile, when the component cannot be loaded; only in the edit mode */
+    onRemove?: () => void;
 }
 
 /**
@@ -102,20 +105,25 @@ function WebComponentHost(props: WebComponentHostProps): React.JSX.Element {
             <Box
                 sx={{
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: 0.5,
                     width: '100%',
                     height: '100%',
                 }}
             >
                 {error ? (
-                    <Typography
-                        variant="caption"
-                        title={error}
-                        sx={{ color: 'error.main', textAlign: 'center', px: 1, wordBreak: 'break-word' }}
-                    >
-                        {I18n.t('wm_Web component cannot be loaded', `<${tag}>`)}
-                    </Typography>
+                    <>
+                        <Typography
+                            variant="caption"
+                            title={error}
+                            sx={{ color: 'error.main', textAlign: 'center', px: 1, wordBreak: 'break-word' }}
+                        >
+                            {I18n.t('wm_Web component cannot be loaded', `<${tag}>`)}
+                        </Typography>
+                        {props.onRemove ? <RemoveWidgetButton onRemove={props.onRemove} /> : null}
+                    </>
                 ) : (
                     <CircularProgress size={24} />
                 )}
@@ -139,6 +147,11 @@ interface WidgetWebComponentState extends WidgetGenericState {
 
 let nextDialogId = 1;
 
+interface WidgetWebComponentProps extends WidgetGenericProps<CustomWidgetWebComponent> {
+    /** Removes the tile; only in the edit mode */
+    onRemove?: () => void;
+}
+
 export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, CustomWidgetWebComponent> {
     static getConfigSchema(): ConfigItemPanel {
         // the fields come from the manifest of the component, see CustomWidgetSettingsDialog
@@ -148,6 +161,8 @@ export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, C
             items: {},
         };
     }
+
+    declare readonly props: Readonly<WidgetWebComponentProps>;
 
     private mounted = false;
 
@@ -175,7 +190,7 @@ export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, C
             }),
     };
 
-    constructor(props: WidgetGenericProps<CustomWidgetWebComponent>) {
+    constructor(props: WidgetWebComponentProps) {
         super(props);
         // a loaded component draws at once: drag & drop mounts the tile again whenever it moves
         const component = getLoadedWebComponent(props.settings.wcTag) || null;
@@ -252,6 +267,7 @@ export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, C
                         >
                             {I18n.t('wm_Web component is not installed', `${wcAdapter}/${wcTag}`)}
                         </Typography>
+                        {this.props.onRemove ? <RemoveWidgetButton onRemove={this.props.onRemove} /> : null}
                     </>
                 ) : (
                     <CircularProgress size={24} />
@@ -310,6 +326,7 @@ export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, C
                             settings={this.getElementSettings(component)}
                             editMode={editMode}
                             dialogs={this.wcDialogs}
+                            onRemove={this.props.onRemove}
                         />
                     ) : (
                         this.renderPlaceholder()
