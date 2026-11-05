@@ -834,7 +834,8 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 1,
-                                        py: 1.5,
+                                        pt: 1.5,
+                                        pb: 0.75,
                                         bgcolor: 'background.paper',
                                         color: 'text.secondary',
                                         '& svg': { fontSize: 20 },
@@ -860,6 +861,8 @@ export default function CustomWidgetDialog(props: CustomWidgetDialogProps): Reac
                                         display: 'grid',
                                         gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))',
                                         gap: 1.5,
+                                        // the lifted first row (shadow, focus ring) must not slide under the sticky header
+                                        pt: 0.75,
                                     }}
                                 >
                                     {set.items.map(renderCard)}
