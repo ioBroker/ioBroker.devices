@@ -5,13 +5,14 @@
  * the socket of devices, its settings, the theme and the dialogs of devices. The module of the component is imported
  * when its first tile is shown; until then only its manifest is known.
  */
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Extension } from '@mui/icons-material';
 
 import type { ConfigItemPanel } from '@iobroker/json-config';
 import {
+    getWebComponentTheme,
     importWebComponent,
     type LoadedWebComponent,
     type WebComponentDialogRequest,
@@ -47,7 +48,9 @@ interface WebComponentHostProps {
  */
 function WebComponentHost(props: WebComponentHostProps): React.JSX.Element {
     const ref = useRef<WebComponentElement | null>(null);
-    const themeType = useTheme().palette.mode === 'dark' ? 'dark' : 'light';
+    // the colors, the font and the corners of devices
+    const muiTheme = useTheme();
+    const theme = useMemo(() => getWebComponentTheme(muiTheme), [muiTheme]);
     const { component } = props;
     const tag = component.manifest.tag;
     // drag & drop mounts a tile again whenever it moves: a component already shown draws at once
@@ -83,10 +86,10 @@ function WebComponentHost(props: WebComponentHostProps): React.JSX.Element {
 
     useLayoutEffect(() => {
         if (ref.current) {
-            ref.current.theme = themeType;
+            ref.current.theme = theme;
             ref.current.editMode = props.editMode;
         }
-    }, [ready, themeType, props.editMode]);
+    }, [ready, theme, props.editMode]);
 
     useLayoutEffect(() => {
         if (ref.current) {
