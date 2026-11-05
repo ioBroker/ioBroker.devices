@@ -21,7 +21,13 @@ function load() {
     return mod.exports;
 }
 
-const { getTileSize, getWebComponentConfigItems, getWebComponentValueNames, getElementSettings } = load();
+const {
+    getTileSize,
+    getWebComponentConfigItems,
+    getWebComponentValueNames,
+    getElementSettings,
+    withoutComponentsOfPlugins,
+} = load();
 
 const manifest = (extra = {}) => ({
     manifestVersion: 1,
@@ -96,5 +102,39 @@ describe('web components as tiles', () => {
             });
             assert.deepEqual(settings, { oid: 'test.0.value', title: 'Hello', decimals: 2, dark: true });
         });
+    });
+});
+
+describe('web components beside the plugins of their adapter', () => {
+    const component = (adapter, tag, name) => ({
+        adapter,
+        url: `/adapter/${adapter}/${tag}.json`,
+        manifest: { tag, name },
+    });
+    const flowPlugin = {
+        flow: {
+            url: 'customDevices.js',
+            components: [{ name: 'Flow', label: { en: 'Flow diagram', de: 'Fluss-Diagramm' } }],
+        },
+    };
+
+    it('leaves out the component when its adapter brings a plugin of the same name', () => {
+        const diagram = component('flow', 'iob-flow-diagram', { en: 'Flow diagram', de: 'Fluss-Diagramm' });
+        const tile = component('flow', 'iob-flow-tile', { en: 'Flow tile', de: 'Fluss-Kachel' });
+        assert.deepEqual(withoutComponentsOfPlugins([diagram, tile], flowPlugin, 'de'), [tile]);
+        assert.deepEqual(withoutComponentsOfPlugins([diagram, tile], flowPlugin, 'en'), [tile]);
+    });
+
+    it('keeps a component of the same name of another adapter, and all without plugins', () => {
+        const other = component('other', 'iob-other-diagram', 'Flow diagram');
+        const list = [other];
+        assert.equal(withoutComponentsOfPlugins(list, flowPlugin, 'en'), list);
+        assert.equal(withoutComponentsOfPlugins(list, undefined, 'en'), list);
+        assert.equal(withoutComponentsOfPlugins(undefined, flowPlugin, 'en'), undefined);
+    });
+
+    it('compares with the name of a plugin without label, without regard to case', () => {
+        const plugins = { demo: { components: [{ name: 'Gauge' }] } };
+        assert.deepEqual(withoutComponentsOfPlugins([component('demo', 'iob-gauge', 'gauge ')], plugins, 'en'), []);
     });
 });

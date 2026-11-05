@@ -11,6 +11,7 @@ import {
     DECORATION_TYPES,
     getDefaultSettings,
     getSettingsGroups,
+    getText,
     getSettingTypes,
     getWebComponentSources,
     loadWebComponents,
@@ -156,4 +157,41 @@ export function getElementSettings(
     def: CustomWidgetWebComponent,
 ): WebComponentSettings {
     return toSettings(getSettingTypes(manifest), { ...getDefaultSettings(manifest), ...(def.wcSettings || {}) });
+}
+
+/**
+ * The web components the dialog "Add widget" offers: without those whose adapter brings a plugin of the same name,
+ * like the "Flow diagram" of flow, which is both. The plugin wins: it is made for devices. Tiles of the component
+ * already placed stay as they are.
+ *
+ * The same name is the name the dialog shows, in the language of the page and without regard to case.
+ *
+ * @param components - the loaded web components
+ * @param adapterWidgets - the plugins, by adapter (`common.deviceWidgets`)
+ * @param language - the language of the page
+ */
+export function withoutComponentsOfPlugins(
+    components: LoadedWebComponent[] | undefined,
+    adapterWidgets: Record<string, ioBroker.DevicesWidgets> | undefined,
+    language: ioBroker.Languages,
+): LoadedWebComponent[] | undefined {
+    if (!components?.length || !adapterWidgets) {
+        return components;
+    }
+    const key = (adapter: string, name: string): string => `${adapter}
+${name.trim().toLowerCase()}`;
+    const plugins = new Set<string>();
+    for (const [adapter, desc] of Object.entries(adapterWidgets)) {
+        for (const comp of desc?.components || []) {
+            const name = getText(comp.label, language) || comp.name;
+            if (name?.trim()) {
+                plugins.add(key(adapter, name));
+            }
+        }
+    }
+    const offered = components.filter(
+        component =>
+            !plugins.has(key(component.adapter, getText(component.manifest.name, language) || component.manifest.tag)),
+    );
+    return offered.length === components.length ? components : offered;
 }

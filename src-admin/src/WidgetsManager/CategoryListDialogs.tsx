@@ -25,6 +25,7 @@ import type { WmAcl } from './acl';
 import WidgetGeneric from './Widgets/Generic';
 import type StateContext from './StateContext';
 import type { LoadedWebComponent } from '@iobroker/web-components';
+import { withoutComponentsOfPlugins } from './webComponents';
 
 /** Widget types whose settings offer a separate icon for the active state */
 const ALARM_ICON_TYPES = new Set<Types>([
@@ -154,6 +155,11 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
     } = props;
 
     const [aclMatrixOpen, setAclMatrixOpen] = React.useState(false);
+    // a web component whose adapter brings a plugin of the same name is not offered: the plugin wins
+    const offeredWebComponents = React.useMemo(
+        () => withoutComponentsOfPlugins(props.webComponents, props.adapterWidgets, stateContext.language),
+        [props.webComponents, props.adapterWidgets, stateContext.language],
+    );
     const multiUser = !!categorySettings[rootCategory]?.multiUser;
 
     // Build category options for default-category picker (root settings only)
@@ -254,7 +260,7 @@ function CategoryListDialogs(props: CategoryListDialogsProps): React.JSX.Element
                 onCreateCategory={props.onCreateCategory}
                 adapterWidgets={props.adapterWidgets}
                 onAddPlugin={props.onAddPluginWidget}
-                webComponents={props.webComponents}
+                webComponents={offeredWebComponents}
                 onAddWebComponent={props.onAddWebComponent}
                 stateContext={stateContext}
                 language={stateContext.language}
