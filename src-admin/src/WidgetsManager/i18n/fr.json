@@ -644,5 +644,8 @@
     "wm_set_values": "Valeurs et énergie",
     "wm_set_layout": "Structure",
     "wm_No widget matches the search": "Aucun widget ne correspond à la recherche",
-    "wm_Search in all sets": "Rechercher dans tous les ensembles"
+    "wm_Search in all sets": "Rechercher dans tous les ensembles",
+    "wm_Quick selection shows": "La sélection rapide affiche",
+    "wm_Saved states": "États enregistrés",
+    "wm_Saved states help": "« + » sur la tuile enregistre la couleur et la luminosité ; modifiez-les et supprimez-les dans la boîte de dialogue des couleurs"
 }

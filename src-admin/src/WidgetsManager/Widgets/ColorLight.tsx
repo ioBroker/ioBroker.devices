@@ -1,38 +1,38 @@
 import React from 'react';
-import { Box, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
-import { LightbulbOutlined } from '@mui/icons-material';
+import { Box, ButtonBase, Switch as MuiSwitch, Tooltip, Typography } from '@mui/material';
+import { alpha, type Theme } from '@mui/material/styles';
+import { Add, LightbulbOutlined } from '@mui/icons-material';
 import { I18n } from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
 
-import WidgetGeneric, {
-    isNeumorphicTheme,
-    type WidgetGenericProps,
-    type WidgetGenericState,
-    type WidgetGenericSettings,
-} from './Generic';
+import WidgetGeneric, { type WidgetGenericProps } from './Generic';
+import {
+    WidgetDimmer,
+    DEFAULT_LIGHT_COLOR,
+    percentText,
+    tileButtonSx,
+    type DimmerStateIds,
+    type DimmerWidgetSettings,
+    type WidgetDimmerState,
+} from './Dimmer';
 import { hexToRgb, rgbToHex, hsvToRgb, rgbToHsv, ctToRgb, rgbToCie, cieToRgb } from './colorUtils';
-import ColorLightDialog, { type ColorLightPreset } from './ColorLightDialog';
-import TouchSafeSlider from './TouchSafeSlider';
-import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
+import ColorLightDialog, { isSamePreset, type ColorLightPreset } from './ColorLightDialog';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
 /** Settings for ColorLight widget */
-export interface ColorLightWidgetSettings extends WidgetGenericSettings {
+export interface ColorLightWidgetSettings extends DimmerWidgetSettings {
+    /** Brightness in % a light without an on/off state is switched on with */
     onBrightness?: number;
-    /** States saved in the color dialog for quick selection */
+    /** States saved in the color dialog or on the tile, for quick selection */
     colorPresets?: ColorLightPreset[];
+    /** What the quick selection of the larger tiles offers: brightness values, or the saved states */
+    quickSelect?: 'brightness' | 'scenes';
 }
-// --- State interface ---
 
-interface WidgetColorLightState extends WidgetGenericState {
-    brightness: number;
-    isOn: boolean;
-    dragging: boolean;
-    dimMin: number;
-    dimMax: number;
+interface WidgetColorLightState extends WidgetDimmerState {
     /** Current color as #rrggbb hex */
     color: string;
-    dialogOpen: boolean;
+    colorDialogOpen: boolean;
     ctValue: number;
     ctMin: number;
     ctMax: number;
@@ -45,20 +45,25 @@ interface PendingWrite {
     write: () => void;
 }
 
-/** How long a slider must rest before its value is written */
+/** How long a slider of the dialog must rest before its value is written */
 const WRITE_DELAY = 300;
 /** How long the device's reports are ignored after a write, so its confirmation cannot move the slider */
 const ECHO_HOLD = 1000;
+/** Saved states on the tile; more do not fit into its row and stay in the dialog */
+const MAX_SCENES = 4;
 
-// --- Widget ---
+/** Whether a #rrggbb color is so light that it vanishes on a light tile */
+function isNearWhite(hex: string): boolean {
+    const [r, g, b] = hexToRgb(hex);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.8;
+}
 
-export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, ColorLightWidgetSettings> {
-    // Dimmer states
-    protected readonly setId: string | null;
-    protected readonly actualId: string | null;
-    protected readonly onSetId: string | null;
-    protected readonly onActualId: string | null;
-
+/**
+ * Color light: operated like the dimmer - the 1×1 tile fills with the light color, a tap switches, dragging dims,
+ * a long press opens the color dialog; the larger tiles have a color button next to the power button.
+ * Lights without a dimmer keep the plain tile with color swatch and switch.
+ */
+export class WidgetColorLight extends WidgetDimmer<WidgetColorLightState, ColorLightWidgetSettings> {
     // Color states — filled per subtype
     protected readonly rgbId: string | null; // rgbSingle: RGB string
     protected readonly rgbwId: string | null; // rgbwSingle: RGBW string
@@ -71,14 +76,9 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     protected readonly ctId: string | null; // color temperature
     protected readonly cieId: string | null; // CIE xy string
 
-    private arcRef = React.createRef<HTMLDivElement>();
-    /** Tells a drag on the arc from a finger that scrolls the page across it */
-    private readonly gesture = new TouchGestureGuard(this.arcRef);
-    private longPressTimer: ReturnType<typeof setTimeout> | null = null;
-
     /**
-     * Writes from sliders wait for the pointer to rest, one timer per value kind. A device confirms every
-     * write it gets, and confirmations of the values passed on the way would pull the slider back.
+     * Writes from the sliders of the dialog wait for the pointer to rest, one timer per value kind. A device
+     * confirms every write it gets, and confirmations of the values passed on the way would pull the slider back.
      */
     private readonly pendingWrites: Partial<Record<ColorLightWriteKind, PendingWrite>> = {};
     /** Until when the device's reports of a value kind are ignored, after its last write went out */
@@ -89,19 +89,15 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     private rgbHash = true;
     /** White channel of an RGBW string, kept when only the color changes */
     private rgbwWhite = '00';
+    /** Raw channel values for RGB separate mode */
+    private channelValues: { r: number; g: number; b: number } = { r: 0, g: 0, b: 0 };
+    /** Hue/saturation raw values */
+    private hsvValues: { h: number; s: number } = { h: 0, s: 100 };
 
     constructor(props: WidgetGenericProps<ColorLightWidgetSettings>) {
         super(props);
         const states = props.widget.control.states;
         const find = (name: string): string | null => states.find(s => s.name === name)?.id ?? null;
-
-        // Dimmer
-        const set = find('SET');
-        const actual = find('ACTUAL');
-        this.setId = set;
-        this.actualId = actual ?? set;
-        this.onSetId = find('ON_SET') ?? find('ON');
-        this.onActualId = find('ON_ACTUAL') ?? this.onSetId;
 
         // Color — all optional, availability depends on device type
         this.rgbId = find('RGB');
@@ -115,29 +111,28 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         this.ctId = find('TEMPERATURE');
         this.cieId = find('CIE');
 
-        // Dimmer may not exist for some pure-color types
-        const dimmer = find('DIMMER') ?? find('BRIGHTNESS');
-        if (dimmer) {
-            if (!this.setId) {
-                this.setId = dimmer;
-            }
-            if (!this.actualId) {
-                this.actualId = dimmer;
-            }
-        }
-
         this.state = {
             ...this.state,
-            brightness: 0,
-            isOn: false,
-            dragging: false,
-            dimMin: 0,
-            dimMax: 100,
             color: '#ffffff',
-            dialogOpen: false,
+            colorDialogOpen: false,
             ctValue: 4000,
             ctMin: 2000,
             ctMax: 6500,
+        };
+    }
+
+    /** The color patterns name the dimmer and the switch differently than the dimmer pattern */
+    // eslint-disable-next-line class-methods-use-this
+    protected findDimmerStates(states: { name: string; id?: string }[]): DimmerStateIds {
+        const find = (name: string): string | null => states.find(s => s.name === name)?.id ?? null;
+        // The dimmer may not exist for some pure-color types
+        const dimmer = find('DIMMER') ?? find('BRIGHTNESS');
+        const onSetId = find('ON_SET') ?? find('ON');
+        return {
+            setId: find('SET') || dimmer,
+            actualId: (find('ACTUAL') ?? find('SET')) || dimmer,
+            onSetId,
+            onActualId: find('ON_ACTUAL') ?? onSetId,
         };
     }
 
@@ -149,12 +144,35 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     }
 
     static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
+        const { size, wideSliderStyle, presets, brightnessStep } = WidgetDimmer.getConfigSchema().schema.items;
+        // Only the larger tiles with the slider have a row for the quick selection
+        const noQuickSelection =
+            "!data.size || data.size === '1x1' || data.size === '2x0.5' || data.wideSliderStyle === 'round'";
         return {
             name: 'Image settings', // ignored
             schema: {
                 type: 'panel',
                 items: {
+                    size,
+                    wideSliderStyle,
+                    quickSelect: {
+                        newLine: true,
+                        type: 'select',
+                        label: 'wm_Quick selection shows',
+                        help: 'wm_Saved states help',
+                        options: [
+                            { value: 'brightness', label: 'wm_Brightness' },
+                            { value: 'scenes', label: 'wm_Saved states' },
+                        ],
+                        default: 'brightness',
+                        format: 'radio',
+                        xs: 12,
+                        hidden: noQuickSelection,
+                    },
+                    presets: { ...presets, hidden: `${noQuickSelection} || data.quickSelect === 'scenes'` },
+                    brightnessStep,
                     onBrightness: {
+                        newLine: true,
                         type: 'number',
                         label: 'wm_On brightness',
                         default: 100,
@@ -170,6 +188,8 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                             fontStyle: 'italic',
                         },
                         sm: 12,
+                        // The larger tiles have a button for the dialog
+                        hidden: "!!data.size && data.size !== '1x1'",
                     },
                 },
             },
@@ -181,14 +201,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     componentDidMount(): void {
         super.componentDidMount();
 
-        if (this.actualId) {
-            this.props.stateContext.getState(this.actualId, this.onBrightnessChange);
-        }
-        if (this.onActualId && this.onActualId !== this.actualId) {
-            this.props.stateContext.getState(this.onActualId, this.onOnOffChange);
-        }
-
-        // Color subscriptions
         if (this.rgbId) {
             this.props.stateContext.getState(this.rgbId, this.onRgbChange);
         }
@@ -217,24 +229,13 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
             this.props.stateContext.getState(this.cieId, this.onCieChange);
         }
 
-        void this.loadDimmerObject();
         void this.loadCtObject();
     }
 
     componentWillUnmount(): void {
-        super.componentWillUnmount();
-        if (this.longPressTimer) {
-            clearTimeout(this.longPressTimer);
-            this.longPressTimer = null;
-        }
         // A value the user already set must not get lost because the widget went away
         this.flushWrites();
-        if (this.actualId) {
-            this.props.stateContext.removeState(this.actualId, this.onBrightnessChange);
-        }
-        if (this.onActualId && this.onActualId !== this.actualId) {
-            this.props.stateContext.removeState(this.onActualId, this.onOnOffChange);
-        }
+        super.componentWillUnmount();
         if (this.rgbId) {
             this.props.stateContext.removeState(this.rgbId, this.onRgbChange);
         }
@@ -264,30 +265,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
     }
 
-    // --- Object loaders ---
-
-    private async loadDimmerObject(): Promise<void> {
-        const id = this.setId || this.actualId;
-        if (!id) {
-            return;
-        }
-        try {
-            const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
-            if (obj?.common) {
-                const min = obj.common.min != null ? Number(obj.common.min) : 0;
-                const max = obj.common.max != null ? Number(obj.common.max) : 100;
-                if (!isNaN(min) && !isNaN(max) && max > min) {
-                    this.setState({ dimMin: min, dimMax: max });
-                }
-            }
-        } catch {
-            // ignore
-        }
-    }
-
     private async loadCtObject(): Promise<void> {
         if (!this.ctId) {
             return;
@@ -307,20 +284,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         } catch {
             // ignore
         }
-    }
-
-    protected rawToPercent(raw: number): number {
-        const { dimMin, dimMax } = this.state;
-        const range = dimMax - dimMin;
-        if (range <= 0) {
-            return 0;
-        }
-        return Math.round(((raw - dimMin) / range) * 100);
-    }
-
-    protected percentToRaw(percent: number): number {
-        const { dimMin, dimMax } = this.state;
-        return dimMin + (percent / 100) * (dimMax - dimMin);
     }
 
     // --- Delayed writes ---
@@ -358,35 +321,16 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         return !!this.pendingWrites[kind] || Date.now() < (this.holdUntil[kind] ?? 0);
     }
 
-    // --- State change callbacks ---
+    // --- Reports of the device ---
 
-    private onBrightnessChange = (_id: string, state: ioBroker.State): void => {
-        if (this.gesture.dragging || this.isHeld('brightness')) {
-            return;
-        }
-        const raw = Number(state.val) || 0;
-        const brightness = this.rawToPercent(raw);
-        if (brightness !== this.state.brightness) {
-            if (!this.onActualId || this.onActualId === this.actualId) {
-                this.setState({ brightness, isOn: brightness > 0 });
-            } else {
-                this.setState({ brightness });
-            }
-        }
-    };
+    protected ignoresBrightnessReports(): boolean {
+        return super.ignoresBrightnessReports() || this.isHeld('brightness');
+    }
 
-    private onOnOffChange = (_id: string, state: ioBroker.State): void => {
-        const isOn = !!state.val;
+    protected applyOnOffReport(isOn: boolean): void {
         this.deviceIsOn = isOn;
-        if (isOn !== this.state.isOn) {
-            this.setState({ isOn });
-        }
-    };
-
-    // --- Color state callbacks ---
-
-    /** Raw channel values for RGB separate mode */
-    private channelValues: { r: number; g: number; b: number } = { r: 0, g: 0, b: 0 };
+        super.applyOnOffReport(isOn);
+    }
 
     private onRgbChange = (_id: string, state: ioBroker.State): void => {
         const raw = String(state.val || '');
@@ -429,9 +373,6 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
     };
 
-    /** Hue/saturation raw values */
-    private hsvValues: { h: number; s: number } = { h: 0, s: 100 };
-
     private onHsvChange = (id: string, state: ioBroker.State): void => {
         const val = Number(state.val) || 0;
         if (id === this.hueId) {
@@ -464,7 +405,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
     };
 
-    // --- Send color to device ---
+    // --- Writes to the device ---
 
     protected sendColor(hex: string): void {
         const type = this.props.widget.control.type;
@@ -503,9 +444,28 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         // CT is not set from RGB hex — it has its own control
     }
 
-    // --- Dimmer controls ---
+    /** The tiles write when their control is released; the reports passed on the way back are held off */
+    protected sendBrightness(percent: number): void {
+        const pending = this.pendingWrites.brightness;
+        if (pending) {
+            clearTimeout(pending.timer);
+            delete this.pendingWrites.brightness;
+        }
+        this.holdUntil.brightness = Date.now() + ECHO_HOLD;
+        this.writeBrightness(percent);
+    }
 
-    private toggleOnOff = (): void => {
+    private writeBrightness(percent: number): void {
+        if (this.setId) {
+            void this.setValue(this.setId, this.percentToRaw(percent));
+        }
+        // The shown on/off already follows the control, so ask the device whether it is on
+        if (this.onSetId && !this.deviceIsOn && percent > 0) {
+            void this.setValue(this.onSetId, true);
+        }
+    }
+
+    protected toggleOnOff(): void {
         if (this.onSetId) {
             void this.setValue(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
@@ -514,29 +474,15 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                 .getSocket()
                 .setState(this.setId, this.state.isOn ? this.state.dimMin : this.percentToRaw(onPercent));
         }
-    };
+    }
 
-    private onSliderChange = (_e: Event, value: number | number[]): void => {
-        this.changeBrightness(value as number);
-    };
-
-    /** Show the brightness at once and write it once the slider rests */
+    /** Show the brightness of the dialog at once and write it once its slider rests */
     private changeBrightness(percent: number): void {
         this.setState({ brightness: percent, isOn: percent > 0 || (!!this.onSetId && this.state.isOn) });
-        this.scheduleWrite('brightness', () => this.sendBrightness(percent));
+        this.scheduleWrite('brightness', () => this.writeBrightness(percent));
     }
 
-    private sendBrightness(percent: number): void {
-        if (this.setId) {
-            void this.setValue(this.setId, this.percentToRaw(percent));
-        }
-        // The shown on/off already follows the slider, so ask the device whether it is on
-        if (this.onSetId && !this.deviceIsOn && percent > 0) {
-            void this.setValue(this.onSetId, true);
-        }
-    }
-
-    // --- Dialog callbacks ---
+    // --- Dialog and saved states ---
 
     private hasColorControl(): boolean {
         const type = this.props.widget.control.type;
@@ -561,7 +507,7 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
     };
 
     /** Apply a stored state at once — a tap, not a drag, so nothing to wait for */
-    private onDialogApplyPreset = (preset: ColorLightPreset): void => {
+    private applyScene = (preset: ColorLightPreset): void => {
         const { color, ct, brightness } = preset;
         if (color && this.hasColorControl()) {
             this.setState({ color });
@@ -580,132 +526,100 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         this.runWrite('brightness');
     };
 
-    private onDialogPresetsChange = (colorPresets: ColorLightPreset[]): void => {
+    private onScenesChange = (colorPresets: ColorLightPreset[]): void => {
         this.props.onSaveSettings?.(String(this.props.widget.id), { colorPresets });
     };
 
+    /** Whether the light shows a color temperature rather than a color */
+    private isCtMode(): boolean {
+        if (!this.ctId) {
+            return false;
+        }
+        if (!this.hasColorControl()) {
+            return true;
+        }
+        // The color follows the last report; after one of the color temperature it is exactly its color
+        return this.state.color.toLowerCase() === rgbToHex(...ctToRgb(this.state.ctValue));
+    }
+
+    /** The state of the light as it is saved, the same way as "+" in the color dialog does it */
+    private getCurrentScene(): ColorLightPreset {
+        const scene: ColorLightPreset = {};
+        if (this.isCtMode()) {
+            scene.ct = Math.round(this.state.ctValue);
+        } else if (this.hasColorControl()) {
+            // At full value, like the hue and saturation sliders of the dialog
+            const [h, s] = rgbToHsv(...hexToRgb(this.state.color));
+            scene.color = rgbToHex(...hsvToRgb(Math.round(h), Math.round(s * 100) / 100, 1));
+        }
+        if (this.setId || this.actualId) {
+            scene.brightness = Math.round(this.state.brightness);
+        }
+        return scene;
+    }
+
+    private saveScene = (): void => {
+        const scenes = this.props.settings?.colorPresets || [];
+        const scene = this.getCurrentScene();
+        if (!scenes.some(other => isSamePreset(other, scene))) {
+            this.onScenesChange([...scenes, scene]);
+        }
+    };
+
     private openDialog = (): void => {
-        this.setState({ dialogOpen: true });
+        this.setState({ colorDialogOpen: true });
     };
 
     private closeDialog = (): void => {
         this.flushWrites();
-        this.setState({ dialogOpen: false });
+        this.setState({ colorDialogOpen: false });
     };
 
-    // --- Arc knob ---
-
-    private pointerToPercent(clientX: number, clientY: number): number {
-        const el = this.arcRef.current;
-        if (!el) {
-            return this.state.brightness;
-        }
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = clientX - cx;
-        const dy = clientY - cy;
-
-        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-        if (angle < 0) {
-            angle += 360;
-        }
-        let normalized = angle - 135;
-        if (normalized < 0) {
-            normalized += 360;
-        }
-        if (normalized > 270) {
-            return normalized > 315 ? 0 : 100;
-        }
-        return Math.round((normalized / 270) * 100);
-    }
-
-    private onArcPointerDown = (e: React.PointerEvent): void => {
-        if (!this.gesture.start(e)) {
-            return;
-        }
-        e.preventDefault();
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-
-        // When power control exists (dedicated or brightness-simulated): tap = toggle, long press = dialog
-        if (this.onSetId || this.setId) {
-            this.clearLongPress();
-            this.longPressTimer = setTimeout(() => {
-                this.longPressTimer = null;
-                // The dialog is open now, so the trailing pointerUp/cancel must do nothing
-                this.gesture.abort();
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                    navigator.vibrate(50);
-                }
-                this.setState({ dialogOpen: true });
-            }, 500);
-        }
-    };
-
-    private onArcPointerMove = (e: React.PointerEvent): void => {
-        const dragging = this.gesture.move(e);
-        if (this.gesture.moved) {
-            this.clearLongPress();
-        }
-        if (dragging) {
-            const percent = this.pointerToPercent(e.clientX, e.clientY);
-            this.setState({ dragging: true, brightness: percent, isOn: this.state.isOn || percent > 0 });
-        }
-    };
-
-    private onArcPointerUp = (e: React.PointerEvent): void => {
-        this.clearLongPress();
-        const gesture = this.gesture.end(e);
-        if (gesture === 'drag') {
-            this.sendBrightness(this.pointerToPercent(e.clientX, e.clientY));
-        } else if (gesture === 'tap') {
-            if (this.onSetId || this.setId) {
-                // Tap with power control — toggle on/off
-                this.toggleOnOff();
-            } else {
-                // Tap without any power control — open dialog directly
-                this.openDialog();
-            }
-        }
-        this.setState({ dragging: this.gesture.dragging });
-    };
-
-    /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
-    private onArcPointerCancel = (e: React.PointerEvent): void => {
-        this.clearLongPress();
-        if (this.gesture.cancel(e) === 'drag') {
-            this.sendBrightness(this.state.brightness);
-        }
-        this.setState({ dragging: this.gesture.dragging });
-    };
-
-    private clearLongPress(): void {
-        if (this.longPressTimer) {
-            clearTimeout(this.longPressTimer);
-            this.longPressTimer = null;
-        }
-    }
-
-    // --- Overrides ---
+    // --- How the dimmer tiles show a color light ---
 
     protected isTileActive(): boolean {
-        if (this.onActualId && this.onActualId !== this.actualId) {
+        if (this.hasOwnOnOff()) {
             return this.state.isOn;
         }
         return this.state.brightness > 0 || this.state.isOn;
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    protected hasTileAction(): boolean {
-        return true;
-    }
-
+    /** Without any power control a tap opens the dialog */
     protected onTileClick(): void {
         if (this.onSetId || this.setId) {
             this.toggleOnOff();
         } else {
             this.openDialog();
         }
+    }
+
+    /** With power control a tap switches, so the dialog opens on a long press */
+    protected getTileLongPress(): (() => void) | null {
+        return this.onSetId || this.setId ? this.openDialog : null;
+    }
+
+    protected getValueText(): string {
+        if (!this.canDim()) {
+            return I18n.t(this.isTileActive() ? 'wm_On' : 'wm_Off');
+        }
+        return super.getValueText();
+    }
+
+    protected getFillPercent(): number {
+        if (!this.canDim()) {
+            return this.isTileActive() ? 100 : 0;
+        }
+        return super.getFillPercent();
+    }
+
+    protected getLightColor(): string {
+        return this.state.color || super.getLightColor();
+    }
+
+    /** A white light would vanish on a light tile: it is shown in the color of a plain dimmer then */
+    protected getFillColor(theme: Theme): string {
+        const color = this.getLightColor();
+        return theme.palette.mode === 'light' && isNearWhite(color) ? DEFAULT_LIGHT_COLOR : color;
     }
 
     protected renderTileIcon(): React.JSX.Element {
@@ -715,22 +629,26 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         }
 
         const isActive = this.isTileActive();
-        const { color, brightness } = this.state;
+        const { brightness } = this.state;
 
         return (
             <LightbulbOutlined
-                sx={theme => ({
-                    color: isActive ? color : theme.palette.text.disabled,
-                    transition: 'color 0.25s ease',
-                    filter: isActive ? `drop-shadow(0 0 ${4 + brightness / 10}px ${color})` : 'none',
-                })}
+                sx={theme => {
+                    const color = this.getFillColor(theme);
+                    return {
+                        color: isActive ? color : theme.palette.text.disabled,
+                        transition: 'color 0.25s ease',
+                        filter: isActive ? `drop-shadow(0 0 ${4 + brightness / 10}px ${color})` : 'none',
+                    };
+                }}
             />
         );
     }
 
+    /** Status line of the plain tiles of lights without a dimmer */
     protected renderTileStatus(): React.JSX.Element {
         const isActive = this.isTileActive();
-        const { color, brightness } = this.state;
+        const { color } = this.state;
 
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -755,19 +673,16 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         transition: 'color 0.25s ease',
                     })}
                 >
-                    {isActive ? `${Math.round(brightness)}%` : I18n.t('wm_Off')}
+                    {this.getValueText()}
                 </Typography>
             </Box>
         );
     }
 
+    /** Color swatch and switch of the plain wide tiles of lights without a dimmer */
     protected renderTileAction(): React.JSX.Element {
-        const { brightness, color } = this.state;
-        const accent = this.getAccentColor();
-
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {/* Color swatch — opens dialog */}
                 <Box
                     onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
@@ -777,41 +692,19 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                         width: 32,
                         height: 32,
                         borderRadius: '50%',
-                        backgroundColor: color,
+                        backgroundColor: this.state.color,
                         border: '2px solid',
                         borderColor: 'divider',
                         cursor: 'pointer',
                         flexShrink: 0,
-                        // Above the slider: its thumb at 0 sits at the slider's left edge and reaches over the swatch
-                        position: 'relative',
-                        zIndex: 1,
                         transition: 'background-color 0.2s ease',
                     }}
                 />
-                {this.setId ? (
-                    <TouchSafeSlider
-                        disabled={this.isReadOnly}
-                        value={brightness}
-                        min={0}
-                        max={100}
-                        size="small"
-                        onClick={e => e.stopPropagation()}
-                        onChange={this.onSliderChange}
-                        sx={theme => ({
-                            width: 60,
-                            mx: 1,
-                            color: accent || theme.palette.primary.main,
-                            '& .MuiSlider-thumb': { width: 14, height: 14 },
-                            // MUI's invisible touch area around the thumb is 42px wide; keep it off the swatch
-                            '& .MuiSlider-thumb::after': { width: 24, height: 24 },
-                        })}
-                    />
-                ) : null}
                 {this.onSetId || this.setId ? (
                     <MuiSwitch
                         checked={this.isTileActive()}
                         onClick={e => e.stopPropagation()}
-                        onChange={this.toggleOnOff}
+                        onChange={() => this.toggleOnOff()}
                         size="small"
                     />
                 ) : null}
@@ -819,154 +712,187 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
         );
     }
 
-    // --- Compact (1x1): arc knob with color ring ---
-
-    renderCompact(): React.JSX.Element {
-        const { name, brightness, dragging, color } = this.state;
+    /** Opens the color dialog; shows the color the light has */
+    private renderColorButton(small: boolean): React.JSX.Element {
         const isActive = this.isTileActive();
-        const settingsButton = this.renderSettingsButton();
-        const indicators = this.renderIndicators(settingsButton);
-
-        const vb = 100;
-        const sw = 8;
-        const r = (vb - sw) / 2;
-        const circumference = 2 * Math.PI * r;
-        const arcLength = circumference * 0.75;
-        const progress = (brightness / 100) * arcLength;
-        const arcColor = isActive ? color : 'transparent';
-
-        const tile = (
-            <Box
-                id={String(this.props.widget.id)}
-                className={this.getWidgetClass()}
-                sx={theme => WidgetGeneric.getStyleCompact(theme)}
+        return (
+            <ButtonBase
+                key="color"
+                onClick={this.openDialog}
+                aria-label={I18n.t('wm_Color')}
+                aria-haspopup="dialog"
+                sx={theme => tileButtonSx(theme, small)}
             >
                 <Box
-                    ref={this.gesture.ref}
-                    onPointerDown={this.onArcPointerDown}
-                    onPointerMove={this.onArcPointerMove}
-                    onPointerUp={this.onArcPointerUp}
-                    onPointerCancel={this.onArcPointerCancel}
+                    component="span"
                     sx={theme => ({
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'stretch',
-                        width: '100%',
-                        aspectRatio: '1',
-                        textAlign: 'left',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        touchAction: TOUCH_ACTION,
-                        userSelect: 'none',
-                        ...this.applyTileStyles(theme, isActive),
-                        padding: isNeumorphicTheme(theme) ? 'max(12px, 8cqi)' : 'max(16px, 10cqi)',
+                        width: '52%',
+                        height: '52%',
+                        borderRadius: '50%',
+                        backgroundColor: this.state.color,
+                        border: `1px solid ${alpha(theme.palette.text.primary, 0.3)}`,
+                        opacity: isActive ? 1 : 0.55,
+                        transition: 'background-color 0.3s ease, opacity 0.3s ease',
                     })}
-                >
-                    {indicators}
-
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            position: 'relative',
-                            flex: 1,
-                        }}
-                    >
-                        <svg
-                            viewBox={`0 0 ${vb} ${vb}`}
-                            style={{ width: '60%', height: '60%', transform: 'rotate(135deg)' }}
-                        >
-                            {/* Background arc */}
-                            <circle
-                                cx={vb / 2}
-                                cy={vb / 2}
-                                r={r}
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={sw}
-                                strokeDasharray={`${arcLength} ${circumference}`}
-                                strokeLinecap="round"
-                                opacity={0.15}
-                            />
-                            {/* Progress arc — uses current color */}
-                            <circle
-                                cx={vb / 2}
-                                cy={vb / 2}
-                                r={r}
-                                fill="none"
-                                stroke={arcColor}
-                                strokeWidth={sw}
-                                strokeDasharray={`${progress} ${circumference}`}
-                                strokeLinecap="round"
-                                style={dragging ? undefined : { transition: 'stroke-dasharray 0.3s ease' }}
-                            />
-                        </svg>
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            {this.renderTileIcon()}
-                        </Box>
-                    </Box>
-
-                    <Box>
-                        <Typography
-                            ref={this.nameRef}
-                            variant="body2"
-                            sx={theme => ({
-                                fontWeight: 600,
-                                lineHeight: 1.3,
-                                overflow: 'hidden',
-                                whiteSpace: 'nowrap',
-                                ...(isNeumorphicTheme(theme)
-                                    ? {
-                                          textTransform: 'uppercase' as const,
-                                          letterSpacing: '0.08em',
-                                          fontSize: 'max(0.6rem, 6cqi)',
-                                      }
-                                    : {}),
-                            })}
-                        >
-                            {this.props.settings?.name || name || '...'}
-                        </Typography>
-                        {this.renderTileStatus()}
-                        {this.renderMinMax()}
-                    </Box>
-                    {this.renderChart()}
-                </Box>
-            </Box>
+                />
+            </ButtonBase>
         );
-
-        if (this.onSetId || this.setId) {
-            return (
-                <Tooltip
-                    title={I18n.t('wm_Long press for settings')}
-                    disableTouchListener
-                    enterDelay={500}
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                >
-                    {tile}
-                </Tooltip>
-            );
-        }
-
-        return tile;
     }
 
-    // --- Render with dialog ---
+    protected renderExtraButtons(small: boolean): React.ReactNode {
+        return (
+            <>
+                {this.renderColorButton(small)}
+                {super.renderExtraButtons(small)}
+            </>
+        );
+    }
+
+    /** Swatch of a saved state and, if the button is wide enough, its brightness */
+    private static renderSceneLabel(scene: ColorLightPreset): React.JSX.Element {
+        const swatch = scene.color || rgbToHex(...ctToRgb(scene.ct ?? 4000));
+        return (
+            <Box
+                component="span"
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35em',
+                    width: '100%',
+                    // The button is the container, so the brightness shows wherever it fits, whatever the tile size
+                    containerType: 'inline-size',
+                }}
+            >
+                <Box
+                    component="span"
+                    sx={theme => ({
+                        width: '1.15em',
+                        height: '1.15em',
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        backgroundColor: swatch,
+                        border: `1px solid ${alpha(theme.palette.text.primary, 0.3)}`,
+                    })}
+                />
+                {scene.brightness !== undefined ? (
+                    <Box
+                        component="span"
+                        sx={{ whiteSpace: 'nowrap', '@container (max-width: 63.98px)': { display: 'none' } }}
+                    >
+                        {percentText(scene.brightness)}
+                    </Box>
+                ) : null}
+            </Box>
+        );
+    }
+
+    /** Saved states as quick selection, and "+" to save the current state */
+    private renderScenes(): React.JSX.Element | null {
+        const all = this.props.settings?.colorPresets || [];
+        const scenes = all.slice(0, MAX_SCENES);
+        const current = this.getCurrentScene();
+        const isActive = this.isTileActive();
+        const canSave = !!this.props.onSaveSettings && !this.isReadOnly && all.length < MAX_SCENES;
+        const saveLabel = I18n.t('wm_Save current state');
+
+        if (!scenes.length) {
+            // Nothing saved yet: the button says what it does
+            return canSave
+                ? this.renderHugeButton({
+                      key: 'save',
+                      label: (
+                          <Box
+                              component="span"
+                              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}
+                          >
+                              <Add sx={{ fontSize: '1.3em' }} />
+                              {saveLabel}
+                          </Box>
+                      ),
+                      onClick: this.saveScene,
+                  })
+                : null;
+        }
+
+        return (
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${scenes.length}, 1fr)${canSave ? ' max(44px, 12cqi)' : ''}`,
+                    gap: 'max(8px, 2.5cqi)',
+                }}
+            >
+                {scenes.map((scene, i) =>
+                    this.renderHugeButton({
+                        key: String(i),
+                        label: WidgetColorLight.renderSceneLabel(scene),
+                        ariaLabel: [
+                            scene.color || (scene.ct !== undefined ? `${scene.ct} K` : ''),
+                            scene.brightness !== undefined ? percentText(scene.brightness) : '',
+                        ]
+                            .filter(Boolean)
+                            .join(', '),
+                        onClick: () => this.applyScene(scene),
+                        selected: isActive && isSamePreset(scene, current),
+                    }),
+                )}
+                {canSave
+                    ? this.renderHugeButton({
+                          key: 'save',
+                          label: <Add sx={{ fontSize: '1.3em' }} />,
+                          ariaLabel: saveLabel,
+                          onClick: this.saveScene,
+                          // The state is saved already
+                          disabled: all.some(scene => isSamePreset(scene, current)),
+                      })
+                    : null}
+            </Box>
+        );
+    }
+
+    protected renderPresets(): React.JSX.Element | null {
+        return this.props.settings?.quickSelect === 'scenes' ? this.renderScenes() : super.renderPresets();
+    }
+
+    // --- Sizes ---
+
+    renderCompact(): React.JSX.Element {
+        const tile = super.renderCompact();
+        if (!this.getTileLongPress()) {
+            return tile;
+        }
+        return (
+            <Tooltip
+                title={I18n.t('wm_Long press for settings')}
+                disableTouchListener
+                enterDelay={500}
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+            >
+                {tile}
+            </Tooltip>
+        );
+    }
+
+    /** Without a dimmer there is nothing to slide: the plain row with color swatch and switch */
+    renderWide(): React.JSX.Element {
+        return this.canDim() ? super.renderWide() : WidgetGeneric.prototype.renderWide.call(this);
+    }
+
+    renderWideTall(): React.JSX.Element {
+        return this.canDim() ? super.renderWideTall() : WidgetGeneric.prototype.renderWideTall.call(this);
+    }
+
+    renderHuge(): React.JSX.Element {
+        return this.canDim() ? super.renderHuge() : WidgetGeneric.prototype.renderWideTall.call(this);
+    }
 
     render(): React.JSX.Element {
         return (
             <>
                 {super.render()}
                 <ColorLightDialog
-                    open={this.state.dialogOpen}
+                    open={this.state.colorDialogOpen}
                     onClose={this.closeDialog}
                     color={this.state.color}
                     brightness={this.state.brightness}
@@ -981,12 +907,10 @@ export class WidgetColorLight extends WidgetGeneric<WidgetColorLightState, Color
                     onColorChange={this.onDialogColorChange}
                     onBrightnessChange={this.onDialogBrightnessChange}
                     onCtChange={this.onDialogCtChange}
-                    onToggle={this.toggleOnOff}
+                    onToggle={() => this.toggleOnOff()}
                     presets={this.props.settings?.colorPresets || []}
-                    onPresetsChange={
-                        this.props.onSaveSettings && !this.isReadOnly ? this.onDialogPresetsChange : undefined
-                    }
-                    onApplyPreset={this.onDialogApplyPreset}
+                    onPresetsChange={this.props.onSaveSettings && !this.isReadOnly ? this.onScenesChange : undefined}
+                    onApplyPreset={this.applyScene}
                 />
             </>
         );

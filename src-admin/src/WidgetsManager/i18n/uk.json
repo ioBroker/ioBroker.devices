@@ -644,5 +644,8 @@
     "wm_set_values": "Значення та енергія",
     "wm_set_layout": "Структура",
     "wm_No widget matches the search": "Жоден віджет не відповідає пошуку",
-    "wm_Search in all sets": "Шукати в усіх наборах"
+    "wm_Search in all sets": "Шукати в усіх наборах",
+    "wm_Quick selection shows": "Швидкий вибір показує",
+    "wm_Saved states": "Збережені стани",
+    "wm_Saved states help": "«+» на плитці зберігає колір і яскравість; змінити та видалити їх можна в діалозі кольору"
 }

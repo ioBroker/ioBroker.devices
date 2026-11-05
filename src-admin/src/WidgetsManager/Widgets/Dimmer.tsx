@@ -7,6 +7,7 @@ import { I18n } from '@iobroker/gui-components';
 import WidgetGeneric, {
     isNeumorphicTheme,
     formatFloat,
+    TILE_INDICATORS_CLASS,
     type WidgetGenericSettings,
     type WidgetGenericProps,
     type WidgetGenericState,
@@ -16,8 +17,8 @@ import { TOUCH_ACTION, TouchGestureGuard } from './touchGesture';
 import { SIZE_OPTIONS_WITH_2X2 } from '../configUtils';
 import type { ConfigItemPanel } from '@iobroker/json-config';
 
-/** Settings for Slider/Dimmer/Volume widgets */
-interface SliderWidgetSettings extends WidgetGenericSettings {
+/** Settings of the dimmer and of the widgets that are operated like it, e.g. color lights */
+export interface DimmerWidgetSettings extends WidgetGenericSettings {
     sliderType?: string;
     /** Wide and large tiles: a slider with quick selection, or a bar with ± buttons (value `round`) */
     wideSliderStyle?: string;
@@ -34,7 +35,7 @@ const DEFAULT_PRESETS = [20, 50, 100];
 /** More buttons do not fit into one row of the 2×2 tile */
 const MAX_PRESETS = 4;
 /** Fill of the bar and the slider when the widget has no active color of its own */
-const DEFAULT_LIGHT_COLOR = '#ffc107';
+export const DEFAULT_LIGHT_COLOR = '#ffc107';
 /** Moves and fills slow down at the end, like a real slider coming to rest */
 const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 /** Users who asked the system for less motion get the end state at once */
@@ -46,13 +47,49 @@ const NBSP = String.fromCharCode(0xa0);
 const MINUS = String.fromCharCode(0x2212);
 /** Movement in px that still counts as a tap, as in touchGesture.ts */
 const TAP_TOLERANCE = 8;
+/** How long a finger rests on the 1×1 tile until its long-press action runs */
+const LONG_PRESS_MS = 500;
 
 /** Value with its unit, kept on one line */
-function percentText(value: number): string {
+export function percentText(value: number): string {
     return `${Math.round(value)}${NBSP}%`;
 }
 
-interface WidgetDimmerState extends WidgetGenericState {
+/** Buttons of the low 2×0.5 tile */
+const SMALL_BUTTON_PX = 34;
+
+/**
+ * Frame of the square buttons in the header of the larger tiles, like the power button
+ *
+ * @param theme Theme of the tile
+ * @param small for the low 2×0.5 tile: a fixed size, as the tile is always 80px high, whatever its width
+ */
+export function tileButtonSx(theme: Theme, small: boolean): Record<string, unknown> {
+    const size = small ? `${SMALL_BUTTON_PX}px` : 'max(40px, 12cqi)';
+    return {
+        flexShrink: 0,
+        width: size,
+        height: size,
+        borderRadius: small ? '10px' : 'max(10px, 3.5cqi)',
+        fontSize: small ? '20px' : 'max(22px, 6.5cqi)',
+        border: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
+        backgroundColor: alpha(theme.palette.text.primary, 0.05),
+        transition: 'color 0.3s ease, background-color 0.3s ease, box-shadow 0.4s ease, transform 0.15s ease',
+        '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
+        '&:active': { transform: 'scale(0.92)' },
+        ...REDUCED_MOTION,
+    };
+}
+
+/** The states a dimmable light is operated with */
+export interface DimmerStateIds {
+    setId: string | null;
+    actualId: string | null;
+    onSetId: string | null;
+    onActualId: string | null;
+}
+
+export interface WidgetDimmerState extends WidgetGenericState {
     brightness: number;
     isOn: boolean;
     dragging: boolean;
@@ -65,11 +102,15 @@ interface WidgetDimmerState extends WidgetGenericState {
     dialogOpen: boolean;
 }
 
-export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetSettings> {
-    private readonly setId: string | null;
-    private readonly actualId: string | null;
-    private readonly onSetId: string | null;
-    private readonly onActualId: string | null;
+/** Dimmable light; color lights extend it, so they are operated the same way */
+export class WidgetDimmer<
+    TState extends WidgetDimmerState = WidgetDimmerState,
+    TSettings extends DimmerWidgetSettings = DimmerWidgetSettings,
+> extends WidgetGeneric<TState, TSettings> {
+    protected readonly setId: string | null;
+    protected readonly actualId: string | null;
+    protected readonly onSetId: string | null;
+    protected readonly onActualId: string | null;
     private readonly effectId: string | null;
     private readonly transitionTimeId: string | null;
 
@@ -83,19 +124,18 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     private barRailRef = React.createRef<HTMLDivElement>();
     /** Tells a drag on the vertical bar from a finger that scrolls the page across it */
     private readonly barGesture = new TouchGestureGuard();
+    /** Runs the long-press action of the 1×1 tile, if the widget has one */
+    private longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(props: WidgetGenericProps<SliderWidgetSettings>) {
+    constructor(props: WidgetGenericProps<TSettings>) {
         super(props);
         const states = props.widget.control.states;
-        const set = states.find(s => s.name === 'SET');
-        const actual = states.find(s => s.name === 'ACTUAL');
-        const onSet = states.find(s => s.name === 'ON_SET');
-        const onActual = states.find(s => s.name === 'ON_ACTUAL');
+        const ids = this.findDimmerStates(states);
 
-        this.setId = set?.id ?? null;
-        this.actualId = actual?.id ?? set?.id ?? null;
-        this.onSetId = onSet?.id ?? null;
-        this.onActualId = onActual?.id ?? onSet?.id ?? null;
+        this.setId = ids.setId;
+        this.actualId = ids.actualId;
+        this.onSetId = ids.onSetId;
+        this.onActualId = ids.onActualId;
         this.effectId = states.find(s => s.name === 'EFFECT')?.id ?? null;
         this.transitionTimeId = states.find(s => s.name === 'TRANSITION_TIME')?.id ?? null;
 
@@ -112,6 +152,51 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             transitionMax: 10000,
             dialogOpen: false,
         };
+    }
+
+    /**
+     * The states the light is dimmed and switched with. Called from the constructor, so an override must not
+     * use fields of its class.
+     *
+     * @param states The states of the detected device
+     */
+    // eslint-disable-next-line class-methods-use-this
+    protected findDimmerStates(states: { name: string; id?: string }[]): DimmerStateIds {
+        const find = (name: string): string | null => states.find(s => s.name === name)?.id ?? null;
+        const setId = find('SET');
+        const onSetId = find('ON_SET');
+        return {
+            setId,
+            actualId: find('ACTUAL') ?? setId,
+            onSetId,
+            onActualId: find('ON_ACTUAL') ?? onSetId,
+        };
+    }
+
+    /** setState for the fields of the dimmer; the state of a subclass has more of them */
+    private setDimmerState(patch: Partial<WidgetDimmerState>): void {
+        this.setState(patch as Partial<TState> as TState);
+    }
+
+    /** Whether the light has an on/off state of its own, apart from the brightness */
+    protected hasOwnOnOff(): boolean {
+        return !!this.onActualId && this.onActualId !== this.actualId;
+    }
+
+    /** Whether the brightness can be changed; a light without a dimmer can only be switched */
+    protected canDim(): boolean {
+        return !!this.setId;
+    }
+
+    /** What a long press on the 1×1 tile does; null: nothing, the tile only switches and dims */
+    // eslint-disable-next-line class-methods-use-this
+    protected getTileLongPress(): (() => void) | null {
+        return null;
+    }
+
+    /** Buttons left of the power button of the larger tiles */
+    protected renderExtraButtons(_small: boolean): React.ReactNode {
+        return this.renderEffectButton();
     }
 
     static getConfigSchema(): { name: string; schema: ConfigItemPanel } {
@@ -185,8 +270,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         if (this.actualId) {
             this.props.stateContext.getState(this.actualId, this.onBrightnessChange);
         }
-        if (this.onActualId) {
-            this.props.stateContext.getState(this.onActualId, this.onOnOffChange);
+        if (this.hasOwnOnOff()) {
+            this.props.stateContext.getState(this.onActualId!, this.onOnOffChange);
         }
         if (this.effectId) {
             this.props.stateContext.getState(this.effectId, this.onEffectChange);
@@ -213,7 +298,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 const min = obj.common.min != null ? Number(obj.common.min) : 0;
                 const max = obj.common.max != null ? Number(obj.common.max) : 100;
                 if (!isNaN(min) && !isNaN(max) && max > min) {
-                    this.setState({ dimMin: min, dimMax: max });
+                    this.setDimmerState({ dimMin: min, dimMax: max });
                 }
             }
         } catch {
@@ -231,7 +316,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 | null
                 | undefined;
             if (obj?.common?.states && typeof obj.common.states === 'object') {
-                this.setState({ effectStates: obj.common.states as Record<string, string> });
+                this.setDimmerState({ effectStates: obj.common.states as Record<string, string> });
             }
         } catch {
             // ignore
@@ -250,7 +335,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             if (obj?.common) {
                 const max = obj.common.max != null ? Number(obj.common.max) : 10000;
                 if (!isNaN(max) && max > 0) {
-                    this.setState({ transitionMax: max });
+                    this.setDimmerState({ transitionMax: max });
                 }
             }
         } catch {
@@ -261,7 +346,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     private onEffectChange = (_id: string, state: ioBroker.State): void => {
         const effect = state.val;
         if (effect !== this.state.effect) {
-            this.setState({ effect: effect as number | string | null });
+            this.setDimmerState({ effect: effect as number | string | null });
         }
     };
 
@@ -269,21 +354,21 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         const val = state.val != null ? Number(state.val) : null;
         const transitionTime = val != null && !isNaN(val) ? val : null;
         if (transitionTime !== this.state.transitionTime) {
-            this.setState({ transitionTime });
+            this.setDimmerState({ transitionTime });
         }
     };
 
     private setEffect = (value: number | string): void => {
         if (this.effectId) {
             void this.setValue(this.effectId, value);
-            this.setState({ effect: value });
+            this.setDimmerState({ effect: value });
         }
     };
 
     private setTransitionTime = (value: number): void => {
         if (this.transitionTimeId) {
             void this.setValue(this.transitionTimeId, value);
-            this.setState({ transitionTime: value });
+            this.setDimmerState({ transitionTime: value });
         }
     };
 
@@ -292,7 +377,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     /** Convert a raw device value to 0-100 percent */
-    private rawToPercent(raw: number): number {
+    protected rawToPercent(raw: number): number {
         const { dimMin, dimMax } = this.state;
         const range = dimMax - dimMin;
         if (range <= 0) {
@@ -302,7 +387,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     /** Convert a 0-100 percent to a raw device value */
-    private percentToRaw(percent: number): number {
+    protected percentToRaw(percent: number): number {
         const { dimMin, dimMax } = this.state;
         // Rounded, so that 56 % of 0..100 is written as 56 and not as 56.00000000000001
         return Math.round((dimMin + (percent / 100) * (dimMax - dimMin)) * 1000) / 1000;
@@ -310,11 +395,12 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
 
     componentWillUnmount(): void {
         super.componentWillUnmount();
+        this.clearLongPress();
         if (this.actualId) {
             this.props.stateContext.removeState(this.actualId, this.onBrightnessChange);
         }
-        if (this.onActualId) {
-            this.props.stateContext.removeState(this.onActualId, this.onOnOffChange);
+        if (this.hasOwnOnOff()) {
+            this.props.stateContext.removeState(this.onActualId!, this.onOnOffChange);
         }
         if (this.effectId) {
             this.props.stateContext.removeState(this.effectId, this.onEffectChange);
@@ -324,30 +410,39 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
     }
 
+    /** Reports of the device are not shown while the user moves a control */
+    protected ignoresBrightnessReports(): boolean {
+        return this.gesture.dragging || this.barGesture.dragging || this.state.dragging;
+    }
+
     onBrightnessChange = (_id: string, state: ioBroker.State): void => {
-        // Ignore backend updates while user is dragging
-        if (this.gesture.dragging || this.barGesture.dragging || this.state.dragging) {
+        if (this.ignoresBrightnessReports()) {
             return;
         }
         const raw = Number(state.val) || 0;
         const brightness = this.rawToPercent(raw);
         if (brightness !== this.state.brightness) {
-            if (!this.onActualId) {
-                this.setState({ brightness, isOn: brightness > 0 });
+            if (!this.hasOwnOnOff()) {
+                this.setDimmerState({ brightness, isOn: brightness > 0 });
             } else {
-                this.setState({ brightness });
+                this.setDimmerState({ brightness });
             }
         }
     };
 
     onOnOffChange = (_id: string, state: ioBroker.State): void => {
-        const isOn = !!state.val;
-        if (isOn !== this.state.isOn) {
-            this.setState({ isOn });
-        }
+        this.applyOnOffReport(!!state.val);
     };
 
-    private sendBrightness(percent: number): void {
+    /** The device reported whether it is on */
+    protected applyOnOffReport(isOn: boolean): void {
+        if (isOn !== this.state.isOn) {
+            this.setDimmerState({ isOn });
+        }
+    }
+
+    /** Write the brightness, and switch the light on if it is off */
+    protected sendBrightness(percent: number): void {
         if (this.setId) {
             void this.setValue(this.setId, this.percentToRaw(percent));
         }
@@ -356,7 +451,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
     }
 
-    toggleOnOff = (): void => {
+    protected toggleOnOff(): void {
         if (this.onSetId) {
             void this.setValue(this.onSetId, !this.state.isOn);
         } else if (this.setId) {
@@ -373,9 +468,16 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     .setState(this.setId, this.state.isOn ? this.state.dimMin : this.state.dimMax);
             }
         }
-    };
+    }
 
     // --- 1×1 tile: a tap switches, dragging up or down dims ---
+
+    private clearLongPress(): void {
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+    }
 
     /** Brightness for the pointer at `clientY`; the tile height is the full range, counted from where the drag began */
     private tileDragPercent(clientY: number): number {
@@ -394,10 +496,29 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         const brightness = this.isTileActive() ? this.state.brightness : 0;
         this.dragOrigin = { y: e.clientY, brightness, started: false, percent: brightness };
         e.currentTarget.setPointerCapture(e.pointerId);
+
+        const longPress = this.getTileLongPress();
+        if (longPress) {
+            this.clearLongPress();
+            this.longPressTimer = setTimeout(() => {
+                this.longPressTimer = null;
+                // The action took the gesture over, so the trailing pointerup must neither switch nor dim
+                this.gesture.abort();
+                this.dragOrigin = null;
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+                longPress();
+            }, LONG_PRESS_MS);
+        }
     };
 
     private onTilePointerMove = (e: React.PointerEvent): void => {
-        if (!this.gesture.move(e) || !this.dragOrigin) {
+        const dragging = this.gesture.move(e);
+        if (this.gesture.moved) {
+            this.clearLongPress();
+        }
+        if (!dragging || !this.dragOrigin || !this.canDim()) {
             return;
         }
         if (!this.dragOrigin.started) {
@@ -408,44 +529,47 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         }
         const brightness = this.tileDragPercent(e.clientY);
         this.dragOrigin.percent = brightness;
-        this.setState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
+        this.setDimmerState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
     };
 
-    /** A drag sends the value it is released at, a tap switches the light */
+    /** A drag sends the value it is released at, a tap does what a click on the tile does: mostly switch */
     private onTilePointerUp = (e: React.PointerEvent): void => {
+        this.clearLongPress();
         const gesture = this.gesture.end(e);
         // From the pointer: the state may not have the last move yet when the pointer goes up right after it
         const percent = this.tileDragPercent(e.clientY);
+        const dragged = !!this.dragOrigin?.started;
         this.dragOrigin = null;
-        if (gesture === 'drag') {
+        if (gesture === 'drag' && dragged) {
             this.applyBrightness(percent);
             return;
         }
         if (gesture === 'tap') {
-            this.toggleOnOff();
+            this.onTileClick();
         }
         if (this.state.dragging) {
-            this.setState({ dragging: false });
+            this.setDimmerState({ dragging: false });
         }
     };
 
     /** The browser took the touch over, mostly to scroll; a drag already under way keeps the value it reached */
     private onTilePointerCancel = (e: React.PointerEvent): void => {
-        const percent = this.dragOrigin?.percent;
+        this.clearLongPress();
+        const percent = this.dragOrigin?.started ? this.dragOrigin.percent : undefined;
         this.dragOrigin = null;
         if (this.gesture.cancel(e) === 'drag' && percent !== undefined) {
             this.applyBrightness(percent);
         } else if (this.state.dragging) {
-            this.setState({ dragging: false });
+            this.setDimmerState({ dragging: false });
         }
     };
 
-    /** Enter and space switch, the other keys dim like on the bar */
+    /** Enter and space do what a click on the tile does, the other keys dim like on the bar */
     private onTileKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             if (!this.isReadOnly) {
-                this.toggleOnOff();
+                this.onTileClick();
             }
         } else {
             this.onBarKeyDown(e);
@@ -455,10 +579,20 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     // --- Overrides ---
 
     protected isTileActive(): boolean {
-        if (this.onActualId) {
+        if (this.hasOwnOnOff()) {
             return this.state.isOn;
         }
         return this.state.brightness > 0;
+    }
+
+    /** Value shown big on the tiles */
+    protected getValueText(): string {
+        return this.isTileActive() ? percentText(this.state.brightness) : I18n.t('wm_Off');
+    }
+
+    /** How high the 1×1 tile is filled, in % */
+    protected getFillPercent(): number {
+        return this.isTileActive() ? this.state.brightness : 0;
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -546,7 +680,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     size="small"
                     onClick={e => {
                         e.stopPropagation();
-                        this.setState({ dialogOpen: true });
+                        this.setDimmerState({ dialogOpen: true });
                     }}
                     sx={{ color: 'text.secondary' }}
                 >
@@ -567,7 +701,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         return (
             <Dialog
                 open
-                onClose={() => this.setState({ dialogOpen: false })}
+                onClose={() => this.setDimmerState({ dialogOpen: false })}
                 maxWidth="xs"
                 fullWidth
                 slotProps={{ paper: { sx: { borderRadius: '24px' } } }}
@@ -575,7 +709,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 <DialogContent sx={{ p: 3, pt: 2, position: 'relative' }}>
                     <IconButton
                         size="small"
-                        onClick={() => this.setState({ dialogOpen: false })}
+                        onClick={() => this.setDimmerState({ dialogOpen: false })}
                         sx={{ position: 'absolute', top: 8, right: 8 }}
                     >
                         <Close fontSize="small" />
@@ -645,7 +779,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                     min={0}
                                     max={transitionMax}
                                     step={100}
-                                    onChange={(_e, value) => this.setState({ transitionTime: value })}
+                                    onChange={(_e, value) => this.setDimmerState({ transitionTime: value })}
                                     onChangeCommitted={(_e, value) => this.setTransitionTime(value)}
                                     sx={{ flex: 1 }}
                                 />
@@ -669,9 +803,10 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     renderCompact(): React.JSX.Element {
         const { brightness, dragging } = this.state;
         const isActive = this.isTileActive();
-        const lightColor = this.getLightColor();
         const readOnly = this.isReadOnly;
         const name = this.props.settings?.name || this.state.name || '...';
+        // A light without a dimmer can only be switched: the tile is a button then
+        const dimmable = this.canDim();
 
         return (
             <Box
@@ -681,14 +816,15 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             >
                 <Box
                     ref={this.gesture.ref}
-                    role="slider"
+                    role={dimmable ? 'slider' : 'button'}
                     tabIndex={readOnly ? -1 : 0}
                     aria-label={name}
-                    aria-orientation="vertical"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={brightness}
-                    aria-valuetext={isActive ? percentText(brightness) : I18n.t('wm_Off')}
+                    aria-orientation={dimmable ? 'vertical' : undefined}
+                    aria-valuemin={dimmable ? 0 : undefined}
+                    aria-valuemax={dimmable ? 100 : undefined}
+                    aria-valuenow={dimmable ? brightness : undefined}
+                    aria-valuetext={dimmable ? this.getValueText() : undefined}
+                    aria-pressed={dimmable ? undefined : isActive}
                     aria-disabled={readOnly || undefined}
                     onPointerDown={this.onTilePointerDown}
                     onPointerMove={this.onTilePointerMove}
@@ -718,19 +854,19 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     {/* The fill: the light color, stronger at the bottom; a mask works with any CSS color */}
                     <Box
                         aria-hidden
-                        sx={{
+                        sx={theme => ({
                             position: 'absolute',
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            height: isActive ? `${brightness}%` : '0%',
+                            height: `${this.getFillPercent()}%`,
                             pointerEvents: 'none',
-                            backgroundColor: lightColor,
+                            backgroundColor: this.getFillColor(theme),
                             maskImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18))',
                             WebkitMaskImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18))',
-                            transition: dragging ? 'none' : `height 0.4s ${EASE_OUT}`,
+                            transition: dragging ? 'none' : `height 0.4s ${EASE_OUT}, background-color 0.3s ease`,
                             ...REDUCED_MOTION,
-                        }}
+                        })}
                     />
                     {/* Centered like on the other tiles; the top left corner belongs to the drag handle when editing */}
                     <Box
@@ -761,7 +897,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                 transition: 'color 0.3s ease',
                             }}
                         >
-                            {isActive ? percentText(brightness) : I18n.t('wm_Off')}
+                            {this.getValueText()}
                         </Typography>
                         <Typography
                             ref={this.nameRef}
@@ -815,15 +951,15 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     /** Whether the light is on when it is shown with `percent` while the user moves the control */
-    private isOnWith(percent: number): boolean {
+    protected isOnWith(percent: number): boolean {
         // With an own on/off state, dimming down to 0 does not switch the light off
-        return this.onActualId ? this.state.isOn || percent > 0 : percent > 0;
+        return this.hasOwnOnOff() ? this.state.isOn || percent > 0 : percent > 0;
     }
 
     /** Show the new brightness at once and send it to the device */
-    private applyBrightness(percent: number): void {
+    protected applyBrightness(percent: number): void {
         const brightness = Math.min(100, Math.max(0, Math.round(percent)));
-        this.setState({ brightness, isOn: this.isOnWith(brightness), dragging: false });
+        this.setDimmerState({ brightness, isOn: this.isOnWith(brightness), dragging: false });
         this.sendBrightness(brightness);
     }
 
@@ -834,7 +970,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
 
     private onHugeSliderChange = (_e: Event, value: number | number[]): void => {
         const brightness = value as number;
-        this.setState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
+        this.setDimmerState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
     };
 
     /** The horizontal slider sends only the value it is released at, not every step on the way */
@@ -868,7 +1004,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             return;
         }
         const brightness = this.barPointerToPercent(e.clientY);
-        this.setState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
+        this.setDimmerState({ dragging: true, brightness, isOn: this.isOnWith(brightness) });
     };
 
     /** A tap puts the brightness to the tapped height, a drag to the height it is released at */
@@ -876,7 +1012,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         if (this.barGesture.end(e)) {
             this.applyBrightness(this.barPointerToPercent(e.clientY));
         } else if (this.state.dragging) {
-            this.setState({ dragging: false });
+            this.setDimmerState({ dragging: false });
         }
     };
 
@@ -885,12 +1021,12 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         if (this.barGesture.cancel(e) === 'drag') {
             this.applyBrightness(this.state.brightness);
         } else if (this.state.dragging) {
-            this.setState({ dragging: false });
+            this.setDimmerState({ dragging: false });
         }
     };
 
     private onBarKeyDown = (e: React.KeyboardEvent): void => {
-        if (this.isReadOnly) {
+        if (this.isReadOnly || !this.canDim()) {
             return;
         }
         if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
@@ -911,37 +1047,32 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
         e.preventDefault();
     };
 
-    private getLightColor(): string {
+    /** Color of the light, for the bar, the slider and the fill of the 1×1 tile */
+    protected getLightColor(): string {
         return this.getAccentColor() || DEFAULT_LIGHT_COLOR;
     }
 
-    /** @param small for the low 2×0.5 tile: smaller and at the bottom, below the indicators */
+    /** Fill of the 1×1 tile and of the bar: the light color, unless it would vanish on the tile */
+    protected getFillColor(_theme: Theme): string {
+        return this.getLightColor();
+    }
+
+    /** @param small for the low 2×0.5 tile */
     private renderPowerButton(small = false): React.JSX.Element {
         const isActive = this.isTileActive();
-        const size = small ? 'max(36px, 10cqi)' : 'max(40px, 12cqi)';
         return (
             <ButtonBase
-                onClick={this.toggleOnOff}
+                onClick={() => this.toggleOnOff()}
                 disabled={this.isReadOnly}
                 aria-label={I18n.t('wm_Toggle')}
                 aria-pressed={isActive}
                 sx={theme => ({
-                    flexShrink: 0,
-                    alignSelf: small ? 'flex-end' : undefined,
-                    width: size,
-                    height: size,
-                    borderRadius: 'max(10px, 3.5cqi)',
-                    fontSize: 'max(22px, 6.5cqi)',
+                    ...tileButtonSx(theme, small),
                     color: isActive ? theme.palette.primary.main : theme.palette.text.disabled,
-                    border: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
                     backgroundColor: isActive
                         ? alpha(theme.palette.primary.main, 0.12)
                         : alpha(theme.palette.text.primary, 0.05),
                     boxShadow: isActive ? `0 0 max(10px, 4cqi) ${alpha(theme.palette.primary.main, 0.3)}` : 'none',
-                    transition:
-                        'color 0.3s ease, background-color 0.3s ease, box-shadow 0.4s ease, transform 0.15s ease',
-                    '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
-                    '&:active': { transform: 'scale(0.92)' },
                     '& .MuiSvgIcon-root': {
                         fontSize: 'inherit',
                         // The symbol turns a quarter when the light goes on, like a real rotary switch
@@ -949,7 +1080,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         transition: `transform 0.45s ${EASE_OUT}`,
                         ...REDUCED_MOTION,
                     },
-                    ...REDUCED_MOTION,
                 })}
             >
                 <PowerSettingsNew />
@@ -958,9 +1088,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     /** Text button of the larger tiles: quick selection or ± step */
-    private renderHugeButton(options: {
+    protected renderHugeButton(options: {
         key: string;
-        label: string;
+        label: React.ReactNode;
         onClick: () => void;
         /** Only for buttons that show a state, like the quick selection */
         selected?: boolean;
@@ -1060,7 +1190,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         transition: 'color 0.3s ease',
                     }}
                 >
-                    {isActive ? percentText(this.state.brightness) : I18n.t('wm_Off')}
+                    {this.getValueText()}
                 </Typography>
                 {withLabel ? (
                     <Typography
@@ -1098,8 +1228,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     private renderBrightnessSlider(dense = false): React.JSX.Element {
         const { brightness } = this.state;
         const isActive = this.isTileActive();
-        const lightColor = this.getLightColor();
-        const thumb = dense ? 'max(22px, 6.5cqi)' : 'max(26px, 8cqi)';
+        // The 2×0.5 tile is 80px high whatever its width: there the thumb must not grow, or it covers the name
+        const thumb = dense ? '22px' : 'max(26px, 8cqi)';
 
         return (
             <TouchSafeSlider
@@ -1114,17 +1244,24 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 sx={theme => ({
                     display: 'block',
                     boxSizing: 'border-box',
-                    height: dense ? 'max(10px, 3cqi)' : 'max(12px, 4.5cqi)',
-                    // MUI makes the padding much larger on touch screens; the big thumb is enough to hit
-                    padding: `${dense ? '6px' : 'max(8px, 2.5cqi)'} 0 !important`,
-                    color: lightColor,
+                    // At 0 and 100 % the thumb sits centered on the end of the rail: keep half a thumb free on
+                    // both sides, so that it does not cover the buttons next to the slider
+                    width: `calc(100% - ${thumb})`,
+                    marginInline: `calc(${thumb} / 2)`,
+                    // Some room between the name and the thumb
+                    marginTop: dense ? '6px' : undefined,
+                    height: dense ? '8px' : 'max(12px, 4.5cqi)',
+                    // MUI makes the padding much larger on touch screens; the big thumb is enough to hit.
+                    // Dense: rail and padding together as high as the thumb, so it stays inside
+                    padding: `${dense ? '7px' : 'max(8px, 2.5cqi)'} 0 !important`,
+                    color: this.getFillColor(theme),
                     '& .MuiSlider-rail': {
                         opacity: 1,
                         backgroundColor: alpha(theme.palette.text.primary, 0.12),
                     },
                     '& .MuiSlider-track': {
                         border: 'none',
-                        backgroundColor: isActive ? lightColor : alpha(theme.palette.text.primary, 0.25),
+                        backgroundColor: isActive ? this.getFillColor(theme) : alpha(theme.palette.text.primary, 0.25),
                     },
                     '& .MuiSlider-thumb': {
                         width: thumb,
@@ -1146,7 +1283,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     }
 
     /** Quick selection buttons in one row; null when the user emptied the list */
-    private renderPresets(): React.JSX.Element | null {
+    protected renderPresets(): React.JSX.Element | null {
         const presets = this.getPresets();
         if (!presets.length) {
             return null;
@@ -1177,7 +1314,6 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
     private renderBar(width: string): React.JSX.Element {
         const { brightness, dragging } = this.state;
         const isActive = this.isTileActive();
-        const lightColor = this.getLightColor();
         const readOnly = this.isReadOnly;
         // Near the top the sun sits on the fill and needs a dark color to be seen
         const sunOnFill = brightness > 80;
@@ -1193,7 +1329,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={brightness}
-                aria-valuetext={isActive ? percentText(brightness) : I18n.t('wm_Off')}
+                aria-valuetext={this.getValueText()}
                 aria-disabled={readOnly || undefined}
                 onPointerDown={this.onBarPointerDown}
                 onPointerMove={this.onBarPointerMove}
@@ -1241,7 +1377,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                             right: 0,
                             bottom: 0,
                             height: `${brightness}%`,
-                            backgroundColor: isActive ? lightColor : alpha(theme.palette.text.primary, 0.2),
+                            backgroundColor: isActive
+                                ? this.getFillColor(theme)
+                                : alpha(theme.palette.text.primary, 0.2),
                             // Darker at the bottom, like light falling off; works with any active color
                             backgroundImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 85%)',
                             boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35)',
@@ -1285,7 +1423,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             ariaLabel: `+${percentText(step)}`,
             onClick: () => this.stepBrightness(step),
             disabled: isActive && brightness >= 100,
-            fill,
+            fill: fill || row,
         });
         const down = this.renderHugeButton({
             key: 'down',
@@ -1293,7 +1431,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
             ariaLabel: `${MINUS}${percentText(step)}`,
             onClick: () => this.stepBrightness(-step),
             disabled: !isActive || brightness <= 0,
-            fill,
+            fill: fill || row,
         });
 
         if (row) {
@@ -1302,6 +1440,8 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                     sx={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(2, max(44px, 12cqi))',
+                        // As high as the power button next to them
+                        gridAutoRows: `${SMALL_BUTTON_PX}px`,
                         gap: 'max(6px, 1.5cqi)',
                         flexShrink: 0,
                     }}
@@ -1341,7 +1481,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                     {this.renderSizedIcon('max(26px, 8cqi)')}
                     {this.renderHugeIndicators()}
-                    {this.renderEffectButton()}
+                    {this.renderExtraButtons(false)}
                     {this.renderPowerButton()}
                 </Box>
 
@@ -1378,7 +1518,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                     <Box sx={{ minWidth: 0, flexShrink: 1 }}>{this.renderHugeName()}</Box>
                     {this.renderHugeIndicators()}
-                    {this.renderEffectButton()}
+                    {this.renderExtraButtons(false)}
                     {this.renderPowerButton()}
                 </Box>
 
@@ -1453,7 +1593,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         {this.renderHugeValue('medium', false)}
                     </Box>
                     {this.renderHugeIndicators()}
-                    {this.renderEffectButton()}
+                    {this.renderExtraButtons(false)}
                     {this.renderPowerButton()}
                 </Box>
                 {this.renderBrightnessSlider()}
@@ -1479,7 +1619,7 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                 >
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
                         <Box sx={{ minWidth: 0, flex: 1 }}>{this.renderHugeName()}</Box>
-                        {this.renderEffectButton()}
+                        {this.renderExtraButtons(false)}
                         {this.renderPowerButton()}
                     </Box>
                     {this.renderHugeValue('medium')}
@@ -1550,6 +1690,9 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                         overflow: 'hidden',
                         ...this.applyTileStyles(theme, isActive, { interactive: false }),
                         cursor: 'default',
+                        // The tile is 80px high whatever its width: a distance from the top that grows with
+                        // the width would push the indicators onto the buttons below them
+                        [`& > .${TILE_INDICATORS_CLASS}`]: { top: '6px' },
                     })}
                 >
                     {/* With the ± buttons the icon gives way on narrow tiles, the name needs the room */}
@@ -1591,14 +1734,26 @@ export class WidgetDimmer extends WidgetGeneric<WidgetDimmerState, SliderWidgetS
                                     transition: 'color 0.25s ease',
                                 })}
                             >
-                                {isActive ? percentText(this.state.brightness) : I18n.t('wm_Off')}
+                                {this.getValueText()}
                             </Typography>
                         </Box>
                         {bar ? null : this.renderBrightnessSlider(true)}
                     </Box>
-                    {bar ? this.renderStepButtons('row') : null}
-                    {this.renderEffectButton()}
-                    {this.renderPowerButton(true)}
+                    {/* Low in the tile, below the indicators: into the padding, so that some room stays free over them */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'max(10px, 2.5cqi)',
+                            flexShrink: 0,
+                            alignSelf: 'flex-end',
+                            mb: '-6px',
+                        }}
+                    >
+                        {bar ? this.renderStepButtons('row') : null}
+                        {this.renderExtraButtons(true)}
+                        {this.renderPowerButton(true)}
+                    </Box>
                     {/* In the top right corner of the tile, as the row is too narrow for them */}
                     {this.renderIndicators(this.renderSettingsButton())}
                 </Box>

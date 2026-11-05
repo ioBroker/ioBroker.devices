@@ -644,5 +644,8 @@
     "wm_set_values": "数值和能源",
     "wm_set_layout": "结构",
     "wm_No widget matches the search": "没有与搜索匹配的小部件",
-    "wm_Search in all sets": "在所有集合中搜索"
+    "wm_Search in all sets": "在所有集合中搜索",
+    "wm_Quick selection shows": "快速选择显示",
+    "wm_Saved states": "已保存的状态",
+    "wm_Saved states help": "磁贴上的\"+\"保存颜色和亮度；在颜色对话框中编辑和删除"
 }

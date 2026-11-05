@@ -644,5 +644,8 @@
     "wm_set_values": "Valores y energía",
     "wm_set_layout": "Estructura",
     "wm_No widget matches the search": "Ningún widget coincide con la búsqueda",
-    "wm_Search in all sets": "Buscar en todos los conjuntos"
+    "wm_Search in all sets": "Buscar en todos los conjuntos",
+    "wm_Quick selection shows": "La selección rápida muestra",
+    "wm_Saved states": "Estados guardados",
+    "wm_Saved states help": "\"+\" en el mosaico guarda el color y el brillo; edítalos y elimínalos en el diálogo de color"
 }

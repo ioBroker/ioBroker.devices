@@ -75,7 +75,7 @@ const SLIDER_SX = {
     },
 } as const;
 
-function isSamePreset(a: ColorLightPreset, b: ColorLightPreset): boolean {
+export function isSamePreset(a: ColorLightPreset, b: ColorLightPreset): boolean {
     return (
         (a.color || '').toLowerCase() === (b.color || '').toLowerCase() &&
         a.ct === b.ct &&

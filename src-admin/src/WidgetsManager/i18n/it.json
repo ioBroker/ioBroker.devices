@@ -644,5 +644,8 @@
     "wm_set_values": "Valori ed energia",
     "wm_set_layout": "Struttura",
     "wm_No widget matches the search": "Nessun widget corrisponde alla ricerca",
-    "wm_Search in all sets": "Cerca in tutti i set"
+    "wm_Search in all sets": "Cerca in tutti i set",
+    "wm_Quick selection shows": "La selezione rapida mostra",
+    "wm_Saved states": "Stati salvati",
+    "wm_Saved states help": "\"+\" sul riquadro salva colore e luminosità; modificali ed eliminali nella finestra del colore"
 }
