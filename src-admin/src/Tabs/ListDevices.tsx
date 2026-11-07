@@ -96,9 +96,16 @@ import {
     getStatesToCreate,
     inheritCommonFromSource,
     keepStateWhenCleared,
+    normalizeStates,
     resolveAliasWrite,
     setSmartName,
 } from '../Components/helpers/utils';
+import {
+    isFormulaChanged,
+    isSameAliasSource,
+    isStatesChanged,
+    needsAutoStateName,
+} from '../Components/helpers/aliasMapping';
 import type { PatternControlEx, ListItem } from '../types';
 import { getIconForRole } from '../Components/helpers/roleIcons';
 import SmartDetector, { removeDuplicateStateIds, removeForeignAliasStates } from '../Devices/SmartDetector';
@@ -3118,76 +3125,75 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
                     const obj = state.id ? await this.props.socket.getObject(state.id) : null;
                     if (obj?.common?.alias) {
-                        if (
-                            data.ids[state.name] !== obj.common.alias.id ||
-                            obj.common.alias.read !== data.fx[state.name].read ||
-                            obj.common.alias.write !== data.fx[state.name].write
+                        // Only what the editor really changed: the editor shows a missing formula as an
+                        // empty one, and taking them as different rewrote every state of the device on
+                        // each save - with its name and type (issue #725)
+                        const sourceChanged = !isSameAliasSource(obj.common.alias.id, data.ids[state.name]);
+                        if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
+                            // delete state
+                            await this.props.socket.delObject(state.id);
+                        } else if (
+                            sourceChanged ||
+                            isFormulaChanged(obj.common.alias, data.fx[state.name]) ||
+                            isStatesChanged(normalizeStates(obj.common.states), data.states[state.name])
                         ) {
-                            // update alias ID
-                            if (!keepStateWhenCleared(state, device.states, data.ids) && !data.ids[state.name]) {
-                                // delete state
-                                await this.props.socket.delObject(state.id);
-                            } else {
-                                // update state
-                                const stateObj: ioBroker.StateObject | null | undefined =
-                                    (await this.props.socket.getObject(state.id)) as
-                                        | ioBroker.StateObject
-                                        | null
-                                        | undefined;
+                            // update state
+                            const stateObj: ioBroker.StateObject | null | undefined =
+                                (await this.props.socket.getObject(state.id)) as
+                                    | ioBroker.StateObject
+                                    | null
+                                    | undefined;
 
-                                if (stateObj) {
-                                    stateObj.common ||= {} as ioBroker.StateCommon;
-                                    // Up to 4.2 the states created with a new device were named only
-                                    // after their slot ("ACTUAL"), unlike every other state (issue #696)
-                                    if (!stateObj.common.name || stateObj.common.name === state.name) {
-                                        stateObj.common.name = getAutoStateName(stateObj._id);
-                                    }
-                                    if (stateObj.common.alias) {
-                                        stateObj.common.alias.id = data.ids[state.name];
-                                    } else {
-                                        stateObj.common.alias = { id: data.ids[state.name] };
-                                    }
-                                    if (!data.fx[state.name].read) {
-                                        delete stateObj.common.alias.read;
-                                    } else {
-                                        stateObj.common.alias.read = data.fx[state.name].read;
-                                    }
-                                    if (!data.fx[state.name].write) {
-                                        delete stateObj.common.alias.write;
-                                    } else {
-                                        stateObj.common.alias.write = data.fx[state.name].write;
-                                    }
-
-                                    // Update states of state
-                                    if (data.states[state.name]) {
-                                        stateObj.common.states = data.states[state.name];
-                                    }
-
-                                    const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
-
-                                    // The mapping just changed, so the source may be one that uses
-                                    // another of the types the pattern allows — issue #614.
-                                    stateObj.common.type = getAliasCommonType(
-                                        state,
-                                        sourceCommon?.type,
-                                        !stateObj.common.alias?.read && !stateObj.common.alias?.write,
-                                    );
-
-                                    // Inherit min/max/unit/step from the (possibly new) source if the
-                                    // alias does not define them yet — issue #22.
-                                    inheritCommonFromSource(stateObj.common, sourceCommon);
-
-                                    // The new mapping may reach a datapoint that cannot be written —
-                                    // a thermostat setpoint pointed at a bare temperature sensor. The
-                                    // alias has to say so, or the widget keeps offering a dial for it.
-                                    stateObj.common.write = resolveAliasWrite(
-                                        state.write,
-                                        stateObj.common.write,
-                                        await this.getAliasWriteTargetCommon(data.ids[state.name], sourceCommon),
-                                    );
-
-                                    await this.props.socket.setObject(stateObj._id, stateObj);
+                            if (stateObj) {
+                                stateObj.common ||= {} as ioBroker.StateCommon;
+                                if (needsAutoStateName(stateObj.common.name, state.name, sourceChanged)) {
+                                    stateObj.common.name = getAutoStateName(stateObj._id);
                                 }
+                                if (stateObj.common.alias) {
+                                    stateObj.common.alias.id = data.ids[state.name];
+                                } else {
+                                    stateObj.common.alias = { id: data.ids[state.name] };
+                                }
+                                if (!data.fx[state.name].read) {
+                                    delete stateObj.common.alias.read;
+                                } else {
+                                    stateObj.common.alias.read = data.fx[state.name].read;
+                                }
+                                if (!data.fx[state.name].write) {
+                                    delete stateObj.common.alias.write;
+                                } else {
+                                    stateObj.common.alias.write = data.fx[state.name].write;
+                                }
+
+                                // Update states of state
+                                if (data.states[state.name]) {
+                                    stateObj.common.states = data.states[state.name];
+                                }
+
+                                const sourceCommon = await this.getAliasSourceCommon(data.ids[state.name]);
+
+                                // The mapping just changed, so the source may be one that uses
+                                // another of the types the pattern allows — issue #614.
+                                stateObj.common.type = getAliasCommonType(
+                                    state,
+                                    sourceCommon?.type,
+                                    !stateObj.common.alias?.read && !stateObj.common.alias?.write,
+                                );
+
+                                // Inherit min/max/unit/step from the (possibly new) source if the
+                                // alias does not define them yet — issue #22.
+                                inheritCommonFromSource(stateObj.common, sourceCommon);
+
+                                // The new mapping may reach a datapoint that cannot be written —
+                                // a thermostat setpoint pointed at a bare temperature sensor. The
+                                // alias has to say so, or the widget keeps offering a dial for it.
+                                stateObj.common.write = resolveAliasWrite(
+                                    state.write,
+                                    stateObj.common.write,
+                                    await this.getAliasWriteTargetCommon(data.ids[state.name], sourceCommon),
+                                );
+
+                                await this.props.socket.setObject(stateObj._id, stateObj);
                             }
                         } // else nothing changed
                     } else if (data.ids[state.name]) {

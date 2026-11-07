@@ -39,7 +39,7 @@ export const DEFAULT_LIGHT_COLOR = '#ffc107';
 /** Moves and fills slow down at the end, like a real slider coming to rest */
 const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 /** Users who asked the system for less motion get the end state at once */
-const REDUCED_MOTION = { '@media (prefers-reduced-motion: reduce)': { transition: 'none !important' } };
+export const REDUCED_MOTION = { '@media (prefers-reduced-motion: reduce)': { transition: 'none !important' } };
 
 /** No-break space: the value and its unit stay on one line */
 const NBSP = String.fromCharCode(0xa0);
@@ -1282,6 +1282,12 @@ export class WidgetDimmer<
         );
     }
 
+    /** Additional row of the 2×2 slider layout, over the quick selection; e.g. the saved colors of a color light */
+    // eslint-disable-next-line class-methods-use-this
+    protected renderHugeExtraRow(): React.JSX.Element | null {
+        return null;
+    }
+
     /** Quick selection buttons in one row; null when the user emptied the list */
     protected renderPresets(): React.JSX.Element | null {
         const presets = this.getPresets();
@@ -1506,6 +1512,7 @@ export class WidgetDimmer<
                     </Box>
                 </Box>
 
+                {this.renderHugeExtraRow()}
                 {this.renderPresets()}
             </>
         );

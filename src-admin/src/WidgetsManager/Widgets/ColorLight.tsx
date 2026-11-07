@@ -10,6 +10,7 @@ import {
     WidgetDimmer,
     DEFAULT_LIGHT_COLOR,
     percentText,
+    REDUCED_MOTION,
     tileButtonSx,
     type DimmerStateIds,
     type DimmerWidgetSettings,
@@ -51,6 +52,25 @@ const WRITE_DELAY = 300;
 const ECHO_HOLD = 1000;
 /** Saved states on the tile; more do not fit into its row and stay in the dialog */
 const MAX_SCENES = 4;
+/** Round color fields in the row of the 2×2 tile; more do not fit at the smallest tile size */
+const MAX_SWATCHES = 6;
+/** Diameter of a color field of the 2×2 tile */
+const SWATCH_SIZE = 'max(30px, 9cqi)';
+
+/** Color of a saved state, also of one with a color temperature */
+function sceneSwatch(scene: ColorLightPreset): string {
+    return scene.color || rgbToHex(...ctToRgb(scene.ct ?? 4000));
+}
+
+/** Saved state in words, e.g. "2700 K, 60 %", for screen readers and the tooltip */
+function sceneText(scene: ColorLightPreset): string {
+    return [
+        scene.color || (scene.ct !== undefined ? `${scene.ct} K` : ''),
+        scene.brightness !== undefined ? percentText(scene.brightness) : '',
+    ]
+        .filter(Boolean)
+        .join(', ');
+}
 
 /** Whether a #rrggbb color is so light that it vanishes on a light tile */
 function isNearWhite(hex: string): boolean {
@@ -60,7 +80,8 @@ function isNearWhite(hex: string): boolean {
 
 /**
  * Color light: operated like the dimmer - the 1×1 tile fills with the light color, a tap switches, dragging dims,
- * a long press opens the color dialog; the larger tiles have a color button next to the power button.
+ * a long press opens the color dialog; the larger tiles have a color button next to the power button, and the
+ * 2×2 tile shows the saved colors to tap.
  * Lights without a dimmer keep the plain tile with color swatch and switch.
  */
 export class WidgetColorLight extends WidgetDimmer<WidgetColorLightState, ColorLightWidgetSettings> {
@@ -750,7 +771,7 @@ export class WidgetColorLight extends WidgetDimmer<WidgetColorLightState, ColorL
 
     /** Swatch of a saved state and, if the button is wide enough, its brightness */
     private static renderSceneLabel(scene: ColorLightPreset): React.JSX.Element {
-        const swatch = scene.color || rgbToHex(...ctToRgb(scene.ct ?? 4000));
+        const swatch = sceneSwatch(scene);
         return (
             <Box
                 component="span"
@@ -827,12 +848,7 @@ export class WidgetColorLight extends WidgetDimmer<WidgetColorLightState, ColorL
                     this.renderHugeButton({
                         key: String(i),
                         label: WidgetColorLight.renderSceneLabel(scene),
-                        ariaLabel: [
-                            scene.color || (scene.ct !== undefined ? `${scene.ct} K` : ''),
-                            scene.brightness !== undefined ? percentText(scene.brightness) : '',
-                        ]
-                            .filter(Boolean)
-                            .join(', '),
+                        ariaLabel: sceneText(scene),
                         onClick: () => this.applyScene(scene),
                         selected: isActive && isSamePreset(scene, current),
                     }),
@@ -853,6 +869,63 @@ export class WidgetColorLight extends WidgetDimmer<WidgetColorLightState, ColorL
 
     protected renderPresets(): React.JSX.Element | null {
         return this.props.settings?.quickSelect === 'scenes' ? this.renderScenes() : super.renderPresets();
+    }
+
+    /** Round field of a saved state: a tap applies it; the state the light has is ringed and glows */
+    private renderSwatch(scene: ColorLightPreset, index: number, selected: boolean): React.JSX.Element {
+        const swatch = sceneSwatch(scene);
+        const text = sceneText(scene);
+        return (
+            <ButtonBase
+                key={index}
+                onClick={() => this.applyScene(scene)}
+                disabled={this.isReadOnly}
+                aria-label={text}
+                aria-pressed={selected}
+                title={text}
+                sx={theme => ({
+                    width: SWATCH_SIZE,
+                    height: SWATCH_SIZE,
+                    flexShrink: 0,
+                    boxSizing: 'border-box',
+                    borderRadius: '50%',
+                    backgroundColor: swatch,
+                    border: `max(2px, 0.6cqi) solid ${
+                        selected ? theme.palette.text.primary : alpha(theme.palette.text.primary, 0.25)
+                    }`,
+                    // Not with alpha(): a saved color the user edited by hand must not break the tile
+                    boxShadow: selected ? `0 0 max(8px, 3cqi) ${swatch}` : 'none',
+                    transition: 'border-color 0.2s ease, box-shadow 0.3s ease, transform 0.12s ease',
+                    '&:hover': { borderColor: selected ? undefined : alpha(theme.palette.text.primary, 0.6) },
+                    '&:active': { transform: 'scale(0.9)' },
+                    '&.Mui-disabled': { opacity: 0.6 },
+                    ...REDUCED_MOTION,
+                })}
+            />
+        );
+    }
+
+    /**
+     * 2×2: the saved states as round color fields over the quick selection, to apply with a tap.
+     * They are saved, edited and deleted in the color dialog; without any, the row is left out.
+     */
+    protected renderHugeExtraRow(): React.JSX.Element | null {
+        // The quick selection shows the saved states already
+        if (this.props.settings?.quickSelect === 'scenes') {
+            return null;
+        }
+        const scenes = (this.props.settings?.colorPresets || []).slice(0, MAX_SWATCHES);
+        if (!scenes.length) {
+            return null;
+        }
+        const current = this.getCurrentScene();
+        const isActive = this.isTileActive();
+
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 'max(8px, 2.5cqi)', minWidth: 0 }}>
+                {scenes.map((scene, i) => this.renderSwatch(scene, i, isActive && isSamePreset(scene, current)))}
+            </Box>
+        );
     }
 
     // --- Sizes ---

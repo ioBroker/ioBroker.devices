@@ -37,7 +37,7 @@
     "@iobroker/testing": "^6.3.1",
     "@iobroker/types": "^7.2.5",
     "@tsconfig/node22": "^22.0.6",
-    "@types/node": "^26.6.6",
+    "@types/node": "^22.20.5",
     "colorette": "^2.0.20",
     "puppeteer": "^25.16.0",
     "typescript": "~6.0.3"
@@ -61,7 +61,7 @@
     "build": "npm run build:dm-widgets && npm run build:backend && node tasks",
     "lint": "eslint -c eslint.config.mjs && cd src-admin && npm run lint && cd ../packages/dm-widgets && npm run lint",
     "test:package": "mocha test/package.test.js --exit",
-    "test:unit": "mocha test/acl.test.js test/serviceWidgets.test.js test/webComponents.test.js test/climate.test.js test/commonStates.test.js test/airQuality.test.js --exit",
+    "test:unit": "mocha test/acl.test.js test/serviceWidgets.test.js test/webComponents.test.js test/climate.test.js test/commonStates.test.js test/airQuality.test.js test/aliasMapping.test.js --exit",
     "test:integration": "mocha test/testAdapter.gui.test.js --exit",
     "release": "release-script",
     "release-patch": "release-script patch --yes",
