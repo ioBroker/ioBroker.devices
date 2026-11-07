@@ -1,4 +1,7 @@
 # Older changes
+## 4.2.4 (2026-10-13)
+* (@GermanBluefox) Dragging a plugin widget no longer crashes the widget GUI (React error #185)
+
 ## 4.2.3 (2026-10-11)
 * (@GermanBluefox) A read-only temperature in a thermostat setpoint is shown as a readout, not as a dial
 * (@GermanBluefox) One datapoint no longer fills two slots of the same device
