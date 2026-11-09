@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Install as Side Panel",
     "wm_Installation instructions": "Installation instructions",
     "wm_Instance not active": "Instance is not active",
+    "wm_No permission to load devices": "This user has no permission to load the devices. Please contact the administrator.",
+    "wm_Devices could not be loaded": "The devices could not be loaded.",
     "wm_Invert": "Invert",
     "wm_Invert 1 value": "Invert value 1",
     "wm_Invert 2 value": "Invert value 2",

@@ -87,6 +87,11 @@ export interface CategorySettings {
     /** Default category ID to show when a page loads without hash (root only) */
     defaultCategory?: string;
     /**
+     * Hide the config/play toggle and force play mode everywhere outside the admin tab, for editors
+     * and administrators too (root only). Can only be switched back in the admin tab.
+     */
+    hideConfigButton?: boolean;
+    /**
      * Master switch for the per-user view permissions (root only). While off, the permission tabs
      * stay hidden and every stored rule is ignored — a single-user installation is not bothered
      * with the concept at all.
@@ -163,6 +168,7 @@ const ROOT_ONLY_SETTINGS: (keyof CategorySettings)[] = [
     'imageStyle',
     'tileStyle',
     'defaultCategory',
+    'hideConfigButton',
     'multiUser',
     'editors',
 ];
@@ -210,6 +216,7 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
     const [iconFileDialogOpen, setIconFileDialogOpen] = useState(false);
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const [rootIconPickerOpen, setRootIconPickerOpen] = useState(false);
+    const [hideConfigWarning, setHideConfigWarning] = useState(false);
     const [tab, setTab] = useState(0);
     const [widgetScale, setWidgetScale] = useState(() => {
         const stored = localStorage.getItem('wm_widgetScale');
@@ -848,6 +855,27 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
 
                     {isRoot ? (
                         <FormControlLabel
+                            sx={{ mt: 2, display: 'flex' }}
+                            control={
+                                <Switch
+                                    size="small"
+                                    checked={!!local.hideConfigButton}
+                                    onChange={(_e, v) => {
+                                        // From the web there is no way back once this is saved
+                                        if (v && !stateContext.admin) {
+                                            setHideConfigWarning(true);
+                                        } else {
+                                            setLocal(prev => ({ ...prev, hideConfigButton: v || undefined }));
+                                        }
+                                    }}
+                                />
+                            }
+                            label={I18n.t('wm_Hide config button')}
+                        />
+                    ) : null}
+
+                    {isRoot ? (
+                        <FormControlLabel
                             sx={{ mt: 2 }}
                             control={
                                 <Switch
@@ -1233,6 +1261,28 @@ export default function CategorySettingsDialog(props: CategorySettingsDialogProp
             </Dialog>
 
             {/* Warning: hiding config button from web */}
+            <Dialog
+                open={hideConfigWarning}
+                onClose={() => setHideConfigWarning(false)}
+                maxWidth="xs"
+            >
+                <DialogTitle>{I18n.t('wm_Warning')}</DialogTitle>
+                <DialogContent>
+                    <Typography>{I18n.t('wm_Hide config warning')}</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            setLocal(prev => ({ ...prev, hideConfigButton: true }));
+                            setHideConfigWarning(false);
+                        }}
+                        color="warning"
+                    >
+                        {I18n.t('wm_OK')}
+                    </Button>
+                    <Button onClick={() => setHideConfigWarning(false)}>{I18n.t('wm_Cancel')}</Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }

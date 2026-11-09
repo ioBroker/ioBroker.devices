@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Installeren als zijpaneel",
     "wm_Installation instructions": "Installatie-instructies",
     "wm_Instance not active": "Instantie is niet actief",
+    "wm_No permission to load devices": "Deze gebruiker heeft geen toestemming om de apparaten te laden. Neem contact op met de beheerder.",
+    "wm_Devices could not be loaded": "De apparaten konden niet worden geladen.",
     "wm_Invert": "Inverteren",
     "wm_Invert 1 value": "Keer waarde 1 om.",
     "wm_Invert 2 value": "Keer waarde 2 om.",

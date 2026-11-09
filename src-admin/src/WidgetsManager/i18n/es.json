@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Instalar como panel lateral",
     "wm_Installation instructions": "Instrucciones de instalación",
     "wm_Instance not active": "La instancia no está activa",
+    "wm_No permission to load devices": "Este usuario no tiene permiso para cargar los dispositivos. Contacte con el administrador.",
+    "wm_Devices could not be loaded": "No se pudieron cargar los dispositivos.",
     "wm_Invert": "Invertir",
     "wm_Invert 1 value": "Invertir valor 1",
     "wm_Invert 2 value": "Invertir valor 2",

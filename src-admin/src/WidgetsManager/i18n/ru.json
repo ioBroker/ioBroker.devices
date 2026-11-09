@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Установить в качестве боковой панели.",
     "wm_Installation instructions": "Инструкция по установке",
     "wm_Instance not active": "Экземпляр не активен",
+    "wm_No permission to load devices": "У этого пользователя нет прав на загрузку устройств. Обратитесь к администратору.",
+    "wm_Devices could not be loaded": "Не удалось загрузить устройства.",
     "wm_Invert": "Инвертировать",
     "wm_Invert 1 value": "Инвертировать значение 1",
     "wm_Invert 2 value": "Инвертировать значение 2",

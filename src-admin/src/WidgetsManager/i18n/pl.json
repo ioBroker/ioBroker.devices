@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Zainstaluj jako panel boczny",
     "wm_Installation instructions": "Instrukcja instalacji",
     "wm_Instance not active": "Instancja nie jest aktywna",
+    "wm_No permission to load devices": "Ten użytkownik nie ma uprawnień do wczytania urządzeń. Skontaktuj się z administratorem.",
+    "wm_Devices could not be loaded": "Nie udało się wczytać urządzeń.",
     "wm_Invert": "Odwróć",
     "wm_Invert 1 value": "Odwróć wartość 1",
     "wm_Invert 2 value": "Odwróć wartość 2",

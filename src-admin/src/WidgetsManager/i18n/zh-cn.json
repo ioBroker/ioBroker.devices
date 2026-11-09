@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "安装为侧面板",
     "wm_Installation instructions": "安装说明",
     "wm_Instance not active": "实例未激活",
+    "wm_No permission to load devices": "此用户无权加载设备。请联系管理员。",
+    "wm_Devices could not be loaded": "无法加载设备。",
     "wm_Invert": "反转",
     "wm_Invert 1 value": "反转值 1",
     "wm_Invert 2 value": "反转值 2",

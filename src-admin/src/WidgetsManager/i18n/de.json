@@ -161,6 +161,8 @@
     "wm_Install as Side Panel": "Als Seitenwand montieren",
     "wm_Installation instructions": "Installationsanleitung",
     "wm_Instance not active": "Instanz ist nicht aktiv",
+    "wm_No permission to load devices": "Dieser Benutzer hat keine Berechtigung, die Geräte zu laden. Bitte wenden Sie sich an den Administrator.",
+    "wm_Devices could not be loaded": "Die Geräte konnten nicht geladen werden.",
     "wm_Invert": "Invertieren",
     "wm_Invert 1 value": "Wert umkehren 1",
     "wm_Invert 2 value": "Wert umkehren 2",

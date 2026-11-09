@@ -55,6 +55,7 @@ import type {
     ItemInfo,
 } from '../../../packages/dm-widgets/src/index';
 import type { LoadedWebComponent } from '@iobroker/web-components';
+import { WmLoadError } from './protocol/WmProtocol';
 
 interface SpecialTile {
     type: 'clock';
@@ -81,6 +82,8 @@ interface GuiConfig {
         wmTheme?: WmThemeId;
         /** Default category ID to show when a page is opened without hash */
         defaultCategory?: string;
+        /** Hide the config/play toggle everywhere outside the admin tab */
+        hideConfigButton?: boolean;
         /** Master switch for the per-user view permissions */
         multiUser?: boolean;
         /** View permissions of the root category */
@@ -136,6 +139,8 @@ interface CategoryListState extends CommunicationState {
     filter: string;
     loading: boolean | null;
     alive: boolean | null;
+    /** Why the last loading of the list failed */
+    loadError: 'permission' | 'failed' | null;
     triggerLoad: number;
     currentCategory?: CategoryInfo;
     widgetSettings: Record<string, WidgetSettingsBase>;
@@ -535,6 +540,7 @@ const ROOT_SETTING_MAP: [keyof CategorySettings, keyof RootConfig, string | unde
     ['rootIcon', 'rootIcon', ''],
     ['wmTheme', 'wmTheme', undefined],
     ['defaultCategory', 'defaultCategory', ''],
+    ['hideConfigButton', 'hideConfigButton', undefined],
     ['multiUser', 'multiUser', undefined],
     ['acl', 'acl', undefined],
     ['editors', 'editors', undefined],
@@ -656,6 +662,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
             filter: '',
             loading: null,
             alive: null,
+            loadError: null,
             widgetSettings: {},
             settingsWidgetId: null,
             chartAvailable: false,
@@ -1141,6 +1148,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         categories: result.categories,
                         widgets: result.widgets,
                         loading: false,
+                        loadError: null,
                         currentCategory,
                         widgetSettings,
                         openDialogId,
@@ -1161,7 +1169,10 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 });
             } catch (error) {
                 console.error(error);
-                this.setState({ loading: false });
+                this.setState({
+                    loading: false,
+                    loadError: error instanceof WmLoadError && error.reason === 'permission' ? 'permission' : 'failed',
+                });
             } finally {
                 this.loadingInProgress = false;
             }
@@ -2531,21 +2542,40 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         return this.widgetTheme;
     }
 
+    /** A message instead of the page, when there is nothing to show */
+    private static renderNotice(text: string): React.JSX.Element {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%',
+                    padding: 16,
+                    boxSizing: 'border-box',
+                    textAlign: 'center',
+                    opacity: 0.5,
+                }}
+            >
+                {text}
+            </div>
+        );
+    }
+
     render(): React.JSX.Element {
         if (this.state.alive === false) {
-            return (
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        opacity: 0.5,
-                    }}
-                >
-                    {I18n.t('wm_Instance not active')}
-                </div>
+            return CategoryList.renderNotice(I18n.t('wm_Instance not active'));
+        }
+
+        // Only without a list: a failed update must not take away the page that is already shown
+        if (this.state.loadError && !this.state.categories.length) {
+            return CategoryList.renderNotice(
+                I18n.t(
+                    this.state.loadError === 'permission'
+                        ? 'wm_No permission to load devices'
+                        : 'wm_Devices could not be loaded',
+                ),
             );
         }
 
@@ -2558,9 +2588,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                 : null;
 
         const acl = this.getAclResolver();
-        // Only editors may configure — see `editors` on the root category. This replaces the old
-        // `hideConfigButton`, which merely hid the toggle and was bypassable via localStorage.
-        const mayConfigure = acl.canEdit;
+        // Only editors may configure — see `editors` on the root category. On top of that,
+        // `hideConfigButton` takes configuring away from everybody outside the admin tab, editors
+        // included; the admin tab keeps it, because that is the only way to switch it back.
+        const hiddenInRuntime = !!this.state.categorySettings[ROOT_CATEGORY]?.hideConfigButton && !this.props.admin;
+        const mayConfigure = acl.canEdit && !hiddenInRuntime;
         // Force runtime mode for everybody else: localStorage may carry configMode=true from an
         // earlier session, but without the toggle they could not switch back.
         const effectiveConfigMode = this.state.configMode && mayConfigure;

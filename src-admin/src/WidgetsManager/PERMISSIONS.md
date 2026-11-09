@@ -215,8 +215,10 @@ editors?: {
   kein „Widget hinzufügen", keine Kategorie-Einstellungen.
 - Im Admin-Tab (`stateContext.admin === true`) gilt unverändert Vollzugriff.
 
-`CategorySettings.hideConfigButton` wird dadurch überflüssig und sollte in derselben Ausbaustufe
-entfallen — es ist heute rein kosmetisch und über `localStorage` umgehbar.
+`CategorySettings.hideConfigButton` gilt zusätzlich und unabhängig vom Editierrecht: Der Schalter
+entzieht das Konfigurieren außerhalb des Admin-Tabs allen, auch Editoren und Administratoren.
+Zurückstellen lässt er sich nur im Admin-Tab. Wer kein Editierrecht hat, sieht den Umschalter in
+keinem Fall. Auch das ist nur eine Ansichtssteuerung, kein Zugriffsschutz.
 
 ## 8. Benutzer und Gruppen ermitteln
 
@@ -297,7 +299,8 @@ praktisch nicht prüfbar.
 2. ~~Context, Anwendung in `Category` und `WidgetGeneric`~~ — erledigt; `read` wirkt über den
    gemeinsamen Schreibpfad `WidgetGeneric.setValue()`
 3. ~~`AclEditor`, Tabs in beiden Dialogen~~ — erledigt
-4. ~~Editierrecht und Root-Zugriffsbereich, `hideConfigButton` entfernt~~ — erledigt
+4. ~~Editierrecht und Root-Zugriffsbereich~~ — erledigt; `hideConfigButton` bleibt als eigener
+   Schalter bestehen (§7)
 5. ~~„Ansicht als …"~~ — erledigt (`ViewAsSelect.tsx`)
 6. ~~Übersichtsmatrix~~ — erledigt (`AclMatrixDialog.tsx`, aus dem Root-Rechte-Tab)
 7. ~~`extraParents`~~ — erledigt, rein im Frontend: `Category.widgets` wertet das Feld aus, das
