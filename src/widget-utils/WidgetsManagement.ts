@@ -7,6 +7,7 @@ import type { AdapterInstance } from '@iobroker/adapter-core';
 import type { WidgetInfo, CategoryInfo, DeviceStatus } from '@iobroker/dm-widgets';
 import type { RetVal, BackendToGuiCommand } from './types';
 import type { WmResponseItems, WmWebComponentInstance } from './types/api';
+import { canReadObject, itemsForUser, type ObjectReader } from './itemsForUser';
 
 export abstract class WidgetsManagement<TAdapter extends AdapterInstance = AdapterInstance> {
     protected widgets?: Map<string, WidgetInfo>;
@@ -63,6 +64,39 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
 
     protected abstract loadItems(): RetVal<void>;
 
+    /**
+     * An object as the adapter knows it. Has to follow changes of the ACLs, see `itemsForUser`.
+     *
+     * @param id the ID of the object
+     */
+    public abstract getCachedObject(id: string): ioBroker.Object | undefined;
+
+    /**
+     * Who sent this message, as far as it matters for the answer.
+     *
+     * The socket names the user with the message, a js-controller older than 7.2.5 does not pass it on. A message
+     * without a user comes from a script, another adapter or an old controller, and gets the whole list as ever.
+     * Rights that cannot be found out count as none: better an empty list than one that says too much.
+     *
+     * @param msg the message
+     * @returns who has to be checked, null if there is nothing to check
+     */
+    private async readerOf(msg: ioBroker.Message): Promise<ObjectReader | null> {
+        const user = (msg as ioBroker.Message & { user?: string }).user;
+        if (!user) {
+            return null;
+        }
+        try {
+            const acl = await this.adapter.calculatePermissionsAsync(user, {
+                getObject: { type: 'object', operation: 'read' },
+            });
+            return { user, groups: acl.groups || [], mayReadObjects: !!acl.object?.read };
+        } catch (e) {
+            this.log.warn(`Cannot find out the rights of ${user}: ${e}`);
+            return { user, groups: [], mayReadObjects: false };
+        }
+    }
+
     protected getWidgetStatus(_itemId: string): RetVal<DeviceStatus | DeviceStatus[]> {
         throw new Error('Do not send "statusUpdate" command without implementing getDeviceStatus method!');
     }
@@ -78,9 +112,10 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
         this.log.debug(`DeviceManagement received: ${JSON.stringify(msg)}`);
         switch (msg.command) {
             case 'dm:loadItems': {
+                const reader = await this.readerOf(msg);
                 const [, { adapterWidgets, webComponents }] = await Promise.all([
                     this.loadItems(),
-                    this.loadCustomWidgets(),
+                    this.loadCustomWidgets(reader),
                 ]);
                 const response: WmResponseItems = {
                     categories: [...this.categories!.values()],
@@ -92,7 +127,10 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
                 if (webComponents.length) {
                     response.webComponents = webComponents;
                 }
-                this.sendReply<WmResponseItems>(response, msg);
+                this.sendReply<WmResponseItems>(
+                    reader ? itemsForUser(response, id => canReadObject(this.getCachedObject(id), reader)) : response,
+                    msg,
+                );
                 return;
             }
         }
@@ -103,8 +141,10 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
      *
      * `adapterWidgets` comes as `{ adapterName: { widget1: any, widget2: any } }`, `webComponents` as one instance
      * per adapter - the frontend resolves the URLs, because only it knows where it is served from.
+     *
+     * @param reader who asks: only the instances this user can read count. Null for no restriction
      */
-    private async loadCustomWidgets(): Promise<{
+    private async loadCustomWidgets(reader: ObjectReader | null): Promise<{
         adapterWidgets: Record<string, ioBroker.DevicesWidgets>;
         webComponents: WmWebComponentInstance[];
     }> {
@@ -117,6 +157,9 @@ export abstract class WidgetsManagement<TAdapter extends AdapterInstance = Adapt
             });
             if (instances?.rows) {
                 for (const row of instances.rows) {
+                    if (reader && !canReadObject(row.value, reader)) {
+                        continue;
+                    }
                     const common = row.value?.common;
                     if (common?.deviceWidgets && typeof common.deviceWidgets === 'object') {
                         // Extract adapter name from "system.adapter.adapterName.0"

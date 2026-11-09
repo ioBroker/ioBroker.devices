@@ -776,8 +776,11 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
         // Update local cache
         if (obj) {
-            // We must compare only common part
-            if (JSON.stringify(obj.common) !== JSON.stringify(this.objects[id]?.common)) {
+            // We must compare only common part, and the ACL: `dm:loadItems` answers with it who may read what
+            if (
+                JSON.stringify(obj.common) !== JSON.stringify(this.objects[id]?.common) ||
+                JSON.stringify(obj.acl) !== JSON.stringify(this.objects[id]?.acl)
+            ) {
                 this.objects[id] = obj;
             }
         } else {

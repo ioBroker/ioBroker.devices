@@ -131,6 +131,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) The list of devices only holds what the logged-in user may read according to the ACLs of the objects (js-controller 7.2.5 or newer). A changed ACL counts at once
+
 ### 4.3.1 (2026-11-07)
 * (@GermanBluefox) Color light 2×2: the saved colors are shown on the tile and applied with a tap
 * (@GermanBluefox) Saving a device no longer resets the names of its states; only the states that were changed are written (issue #725)
