@@ -11,6 +11,7 @@ import { WidgetPresence } from './Widgets/Presence';
 import { WidgetPlugin } from './Widgets/WidgetPlugin';
 import { WidgetWebComponent } from './Widgets/WidgetWebComponent';
 import { WidgetEnergyFlow } from './Widgets/EnergyFlow';
+import { WidgetMarkdown } from './Widgets/Markdown';
 
 // Re-export utilities from configUtils (no circular dependency)
 export { getConfigDefault, SIZE_OPTIONS } from './configUtils';
@@ -29,4 +30,5 @@ export const CUSTOM_WIDGET_CONFIGS: Record<CustomWidgetType, ConfigItemPanel> = 
     newline: { type: 'panel', label: 'wm_New line', items: {} },
     presence: WidgetPresence.getConfigSchema(),
     energyFlow: WidgetEnergyFlow.getConfigSchema(),
+    markdown: WidgetMarkdown.getConfigSchema(),
 };

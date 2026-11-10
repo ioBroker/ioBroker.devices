@@ -33,6 +33,7 @@ import {
     Search,
     SearchOff,
     Speed,
+    StickyNote2,
     ViewQuilt,
     WbCloudy,
     WrapText,
@@ -68,6 +69,13 @@ const BUILT_IN_WIDGETS: BuiltInWidget[] = [
     { type: 'wind', set: 'info', icon: <Air />, i18nKey: 'wm_Wind', descriptionKey: 'wm_Wind_desc' },
     { type: 'presence', set: 'info', icon: <People />, i18nKey: 'wm_Presence', descriptionKey: 'wm_Presence_desc' },
     { type: 'iframe', set: 'info', icon: <Language />, i18nKey: 'wm_Iframe', descriptionKey: 'wm_Iframe_desc' },
+    {
+        type: 'markdown',
+        set: 'info',
+        icon: <StickyNote2 />,
+        i18nKey: 'wm_Markdown',
+        descriptionKey: 'wm_Markdown_desc',
+    },
     {
         type: 'universal',
         set: 'values',

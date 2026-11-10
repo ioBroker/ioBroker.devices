@@ -88,7 +88,8 @@ export type CustomWidgetType =
     | 'webComponent'
     | 'newline'
     | 'presence'
-    | 'energyFlow';
+    | 'energyFlow'
+    | 'markdown';
 
 export interface CategoryInfo extends ItemInfo {
     type: 'category';
