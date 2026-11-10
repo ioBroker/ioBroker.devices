@@ -1750,7 +1750,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(categoryId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj) {
                 const common = obj.common || {};
                 // name, color and icon go to common
@@ -2166,7 +2168,9 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(widgetId)) as
-                ioBroker.StateObject | null | undefined;
+                | ioBroker.StateObject
+                | null
+                | undefined;
             if (obj) {
                 const common = obj.common || ({} as ioBroker.StateCommon);
                 common.custom ||= {};
