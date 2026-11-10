@@ -9,10 +9,10 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@iobroker/gui-components": "^10.4.6",
-        "@iobroker/json-config": "^10.1.18",
+        "@iobroker/json-config": "^10.1.20",
         "@iobroker/type-detector": "^6.2.0",
         "@iobroker/types": "^7.2.5",
-        "@iobroker/web-components": "^0.6.0",
+        "@iobroker/web-components": "^0.7.0",
         "@module-federation/runtime": "^2.9.3",
         "@module-federation/vite": "^1.23.11",
         "@mui/icons-material": "^9.5.0",
@@ -20,7 +20,7 @@
         "@sentry/browser": "^11.11.0",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
-        "@vitejs/plugin-react": "^6.2.1",
+        "@vitejs/plugin-react": "^6.3.0",
         "@xyflow/react": "12.12.1",
         "leaflet": "^1.9.4",
         "moment": "^2.31.0",
@@ -30,8 +30,10 @@
         "react-dom": "^19.3.1",
         "react-icons": "5.7.0",
         "react-image-crop": "^11.1.2",
+        "react-markdown": "^10.1.0",
+        "remark-gfm": "^4.0.1",
         "suncalc2": "^1.8.1",
-        "vite": "^8.3.6",
+        "vite": "^8.3.7",
         "vite-plugin-commonjs": "^0.10.4"
     },
     "scripts": {
@@ -56,5 +58,8 @@
     },
     "devDependencies": {
         "@types/leaflet": "^1.9.22"
+    },
+    "overrides": {
+        "@iobroker/web-components": "$@iobroker/web-components"
     }
 }
