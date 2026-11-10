@@ -131,7 +131,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.3.2 (2026-11-10)
 * (@GermanBluefox) Nested folders under alias.0 keep their place, name and color in the GUI; only folders on the top level are merged with a room of the same name (issue #739)
 * (@GermanBluefox) New widget "Note (Markdown)" for free text like comments or instructions
 * (@GermanBluefox) Updated packages
@@ -161,11 +161,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 
 ### 4.2.6 (2026-10-22)
 * (@GermanBluefox) Better devices detection
-
-### 4.2.5 (2026-10-14)
-* (@GermanBluefox) A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart
-* (@GermanBluefox) Picking a hue for a white RGB lamp sets the full color, instead of staying white until the saturation is moved
-* (@GermanBluefox) The color circle of an RGB lamp tile is larger and no longer covered by the dimmer slider at 0
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
