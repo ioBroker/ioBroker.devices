@@ -22,11 +22,7 @@ import {
 
 import type { IconType } from 'react-icons';
 
-import {
-    FaFolderOpen as IconFolderOpened,
-    FaFolder as IconFolderClosed,
-    FaQuestion as IconTypeGeneric,
-} from 'react-icons/fa';
+import { FaQuestion as IconTypeGeneric } from 'react-icons/fa';
 import {
     TiLightbulb as IconTypeLight,
     TiLightbulb as IconTypeDimmer,
@@ -730,7 +726,11 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                             disabled={this.props.disabled}
                             onClick={() => this.onExpandAll()}
                         >
-                            <IconFolderOpened />
+                            {/* Closed folder that opens on hover: shows what the click will do */}
+                            <IconFolder
+                                open={false}
+                                toggleOnHover
+                            />
                         </IconButton>
                     </div>
                 </Tooltip>
@@ -744,7 +744,10 @@ export default class TreeView extends React.Component<TreeViewProps, TreeViewSta
                             disabled={this.props.disabled}
                             onClick={() => this.onCollapseAll()}
                         >
-                            <IconFolderClosed />
+                            <IconFolder
+                                open
+                                toggleOnHover
+                            />
                         </IconButton>
                     </div>
                 </Tooltip>

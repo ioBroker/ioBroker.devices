@@ -36,7 +36,7 @@ import {
     type SxProps,
 } from '@mui/material';
 
-import { MdAdd as IconAdd, MdClear as IconClear, MdModeEdit as IconEdit } from 'react-icons/md';
+import { MdAdd as IconAdd, MdModeEdit as IconEdit } from 'react-icons/md';
 
 import type { IconType } from 'react-icons';
 
@@ -51,8 +51,6 @@ import {
     FaLightbulb as IconBulb,
     FaLockOpen as IconLock,
     FaThermometer as IconThermometer,
-    FaFolderOpen as IconFolderOpened,
-    FaFolder as IconFolderClosed,
 } from 'react-icons/fa';
 
 import { HiLink } from 'react-icons/hi';
@@ -78,6 +76,7 @@ import {
     type ThemeType,
     type ThemeName,
     Loader,
+    IconFilter,
     IconFolder,
     IconRefresh,
     IconTrash,
@@ -591,9 +590,6 @@ const styles: Record<string, any> = {
         display: 'flex',
         overflow: 'hidden',
     },
-    emptyClear: {
-        width: 32,
-    },
     wrapperButton: {
         display: 'flex',
         justifyContent: 'flex-end',
@@ -734,6 +730,18 @@ const styles: Record<string, any> = {
     selected: (theme: IobTheme): SxProps => ({
         background: theme.palette.mode === 'dark' ? theme.palette.primary.dark : theme.palette.primary.light,
     }),
+    // The rows of an opened folder slide out from under it, like in the object browser. One-time
+    // animation on mount, so no row keeps a compositing layer afterwards (see `hoverRow` for Safari).
+    rowSlideIn: {
+        '@keyframes devicesRowSlideIn': {
+            from: { opacity: 0, transform: 'translateY(-8px)' },
+            to: { opacity: 1, transform: 'none' },
+        },
+        animation: 'devicesRowSlideIn 0.2s ease-out',
+        '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+        },
+    },
     wrapperHeadButtons: {
         display: 'flex',
         overflowY: 'auto',
@@ -2118,6 +2126,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     this.props.theme,
                     styles.hoverRow,
                     this.state.selected === item.id && styles.selected,
+                    !!item.parent && styles.rowSlideIn,
                 )}
                 key={item.id || (typeof title === 'string' ? title : idx.toString())}
                 onClick={() => this.onSelect(item.id)}
@@ -3140,9 +3149,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             // update state
                             const stateObj: ioBroker.StateObject | null | undefined =
                                 (await this.props.socket.getObject(state.id)) as
-                                    | ioBroker.StateObject
-                                    | null
-                                    | undefined;
+                                    ioBroker.StateObject | null | undefined;
 
                             if (stateObj) {
                                 stateObj.common ||= {} as ioBroker.StateCommon;
@@ -3203,9 +3210,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         let stateObj: ioBroker.StateObject | null | undefined;
                         try {
                             stateObj = (await this.props.socket.getObject(state.id)) as
-                                | ioBroker.StateObject
-                                | null
-                                | undefined;
+                                ioBroker.StateObject | null | undefined;
                         } catch {
                             // ignore
                         }
@@ -3326,9 +3331,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                         let stateObj: ioBroker.StateObject | null | undefined;
                         try {
                             stateObj = (await this.props.socket.getObject(state.id)) as
-                                | ioBroker.StateObject
-                                | null
-                                | undefined;
+                                ioBroker.StateObject | null | undefined;
                         } catch {
                             // ignore
                         }
@@ -3424,9 +3427,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
 
             if (mainStateId) {
                 mainStateObj = (await this.props.socket.getObject(mainStateId)) as
-                    | ioBroker.StateObject
-                    | null
-                    | undefined;
+                    ioBroker.StateObject | null | undefined;
                 if (mainStateObj) {
                     oldSmartName = getSmartName(mainStateObj, this.state.iotNoCommon, this.state.iotInstance, language);
                 }
@@ -3578,9 +3579,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 if (functions.includes(id)) {
                     if (!members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            | ioBroker.EnumObject
-                            | null
-                            | undefined;
+                            ioBroker.EnumObject | null | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3593,9 +3592,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 } else {
                     if (members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            | ioBroker.EnumObject
-                            | null
-                            | undefined;
+                            ioBroker.EnumObject | null | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3615,9 +3612,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 if (rooms.includes(id)) {
                     if (!members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            | ioBroker.EnumObject
-                            | null
-                            | undefined;
+                            ioBroker.EnumObject | null | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3630,9 +3625,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                 } else {
                     if (members.includes(channelId)) {
                         const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(id)) as
-                            | ioBroker.EnumObject
-                            | null
-                            | undefined;
+                            ioBroker.EnumObject | null | undefined;
                         if (obj) {
                             obj.common ||= {} as ioBroker.EnumCommon;
                             obj.common.members ||= [];
@@ -3668,9 +3661,7 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                     this.objects[enumId].common.members.includes(device.channelId)
                 ) {
                     const obj: ioBroker.EnumObject | null | undefined = (await this.props.socket.getObject(enumId)) as
-                        | ioBroker.EnumObject
-                        | null
-                        | undefined;
+                        ioBroker.EnumObject | null | undefined;
                     if (!obj?.common?.members) {
                         continue;
                     }
@@ -4085,7 +4076,11 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             color="primary"
                             onClick={() => this.onExpandAll()}
                         >
-                            <IconFolderOpened />
+                            {/* Closed folder that opens on hover: shows what the click will do */}
+                            <IconFolder
+                                open={false}
+                                toggleOnHover
+                            />
                         </IconButton>
                     </Tooltip>
                     <Tooltip
@@ -4096,7 +4091,10 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             color="primary"
                             onClick={() => this.onCollapseAll()}
                         >
-                            <IconFolderClosed />
+                            <IconFolder
+                                open
+                                toggleOnHover
+                            />
                         </IconButton>
                     </Tooltip>
                     <Tooltip
@@ -4144,10 +4142,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                             shrink: true,
                         },
                         input: {
-                            endAdornment: this.filter ? (
+                            // Always rendered, so the cross of the funnel can jump away when the filter is cleared
+                            endAdornment: (
                                 <InputAdornment position="end">
                                     <IconButton
                                         size="small"
+                                        disabled={!this.filter}
                                         onClick={() => {
                                             this.setFilter('');
                                             if (this.inputRef.current) {
@@ -4155,11 +4155,12 @@ export default class ListDevices extends Component<ListDevicesProps, ListDevices
                                             }
                                         }}
                                     >
-                                        <IconClear />
+                                        <IconFilter
+                                            active={!!this.filter}
+                                            fontSize="small"
+                                        />
                                     </IconButton>
                                 </InputAdornment>
-                            ) : (
-                                <div style={styles.emptyClear} />
                             ),
                         },
                     }}

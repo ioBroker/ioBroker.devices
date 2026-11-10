@@ -11,9 +11,8 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { Close, ContentCopy, Download } from '@mui/icons-material';
-import { I18n, IconResult, type Connection } from '@iobroker/gui-components';
+import { Close, Download } from '@mui/icons-material';
+import { I18n, IconCopyToClipboard, IconResult, type Connection } from '@iobroker/gui-components';
 
 import ioBrokerLogo from './assets/ioBrokerLogo.png';
 
@@ -361,8 +360,8 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
     const [serverUrl, setServerUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const theme = useTheme();
+    // Counts the copies: every change lets the copy icon show its check mark
+    const [copyCount, setCopyCount] = useState(0);
 
     // Detect URL when dialog opens
     useEffect(() => {
@@ -558,22 +557,17 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                                     cursor: 'pointer',
                                 }}
                                 onClick={() => {
-                                    void copyText('about:debugging#/runtime/this-firefox').then(() => {
-                                        setCopied(true);
-                                        setTimeout(() => setCopied(false), 2000);
-                                    });
+                                    void copyText('about:debugging#/runtime/this-firefox').then(() =>
+                                        setCopyCount(c => c + 1),
+                                    );
                                 }}
                             >
                                 about:debugging#/runtime/this-firefox
-                                {copied ? (
-                                    <IconResult
-                                        type="success"
-                                        fontSize={14}
-                                        style={{ color: theme.palette.success.main }}
-                                    />
-                                ) : (
-                                    <ContentCopy sx={{ fontSize: 14, opacity: 0.5 }} />
-                                )}
+                                <IconCopyToClipboard
+                                    copied={copyCount}
+                                    fontSize={14}
+                                    style={{ opacity: 0.7 }}
+                                />
                             </Box>
                         </li>
                         <li>{I18n.t('wm_ff_step3')}</li>
@@ -607,22 +601,15 @@ function SidePanelInstallDialog(props: SidePanelInstallDialogProps): React.JSX.E
                                     cursor: 'pointer',
                                 }}
                                 onClick={() => {
-                                    void copyText('chrome://extensions').then(() => {
-                                        setCopied(true);
-                                        setTimeout(() => setCopied(false), 2000);
-                                    });
+                                    void copyText('chrome://extensions').then(() => setCopyCount(c => c + 1));
                                 }}
                             >
                                 chrome://extensions
-                                {copied ? (
-                                    <IconResult
-                                        type="success"
-                                        fontSize={14}
-                                        style={{ color: theme.palette.success.main }}
-                                    />
-                                ) : (
-                                    <ContentCopy sx={{ fontSize: 14, opacity: 0.5 }} />
-                                )}
+                                <IconCopyToClipboard
+                                    copied={copyCount}
+                                    fontSize={14}
+                                    style={{ opacity: 0.7 }}
+                                />
                             </Box>
                         </li>
                         <li>{I18n.t('wm_sidepanel_step3')}</li>

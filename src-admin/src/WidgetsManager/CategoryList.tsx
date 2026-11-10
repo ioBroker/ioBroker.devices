@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, LinearProgress } from '@mui/material';
 import { type Theme, type ThemeOptions, createTheme, ThemeProvider } from '@mui/material/styles';
 
-import { I18n } from '@iobroker/gui-components';
+import { I18n, IconConnectionState, IconResult } from '@iobroker/gui-components';
 
 import de from './i18n/de.json';
 import en from './i18n/en.json';
@@ -1750,9 +1750,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(categoryId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj) {
                 const common = obj.common || {};
                 // name, color and icon go to common
@@ -2168,9 +2166,7 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
         const instanceId = this.state.selectedInstance;
         try {
             const obj: ioBroker.StateObject | null | undefined = (await this.props.socket.getObject(widgetId)) as
-                | ioBroker.StateObject
-                | null
-                | undefined;
+                ioBroker.StateObject | null | undefined;
             if (obj) {
                 const common = obj.common || ({} as ioBroker.StateCommon);
                 common.custom ||= {};
@@ -2543,29 +2539,38 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
     }
 
     /** A message instead of the page, when there is nothing to show */
-    private static renderNotice(text: string): React.JSX.Element {
+    private static renderNotice(text: string, icon?: React.ReactNode): React.JSX.Element {
         return (
             <div
                 style={{
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: 8,
                     width: '100%',
                     height: '100%',
                     padding: 16,
                     boxSizing: 'border-box',
                     textAlign: 'center',
-                    opacity: 0.5,
                 }}
             >
-                {text}
+                {icon}
+                <div style={{ opacity: 0.5 }}>{text}</div>
             </div>
         );
     }
 
     render(): React.JSX.Element {
         if (this.state.alive === false) {
-            return CategoryList.renderNotice(I18n.t('wm_Instance not active'));
+            return CategoryList.renderNotice(
+                I18n.t('wm_Instance not active'),
+                <IconConnectionState
+                    state="disconnected"
+                    fontSize="large"
+                    style={{ opacity: 0.5 }}
+                />,
+            );
         }
 
         // Only without a list: a failed update must not take away the page that is already shown
@@ -2576,6 +2581,11 @@ export class CategoryList extends Communication<CategoryListProps, CategoryListS
                         ? 'wm_No permission to load devices'
                         : 'wm_Devices could not be loaded',
                 ),
+                // The mark draws itself and shakes once
+                <IconResult
+                    type={this.state.loadError === 'permission' ? 'warning' : 'error'}
+                    fontSize="large"
+                />,
             );
         }
 

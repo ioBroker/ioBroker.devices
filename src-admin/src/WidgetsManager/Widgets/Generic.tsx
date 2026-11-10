@@ -43,11 +43,10 @@ import {
     SignalCellular2Bar,
     SignalCellular3Bar,
     SignalCellular4Bar,
-    WifiOff,
     type SvgIconComponent,
 } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
-import { I18n, Icon } from '@iobroker/gui-components';
+import { I18n, Icon, IconConnectionState } from '@iobroker/gui-components';
 import moment from 'moment/min/moment-with-locales';
 
 import {
@@ -1396,9 +1395,7 @@ export class WidgetGeneric<
             let unit = '';
             try {
                 const obj = (await this.props.stateContext.getSocket().getObject(id)) as
-                    | ioBroker.StateObject
-                    | null
-                    | undefined;
+                    ioBroker.StateObject | null | undefined;
                 if (obj?.common) {
                     unit = obj.common.unit || '';
                 }
@@ -1932,7 +1929,16 @@ export class WidgetGeneric<
                     title={I18n.t('wm_Unreachable')}
                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
-                    <WifiOff sx={{ fontSize: sz, color: 'error.main' }} />
+                    {/* Same symbol as offline devices in the object browser; the span takes the tooltip ref */}
+                    <Box
+                        component="span"
+                        sx={{ display: 'inline-flex', color: 'error.main' }}
+                    >
+                        <IconConnectionState
+                            state="disconnected"
+                            fontSize={sz}
+                        />
+                    </Box>
                 </Tooltip>,
             );
         }
@@ -2201,8 +2207,7 @@ export class WidgetGeneric<
             .getObject(widgetId)
             .then(obj => {
                 const custom = (obj?.common as Record<string, unknown>)?.custom as
-                    | Record<string, Record<string, unknown>>
-                    | undefined;
+                    Record<string, Record<string, unknown>> | undefined;
                 const settings = custom?.[instanceId];
                 const update: Partial<WidgetGenericState> = {};
                 const ct = settings?.chartType;

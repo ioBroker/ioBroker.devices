@@ -30,7 +30,6 @@ import {
     Close as IconClose,
     Check as IconCheck,
     Add as IconAdd,
-    Publish as IconPublish,
     Edit as IconEdit,
     OpenInNew as IconExtended,
     HelpOutlined as IconHelpOutline,
@@ -51,6 +50,7 @@ import {
     STATES_NAME_ICONS,
     extendDeviceTypeTranslation,
     IconTrash,
+    IconUpload,
 } from '@iobroker/gui-components';
 import ChannelDetector, { type Types, type DetectorState, type ExternalPatternControl } from '@iobroker/type-detector';
 import { removeDuplicateStateIds, removeForeignAliasStates } from '../Devices/SmartDetector';
@@ -1258,7 +1258,7 @@ class DialogEditDevice extends React.Component<DialogEditDeviceProps, DialogEdit
                                 style={{ color: '#e67e229e' }}
                                 onClick={() => this.setState({ newState: true })}
                             >
-                                <IconPublish />
+                                <IconUpload />
                             </IconButton>
                         </Tooltip>
                     )}

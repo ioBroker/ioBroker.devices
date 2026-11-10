@@ -1,6 +1,6 @@
 import React, { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Box, ButtonBase, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, ButtonBase, Collapse, IconButton, Tooltip, Typography } from '@mui/material';
 import {
     Add,
     ArrowBack,
@@ -11,7 +11,6 @@ import {
     DirectionsRun,
     ElectricBolt,
     DragIndicator,
-    ErrorOutlined as ErrorOutline,
     ExpandMore,
     Lightbulb,
     LightbulbOutlined,
@@ -51,7 +50,7 @@ import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from '@d
 import { CSS } from '@dnd-kit/utilities';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, Icon, IconTrash } from '@iobroker/gui-components';
+import { I18n, Icon, IconResult, IconTrash } from '@iobroker/gui-components';
 
 import { detectBrowser } from './SidePanelInstallDialog';
 import {
@@ -1549,7 +1548,12 @@ function GroupedContent(props: {
                                 />
                             ) : null}
                         </Box>
-                        {!group.collapsed ? (
+                        {/* The widgets slide out from under the header; a closed group is still unmounted */}
+                        <Collapse
+                            in={!group.collapsed}
+                            timeout={200}
+                            unmountOnExit
+                        >
                             <GroupSortableGrid
                                 category={category}
                                 items={groupItems}
@@ -1559,7 +1563,7 @@ function GroupedContent(props: {
                                 widgetSettings={widgetSettings}
                                 onToggleFavorite={onToggleFavorite}
                             />
-                        ) : null}
+                        </Collapse>
                     </Box>
                 );
             })}
@@ -2499,7 +2503,12 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         overflow: 'hidden',
                     })}
                 >
-                    <ErrorOutline sx={{ fontSize: 32, color: 'error.main', opacity: 0.7 }} />
+                    {/* The cross draws itself and shakes once */}
+                    <IconResult
+                        type="error"
+                        fontSize={32}
+                        style={{ opacity: 0.7 }}
+                    />
                     <Typography
                         variant="caption"
                         sx={{ color: 'error.main', fontWeight: 500, lineHeight: 1.3 }}
