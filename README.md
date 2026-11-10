@@ -132,6 +132,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
+* (@GermanBluefox) Nested folders under alias.0 keep their place, name and color in the GUI; only folders on the top level are merged with a room of the same name (issue #739)
 * (@GermanBluefox) New widget "Note (Markdown)" for free text like comments or instructions
 * (@GermanBluefox) Updated packages
 * (@GermanBluefox) Animated icons of `@iobroker/gui-components`: the folder buttons "expand/collapse all" show on hover what they will do, the button "clear filter" has the funnel with the cross, the rows of an opened folder slide out, the widget groups open and close animated, and the notices "not active", "no permission" and "could not be loaded" have their own symbol
