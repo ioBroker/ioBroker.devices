@@ -139,7 +139,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     private invalidatedIds: string[] = [];
     /** Lazily rebuilt sorted keys cache */
     private _sortedKeys: string[] | null = null;
-    /** Maps alias.0.X folder IDs to a same-named enum.rooms.* category that should subsume them. */
+    /** Maps top-level alias.0.X folder IDs to a same-named enum.rooms.* category that should subsume them. */
     private aliasFolderRedirects: Map<string, string> = new Map();
 
     // ── Sorted keys cache ──────────────────────────────────────────────
@@ -344,6 +344,7 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
     /**
      * Build alias→enum redirects, replace alias-folder categories with their enum.rooms.*
      * counterpart (re-parenting sub-categories) so the merged room shows up only once.
+     * Only folders directly under alias.0 are merged; nested folders stay where they are.
      */
     private mergeAliasFoldersWithRoomEnums(): void {
         this.aliasFolderRedirects = new Map();
@@ -368,6 +369,10 @@ export default class DevicesWidgetsManagement extends WidgetsManagement<DevicesA
 
         for (const [id] of this.categories) {
             if (!id.startsWith('alias.0.') || this.objects[id]?.type !== 'folder') {
+                continue;
+            }
+            // Nested folders keep their place, name and color in the hierarchy
+            if (getParentId(id) !== 'alias.0') {
                 continue;
             }
             const name = this.getObjectDisplayName(this.objects[id]);
