@@ -105,6 +105,7 @@ import {
     WidgetPresence,
     WidgetPump,
     WidgetEnergyFlow,
+    WidgetMarkdown,
     WidgetGate,
     WidgetPlugin,
     WidgetWebComponent,
@@ -2685,6 +2686,21 @@ export default class Category extends Component<CategoryProps, CategoryState> {
                         stateContext={this.props.stateContext}
                         onOpenSettings={settingsCb}
                         onHide={this.hideCb}
+                    />
+                );
+                break;
+            case 'markdown':
+                content = (
+                    <WidgetMarkdown
+                        key={def.id}
+                        widget={Category.buildCustomWidgetInfo(def)}
+                        settings={def}
+                        stateContext={this.props.stateContext}
+                        onOpenSettings={settingsCb}
+                        onHide={this.hideCb}
+                        openDialogId={this.props.openDialogId}
+                        onOpenWidgetDialog={this.props.onOpenWidgetDialog}
+                        onCloseWidgetDialog={this.props.onCloseWidgetDialog}
                     />
                 );
                 break;

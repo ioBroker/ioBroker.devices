@@ -27,6 +27,7 @@ import ConfigColorLevels from './Components/ConfigColorLevels';
 import ConfigIconSelect from './Components/ConfigIconSelect';
 import ConfigURLSelect from './Components/ConfigURLSelect';
 import ConfigLocationSelect from './Components/ConfigLocationSelect';
+import ConfigMarkdownEditor from './Components/ConfigMarkdownEditor';
 import type StateContext from './StateContext';
 
 interface CustomWidgetSettingsDialogProps {
@@ -117,6 +118,7 @@ const CUSTOM_COMPONENTS: Record<string, typeof ConfigGeneric<ConfigGenericProps,
     iconSelect: ConfigIconSelect,
     urlSelector: ConfigURLSelect,
     locationSelect: ConfigLocationSelect,
+    markdownEditor: ConfigMarkdownEditor,
 };
 
 // --- Dialog ---
