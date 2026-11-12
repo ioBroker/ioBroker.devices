@@ -63,7 +63,7 @@ Full `npm test` requires network access to ioBroker servers — use `test/packag
 | `src-admin/src/Devices/SmartDetector.ts`     | Thin wrapper around `@iobroker/type-detector` with key caching                         |
 | `src-admin/src/Components/helpers/utils.ts`  | Shared utilities: device copying, renaming, ID manipulation                            |
 | `src-admin/src/WidgetsManager/PluginServices.tsx` | Background services of plugins (`common.deviceWidgets.services`), rendered next to the category; which widgets they get: `serviceWidgets.ts` |
-| `src-admin/src/WidgetsManager/webComponents.ts` | Web components of other adapters (`common.webComponents`, contract of `@iobroker/web-components`) as tiles: reading the manifests, tile size, settings; the tile is `Widgets/WidgetWebComponent.tsx` (imports the module when it is shown), its dialogs `Widgets/WebComponentDialogs.tsx` |
+| `src-admin/src/WidgetsManager/webComponents.ts` | Web components of other adapters (`common.webComponents`, contract of `@iobroker/web-components`) as tiles: reading the manifests, tile size, settings (`selectSendTo`/`autocompleteSendTo` without `instance` get `<adapter>.0` of the component, `withSendToInstance`); the tile is `Widgets/WidgetWebComponent.tsx` (imports the module when it is shown), its dialogs `Widgets/WebComponentDialogs.tsx` |
 | `tasks.js`                                   | Build orchestration using `@iobroker/build-tools`                                      |
 | `io-package.json`                            | ioBroker adapter manifest (version, news, dependencies, config)                        |
 

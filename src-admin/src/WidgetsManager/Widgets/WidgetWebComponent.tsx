@@ -342,6 +342,7 @@ export class WidgetWebComponent extends WidgetGeneric<WidgetWebComponentState, C
                         <WebComponentDialogsView
                             dialogs={wcDialogs}
                             stateContext={this.props.stateContext}
+                            adapter={component?.adapter || this.props.settings.wcAdapter}
                         />
                     </React.Suspense>
                 ) : null}

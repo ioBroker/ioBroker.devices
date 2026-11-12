@@ -27,6 +27,7 @@ const {
     getWebComponentValueNames,
     getElementSettings,
     withoutComponentsOfPlugins,
+    withSendToInstance,
 } = load();
 
 const manifest = (extra = {}) => ({
@@ -86,6 +87,58 @@ describe('web components as tiles', () => {
             );
             assert.deepEqual(Object.keys(items), ['_wcGroup_main', 'a', '_wcGroup_more', 'b']);
             assert.equal(items._wcGroup_more.type, 'header');
+        });
+
+        it('lets a selectSendTo without instance ask the adapter of the component, not devices', () => {
+            const items = getWebComponentConfigItems(
+                manifest({
+                    settings: {
+                        type: 'panel',
+                        items: {
+                            location: { type: 'selectSendTo', command: 'getLocations' },
+                            search: { type: 'autocompleteSendTo', command: 'search', freeSolo: true, maxLength: 20 },
+                            diagram: { type: 'selectSendTo', command: 'getDiagrams', instance: '${data.instance}' },
+                            other: { type: 'autocompleteSendTo', instance: 'flow.1' },
+                            title: { type: 'text' },
+                        },
+                    },
+                }),
+                [],
+                'my-adapter',
+            );
+            assert.equal(items.location.instance, 'my-adapter.0');
+            assert.equal(items.location.command, 'getLocations');
+            assert.equal(items.search.instance, 'my-adapter.0');
+            assert.equal(items.search.freeSolo, true);
+            assert.equal(items.search.maxLength, 20);
+            // an instance of its own stays, a pattern too - JSON-Config fills it
+            assert.equal(items.diagram.instance, '${data.instance}');
+            assert.equal(items.other.instance, 'flow.1');
+            assert.equal(items.title.instance, undefined);
+        });
+
+        it('leaves the manifest as it is', () => {
+            const m = manifest({
+                settings: { type: 'panel', items: { location: { type: 'selectSendTo', command: 'getLocations' } } },
+            });
+            getWebComponentConfigItems(m, [], 'my-adapter');
+            assert.equal(m.settings.items.location.instance, undefined);
+        });
+
+        it('sets the instance in the fields of a form, also in nested panels', () => {
+            const form = {
+                a: { type: 'selectSendTo', command: 'list' },
+                more: { type: 'panel', items: { b: { type: 'autocompleteSendTo', command: 'list' } } },
+                c: { type: 'text' },
+            };
+            const items = withSendToInstance(form, 'flow');
+            assert.equal(items.a.instance, 'flow.0');
+            assert.equal(items.more.items.b.instance, 'flow.0');
+            assert.equal(form.a.instance, undefined);
+            assert.equal(form.more.items.b.instance, undefined);
+            // nothing to set: the same object
+            const plain = { c: { type: 'text' } };
+            assert.equal(withSendToInstance(plain, 'flow'), plain);
         });
 
         it('knows which settings carry a value', () => {

@@ -120,6 +120,11 @@ Delete Device: Click the trash can icon to remove a virtual device. This does no
 
 Organize Devices: Use categories to group devices (e.g., "Lighting", "Heating") for easier management in visualizations.
 
+### Web components of other adapters
+Adapters can bring web components (`common.webComponents`, see [`@iobroker/web-components`](https://github.com/ioBroker/web-components)). In the edit mode, "Add widget" lists them with the widgets of their adapter, and a component becomes a tile like any other widget.
+
+The settings dialog of such a tile shows the size and the color of the tile and then the settings of the component, rendered by JSON-Config. A setting of type `selectSendTo` or `autocompleteSendTo` gets its options from the adapter via `sendTo`, as in JSON-Config. Without `instance` in the setting, devices asks the first instance of the adapter that brings the component (`<adapter>.0`), not `devices.0`. The same applies to the forms a component opens as a dialog.
+
 ## Type of devices
 This adapter is built with the help of `type-detector`. All possible devices could be found [here](https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md) 
 
@@ -131,6 +136,9 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Web components: the settings types `selectSendTo` and `autocompleteSendTo` (`@iobroker/web-components` 0.8.0) ask the adapter that brings the component (`<adapter>.0`) when the setting names no `instance`, and not devices itself; also in the forms a component opens as a dialog
+
 ### 4.3.2 (2026-11-10)
 * (@GermanBluefox) Nested folders under alias.0 keep their place, name and color in the GUI; only folders on the top level are merged with a room of the same name (issue #739)
 * (@GermanBluefox) New widget "Note (Markdown)" for free text like comments or instructions

@@ -4,13 +4,13 @@
  *
  * Loaded on demand: a page whose components never ask for a dialog does not fetch it.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Close } from '@mui/icons-material';
 
 import { I18n, type IobTheme } from '@iobroker/gui-components';
-import { JsonConfigComponent, type ConfigItemPanel } from '@iobroker/json-config';
+import { JsonConfigComponent, type ConfigItemAny } from '@iobroker/json-config';
 import type { AdminConnection } from '@iobroker/socket-client';
 import {
     DECORATION_TYPES,
@@ -26,6 +26,7 @@ import {
 } from '@iobroker/web-components';
 
 import type { IStateContext } from '../../../../packages/dm-widgets/src/index';
+import { withSendToInstance } from '../webComponents';
 
 /** One open dialog and how it ends */
 export interface OpenWebComponentDialog {
@@ -37,6 +38,8 @@ export interface OpenWebComponentDialog {
 interface WebComponentDialogsProps {
     dialogs: OpenWebComponentDialog[];
     stateContext: IStateContext;
+    /** The adapter that brings the component: a `selectSendTo` of a form without `instance` asks it */
+    adapter: string;
 }
 
 function text(value: WebComponentText | undefined, lang: ioBroker.Languages): string {
@@ -116,13 +119,17 @@ function ElementDialog(props: {
     );
 }
 
-/** A form from a JSON-Config panel, rendered by JSON-Config itself; the values come back typed as the form says */
+/**
+ * A form from a JSON-Config panel, rendered by JSON-Config itself; the values come back typed as the form says.
+ * A `selectSendTo` or `autocompleteSendTo` without `instance` asks `<adapter>.0`, not devices.
+ */
 function FormDialog(props: {
     request: WebComponentFormDialog;
     resolve: (result: unknown) => void;
     stateContext: IStateContext;
+    adapter: string;
 }): React.JSX.Element {
-    const { request, resolve, stateContext } = props;
+    const { request, resolve, stateContext, adapter } = props;
     const theme = useTheme<IobTheme>();
     const lang = stateContext.language;
     // the values to start with: what the component hands over, else the defaults
@@ -136,6 +143,13 @@ function FormDialog(props: {
         return values;
     });
     const instanceId = stateContext.instanceId || 'devices.0';
+    const schema = useMemo(
+        () => ({
+            ...request.form,
+            items: withSendToInstance((request.form.items || {}) as Record<string, ConfigItemAny>, adapter),
+        }),
+        [request.form, adapter],
+    );
 
     const submit = (): void => resolve(toSettings(getPanelSettingTypes(request.form), data));
 
@@ -159,7 +173,7 @@ function FormDialog(props: {
                     instance={parseInt(instanceId.match(/\.(\d+)$/)?.[1] || '0', 10)}
                     isFloatComma={stateContext.isFloatComma}
                     dateFormat={stateContext.dateFormat}
-                    schema={request.form as unknown as ConfigItemPanel}
+                    schema={schema}
                     data={data}
                     onError={() => {}}
                     onChange={(newData: Record<string, unknown> | null) => newData && setData(newData)}
@@ -197,6 +211,7 @@ export default function WebComponentDialogs(props: WebComponentDialogsProps): Re
                         request={dialog.request}
                         resolve={dialog.resolve}
                         stateContext={props.stateContext}
+                        adapter={props.adapter}
                     />
                 ) : (
                     <ElementDialog

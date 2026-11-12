@@ -15,9 +15,11 @@ import {
     getSettingTypes,
     getWebComponentSources,
     loadWebComponents,
+    SEND_TO_TYPES,
     toSettings,
     type LoadedWebComponent,
     type WebComponentManifest,
+    type WebComponentSettingType,
     type WebComponentSettings,
 } from '@iobroker/web-components';
 
@@ -103,15 +105,59 @@ export function getTileSize(manifest: WebComponentManifest): TileSize {
 }
 
 /**
+ * The fields of a form for JSON-Config, with the instance a `selectSendTo` or `autocompleteSendTo` asks.
+ *
+ * JSON-Config asks the instance being configured when a setting names none - in devices that would be devices
+ * itself. A component has no instance of its own: the contract of `@iobroker/web-components` says it asks the
+ * first instance of the adapter that brings the component, `<adapter>.0`. A setting that names an instance (also a
+ * pattern like `${data.instance}`) keeps it. Panels in the form are walked through.
+ *
+ * @param items the fields, as in the manifest or the form; not changed
+ * @param adapter the adapter that brings the component
+ */
+export function withSendToInstance(
+    items: Record<string, ConfigItemAny>,
+    adapter: string,
+): Record<string, ConfigItemAny> {
+    let result: Record<string, ConfigItemAny> | null = null;
+    for (const [key, item] of Object.entries(items)) {
+        if (!item || typeof item !== 'object') {
+            continue;
+        }
+        let changed: ConfigItemAny | null = null;
+        const setting = item as { type?: string; instance?: unknown; items?: Record<string, ConfigItemAny> };
+        const nested = setting.items;
+        if (SEND_TO_TYPES.includes(setting.type as WebComponentSettingType)) {
+            if (!setting.instance && adapter) {
+                changed = { ...item, instance: `${adapter}.0` } as ConfigItemAny;
+            }
+        } else if (nested && typeof nested === 'object') {
+            const inner = withSendToInstance(nested, adapter);
+            if (inner !== nested) {
+                changed = { ...item, items: inner } as ConfigItemAny;
+            }
+        }
+        if (changed) {
+            result ||= { ...items };
+            result[key] = changed;
+        }
+    }
+    return result || items;
+}
+
+/**
  * The fields of the component for the settings dialog: all groups in one panel, as the dialog of devices has no
- * tabs for a widget. A group gets a header, so that the fields stay apart.
+ * tabs for a widget. A group gets a header, so that the fields stay apart. A `selectSendTo` or
+ * `autocompleteSendTo` without `instance` asks the adapter of the component (see `withSendToInstance`).
  *
  * @param manifest the manifest of the component
  * @param reserved names the dialog uses for the tile itself; a setting of the same name cannot be shown
+ * @param adapter the adapter that brings the component
  */
 export function getWebComponentConfigItems(
     manifest: WebComponentManifest,
     reserved: string[],
+    adapter: string,
 ): Record<string, ConfigItemAny> {
     const items: Record<string, ConfigItemAny> = {};
     const groups = getSettingsGroups(manifest);
@@ -125,7 +171,7 @@ export function getWebComponentConfigItems(
             }
         }
     }
-    return items;
+    return withSendToInstance(items, adapter);
 }
 
 /**

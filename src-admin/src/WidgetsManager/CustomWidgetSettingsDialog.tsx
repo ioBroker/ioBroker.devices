@@ -77,7 +77,10 @@ function getWebComponentConfig(def: CustomWidgetWebComponent, lang: ioBroker.Lan
     }
     items.color = { ...BASE_WIDGET_ITEMS.color, sm: 12 };
     if (component) {
-        Object.assign(items, getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS)));
+        Object.assign(
+            items,
+            getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS), component.adapter),
+        );
     }
     return {
         type: 'panel',
@@ -98,7 +101,7 @@ function getWebComponentDefaults(def: CustomWidgetBase): Map<string, unknown> {
     }
     const component = getLoadedWebComponent((def as CustomWidgetWebComponent).wcTag);
     if (component) {
-        const items = getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS));
+        const items = getWebComponentConfigItems(component.manifest, Object.keys(BASE_WIDGET_ITEMS), component.adapter);
         for (const name of getWebComponentValueNames(component.manifest)) {
             if (items[name]) {
                 defaults.set(name, (items[name] as { default?: unknown }).default);
