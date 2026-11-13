@@ -1,4 +1,7 @@
 # Older changes
+## 4.2.6 (2026-10-22)
+* (@GermanBluefox) Better devices detection
+
 ## 4.2.5 (2026-10-14)
 * (@GermanBluefox) A changed role of a datapoint is applied to its widget immediately, not only after an adapter restart
 * (@GermanBluefox) Picking a hue for a white RGB lamp sets the full color, instead of staying white until the saturation is moved

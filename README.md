@@ -136,7 +136,7 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 4.4.0 (2026-11-13)
 * (@GermanBluefox) Web components: the settings types `selectSendTo` and `autocompleteSendTo` (`@iobroker/web-components` 0.8.0) ask the adapter that brings the component (`<adapter>.0`) when the setting names no `instance`, and not devices itself; also in the forms a component opens as a dialog
 * (@GermanBluefox) Fixed: a setting of type `selectSendTo` no longer spins forever when the instance does not answer - it shows a text field, so the value stays editable (`@iobroker/json-config` 10.1.22)
 
@@ -167,9 +167,6 @@ This adapter is built with the help of `type-detector`. All possible devices cou
 
 ### 4.2.7 (2026-10-25)
 * (@GermanBluefox) Added widget for the device type `tv` with a remote control dialog
-
-### 4.2.6 (2026-10-22)
-* (@GermanBluefox) Better devices detection
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
